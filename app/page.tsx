@@ -24,7 +24,7 @@ import { UI_CONSTS } from "@/lib/uiConsts";
 type FriendDetailTab = "message" | "profile";
 type TransitionPhase = "idle" | "resetting";
 
-const DEFAULT_EQUIPMENT_PART_ID = EQUIPMENT_PARTS[0]?.id ?? "";
+const DEFAULT_EQUIPMENT_PART_ID: string | null = null;
 const DEFAULT_FRIEND_ID: string | null = null;
 
 const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string> = {
@@ -38,7 +38,7 @@ const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string> = {
 function buildPanels(
   selectedMain: MainNavId,
   selectedSubByMain: Record<MainNavId, string>,
-  selectedEquipmentPartId: string,
+  selectedEquipmentPartId: string | null,
   selectedFriendId: string | null,
 ): PanelStackItem[] {
   const mainItems = SUBMENUS_BY_MAIN[selectedMain];
@@ -81,15 +81,16 @@ function buildPanels(
 
   if (selectedMain === "equipment") {
     if (selectedMainSub === "parts") {
-      const selectedPart =
-        EQUIPMENT_PARTS.find((item) => item.id === selectedEquipmentPartId) ?? EQUIPMENT_PARTS[0];
+      const selectedPart = selectedEquipmentPartId
+        ? EQUIPMENT_PARTS.find((item) => item.id === selectedEquipmentPartId) ?? null
+        : null;
 
       panels.push({
         id: "equipment-parts",
         kind: "menu",
         title: "Parts",
         items: EQUIPMENT_PARTS,
-        selectedId: selectedPart?.id,
+        selectedId: selectedEquipmentPartId ?? undefined,
         context: { main: "equipment", sub: "parts" },
       });
 
@@ -192,7 +193,6 @@ function buildInitialStack(
   selectedMain: MainNavId,
 ): PanelStackItem[] {
   const mainItems = SUBMENUS_BY_MAIN[selectedMain];
-  const selectedMainSub = mainItems[0]?.id;
 
   return [
     {
@@ -200,7 +200,7 @@ function buildInitialStack(
       kind: "menu",
       title: MAIN_PANEL_TITLES[selectedMain],
       items: mainItems,
-      selectedId: selectedMainSub,
+      selectedId: undefined,
       context: { main: selectedMain },
     },
   ];
@@ -211,7 +211,7 @@ export default function Home() {
   const [selectedSubByMain, setSelectedSubByMain] =
     useState<Record<MainNavId, string>>(DEFAULT_SUB_SELECTIONS);
   const [selectedEquipmentPartId, setSelectedEquipmentPartId] =
-    useState<string>(DEFAULT_EQUIPMENT_PART_ID);
+    useState<string | null>(DEFAULT_EQUIPMENT_PART_ID);
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(DEFAULT_FRIEND_ID);
   const [friendDetailTab, setFriendDetailTab] = useState<FriendDetailTab>("message");
   const [friendMessageDraft, setFriendMessageDraft] = useState("");
@@ -267,16 +267,21 @@ export default function Home() {
     if (panel.kind === "menu") {
       if (!panel.context.sub) {
         const nextSubByMain = { ...selectedSubByMain, [panel.context.main]: itemId };
+        const nextEquipmentPartId =
+          panel.context.main === "equipment" ? null : selectedEquipmentPartId;
         const nextFriendId =
           panel.context.main === "friend" ? null : selectedFriendId;
 
         setSelectedSubByMain(nextSubByMain);
+        if (panel.context.main === "equipment") {
+          setSelectedEquipmentPartId(null);
+        }
         if (panel.context.main === "friend") {
           setSelectedFriendId(null);
           setFriendDetailTab("message");
         }
         setPanelStack(
-          buildPanels(selectedMain, nextSubByMain, selectedEquipmentPartId, nextFriendId),
+          buildPanels(selectedMain, nextSubByMain, nextEquipmentPartId, nextFriendId),
         );
         return;
       }
