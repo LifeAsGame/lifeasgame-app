@@ -92,19 +92,46 @@ export const EQUIPMENT_PARTS: PanelMenuItem[] = [
   { id: "boots", label: "Boots", slotLabel: "BT" },
 ];
 
-export const OWNED_EQUIPMENT_ROWS = [
+const OWNED_EQUIPMENT_BASE_ROWS = [
   "Elucidator Replica / +7",
   "Night Cloak / Rare",
   "Silver Ring / AGI +2",
   "Field Boots / DEF +1",
 ] as const;
 
-export const PLAYER_ITEMS_ROWS = [
+export const OWNED_EQUIPMENT_ROWS = [
+  ...OWNED_EQUIPMENT_BASE_ROWS,
+  ...Array.from({ length: 36 }, (_, index) => {
+    const slot = index + 5;
+    const rarityCycle = ["Common", "Uncommon", "Rare", "Epic"] as const;
+    const rarity = rarityCycle[index % rarityCycle.length];
+    return `Inventory Slot ${slot.toString().padStart(2, "0")} / ${rarity} Gear`;
+  }),
+];
+
+const PLAYER_ITEMS_BASE_ROWS = [
   "Potion x12",
   "Teleport Crystal x3",
   "Bread x6",
   "Quest Token x1",
 ] as const;
+
+export const PLAYER_ITEMS_ROWS: readonly string[] = [
+  ...PLAYER_ITEMS_BASE_ROWS,
+  ...Array.from({ length: 72 }, (_, index) => {
+    const slot = index + 5;
+    const itemCycle = [
+      "Healing Herb Bundle",
+      "Throwing Dagger",
+      "Antidote Vial",
+      "Teleport Fragment",
+      "Iron Ingot",
+      "Quest Material",
+    ] as const;
+    const itemName = itemCycle[index % itemCycle.length];
+    return `${itemName} x${(index % 9) + 1} / Slot ${slot.toString().padStart(2, "0")}`;
+  }),
+];
 
 export const PLAYER_SKILLS_ROWS = [
   "One-Handed Sword / Lv. 14",
@@ -131,7 +158,7 @@ export const SYSTEM_ROWS: Record<string, readonly string[]> = {
   logout: ["Safe Zone Check", "Character Save", "Logout Confirmation"],
 };
 
-export const FRIENDS: FriendEntry[] = [
+const FRIENDS_BASE: FriendEntry[] = [
   {
     id: "asuna",
     name: "Asuna",
@@ -160,6 +187,25 @@ export const FRIENDS: FriendEntry[] = [
     status: "offline",
     note: "Last online 1d ago",
   },
+];
+
+export const FRIENDS: FriendEntry[] = [
+  ...FRIENDS_BASE,
+  ...Array.from({ length: 36 }, (_, index) => {
+    const idNum = index + 1;
+    const statusCycle: FriendEntry["status"][] = ["online", "away", "offline"];
+    const status = statusCycle[index % statusCycle.length];
+    const roleCycle = ["Field Farm", "Dungeon Run", "Shop Duty", "Guild Quest"] as const;
+    const role = roleCycle[index % roleCycle.length];
+
+    return {
+      id: `friend-${idNum.toString().padStart(2, "0")}`,
+      name: `Player ${idNum.toString().padStart(2, "0")}`,
+      level: 18 + (index % 42),
+      status,
+      note: `${role} / Floor ${(index % 10) + 1}`,
+    };
+  }),
 ];
 
 export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {

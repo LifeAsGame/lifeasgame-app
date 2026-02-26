@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import LeftContext from "@/components/LeftContext";
 import OrbNav from "@/components/OrbNav";
 import RightPanels from "@/components/RightPanels";
-import type { MainNavId, PanelStackItem } from "@/lib/nav";
+import { usePanScroll } from "@/hooks/usePanScroll";
+import type { MainNavId, PanelMenuItem, PanelStackItem } from "@/lib/nav";
 import {
   EQUIPMENT_PARTS,
   FRIENDS,
@@ -19,13 +20,19 @@ import {
   SUBMENUS_BY_MAIN,
   SYSTEM_ROWS,
 } from "@/lib/nav";
+import { bringToFrontStable } from "@/lib/reorder";
 import { UI_CONSTS } from "@/lib/uiConsts";
 
 type FriendDetailTab = "message" | "profile";
 type TransitionPhase = "idle" | "resetting";
+type SurfaceFocusState = {
+  counter: number;
+  lastFocusBySurface: Record<string, number>;
+};
 
 const DEFAULT_EQUIPMENT_PART_ID: string | null = null;
 const DEFAULT_FRIEND_ID: string | null = null;
+const DEFAULT_PLAYER_ITEM_ID: string | null = null;
 
 const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string> = {
   player: SUBMENUS_BY_MAIN.player[0].id,
@@ -35,11 +42,24 @@ const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string> = {
   system: SUBMENUS_BY_MAIN.system[0].id,
 };
 
+const SURFACE_GROUP_BASE_Z = {
+  left: 100000,
+  nav: 200000,
+  panels: 300000,
+} as const;
+
+const PLAYER_ITEM_MENU_ITEMS: PanelMenuItem[] = PLAYER_ITEMS_ROWS.map((row, index) => ({
+  id: `player-item-${(index + 1).toString().padStart(3, "0")}`,
+  label: row,
+  slotLabel: (index + 1).toString().padStart(2, "0"),
+}));
+
 function buildPanels(
   selectedMain: MainNavId,
   selectedSubByMain: Record<MainNavId, string>,
   selectedEquipmentPartId: string | null,
   selectedFriendId: string | null,
+  selectedPlayerItemId: string | null,
 ): PanelStackItem[] {
   const mainItems = SUBMENUS_BY_MAIN[selectedMain];
   const selectedMainSub =
@@ -61,12 +81,38 @@ function buildPanels(
   }
 
   if (selectedMain === "player") {
-    const rows =
-      selectedMainSub === "items"
-        ? PLAYER_ITEMS_ROWS
-        : selectedMainSub === "skills"
-          ? PLAYER_SKILLS_ROWS
-          : PLAYER_EQUIPMENT_ROWS;
+    if (selectedMainSub === "items") {
+      const selectedPlayerItem = selectedPlayerItemId
+        ? PLAYER_ITEM_MENU_ITEMS.find((item) => item.id === selectedPlayerItemId) ?? null
+        : null;
+
+      panels.push({
+        id: "player-items-list",
+        kind: "menu",
+        title: "Items",
+        items: PLAYER_ITEM_MENU_ITEMS,
+        selectedId: selectedPlayerItemId ?? undefined,
+        context: { main: "player", sub: "items-list" },
+      });
+
+      if (selectedPlayerItem) {
+        panels.push({
+          id: `player-item-detail-${selectedPlayerItem.id}`,
+          kind: "placeholder",
+          title: "Item Detail",
+          description: `${selectedPlayerItem.label}`,
+          rows: [
+            "Type: Inventory Item",
+            "Status: Selectable Row (MVP)",
+            "Action: Use / Inspect (placeholder)",
+          ],
+        });
+      }
+
+      return panels;
+    }
+
+    const rows = selectedMainSub === "skills" ? PLAYER_SKILLS_ROWS : PLAYER_EQUIPMENT_ROWS;
 
     panels.push({
       id: `player-${selectedMainSub}`,
@@ -207,12 +253,16 @@ function buildInitialStack(
 }
 
 export default function Home() {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  usePanScroll(viewportRef);
+
   const [selectedMain, setSelectedMain] = useState<MainNavId>("player");
   const [selectedSubByMain, setSelectedSubByMain] =
     useState<Record<MainNavId, string>>(DEFAULT_SUB_SELECTIONS);
   const [selectedEquipmentPartId, setSelectedEquipmentPartId] =
     useState<string | null>(DEFAULT_EQUIPMENT_PART_ID);
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(DEFAULT_FRIEND_ID);
+  const [selectedPlayerItemId, setSelectedPlayerItemId] = useState<string | null>(DEFAULT_PLAYER_ITEM_ID);
   const [friendDetailTab, setFriendDetailTab] = useState<FriendDetailTab>("message");
   const [friendMessageDraft, setFriendMessageDraft] = useState("");
   const [profileRecordDraft, setProfileRecordDraft] = useState("");
@@ -224,9 +274,34 @@ export default function Home() {
   const [panelStackVersion, setPanelStackVersion] = useState(0);
   const [transitionPhase, setTransitionPhase] = useState<TransitionPhase>("idle");
   const [pendingMain, setPendingMain] = useState<MainNavId | null>(null);
+  const [surfaceFocusState, setSurfaceFocusState] = useState<SurfaceFocusState>({
+    counter: 1,
+    lastFocusBySurface: {},
+  });
+  const navSelectedId = pendingMain ?? selectedMain;
+  const orderedNavItems = bringToFrontStable(MAIN_NAV_ITEMS, navSelectedId, (item) => item.id);
+
+  const bringSurfaceToFront = (surfaceId: string) => {
+    setSurfaceFocusState((prev) => {
+      const nextCounter = prev.counter + 1;
+      return {
+        counter: nextCounter,
+        lastFocusBySurface: {
+          ...prev.lastFocusBySurface,
+          [surfaceId]: nextCounter,
+        },
+      };
+    });
+  };
+
+  const getSurfaceZIndex = (surfaceId: string, groupBaseZ: number, layerBaseZ = 0) =>
+    groupBaseZ + layerBaseZ + (surfaceFocusState.lastFocusBySurface[surfaceId] ?? 0);
 
   const handleMainSelect = (nextMain: MainNavId) => {
     if (transitionPhase === "resetting") {
+      return;
+    }
+    if (nextMain === selectedMain) {
       return;
     }
 
@@ -246,6 +321,7 @@ export default function Home() {
     setSelectedSubByMain(resetSubSelections);
     setSelectedEquipmentPartId(DEFAULT_EQUIPMENT_PART_ID);
     setSelectedFriendId(DEFAULT_FRIEND_ID);
+    setSelectedPlayerItemId(DEFAULT_PLAYER_ITEM_ID);
     setFriendDetailTab("message");
     setFriendMessageDraft("");
     setProfileRecordDraft("");
@@ -271,8 +347,13 @@ export default function Home() {
           panel.context.main === "equipment" ? null : selectedEquipmentPartId;
         const nextFriendId =
           panel.context.main === "friend" ? null : selectedFriendId;
+        const nextPlayerItemId =
+          panel.context.main === "player" ? null : selectedPlayerItemId;
 
         setSelectedSubByMain(nextSubByMain);
+        if (panel.context.main === "player") {
+          setSelectedPlayerItemId(null);
+        }
         if (panel.context.main === "equipment") {
           setSelectedEquipmentPartId(null);
         }
@@ -281,14 +362,42 @@ export default function Home() {
           setFriendDetailTab("message");
         }
         setPanelStack(
-          buildPanels(selectedMain, nextSubByMain, nextEquipmentPartId, nextFriendId),
+          buildPanels(
+            selectedMain,
+            nextSubByMain,
+            nextEquipmentPartId,
+            nextFriendId,
+            nextPlayerItemId,
+          ),
+        );
+        return;
+      }
+
+      if (panel.context.main === "player" && panel.context.sub === "items-list") {
+        setSelectedPlayerItemId(itemId);
+        setPanelStack(
+          buildPanels(
+            selectedMain,
+            selectedSubByMain,
+            selectedEquipmentPartId,
+            selectedFriendId,
+            itemId,
+          ),
         );
         return;
       }
 
       if (panel.context.main === "equipment" && panel.context.sub === "parts") {
         setSelectedEquipmentPartId(itemId);
-        setPanelStack(buildPanels(selectedMain, selectedSubByMain, itemId, selectedFriendId));
+        setPanelStack(
+          buildPanels(
+            selectedMain,
+            selectedSubByMain,
+            itemId,
+            selectedFriendId,
+            selectedPlayerItemId,
+          ),
+        );
       }
       return;
     }
@@ -296,7 +405,15 @@ export default function Home() {
     if (panel.kind === "friends") {
       setSelectedFriendId(itemId);
       setFriendDetailTab("message");
-      setPanelStack(buildPanels(selectedMain, selectedSubByMain, selectedEquipmentPartId, itemId));
+      setPanelStack(
+        buildPanels(
+          selectedMain,
+          selectedSubByMain,
+          selectedEquipmentPartId,
+          itemId,
+          selectedPlayerItemId,
+        ),
+      );
     }
   };
 
@@ -306,7 +423,8 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen overflow-x-auto"
+      ref={viewportRef}
+      className="h-screen overflow-auto"
       style={{
         background:
           "radial-gradient(circle at 18% 20%, rgba(82, 127, 214, 0.12), transparent 42%), radial-gradient(circle at 80% 18%, rgba(247, 191, 78, 0.06), transparent 36%), linear-gradient(180deg, #07090d 0%, #090b10 38%, #0a0c11 100%)",
@@ -323,18 +441,25 @@ export default function Home() {
           paddingRight: UI_CONSTS.layout.canvasEndPaddingX,
         }}
       >
-        <LeftContext active={selectedMain === "player"} isResetting={transitionPhase === "resetting"} />
+        <LeftContext
+          active={selectedMain === "player"}
+          isResetting={transitionPhase === "resetting"}
+          onFocus={() => bringSurfaceToFront("left-context")}
+          zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
+        />
 
         <div className="shrink-0" style={{ width: UI_CONSTS.layout.centerWidth }}>
           <OrbNav
-            items={MAIN_NAV_ITEMS}
-            selectedId={selectedMain}
+            items={orderedNavItems}
+            selectedId={navSelectedId}
             onSelect={handleMainSelect}
+            onFocus={() => bringSurfaceToFront("orb-nav")}
+            zIndex={getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav)}
           />
         </div>
 
         <div
-          className="min-w-0 flex-1 overflow-x-auto"
+          className="scrollbar-hide min-w-0 flex-1 overflow-x-auto"
           style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}
         >
           <RightPanels
@@ -343,6 +468,10 @@ export default function Home() {
             panelStackKey={`${selectedMain}-${panelStackVersion}`}
             isResetting={transitionPhase === "resetting"}
             onPanelStackExitComplete={handlePanelStackExitComplete}
+            onPanelFocus={(panelIndex) => bringSurfaceToFront(`panel-slot-${panelIndex}`)}
+            getPanelZIndex={(panelIndex) =>
+              getSurfaceZIndex(`panel-slot-${panelIndex}`, SURFACE_GROUP_BASE_Z.panels, panelIndex * 10)
+            }
             onPanelItemSelect={handlePanelItemSelect}
             friendDetailTab={friendDetailTab}
             onFriendDetailTabChange={setFriendDetailTab}

@@ -4,8 +4,10 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import type { MainNavId, PanelStackItem } from "@/lib/nav";
 import { MOTION } from "@/lib/motion";
+import { reorderToCenter } from "@/lib/reorder";
 import { UI_CONSTS } from "@/lib/uiConsts";
 
+import EdgeFadeScrollArea from "./EdgeFadeScrollArea";
 import PanelCard from "./PanelCard";
 
 type FriendDetailTab = "message" | "profile";
@@ -16,6 +18,8 @@ type RightPanelsProps = {
   panelStackKey: string;
   isResetting?: boolean;
   onPanelStackExitComplete?: () => void;
+  onPanelFocus?: (panelIndex: number, panelId: string) => void;
+  getPanelZIndex?: (panelIndex: number, panelId: string) => number;
   onPanelItemSelect: (panelIndex: number, itemId: string) => void;
   friendDetailTab: FriendDetailTab;
   onFriendDetailTabChange: (tab: FriendDetailTab) => void;
@@ -48,9 +52,11 @@ function panelFrameStyle() {
 function PanelFrame({
   title,
   children,
+  centerTargetKey,
 }: {
   title: string;
   children: React.ReactNode;
+  centerTargetKey?: string | null;
 }) {
   return (
     <div className="relative overflow-hidden rounded-[2px]" style={panelFrameStyle()}>
@@ -67,8 +73,11 @@ function PanelFrame({
           {title}
         </h3>
       </div>
-      <div
-        className="scrollbar-hide relative z-10 overflow-y-auto"
+      <EdgeFadeScrollArea
+        data-no-pan
+        className="scrollbar-hide"
+        centerTargetSelector='[data-scroll-center-target="true"]'
+        centerTargetKey={centerTargetKey ?? null}
         style={{
           maxHeight: "min(62vh, 560px)",
           paddingLeft: UI_CONSTS.rightPanels.panelContentPaddingX,
@@ -80,7 +89,7 @@ function PanelFrame({
         }}
       >
         {children}
-      </div>
+      </EdgeFadeScrollArea>
     </div>
   );
 }
@@ -110,16 +119,39 @@ function PanelContent({
   savedProfileRecord: string;
   onSaveProfileRecord: () => void;
 }) {
+  const isScrollableDataMenu =
+    panel.kind === "menu" &&
+    panel.context.main === "player" &&
+    panel.context.sub === "items-list";
+
+  const menuItemsForRender =
+    panel.kind === "menu"
+      ? isScrollableDataMenu
+        ? panel.items
+        : reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id)
+      : null;
+  const listCenterTargetKey =
+    panel.kind === "friends" || isScrollableDataMenu ? (panel.selectedId ?? null) : null;
+
   return (
-    <PanelFrame title={panel.title}>
+    <PanelFrame title={panel.title} centerTargetKey={listCenterTargetKey}>
       {panel.kind === "menu" ? (
-        <div style={{ display: "grid", rowGap: UI_CONSTS.rightPanels.rowGap }}>
-          {panel.items.map((item, itemIndex) => (
+        <div
+          className="mx-auto"
+          style={{
+            width: UI_CONSTS.rightPanels.listRailWidth,
+            display: "grid",
+            rowGap: UI_CONSTS.rightPanels.rowGap,
+          }}
+        >
+          {menuItemsForRender?.map((item, itemIndex) => (
             <PanelCard
               key={item.id}
               label={item.label}
               slotLabel={item.slotLabel}
               selected={panel.selectedId === item.id}
+              centerTarget={isScrollableDataMenu && panel.selectedId === item.id}
+              compact={isScrollableDataMenu}
               index={itemIndex}
               onClick={() => onPanelItemSelect(panelIndex, item.id)}
             />
@@ -128,7 +160,14 @@ function PanelContent({
       ) : null}
 
       {panel.kind === "friends" ? (
-        <div style={{ display: "grid", rowGap: UI_CONSTS.rightPanels.rowGap }}>
+        <div
+          className="mx-auto"
+          style={{
+            width: UI_CONSTS.rightPanels.listRailWidth,
+            display: "grid",
+            rowGap: UI_CONSTS.rightPanels.rowGap,
+          }}
+        >
           {panel.items.map((friend, itemIndex) => (
             <PanelCard
               key={friend.id}
@@ -136,6 +175,7 @@ function PanelContent({
               slotLabel={friend.name.slice(0, 2).toUpperCase()}
               subtitle={`Lv.${friend.level} · ${friend.status.toUpperCase()}`}
               selected={panel.selectedId === friend.id}
+              centerTarget={panel.selectedId === friend.id}
               index={itemIndex}
               onClick={() => onPanelItemSelect(panelIndex, friend.id)}
             />
@@ -268,6 +308,8 @@ export default function RightPanels({
   panelStackKey,
   isResetting = false,
   onPanelStackExitComplete,
+  onPanelFocus,
+  getPanelZIndex,
   onPanelItemSelect,
   friendDetailTab,
   onFriendDetailTabChange,
@@ -288,7 +330,7 @@ export default function RightPanels({
           exit={MOTION.panelReset.exit}
           transition={MOTION.panelReset.transition}
           className={[
-            "relative flex min-w-0 w-fit flex-row flex-nowrap items-start xl:items-center",
+            "relative flex min-w-0 w-fit flex-row flex-nowrap items-start overflow-x-hidden xl:items-center",
             isResetting ? "pointer-events-none" : "",
           ].join(" ")}
           data-main={selectedMain}
@@ -304,7 +346,9 @@ export default function RightPanels({
           <AnimatePresence initial={false}>
             {panelStack.map((panel, panelIndex) => (
               <motion.div
+                layout="position"
                 key={`panel-slot-${panelIndex}`}
+                onPointerDownCapture={() => onPanelFocus?.(panelIndex, panel.id)}
                 initial={MOTION.panelSlot.initial}
                 animate={MOTION.panelSlot.animate}
                 exit={MOTION.panelSlot.exit}
@@ -312,10 +356,15 @@ export default function RightPanels({
                   ...MOTION.panelSlot.transition,
                   delay: panelIndex * 0.035,
                 }}
-                style={{ willChange: "transform, opacity" }}
+                style={{
+                  willChange: "transform, opacity",
+                  position: "relative",
+                  zIndex: getPanelZIndex?.(panelIndex, panel.id) ?? panelIndex + 1,
+                }}
               >
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
+                    layout="position"
                     key={panel.id}
                     initial={MOTION.panelContentSwap.initial}
                     animate={MOTION.panelContentSwap.animate}

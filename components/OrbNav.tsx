@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 
 import type { MainNavId } from "@/lib/nav";
@@ -19,9 +19,12 @@ type OrbNavProps = {
   items: OrbItem[];
   selectedId: MainNavId;
   onSelect: (id: MainNavId) => void;
+  zIndex?: number;
+  onFocus?: () => void;
 };
 
-export default function OrbNav({ items, selectedId, onSelect }: OrbNavProps) {
+export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }: OrbNavProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const {
     orbSize,
     orbGap,
@@ -39,8 +42,18 @@ export default function OrbNav({ items, selectedId, onSelect }: OrbNavProps) {
     return orbButtonVisual + labelGap + labelHeight + labelPaddingY * 2;
   }, [labelGap, labelHeight, labelPaddingY, orbSize, outerRingPadding]);
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: 0, behavior: "smooth" });
+  }, [selectedId]);
+
   return (
-    <div className="relative flex h-full items-center justify-center">
+    <div
+      className="relative flex h-full items-center justify-center"
+      onPointerDownCapture={onFocus}
+      style={zIndex ? { zIndex } : undefined}
+    >
       <div
         className="relative flex items-center justify-center overflow-hidden rounded-full border border-white/8 bg-white/[0.015] px-3"
         style={{
@@ -55,6 +68,8 @@ export default function OrbNav({ items, selectedId, onSelect }: OrbNavProps) {
           style={{ top: framePaddingY, bottom: framePaddingY }}
         />
         <div
+          ref={scrollRef}
+          data-no-pan
           className="scrollbar-hide relative w-full overflow-y-auto overflow-x-hidden"
           style={{
             height: viewportHeight,
@@ -78,10 +93,14 @@ export default function OrbNav({ items, selectedId, onSelect }: OrbNavProps) {
 
               return (
                 <motion.button
+                  layout="position"
                   key={item.id}
                   type="button"
                   onClick={() => onSelect(item.id)}
                   whileTap={{ scale: 0.988 }}
+                  transition={{
+                    layout: { type: "tween", duration: 0.36, ease: [0.22, 1, 0.36, 1] },
+                  }}
                   className="group relative flex flex-col items-center overflow-visible py-[1px]"
                   style={{ minHeight: itemBlockHeight }}
                   aria-pressed={selected}

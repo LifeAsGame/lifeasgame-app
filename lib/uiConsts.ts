@@ -25,7 +25,9 @@ export const UI_CONSTS = {
     activeGlow: 0.35,
   },
   rightPanels: {
-    panelWidth: 330,
+    // Fixed rail width keeps list edges visually aligned across panel levels.
+    panelWidth: 344,
+    listRailWidth: 304,
     panelGap: 18,
     panelPadding: 12,
     panelHeaderPaddingX: 16,

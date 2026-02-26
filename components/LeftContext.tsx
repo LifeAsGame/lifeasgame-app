@@ -10,9 +10,16 @@ import IconSlot from "./IconSlot";
 type LeftContextProps = {
   active: boolean;
   isResetting?: boolean;
+  zIndex?: number;
+  onFocus?: () => void;
 };
 
-export default function LeftContext({ active, isResetting = false }: LeftContextProps) {
+export default function LeftContext({
+  active,
+  isResetting = false,
+  zIndex,
+  onFocus,
+}: LeftContextProps) {
   const showPlayerContext = active && !isResetting;
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -24,6 +31,7 @@ export default function LeftContext({ active, isResetting = false }: LeftContext
           exit={MOTION.panelReset.exit}
           transition={MOTION.panelReset.transition}
           className="relative h-full min-h-[420px] overflow-hidden rounded-sm border"
+          onPointerDownCapture={onFocus}
           style={{
             width: UI_CONSTS.leftContext.width,
             minHeight: UI_CONSTS.leftContext.minHeight,
@@ -33,6 +41,7 @@ export default function LeftContext({ active, isResetting = false }: LeftContext
             boxShadow:
               "inset 0 0 0 1px rgba(255,255,255,0.55), 0 20px 40px rgba(0,0,0,0.28)",
             willChange: "transform, opacity",
+            zIndex,
           }}
         >
           <div className="absolute inset-0 opacity-[0.09] [background-image:linear-gradient(rgba(0,0,0,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.7)_1px,transparent_1px)] [background-size:24px_24px]" />
