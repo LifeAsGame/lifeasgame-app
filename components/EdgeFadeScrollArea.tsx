@@ -9,6 +9,7 @@ type EdgeFadeScrollAreaProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> 
   fadeColor?: string;
   centerTargetSelector?: string;
   centerTargetKey?: string | number | null;
+  resetScrollKey?: string | number | null;
   centerBehavior?: ScrollBehavior;
 };
 
@@ -50,6 +51,7 @@ export default function EdgeFadeScrollArea({
   fadeColor = "rgba(229, 235, 243, 0.96)",
   centerTargetSelector,
   centerTargetKey = null,
+  resetScrollKey = null,
   centerBehavior = "smooth",
   ...rest
 }: EdgeFadeScrollAreaProps) {
@@ -447,6 +449,23 @@ export default function EdgeFadeScrollArea({
       }
     };
   }, [children]);
+
+  useEffect(() => {
+    let frameId: number | null = null;
+
+    frameId = window.requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      el.scrollTo({ top: 0, behavior: "auto" });
+      updateFadeStateRef.current?.();
+    });
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [resetScrollKey]);
 
   useEffect(() => {
     let frameId: number | null = null;

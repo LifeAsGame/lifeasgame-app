@@ -34,10 +34,12 @@ function PanelFrame({
   title,
   children,
   centerTargetKey,
+  resetScrollKey,
 }: {
   title: string;
   children: React.ReactNode;
   centerTargetKey?: string | null;
+  resetScrollKey?: string | number | null;
 }) {
   return (
     <div className="relative overflow-hidden rounded-[2px]" style={panelFrameStyle()}>
@@ -59,6 +61,7 @@ function PanelFrame({
         className="scrollbar-hide"
         centerTargetSelector='[data-scroll-center-target="true"]'
         centerTargetKey={centerTargetKey ?? null}
+        resetScrollKey={resetScrollKey ?? null}
         style={{
           maxHeight: "min(62vh, 560px)",
           paddingLeft: UI_CONSTS.rightPanels.panelContentPaddingX,
@@ -88,9 +91,11 @@ function PanelContent({
     panel.kind === "menu" ? reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id) : null;
   const centerTargetKey =
     panel.kind === "menu" || panel.kind === "list" ? (panel.selectedId ?? null) : null;
+  const isCompactList =
+    panel.kind === "list" && (panel.items.length >= 40 || panel.context.route === "market-wallet-summary");
 
   return (
-    <PanelFrame title={panel.title} centerTargetKey={centerTargetKey}>
+    <PanelFrame title={panel.title} centerTargetKey={centerTargetKey} resetScrollKey={panel.id}>
       {panel.kind === "menu" ? (
         <div
           className="mx-auto"
@@ -140,7 +145,7 @@ function PanelContent({
                 subtitle={item.subtitle}
                 selected={panel.selectedId === item.id}
                 centerTarget={panel.selectedId === item.id}
-                compact={panel.items.length >= 40}
+                compact={isCompactList}
                 index={itemIndex}
                 onClick={() => onPanelItemSelect(panelIndex, item.id)}
               />

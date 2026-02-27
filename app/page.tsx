@@ -86,16 +86,18 @@ function findById(items: PanelDataItem[], id: string | null) {
   return items.find((item) => item.id === id) ?? null;
 }
 
-function selectedSubForMain(selectedMain: MainNavId, selectedSubByMain: Record<MainNavId, string>) {
+function selectedSubForMain(selectedMain: MainNavId, selectedSubByMain: Record<MainNavId, string | null>) {
   const items = SUBMENUS_BY_MAIN[selectedMain];
-  return items.find((item) => item.id === selectedSubByMain[selectedMain])?.id ?? items[0]?.id ?? null;
+  const selectedSub = selectedSubByMain[selectedMain];
+  if (!selectedSub) return null;
+  return items.find((item) => item.id === selectedSub)?.id ?? null;
 }
 
 function buildPanels(
   selectedMain: MainNavId,
-  selectedSubByMain: Record<MainNavId, string>,
-  selectedInventoryGearPartId: string,
-  selectedMarketShopSectionId: string,
+  selectedSubByMain: Record<MainNavId, string | null>,
+  selectedInventoryGearPartId: string | null,
+  selectedMarketShopSectionId: string | null,
   selectedDetailByKey: Record<DetailSelectionKey, string | null>,
 ): { panelStack: PanelStackItem[]; socialContext: SocialContextData | null } {
   const mainItems = SUBMENUS_BY_MAIN[selectedMain];
@@ -195,19 +197,23 @@ function buildPanels(
 
     if (selectedMainSub === "gear") {
       const selectedPart =
-        INVENTORY_GEAR_PARTS.find((item) => item.id === selectedInventoryGearPartId)?.id ??
-        INVENTORY_GEAR_PARTS[0].id;
-      const gearList = INVENTORY_GEAR_LISTS[selectedPart as keyof typeof INVENTORY_GEAR_LISTS] ?? [];
-      const selectedItem = findById(gearList, selectedDetailByKey.inventoryGear);
+        INVENTORY_GEAR_PARTS.find((item) => item.id === selectedInventoryGearPartId)?.id ?? null;
 
       panelStack.push({
         id: "inventory-gear-part-menu",
         kind: "menu",
         title: "Gear Parts",
         items: INVENTORY_GEAR_PARTS,
-        selectedId: selectedPart,
+        selectedId: selectedPart ?? undefined,
         context: { main: "inventory", route: "inventory-gear-menu" },
       });
+
+      if (!selectedPart) {
+        return { panelStack, socialContext: null };
+      }
+
+      const gearList = INVENTORY_GEAR_LISTS[selectedPart as keyof typeof INVENTORY_GEAR_LISTS] ?? [];
+      const selectedItem = findById(gearList, selectedDetailByKey.inventoryGear);
 
       panelStack.push({
         id: `inventory-gear-list-${selectedPart}`,
@@ -364,17 +370,20 @@ function buildPanels(
 
     if (selectedMainSub === "shop") {
       const selectedShopSub =
-        MARKET_SHOP_SECTIONS.find((item) => item.id === selectedMarketShopSectionId)?.id ??
-        MARKET_SHOP_SECTIONS[0].id;
+        MARKET_SHOP_SECTIONS.find((item) => item.id === selectedMarketShopSectionId)?.id ?? null;
 
       panelStack.push({
         id: "market-shop-menu",
         kind: "menu",
         title: "Shop",
         items: MARKET_SHOP_SECTIONS,
-        selectedId: selectedShopSub,
+        selectedId: selectedShopSub ?? undefined,
         context: { main: "market", route: "market-shop-menu" },
       });
+
+      if (!selectedShopSub) {
+        return { panelStack, socialContext: null };
+      }
 
       if (selectedShopSub === "catalog") {
         const selectedItem = findById(MARKET_SHOP_CATALOG_LIST, selectedDetailByKey.marketCatalog);
@@ -498,15 +507,11 @@ export default function Home() {
   usePanScroll(viewportRef);
 
   const [selectedMain, setSelectedMain] = useState<MainNavId>("player");
-  const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string>>({
+  const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
     ...DEFAULT_SUB_SELECTIONS,
   });
-  const [selectedInventoryGearPartId, setSelectedInventoryGearPartId] = useState(
-    INVENTORY_GEAR_PARTS[0].id,
-  );
-  const [selectedMarketShopSectionId, setSelectedMarketShopSectionId] = useState(
-    MARKET_SHOP_SECTIONS[0].id,
-  );
+  const [selectedInventoryGearPartId, setSelectedInventoryGearPartId] = useState<string | null>(null);
+  const [selectedMarketShopSectionId, setSelectedMarketShopSectionId] = useState<string | null>(null);
   const [selectedDetailByKey, setSelectedDetailByKey] = useState<
     Record<DetailSelectionKey, string | null>
   >(() => createDefaultDetailSelections());
@@ -580,8 +585,8 @@ export default function Home() {
 
     setSelectedMain(nextMain);
     setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS });
-    setSelectedInventoryGearPartId(INVENTORY_GEAR_PARTS[0].id);
-    setSelectedMarketShopSectionId(MARKET_SHOP_SECTIONS[0].id);
+    setSelectedInventoryGearPartId(null);
+    setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
   };
 
@@ -594,10 +599,10 @@ export default function Home() {
         setSelectedSubByMain((prev) => ({ ...prev, [panel.context.main]: itemId }));
         clearDetailSelectionsForMain(panel.context.main);
         if (panel.context.main === "inventory") {
-          setSelectedInventoryGearPartId(INVENTORY_GEAR_PARTS[0].id);
+          setSelectedInventoryGearPartId(null);
         }
         if (panel.context.main === "market") {
-          setSelectedMarketShopSectionId(MARKET_SHOP_SECTIONS[0].id);
+          setSelectedMarketShopSectionId(null);
         }
         return;
       }
@@ -635,7 +640,7 @@ export default function Home() {
       if (panel.context.route === "market-trade-friends") {
         updateDetailSelections({
           marketTradeFriend: itemId,
-          marketTradeAction: MARKET_TRADE_WINDOW_ACTIONS[0].id,
+          marketTradeAction: null,
         });
       }
     }
@@ -697,3 +702,4 @@ export default function Home() {
     </div>
   );
 }
+

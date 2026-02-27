@@ -154,15 +154,15 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
   ],
 };
 
-export const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string> = {
-  player: "achievement",
-  skills: "passive",
-  inventory: "items",
-  quests: "story",
-  social: "party",
-  lifelog: "collection",
-  market: "wallet",
-  system: "options",
+export const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string | null> = {
+  player: null,
+  skills: null,
+  inventory: null,
+  quests: null,
+  social: null,
+  lifelog: null,
+  market: null,
+  system: null,
 };
 
 export const INVENTORY_GEAR_PARTS: PanelMenuItem[] = [
@@ -461,3 +461,4 @@ export const SYSTEM_PANEL_ROWS: Record<Exclude<SystemSubId, "logout">, {
     ],
   },
 };
+
