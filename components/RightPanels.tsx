@@ -10,32 +10,14 @@ import { UI_CONSTS } from "@/lib/uiConsts";
 import EdgeFadeScrollArea from "./EdgeFadeScrollArea";
 import PanelCard from "./PanelCard";
 
-type FriendDetailTab = "message" | "profile";
-
 type RightPanelsProps = {
   selectedMain: MainNavId;
   panelStack: PanelStackItem[];
   panelStackKey: string;
-  isResetting?: boolean;
-  onPanelStackExitComplete?: () => void;
   onPanelFocus?: (panelIndex: number, panelId: string) => void;
   getPanelZIndex?: (panelIndex: number, panelId: string) => number;
   onPanelItemSelect: (panelIndex: number, itemId: string) => void;
-  friendDetailTab: FriendDetailTab;
-  onFriendDetailTabChange: (tab: FriendDetailTab) => void;
-  friendMessageDraft: string;
-  onFriendMessageDraftChange: (value: string) => void;
-  profileRecordDraft: string;
-  onProfileRecordDraftChange: (value: string) => void;
-  savedProfileRecord: string;
-  onSaveProfileRecord: () => void;
 };
-
-function statusColor(status: "online" | "away" | "offline") {
-  if (status === "online") return "rgba(74, 220, 131, 0.95)";
-  if (status === "away") return "rgba(247, 194, 84, 0.95)";
-  return "rgba(164, 174, 186, 0.95)";
-}
 
 function panelFrameStyle() {
   return {
@@ -44,8 +26,7 @@ function panelFrameStyle() {
     background:
       "linear-gradient(180deg, rgba(231, 236, 243, 0.94), rgba(220, 227, 236, 0.9))",
     border: "1px solid rgba(20, 23, 28, 0.78)",
-    boxShadow:
-      "inset 0 0 0 1px rgba(255,255,255,0.48), 0 12px 26px rgba(0,0,0,0.22)",
+    boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.48), 0 12px 26px rgba(0,0,0,0.22)",
   } as const;
 }
 
@@ -98,43 +79,18 @@ function PanelContent({
   panel,
   panelIndex,
   onPanelItemSelect,
-  friendDetailTab,
-  onFriendDetailTabChange,
-  friendMessageDraft,
-  onFriendMessageDraftChange,
-  profileRecordDraft,
-  onProfileRecordDraftChange,
-  savedProfileRecord,
-  onSaveProfileRecord,
 }: {
   panel: PanelStackItem;
   panelIndex: number;
   onPanelItemSelect: (panelIndex: number, itemId: string) => void;
-  friendDetailTab: FriendDetailTab;
-  onFriendDetailTabChange: (tab: FriendDetailTab) => void;
-  friendMessageDraft: string;
-  onFriendMessageDraftChange: (value: string) => void;
-  profileRecordDraft: string;
-  onProfileRecordDraftChange: (value: string) => void;
-  savedProfileRecord: string;
-  onSaveProfileRecord: () => void;
 }) {
-  const isScrollableDataMenu =
-    panel.kind === "menu" &&
-    panel.context.main === "player" &&
-    panel.context.sub === "items-list";
-
   const menuItemsForRender =
-    panel.kind === "menu"
-      ? isScrollableDataMenu
-        ? panel.items
-        : reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id)
-      : null;
-  const listCenterTargetKey =
-    panel.kind === "friends" || isScrollableDataMenu ? (panel.selectedId ?? null) : null;
+    panel.kind === "menu" ? reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id) : null;
+  const centerTargetKey =
+    panel.kind === "menu" || panel.kind === "list" ? (panel.selectedId ?? null) : null;
 
   return (
-    <PanelFrame title={panel.title} centerTargetKey={listCenterTargetKey}>
+    <PanelFrame title={panel.title} centerTargetKey={centerTargetKey}>
       {panel.kind === "menu" ? (
         <div
           className="mx-auto"
@@ -150,8 +106,7 @@ function PanelContent({
               label={item.label}
               slotLabel={item.slotLabel}
               selected={panel.selectedId === item.id}
-              centerTarget={isScrollableDataMenu && panel.selectedId === item.id}
-              compact={isScrollableDataMenu}
+              centerTarget={panel.selectedId === item.id}
               index={itemIndex}
               onClick={() => onPanelItemSelect(panelIndex, item.id)}
             />
@@ -159,41 +114,58 @@ function PanelContent({
         </div>
       ) : null}
 
-      {panel.kind === "friends" ? (
-        <div
-          className="mx-auto"
-          style={{
-            width: UI_CONSTS.rightPanels.listRailWidth,
-            display: "grid",
-            rowGap: UI_CONSTS.rightPanels.rowGap,
-          }}
-        >
-          {panel.items.map((friend, itemIndex) => (
-            <PanelCard
-              key={friend.id}
-              label={friend.name}
-              slotLabel={friend.name.slice(0, 2).toUpperCase()}
-              subtitle={`Lv.${friend.level} · ${friend.status.toUpperCase()}`}
-              selected={panel.selectedId === friend.id}
-              centerTarget={panel.selectedId === friend.id}
-              index={itemIndex}
-              onClick={() => onPanelItemSelect(panelIndex, friend.id)}
-            />
-          ))}
+      {panel.kind === "list" ? (
+        <div className="space-y-3">
+          {panel.actionLabel ? (
+            <button
+              type="button"
+              className="w-full rounded-sm border border-zinc-900/30 bg-white/38 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-700"
+            >
+              {panel.actionLabel}
+            </button>
+          ) : null}
+          <div
+            className="mx-auto"
+            style={{
+              width: UI_CONSTS.rightPanels.listRailWidth,
+              display: "grid",
+              rowGap: UI_CONSTS.rightPanels.rowGap,
+            }}
+          >
+            {panel.items.map((item, itemIndex) => (
+              <PanelCard
+                key={item.id}
+                label={item.label}
+                slotLabel={item.slotLabel}
+                subtitle={item.subtitle}
+                selected={panel.selectedId === item.id}
+                centerTarget={panel.selectedId === item.id}
+                compact={panel.items.length >= 40}
+                index={itemIndex}
+                onClick={() => onPanelItemSelect(panelIndex, item.id)}
+              />
+            ))}
+          </div>
         </div>
       ) : null}
 
       {panel.kind === "placeholder" ? (
         <div className="space-y-3">
           <div className="rounded-sm border border-zinc-900/25 bg-white/35 px-4 py-3">
-            <p className="break-words text-sm tracking-[0.08em] text-zinc-700">
-              {panel.description}
-            </p>
+            <p className="break-words text-sm tracking-[0.08em] text-zinc-700">{panel.description}</p>
           </div>
+          {panel.primaryActionLabel ? (
+            <button
+              type="button"
+              className="w-full rounded-sm border border-amber-500/70 bg-amber-400/25 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-800"
+            >
+              {panel.primaryActionLabel}
+            </button>
+          ) : null}
           <div className="space-y-2">
-            {(panel.rows ?? []).map((row) => (
+            {(panel.rows ?? []).map((row, index) => (
               <div
-                key={row}
+                key={`${panel.id}-row-${index}`}
                 className="flex min-h-10 items-center gap-3 rounded-sm border border-zinc-900/20 bg-white/30 px-3 py-2"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-zinc-700/70" />
@@ -204,98 +176,28 @@ function PanelContent({
         </div>
       ) : null}
 
-      {panel.kind === "friendDetail" ? (
-        <div className="space-y-4">
+      {panel.kind === "modal" ? (
+        <div className="space-y-3">
           <div className="rounded-sm border border-zinc-900/25 bg-white/35 px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs tracking-[0.18em] text-zinc-600">TARGET</p>
-                <p className="break-words text-lg font-semibold tracking-[0.08em] text-zinc-800">
-                  {panel.friend.name}
-                </p>
-              </div>
-              <div className="shrink-0 flex items-center gap-2 text-xs tracking-[0.14em] text-zinc-700">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: statusColor(panel.friend.status) }}
-                />
-                <span>{panel.friend.status.toUpperCase()}</span>
-              </div>
-            </div>
-            <p className="mt-2 break-words text-sm tracking-[0.06em] text-zinc-700/90">
-              {panel.friend.note}
-            </p>
+            <p className="break-words text-sm tracking-[0.08em] text-zinc-700">{panel.description}</p>
           </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {(["message", "profile"] as const).map((tab) => {
-              const active = friendDetailTab === tab;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => onFriendDetailTabChange(tab)}
-                  className="min-h-10 rounded-sm border px-3 py-2 text-sm font-semibold uppercase tracking-[0.14em] transition-colors duration-200"
-                  style={{
-                    background: active ? "rgba(244, 194, 77, 0.28)" : "rgba(255,255,255,0.25)",
-                    borderColor: active
-                      ? "rgba(244, 194, 77, 0.72)"
-                      : "rgba(24, 27, 33, 0.28)",
-                    color: "rgba(40, 44, 50, 0.92)",
-                  }}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
-
-          {friendDetailTab === "message" ? (
-            <div className="space-y-3">
-              <textarea
-                value={friendMessageDraft}
-                onChange={(event) => onFriendMessageDraftChange(event.target.value)}
-                rows={5}
-                placeholder="Type a quick message placeholder..."
-                className="w-full resize-none rounded-sm border border-zinc-900/25 bg-white/50 px-3 py-2 text-sm text-zinc-800 outline-none placeholder:text-zinc-500 focus:border-amber-500/70"
-              />
-              <div className="flex items-center justify-between gap-2 text-xs tracking-[0.14em] text-zinc-600">
-                <span className="break-words">MESSAGE BOX PLACEHOLDER</span>
-                <button
-                  type="button"
-                  className="shrink-0 rounded-sm border border-zinc-900/30 bg-white/45 px-3 py-1.5 font-semibold text-zinc-800"
-                >
-                  Send
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="rounded-sm border border-zinc-900/20 bg-white/32 px-3 py-2">
-                <p className="text-xs tracking-[0.18em] text-zinc-600">RECORD UI (MVP)</p>
-              </div>
-              <input
-                value={profileRecordDraft}
-                onChange={(event) => onProfileRecordDraftChange(event.target.value)}
-                type="text"
-                placeholder="Enter profile record memo..."
-                className="w-full rounded-sm border border-zinc-900/25 bg-white/50 px-3 py-2 text-sm text-zinc-800 outline-none placeholder:text-zinc-500 focus:border-amber-500/70"
-              />
-              <button
-                type="button"
-                onClick={onSaveProfileRecord}
-                className="min-h-10 w-full rounded-sm border border-amber-500/70 bg-amber-400/25 px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-zinc-800"
+          <div className="space-y-2">
+            {(panel.rows ?? []).map((row, index) => (
+              <div
+                key={`${panel.id}-modal-row-${index}`}
+                className="flex min-h-10 items-center gap-3 rounded-sm border border-zinc-900/20 bg-white/30 px-3 py-2"
               >
-                Save Record
-              </button>
-              <div className="rounded-sm border border-zinc-900/20 bg-white/30 px-3 py-2">
-                <p className="text-xs tracking-[0.16em] text-zinc-600">SAVED</p>
-                <p className="mt-1 min-h-5 break-words text-sm tracking-[0.05em] text-zinc-800">
-                  {savedProfileRecord || "No saved record yet."}
-                </p>
+                <span className="h-1.5 w-1.5 rounded-full bg-zinc-700/70" />
+                <span className="break-words text-sm tracking-[0.06em] text-zinc-700">{row}</span>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+          <button
+            type="button"
+            className="w-full rounded-sm border border-amber-500/70 bg-amber-400/25 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-800"
+          >
+            {panel.confirmLabel}
+          </button>
         </div>
       ) : null}
     </PanelFrame>
@@ -306,22 +208,12 @@ export default function RightPanels({
   selectedMain,
   panelStack,
   panelStackKey,
-  isResetting = false,
-  onPanelStackExitComplete,
   onPanelFocus,
   getPanelZIndex,
   onPanelItemSelect,
-  friendDetailTab,
-  onFriendDetailTabChange,
-  friendMessageDraft,
-  onFriendMessageDraftChange,
-  profileRecordDraft,
-  onProfileRecordDraftChange,
-  savedProfileRecord,
-  onSaveProfileRecord,
 }: RightPanelsProps) {
   return (
-    <AnimatePresence mode="wait" initial={false} onExitComplete={onPanelStackExitComplete}>
+    <AnimatePresence mode="wait" initial={false}>
       {panelStack.length > 0 ? (
         <motion.div
           key={panelStackKey}
@@ -329,10 +221,7 @@ export default function RightPanels({
           animate={MOTION.panelReset.animate}
           exit={MOTION.panelReset.exit}
           transition={MOTION.panelReset.transition}
-          className={[
-            "relative flex min-w-0 w-fit flex-row flex-nowrap items-start overflow-x-hidden xl:items-center",
-            isResetting ? "pointer-events-none" : "",
-          ].join(" ")}
+          className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center overflow-x-hidden"
           data-main={selectedMain}
           style={{
             minHeight: 420,
@@ -362,31 +251,11 @@ export default function RightPanels({
                   zIndex: getPanelZIndex?.(panelIndex, panel.id) ?? panelIndex + 1,
                 }}
               >
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    layout="position"
-                    key={panel.id}
-                    initial={MOTION.panelContentSwap.initial}
-                    animate={MOTION.panelContentSwap.animate}
-                    exit={MOTION.panelContentSwap.exit}
-                    transition={MOTION.panelContentSwap.transition}
-                    style={{ willChange: "transform, opacity" }}
-                  >
-                    <PanelContent
-                      panel={panel}
-                      panelIndex={panelIndex}
-                      onPanelItemSelect={onPanelItemSelect}
-                      friendDetailTab={friendDetailTab}
-                      onFriendDetailTabChange={onFriendDetailTabChange}
-                      friendMessageDraft={friendMessageDraft}
-                      onFriendMessageDraftChange={onFriendMessageDraftChange}
-                      profileRecordDraft={profileRecordDraft}
-                      onProfileRecordDraftChange={onProfileRecordDraftChange}
-                      savedProfileRecord={savedProfileRecord}
-                      onSaveProfileRecord={onSaveProfileRecord}
-                    />
-                  </motion.div>
-                </AnimatePresence>
+                <PanelContent
+                  panel={panel}
+                  panelIndex={panelIndex}
+                  onPanelItemSelect={onPanelItemSelect}
+                />
               </motion.div>
             ))}
           </AnimatePresence>

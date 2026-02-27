@@ -8,6 +8,7 @@ export const UI_CONSTS = {
     canvasMinHeight: 860,
     pagePaddingX: 48,
     pagePaddingY: 34,
+    visualCenterOffsetY: 28,
     canvasEndPaddingX: 80,
     canvasEndPaddingY: 32,
   },
