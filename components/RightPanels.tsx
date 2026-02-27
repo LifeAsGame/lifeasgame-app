@@ -35,11 +35,13 @@ function PanelFrame({
   children,
   centerTargetKey,
   resetScrollKey,
+  centerBehavior,
 }: {
   title: string;
   children: React.ReactNode;
   centerTargetKey?: string | null;
   resetScrollKey?: string | number | null;
+  centerBehavior?: ScrollBehavior | "spring";
 }) {
   return (
     <div className="relative overflow-hidden rounded-[2px]" style={panelFrameStyle()}>
@@ -62,6 +64,7 @@ function PanelFrame({
         centerTargetSelector='[data-scroll-center-target="true"]'
         centerTargetKey={centerTargetKey ?? null}
         resetScrollKey={resetScrollKey ?? null}
+        centerBehavior={centerBehavior}
         style={{
           maxHeight: "min(62vh, 560px)",
           paddingLeft: UI_CONSTS.rightPanels.panelContentPaddingX,
@@ -91,11 +94,17 @@ function PanelContent({
     panel.kind === "menu" ? reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id) : null;
   const centerTargetKey =
     panel.kind === "menu" || panel.kind === "list" ? (panel.selectedId ?? null) : null;
+  const centerBehavior: ScrollBehavior | "spring" = panel.kind === "list" ? "spring" : "smooth";
   const isCompactList =
     panel.kind === "list" && (panel.items.length >= 40 || panel.context.route === "market-wallet-summary");
 
   return (
-    <PanelFrame title={panel.title} centerTargetKey={centerTargetKey} resetScrollKey={panel.id}>
+    <PanelFrame
+      title={panel.title}
+      centerTargetKey={centerTargetKey}
+      resetScrollKey={panel.id}
+      centerBehavior={centerBehavior}
+    >
       {panel.kind === "menu" ? (
         <div
           className="mx-auto"

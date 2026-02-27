@@ -1,7 +1,7 @@
 "use client";
 
 import type { HTMLAttributes, ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type EdgeFadeScrollAreaProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
   children: ReactNode;
@@ -10,7 +10,7 @@ type EdgeFadeScrollAreaProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> 
   centerTargetSelector?: string;
   centerTargetKey?: string | number | null;
   resetScrollKey?: string | number | null;
-  centerBehavior?: ScrollBehavior;
+  centerBehavior?: ScrollBehavior | "spring";
 };
 
 type FadeState = {
@@ -72,10 +72,76 @@ export default function EdgeFadeScrollArea({
   });
   const inertiaFrameRef = useRef<number | null>(null);
   const bounceFrameRef = useRef<number | null>(null);
+  const centerFrameRef = useRef<number | null>(null);
+  const centerVelocityRef = useRef(0);
   const [fadeState, setFadeState] = useState<FadeState>({
     canScrollUp: false,
     canScrollDown: false,
   });
+
+  const cancelCenterAnimation = useCallback(() => {
+    if (centerFrameRef.current !== null) {
+      window.cancelAnimationFrame(centerFrameRef.current);
+      centerFrameRef.current = null;
+    }
+    centerVelocityRef.current = 0;
+  }, []);
+
+  const startSpringCenterScroll = useCallback(
+    (el: HTMLDivElement, targetScrollTop: number) => {
+      cancelCenterAnimation();
+      centerVelocityRef.current = 0;
+
+      const SPRING_STIFFNESS = 190;
+      const SPRING_DAMPING = 24;
+      const MIN_DT_SECONDS = 1 / 240;
+      const MAX_DT_SECONDS = 1 / 30;
+      const SETTLE_DISTANCE_PX = 0.5;
+      const SETTLE_VELOCITY_PX_PER_SECOND = 8;
+
+      let lastTs = performance.now();
+
+      const step = (ts: number) => {
+        const dt = clamp((ts - lastTs) / 1000, MIN_DT_SECONDS, MAX_DT_SECONDS);
+        lastTs = ts;
+
+        const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+        const clampedTarget = clamp(targetScrollTop, 0, maxTop);
+        const current = el.scrollTop;
+        const distance = clampedTarget - current;
+
+        const acceleration = distance * SPRING_STIFFNESS - centerVelocityRef.current * SPRING_DAMPING;
+        centerVelocityRef.current += acceleration * dt;
+
+        const next = current + centerVelocityRef.current * dt;
+        const clampedNext = clamp(next, 0, maxTop);
+
+        if (clampedNext !== current) {
+          el.scrollTop = clampedNext;
+        }
+
+        if ((clampedNext === 0 || clampedNext === maxTop) && clampedNext !== next) {
+          centerVelocityRef.current = 0;
+        }
+
+        if (
+          Math.abs(clampedTarget - clampedNext) <= SETTLE_DISTANCE_PX &&
+          Math.abs(centerVelocityRef.current) <= SETTLE_VELOCITY_PX_PER_SECOND
+        ) {
+          el.scrollTop = clampedTarget;
+          centerFrameRef.current = null;
+          centerVelocityRef.current = 0;
+          updateFadeStateRef.current?.();
+          return;
+        }
+
+        centerFrameRef.current = window.requestAnimationFrame(step);
+      };
+
+      centerFrameRef.current = window.requestAnimationFrame(step);
+    },
+    [cancelCenterAnimation],
+  );
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -109,6 +175,7 @@ export default function EdgeFadeScrollArea({
     const cancelAllMotion = () => {
       cancelInertia();
       cancelBounce();
+      cancelCenterAnimation();
     };
 
     const updateFadeState = () => {
@@ -434,7 +501,7 @@ export default function EdgeFadeScrollArea({
       el.removeAttribute("data-drag-scrolling");
       updateFadeStateRef.current = null;
     };
-  }, []);
+  }, [cancelCenterAnimation]);
 
   useEffect(() => {
     let frameId: number | null = null;
@@ -456,6 +523,7 @@ export default function EdgeFadeScrollArea({
     frameId = window.requestAnimationFrame(() => {
       const el = scrollRef.current;
       if (!el) return;
+      cancelCenterAnimation();
       el.scrollTo({ top: 0, behavior: "auto" });
       updateFadeStateRef.current?.();
     });
@@ -465,7 +533,7 @@ export default function EdgeFadeScrollArea({
         window.cancelAnimationFrame(frameId);
       }
     };
-  }, [resetScrollKey]);
+  }, [cancelCenterAnimation, resetScrollKey]);
 
   useEffect(() => {
     let frameId: number | null = null;
@@ -477,11 +545,13 @@ export default function EdgeFadeScrollArea({
       updateFadeStateRef.current?.();
 
       if (!centerTargetSelector || centerTargetKey == null) {
+        cancelCenterAnimation();
         return;
       }
 
       const target = el.querySelector(centerTargetSelector);
       if (!(target instanceof HTMLElement)) {
+        cancelCenterAnimation();
         return;
       }
 
@@ -494,18 +564,31 @@ export default function EdgeFadeScrollArea({
       const nextScrollTop = clamp(targetCenter - el.clientHeight / 2, 0, maxScrollTop);
 
       if (Math.abs(nextScrollTop - el.scrollTop) < 1) {
+        cancelCenterAnimation();
         return;
       }
 
-      el.scrollTo({ top: nextScrollTop, behavior: centerBehavior });
+      if (centerBehavior === "spring") {
+        startSpringCenterScroll(el, nextScrollTop);
+      } else {
+        cancelCenterAnimation();
+        el.scrollTo({ top: nextScrollTop, behavior: centerBehavior });
+      }
     });
 
     return () => {
       if (frameId !== null) {
         window.cancelAnimationFrame(frameId);
       }
+      cancelCenterAnimation();
     };
-  }, [centerBehavior, centerTargetKey, centerTargetSelector]);
+  }, [
+    cancelCenterAnimation,
+    centerBehavior,
+    centerTargetKey,
+    centerTargetSelector,
+    startSpringCenterScroll,
+  ]);
 
   const mergedClassName = useMemo(
     () =>
