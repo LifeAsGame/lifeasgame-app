@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import LeftContext from "@/components/LeftContext";
 import OrbNav from "@/components/OrbNav";
 import RightPanels from "@/components/RightPanels";
+import SaoAlert from "@/components/SaoAlert";
+import { useAuth } from "@/context/AuthContext";
 import { usePanScroll } from "@/hooks/usePanScroll";
+import { MOCK_CHARACTER_SHEET } from "@/lib/api/mock/player.mock";
 import {
   DEFAULT_SUB_SELECTIONS,
   INVENTORY_GEAR_LISTS,
@@ -503,8 +507,18 @@ function buildPanels(
 }
 
 export default function Home() {
+  const router = useRouter();
+  const { currentUser, isLoading, logout } = useAuth();
+  const playerInfo = MOCK_CHARACTER_SHEET.player;
+
   const viewportRef = useRef<HTMLDivElement>(null);
   usePanScroll(viewportRef);
+
+  const [logoutAlertOpen, setLogoutAlertOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && !currentUser) router.push("/login");
+  }, [currentUser, isLoading, router]);
 
   const [selectedMain, setSelectedMain] = useState<MainNavId>("player");
   const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
@@ -595,6 +609,11 @@ export default function Home() {
     if (!panel) return;
 
     if (panel.kind === "menu") {
+      if (panel.context.route === "main-submenu" && itemId === "logout") {
+        setLogoutAlertOpen(true);
+        return;
+      }
+
       if (panel.context.route === "main-submenu") {
         setSelectedSubByMain((prev) => ({ ...prev, [panel.context.main]: itemId }));
         clearDetailSelectionsForMain(panel.context.main);
@@ -671,6 +690,7 @@ export default function Home() {
       >
         <LeftContext
           mode={leftContextMode}
+          playerInfo={playerInfo}
           socialContext={socialContext}
           onFocus={() => bringSurfaceToFront("left-context")}
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
@@ -699,6 +719,17 @@ export default function Home() {
           />
         </div>
       </main>
+
+      <SaoAlert
+        isOpen={logoutAlertOpen}
+        title="Logout"
+        onConfirm={() => {
+          setLogoutAlertOpen(false);
+          logout();
+          router.push("/login");
+        }}
+        onCancel={() => setLogoutAlertOpen(false)}
+      />
     </div>
   );
 }

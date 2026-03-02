@@ -182,8 +182,7 @@ export const MARKET_TRADE_WINDOW_ACTIONS: PanelMenuItem[] = [
   { id: "confirm", label: "Confirm Trade", slotLabel: "CF" },
 ];
 
-const RARITY = ["Common", "Uncommon", "Rare", "Epic", "Legendary"] as const;
-const STATUS = ["Open", "In Progress", "Completed", "On Hold"] as const;
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function pad(value: number, width = 2) {
   return value.toString().padStart(width, "0");
@@ -195,270 +194,722 @@ function dateAt(index: number) {
   return `2026-${pad(m)}-${pad(d)}`;
 }
 
-type MockListConfig = {
-  count: number;
-  idPrefix: string;
-  slotPrefix: string;
-  label: (index: number) => string;
-  subtitle: (index: number) => string;
-  detailTitle: string;
-  detailDescription: (index: number) => string;
-  detailRows: (index: number) => string[];
-  contextTitle?: (index: number) => string;
-  contextDescription?: (index: number) => string;
-  contextRows?: (index: number) => string[];
+// ─── Player ─────────────────────────────────────────────────────────────────
+
+const ACHIEVEMENT_DATA = [
+  { code: "FIRST_BLOOD", name: "First Blood", cat: "Combat", desc: "Defeated your first monster." },
+  { code: "FLOOR_BOSS", name: "Floor Boss Slayer", cat: "Combat", desc: "Defeated a floor boss." },
+  { code: "SOLO_RUN", name: "Solo Runner", cat: "Exploration", desc: "Cleared a dungeon entirely solo." },
+  { code: "SPEED_RUN", name: "Speedrunner", cat: "Completion", desc: "Cleared a floor in record time." },
+  { code: "BLACKSMITH_1", name: "Blacksmith Apprentice", cat: "Crafting", desc: "Crafted your first item." },
+  { code: "DUAL_WIELD", name: "Dual Wield Mastery", cat: "Combat", desc: "Unlocked the Dual Wield skill." },
+  { code: "PERFECT_GUARD", name: "Perfect Guard", cat: "Defense", desc: "Blocked 100 attacks with perfect timing." },
+  { code: "MONSTER_HUNT", name: "Monster Hunter", cat: "Combat", desc: "Defeated 1000 monsters." },
+  { code: "TREASURE_HUNT", name: "Treasure Hunter", cat: "Exploration", desc: "Found 50 hidden treasure rooms." },
+  { code: "BEATER", name: "The Beater", cat: "Special", desc: "Recognized as a beta tester." },
+  { code: "GUILD_FOUND", name: "Guild Founder", cat: "Social", desc: "Founded your first guild." },
+  { code: "MKT_MASTER", name: "Market Master", cat: "Economy", desc: "Completed 100 market trades." },
+  { code: "LVL_50", name: "Level 50 Milestone", cat: "Growth", desc: "Reached character level 50." },
+  { code: "ENCHANT", name: "Enchantment Master", cat: "Crafting", desc: "Enchanted 50 items successfully." },
+  { code: "NIGHT_RUN", name: "Night Runner", cat: "Exploration", desc: "Explored 10 dungeons at night." },
+  { code: "PARTY_LEAD", name: "Party Leader", cat: "Social", desc: "Led a party to a boss clear." },
+  { code: "RARE_ITEM", name: "Rare Collector", cat: "Collection", desc: "Obtained 20 rare+ items." },
+  { code: "LEGEND_KILL", name: "Legend Slayer", cat: "Combat", desc: "Defeated a legendary-tier monster." },
+];
+
+const CERTIFICATION_DATA = [
+  { name: "AWS Solutions Architect", issuer: "Amazon Web Services", cat: "Cloud", expires: "2028-06-15" },
+  { name: "Python Professional", issuer: "Python Institute", cat: "Programming", expires: null },
+  { name: "Kubernetes Administrator", issuer: "CNCF", cat: "DevOps", expires: "2027-09-10" },
+  { name: "TOEIC 935", issuer: "ETS Korea", cat: "Language", expires: "2026-11-02" },
+  { name: "Google Cloud Professional", issuer: "Google", cat: "Cloud", expires: "2027-12-01" },
+  { name: "React Developer Certification", issuer: "Meta", cat: "Frontend", expires: null },
+  { name: "Computer Science B.S.", issuer: "Seoul National University", cat: "Academic", expires: null },
+  { name: "SQLD Database Developer", issuer: "Korea Data Agency", cat: "Database", expires: null },
+  { name: "Security+ Certified", issuer: "CompTIA", cat: "Security", expires: "2028-10-05" },
+  { name: "TypeScript Advanced", issuer: "Microsoft", cat: "Programming", expires: null },
+  { name: "Docker Certified Associate", issuer: "Docker Inc.", cat: "DevOps", expires: "2027-05-28" },
+  { name: "JLPT N3 Japanese", issuer: "Japan Foundation", cat: "Language", expires: null },
+];
+
+const TITLE_DATA = [
+  { code: "BLACK_SWORDSMAN", name: "Black Swordsman", cat: "Achievement", desc: "The legendary solo player." },
+  { code: "BEATER", name: "Beater", cat: "Special", desc: "A beta tester with prior knowledge." },
+  { code: "SOLO_KING", name: "Solo King", cat: "Exploration", desc: "Cleared 10 floors solo." },
+  { code: "FLOOR_CLEARER", name: "Floor Clearer", cat: "Combat", desc: "Front-line floor clearing." },
+  { code: "DUAL_WIELDER", name: "Dual Wielder", cat: "Combat", desc: "Holder of Dual Wield skill." },
+  { code: "MASTER_CRAFTER", name: "Master Crafter", cat: "Crafting", desc: "Crafted masterwork items." },
+  { code: "GUILD_CHIEF", name: "Guild Chief", cat: "Social", desc: "Leader of a recognized guild." },
+  { code: "LEGEND_SLAYER", name: "Legend Slayer", cat: "Combat", desc: "Slayer of legendary monsters." },
+  { code: "MARKET_KING", name: "Market King", cat: "Economy", desc: "100 trades, perfect ratings." },
+  { code: "NIGHT_WALKER", name: "Night Walker", cat: "Exploration", desc: "Nocturnal dungeon master." },
+  { code: "FRONTLINER", name: "Frontliner", cat: "Rank", desc: "Active front-line team member." },
+  { code: "RARE_HUNTER", name: "Rare Hunter", cat: "Collection", desc: "Collector of rare items." },
+];
+
+const HOBBY_DATA = [
+  { name: "Programming", cat: "Tech", custom: "Full-Stack Dev", proficiency: 85, status: "ACTIVE", xp: 42000 },
+  { name: "Reading", cat: "Learning", custom: "Tech & Fiction", proficiency: 72, status: "ACTIVE", xp: 28500 },
+  { name: "Gaming", cat: "Entertainment", custom: "VR & JRPG", proficiency: 90, status: "ACTIVE", xp: 65000 },
+  { name: "Running", cat: "Fitness", custom: "Morning Runs", proficiency: 60, status: "ACTIVE", xp: 12000 },
+  { name: "Cooking", cat: "Lifestyle", custom: "Japanese Cuisine", proficiency: 55, status: "ACTIVE", xp: 9800 },
+  { name: "Drawing", cat: "Art", custom: "Anime Sketching", proficiency: 40, status: "ON_HOLD", xp: 5200 },
+  { name: "Guitar", cat: "Music", custom: "Acoustic Guitar", proficiency: 48, status: "ON_HOLD", xp: 7400 },
+  { name: "Photography", cat: "Art", custom: "Street & Nature", proficiency: 63, status: "ACTIVE", xp: 11200 },
+  { name: "Language Learning", cat: "Learning", custom: "Japanese N3→N2", proficiency: 65, status: "ACTIVE", xp: 18600 },
+  { name: "Cycling", cat: "Fitness", custom: "Road Cycling", proficiency: 58, status: "ACTIVE", xp: 8900 },
+  { name: "Meditation", cat: "Wellness", custom: "Mindfulness", proficiency: 45, status: "ACTIVE", xp: 4300 },
+  { name: "Origami", cat: "Art", custom: "Complex Origami", proficiency: 35, status: "INACTIVE", xp: 2100 },
+];
+
+export const PLAYER_LISTS: Record<PlayerSubId, PanelDataItem[]> = {
+  achievement: ACHIEVEMENT_DATA.map((a, i) => ({
+    id: `achievement-${pad(i + 1, 3)}`,
+    label: a.name,
+    slotLabel: a.code.slice(0, 2),
+    subtitle: `${a.cat} | Acquired: ${dateAt(i)}`,
+    detailTitle: "Achievement Detail",
+    detailDescription: a.desc,
+    detailRows: [
+      `Code: ${a.code}`,
+      `Category: ${a.cat}`,
+      `Acquired: ${dateAt(i)}`,
+      `Status: Unlocked`,
+    ],
+  })),
+  credentials: CERTIFICATION_DATA.map((c, i) => ({
+    id: `credential-${pad(i + 1, 3)}`,
+    label: c.name,
+    slotLabel: c.cat.slice(0, 2).toUpperCase(),
+    subtitle: `${c.issuer} | ${c.cat}`,
+    detailTitle: "Credential Detail",
+    detailDescription: `${c.name} issued by ${c.issuer}.`,
+    detailRows: [
+      `Issuer: ${c.issuer}`,
+      `Category: ${c.cat}`,
+      `Acquired: ${dateAt(i)}`,
+      c.expires ? `Expires: ${c.expires}` : `Expires: Never`,
+    ],
+  })),
+  title: TITLE_DATA.map((t, i) => ({
+    id: `title-${pad(i + 1, 3)}`,
+    label: t.name,
+    slotLabel: t.code.slice(0, 2),
+    subtitle: `${t.cat} | Acquired: ${dateAt(i)}`,
+    detailTitle: "Title Detail",
+    detailDescription: t.desc,
+    detailRows: [
+      `Code: ${t.code}`,
+      `Category: ${t.cat}`,
+      `Acquired: ${dateAt(i)}`,
+      `Status: Unlocked`,
+    ],
+  })),
+  interests: HOBBY_DATA.map((h, i) => ({
+    id: `hobby-${pad(i + 1, 3)}`,
+    label: h.custom,
+    slotLabel: h.cat.slice(0, 2).toUpperCase(),
+    subtitle: `${h.cat} | Proficiency: ${h.proficiency}/100 | ${h.status}`,
+    detailTitle: "Interest Detail",
+    detailDescription: `${h.name} — ${h.custom}`,
+    detailRows: [
+      `Category: ${h.cat}`,
+      `Status: ${h.status}`,
+      `Proficiency: ${h.proficiency}/100`,
+      `XP: ${h.xp.toLocaleString()}`,
+    ],
+  })),
 };
 
-function makeList(config: MockListConfig): PanelDataItem[] {
-  return Array.from({ length: config.count }, (_, index) => ({
-    id: `${config.idPrefix}-${pad(index + 1, 3)}`,
-    label: config.label(index),
-    slotLabel: `${config.slotPrefix}${(index % 9) + 1}`,
-    subtitle: config.subtitle(index),
-    detailTitle: config.detailTitle,
-    detailDescription: config.detailDescription(index),
-    detailRows: config.detailRows(index),
-    contextTitle: config.contextTitle?.(index),
-    contextDescription: config.contextDescription?.(index),
-    contextRows: config.contextRows?.(index),
+// ─── Skills ─────────────────────────────────────────────────────────────────
+
+const PASSIVE_SKILLS = [
+  { name: "Battle Healing", level: 48, desc: "Gradually restores HP during combat." },
+  { name: "Extended Weight", level: 35, desc: "Increases carry weight capacity." },
+  { name: "Night Vision", level: 22, desc: "Reduces penalty in dark environments." },
+  { name: "Acrobatics", level: 55, desc: "Allows aerial combat maneuvers." },
+  { name: "Searching", level: 41, desc: "Detects hidden enemies and items." },
+  { name: "Listening", level: 38, desc: "Detects sounds beyond normal range." },
+  { name: "Tracking", level: 29, desc: "Follows trails of players and monsters." },
+  { name: "Martial Arts", level: 62, desc: "Unarmed combat mastery." },
+  { name: "Meditation", level: 18, desc: "Accelerates MP regeneration when still." },
+  { name: "Pain Mitigation", level: 44, desc: "Reduces stagger from critical hits." },
+  { name: "Cooking", level: 71, desc: "Prepares food items with stat bonuses." },
+  { name: "First Aid", level: 33, desc: "Emergency HP restoration skill." },
+];
+
+const ACTIVE_SKILLS = [
+  { name: "Horizontal Square", level: 74, desc: "4-hit horizontal combo sword skill." },
+  { name: "Vertical Square", level: 68, desc: "4-hit vertical combo sword skill." },
+  { name: "Vorpal Strike", level: 82, desc: "Powerful single-hit piercing thrust." },
+  { name: "Starburst Stream", level: 56, desc: "16-hit dual-blade combo. Ultimate skill." },
+  { name: "The Eclipse", level: 48, desc: "Curved slash with extended range." },
+  { name: "Sonic Leap", level: 62, desc: "Dashing forward slash with knockback." },
+  { name: "Sharp Nail", level: 35, desc: "Quick 3-hit scratch attack." },
+  { name: "Nova Ascension", level: 44, desc: "Rising uppercut with aerial follow-up." },
+  { name: "Meteor Fall", level: 58, desc: "Downward smash from midair." },
+  { name: "Cyclone", level: 39, desc: "360-degree spinning slash." },
+  { name: "Rage Spike", level: 71, desc: "Ground-skimming low thrust skill." },
+  { name: "Howling Octave", level: 65, desc: "8-hit rapid sword barrage." },
+];
+
+export const SKILLS_LISTS: Record<SkillsSubId, PanelDataItem[]> = {
+  passive: PASSIVE_SKILLS.map((s, i) => ({
+    id: `skill-passive-${pad(i + 1, 3)}`,
+    label: s.name,
+    slotLabel: `P${(i % 9) + 1}`,
+    subtitle: `Lv.${s.level} | Passive`,
+    detailTitle: "Passive Skill Detail",
+    detailDescription: s.desc,
+    detailRows: [
+      `Skill Level: ${s.level}`,
+      `Type: Passive`,
+      `Last Used: ${dateAt(i)}`,
+      `Status: Active`,
+    ],
+  })),
+  active: ACTIVE_SKILLS.map((s, i) => ({
+    id: `skill-active-${pad(i + 1, 3)}`,
+    label: s.name,
+    slotLabel: `A${(i % 9) + 1}`,
+    subtitle: `Lv.${s.level} | Active`,
+    detailTitle: "Active Skill Detail",
+    detailDescription: s.desc,
+    detailRows: [
+      `Skill Level: ${s.level}`,
+      `Type: Active`,
+      `Last Used: ${dateAt(i + 1)}`,
+      `Cooldown: ${((i % 8) + 2)}s`,
+    ],
+  })),
+};
+
+// ─── Inventory ───────────────────────────────────────────────────────────────
+
+const INV_ITEMS = [
+  { name: "Elucidator", cat: "Weapon", type: "Sword", rarity: "Legendary", qty: 1, dur: 98 },
+  { name: "Dark Repulser", cat: "Weapon", type: "Sword", rarity: "Legendary", qty: 1, dur: 95 },
+  { name: "Black Coat of Midnight", cat: "Armor", type: "Coat", rarity: "Epic", qty: 1, dur: 88 },
+  { name: "Windrunner Boots", cat: "Boots", type: "Boots", rarity: "Rare", qty: 1, dur: 72 },
+  { name: "HP Potion (M)", cat: "Consumable", type: "Potion", rarity: "Common", qty: 42, dur: null },
+  { name: "MP Potion (S)", cat: "Consumable", type: "Potion", rarity: "Common", qty: 28, dur: null },
+  { name: "Teleport Crystal", cat: "Consumable", type: "Crystal", rarity: "Uncommon", qty: 5, dur: null },
+  { name: "Pale Edge", cat: "Weapon", type: "Sword", rarity: "Rare", qty: 1, dur: 100 },
+  { name: "Wind Fleuret", cat: "Weapon", type: "Rapier", rarity: "Rare", qty: 1, dur: 85 },
+  { name: "Iron Ore", cat: "Material", type: "Ore", rarity: "Common", qty: 156, dur: null },
+  { name: "Mithril Ingot", cat: "Material", type: "Ingot", rarity: "Rare", qty: 12, dur: null },
+  { name: "Dragon Scale", cat: "Material", type: "Scale", rarity: "Epic", qty: 4, dur: null },
+  { name: "Shadow Gauntlets", cat: "Armor", type: "Gloves", rarity: "Uncommon", qty: 1, dur: 65 },
+  { name: "Frontliner's Helm", cat: "Armor", type: "Helmet", rarity: "Rare", qty: 1, dur: 90 },
+  { name: "Identification Scroll", cat: "Misc", type: "Scroll", rarity: "Common", qty: 8, dur: null },
+  { name: "Antidote (S)", cat: "Consumable", type: "Potion", rarity: "Common", qty: 15, dur: null },
+  { name: "Anneal Blade", cat: "Weapon", type: "Sword", rarity: "Uncommon", qty: 1, dur: 78 },
+  { name: "Lucky Charm", cat: "Accessory", type: "Charm", rarity: "Uncommon", qty: 1, dur: null },
+  { name: "Ancient Wood", cat: "Material", type: "Wood", rarity: "Rare", qty: 23, dur: null },
+  { name: "Revive Crystal", cat: "Consumable", type: "Crystal", rarity: "Epic", qty: 2, dur: null },
+];
+
+export const INVENTORY_ITEMS_LIST: PanelDataItem[] = INV_ITEMS.map((item, i) => ({
+  id: `inventory-item-${pad(i + 1, 3)}`,
+  label: item.name,
+  slotLabel: item.cat.slice(0, 2).toUpperCase(),
+  subtitle: `Qty ${item.qty} | ${item.rarity} | ${item.cat}`,
+  detailTitle: "Item Detail",
+  detailDescription: `${item.name} — ${item.type}`,
+  detailRows: [
+    `Category: ${item.cat}`,
+    `Type: ${item.type}`,
+    `Rarity: ${item.rarity}`,
+    item.dur !== null ? `Durability: ${item.dur}/100` : `Quantity: ${item.qty}`,
+  ],
+}));
+
+const GEAR_WEAPONS = INV_ITEMS.filter((i) => i.cat === "Weapon");
+const GEAR_ARMOR = INV_ITEMS.filter((i) => i.cat === "Armor");
+const GEAR_ACCESSORIES = INV_ITEMS.filter((i) => i.cat === "Accessory");
+const GEAR_BOOTS = INV_ITEMS.filter((i) => i.cat === "Boots");
+
+function makeGearList(items: typeof INV_ITEMS, prefix: string): PanelDataItem[] {
+  return items.map((item, i) => ({
+    id: `${prefix}-${pad(i + 1, 3)}`,
+    label: item.name,
+    slotLabel: item.type.slice(0, 2).toUpperCase(),
+    subtitle: `${item.rarity} | ${item.type}${item.dur !== null ? ` | Dur: ${item.dur}` : ""}`,
+    detailTitle: `${item.type} Detail`,
+    detailDescription: `${item.name} — ${item.type} class equipment.`,
+    detailRows: [
+      `Rarity: ${item.rarity}`,
+      `Type: ${item.type}`,
+      item.dur !== null ? `Durability: ${item.dur}/100` : `Non-degradable`,
+      `Slot: ${item.cat}`,
+    ],
   }));
 }
 
-function makeStandardRows(index: number, kind: string) {
-  return [
-    `Kind: ${kind}`,
-    `Rarity: ${RARITY[index % RARITY.length]}`,
-    `Level: ${(index % 70) + 8}`,
-    `Updated: ${dateAt(index + 2)}`,
-  ];
-}
-
-function makeStandardList(kind: string, prefix: string, slot: string, count: number, detailTitle: string) {
-  return makeList({
-    count,
-    idPrefix: prefix,
-    slotPrefix: slot,
-    label: (index) => `${kind} ${pad(index + 1, 3)}`,
-    subtitle: (index) =>
-      `Lv.${(index % 70) + 8} | ${RARITY[index % RARITY.length]} | ${dateAt(index)}`,
-    detailTitle,
-    detailDescription: (index) => `${kind} detail snapshot for sequence ${pad(index + 1, 3)}.`,
-    detailRows: (index) => makeStandardRows(index, kind),
-  });
-}
-
-export const PLAYER_LISTS: Record<PlayerSubId, PanelDataItem[]> = {
-  achievement: makeStandardList("Achievement", "player-achievement", "AC", 48, "Achievement Detail"),
-  credentials: makeStandardList("Credential", "player-credential", "CR", 44, "Credential Detail"),
-  title: makeStandardList("Title", "player-title", "TI", 42, "Title Detail"),
-  interests: makeStandardList("Interest", "player-interest", "IN", 46, "Interest Detail"),
-};
-
-export const SKILLS_LISTS: Record<SkillsSubId, PanelDataItem[]> = {
-  passive: makeStandardList("Passive Skill", "skill-passive", "PS", 40, "Passive Detail"),
-  active: makeStandardList("Active Skill", "skill-active", "AS", 42, "Active Detail"),
-};
-
-export const INVENTORY_ITEMS_LIST = makeList({
-  count: 72,
-  idPrefix: "inventory-item",
-  slotPrefix: "IT",
-  label: (index) => `Item ${pad(index + 1, 3)}`,
-  subtitle: (index) => `Qty ${(index % 15) + 1} | ${RARITY[index % RARITY.length]} | ${dateAt(index)}`,
-  detailTitle: "Item Detail",
-  detailDescription: (index) => `Inventory item metadata for slot ${pad(index + 1, 3)}.`,
-  detailRows: (index) => [
-    `Type: Consumable`,
-    `Price: ${(index % 14000) + 300} col`,
-    `Weight: ${((index % 8) + 1) * 0.2}kg`,
-    `State: ${STATUS[index % STATUS.length]}`,
-  ],
-});
-
 export const INVENTORY_GEAR_LISTS: Record<InventoryGearPartId, PanelDataItem[]> = {
-  weapon: makeStandardList("Weapon", "inventory-weapon", "WP", 50, "Weapon Detail"),
-  armor: makeStandardList("Armor", "inventory-armor", "AR", 48, "Armor Detail"),
-  accessory: makeStandardList("Accessory", "inventory-accessory", "AC", 44, "Accessory Detail"),
-  boots: makeStandardList("Boots", "inventory-boots", "BT", 46, "Boots Detail"),
+  weapon: makeGearList(GEAR_WEAPONS, "inv-weapon"),
+  armor: makeGearList(GEAR_ARMOR, "inv-armor"),
+  accessory: makeGearList(GEAR_ACCESSORIES, "inv-acc"),
+  boots: makeGearList(GEAR_BOOTS, "inv-boots"),
 };
 
-export const INVENTORY_INBOX_LIST = makeList({
-  count: 52,
-  idPrefix: "inventory-mail",
-  slotPrefix: "ML",
-  label: (index) => `Mail ${pad(index + 1, 3)}`,
-  subtitle: (index) => `From Sender ${(index % 18) + 1} | ${STATUS[index % STATUS.length]}`,
+const MAIL_DATA = [
+  { from: "System", item: "HP Potion (L) ×10", msg: "Daily login reward!" },
+  { from: "Asuna", item: "Mithril Ingot ×3", msg: "I saved these for you :)" },
+  { from: "Klein", item: "Teleport Crystal ×2", msg: "In case you need to escape!" },
+  { from: "ALS_Heathcliff", item: "Guild Invite Token", msg: "Join Knights of Blood?" },
+  { from: "System", item: "Antidote (L) ×5", msg: "Floor 25 event reward." },
+  { from: "Agil", item: "Iron Ore ×50", msg: "Raid loot split." },
+  { from: "Lisbeth", item: "Crafting Blueprint", msg: "Special sword blueprint!" },
+  { from: "Asuna", item: "Revive Crystal ×1", msg: "Keep this safe, okay?" },
+];
+
+export const INVENTORY_INBOX_LIST: PanelDataItem[] = MAIL_DATA.map((m, i) => ({
+  id: `mail-${pad(i + 1, 3)}`,
+  label: m.from,
+  slotLabel: m.from.slice(0, 2).toUpperCase(),
+  subtitle: `Item: ${m.item}`,
   detailTitle: "Mail Detail",
-  detailDescription: (index) => `Mail entry detail for message ${pad(index + 1, 3)}.`,
-  detailRows: (index) => [
-    `Received: ${dateAt(index)}`,
-    `Attachment Slots: ${(index % 4) + 1}`,
-    `Expiry: ${(index % 14) + 2} days`,
-    `Priority: ${(index % 3) + 1}`,
+  detailDescription: m.msg,
+  detailRows: [
+    `From: ${m.from}`,
+    `Item: ${m.item}`,
+    `Received: ${dateAt(i)}`,
+    `Expires in: ${(i % 14) + 2} days`,
   ],
-});
+}));
+
+// ─── Quests ──────────────────────────────────────────────────────────────────
+
+const STORY_QUESTS = [
+  { code: "STORY_FL01_001", title: "The Beginning", status: "COMPLETED", progress: 100, target: 1, cat: "Story" },
+  { code: "STORY_FL05_001", title: "Blazing Colossus", status: "COMPLETED", progress: 100, target: 1, cat: "Story" },
+  { code: "STORY_FL10_001", title: "The Gleam Eyes", status: "COMPLETED", progress: 100, target: 1, cat: "Story" },
+  { code: "STORY_FL25_001", title: "Into the Labyrinth", status: "IN_PROGRESS", progress: 78, target: 100, cat: "Story" },
+  { code: "STORY_FL25_002", title: "The Black Iron Palace", status: "PENDING", progress: 0, target: 1, cat: "Story" },
+  { code: "STORY_DUAL_001", title: "The Dual Blades", status: "IN_PROGRESS", progress: 62, target: 100, cat: "Story" },
+];
+
+const SUGGESTED_QUESTS = [
+  { code: "SUGGEST_DUNG_001", title: "Dark Forest Dungeon", reward: 5000, repeat: "NONE", target: "BOSS_KILL" },
+  { code: "SUGGEST_CRAFT_002", title: "Forge a Rare Weapon", reward: 3000, repeat: "NONE", target: "CRAFT_RARITY" },
+  { code: "SUGGEST_LVL_001", title: "Reach Level 80", reward: 10000, repeat: "NONE", target: "LEVEL" },
+  { code: "SUGGEST_SOCIAL_002", title: "Join a Guild", reward: 2000, repeat: "NONE", target: "JOIN_GUILD" },
+  { code: "SUGGEST_COLL_001", title: "Rare Item Hunter", reward: 4000, repeat: "NONE", target: "ITEM_RARITY_COUNT" },
+];
+
+const DAILY_QUESTS = [
+  { code: "DAILY_EXP_001", title: "Morning Grind", reward: 1200, target: "KILL_COUNT", value: 20 },
+  { code: "DAILY_CRAFT_001", title: "Daily Crafting", reward: 800, target: "CRAFT_COUNT", value: 3 },
+  { code: "DAILY_EXER_001", title: "Exercise Log", reward: 600, target: "EXERCISE_MINUTES", value: 30 },
+  { code: "DAILY_READ_001", title: "Reading Time", reward: 500, target: "READ_MINUTES", value: 20 },
+  { code: "DAILY_MARKET_001", title: "Market Visit", reward: 400, target: "TRADE_COUNT", value: 1 },
+  { code: "DAILY_SOCIAL_001", title: "Social Interaction", reward: 300, target: "MESSAGE_COUNT", value: 2 },
+];
+
+const PARTY_QUESTS = [
+  { code: "PARTY_DUNG_001", title: "Haunted Keep Raid", status: "PENDING", progress: 0, target: 1 },
+  { code: "PARTY_KILL_001", title: "Monster Purge", status: "IN_PROGRESS", progress: 87, target: 200 },
+  { code: "PARTY_BOSS_001", title: "Dark Knight Challenge", status: "COMPLETED", progress: 100, target: 1 },
+];
+
+const GUILD_QUESTS = [
+  { code: "GUILD_CONQ_001", title: "Territory Conquest", status: "IN_PROGRESS", progress: 24, target: 48 },
+  { code: "GUILD_CRAFT_001", title: "Guild Forge Event", status: "IN_PROGRESS", progress: 43, target: 100 },
+  { code: "GUILD_MKT_001", title: "Market Domination", status: "IN_PROGRESS", progress: 312, target: 500 },
+];
 
 export const QUEST_LISTS: Record<QuestsSubId, PanelDataItem[]> = {
-  story: makeStandardList("Story Quest", "quest-story", "ST", 44, "Quest Detail"),
-  suggested: makeStandardList("Suggested Quest", "quest-suggested", "SG", 40, "Quest Detail"),
-  daily: makeStandardList("Daily Quest", "quest-daily", "DY", 38, "Quest Detail"),
-  party: makeStandardList("Party Quest", "quest-party", "PT", 36, "Quest Detail"),
-  guild: makeStandardList("Guild Quest", "quest-guild", "GD", 34, "Quest Detail"),
+  story: STORY_QUESTS.map((q, i) => ({
+    id: `quest-story-${pad(i + 1, 3)}`,
+    label: q.title,
+    slotLabel: `S${i + 1}`,
+    subtitle: `${q.status} | Progress: ${q.progress}/${q.target}`,
+    detailTitle: "Story Quest Detail",
+    detailDescription: `${q.title} — Story arc quest.`,
+    detailRows: [
+      `Code: ${q.code}`,
+      `Status: ${q.status}`,
+      `Progress: ${q.progress}/${q.target}`,
+      `Category: ${q.cat}`,
+    ],
+  })),
+  suggested: SUGGESTED_QUESTS.map((q, i) => ({
+    id: `quest-suggested-${pad(i + 1, 3)}`,
+    label: q.title,
+    slotLabel: `G${i + 1}`,
+    subtitle: `Reward: ${q.reward} EXP | ${q.target}`,
+    detailTitle: "Quest Detail",
+    detailDescription: `${q.title} — Suggested quest.`,
+    detailRows: [
+      `Code: ${q.code}`,
+      `Repeat: ${q.repeat}`,
+      `Target: ${q.target}`,
+      `Reward EXP: ${q.reward}`,
+    ],
+  })),
+  daily: DAILY_QUESTS.map((q, i) => ({
+    id: `quest-daily-${pad(i + 1, 3)}`,
+    label: q.title,
+    slotLabel: `D${i + 1}`,
+    subtitle: `Reward: ${q.reward} EXP | ${q.target}: ${q.value}`,
+    detailTitle: "Daily Quest Detail",
+    detailDescription: `${q.title} — Daily recurring quest.`,
+    detailRows: [
+      `Code: ${q.code}`,
+      `Target: ${q.target}`,
+      `Value: ${q.value}`,
+      `Reward EXP: ${q.reward}`,
+    ],
+  })),
+  party: PARTY_QUESTS.map((q, i) => ({
+    id: `quest-party-${pad(i + 1, 3)}`,
+    label: q.title,
+    slotLabel: `P${i + 1}`,
+    subtitle: `${q.status} | Progress: ${q.progress}/${q.target}`,
+    detailTitle: "Party Quest Detail",
+    detailDescription: `${q.title} — Party quest.`,
+    detailRows: [
+      `Code: ${q.code}`,
+      `Status: ${q.status}`,
+      `Progress: ${q.progress}/${q.target}`,
+      `Type: Party`,
+    ],
+  })),
+  guild: GUILD_QUESTS.map((q, i) => ({
+    id: `quest-guild-${pad(i + 1, 3)}`,
+    label: q.title,
+    slotLabel: `G${i + 1}`,
+    subtitle: `${q.status} | Progress: ${q.progress}/${q.target}`,
+    detailTitle: "Guild Quest Detail",
+    detailDescription: `${q.title} — Guild collective quest.`,
+    detailRows: [
+      `Code: ${q.code}`,
+      `Status: ${q.status}`,
+      `Progress: ${q.progress}/${q.target}`,
+      `Type: Guild`,
+    ],
+  })),
 };
+
+// ─── Social ──────────────────────────────────────────────────────────────────
+
+const PARTY_DATA = [
+  { name: "Frontline Assault", code: "FLA-001", members: 5, max: 6, policy: "OPEN", tags: "PvE, Boss" },
+  { name: "Night Raiders", code: "NRD-002", members: 4, max: 4, policy: "APPLICATION", tags: "Stealth, Night" },
+  { name: "Market Syndicate", code: "MKS-003", members: 3, max: 3, policy: "INVITE_ONLY", tags: "Trade" },
+  { name: "Skill Hunters", code: "SKH-004", members: 4, max: 6, policy: "OPEN", tags: "Skills, EXP" },
+  { name: "The Wanderers", code: "WND-005", members: 5, max: 5, policy: "OPEN", tags: "Exploration" },
+  { name: "Crafters Union", code: "CRU-006", members: 7, max: 8, policy: "APPLICATION", tags: "Crafting" },
+  { name: "Solo Support", code: "SSP-007", members: 1, max: 2, policy: "OPEN", tags: "Support" },
+  { name: "Dragon Slayers", code: "DRS-008", members: 5, max: 6, policy: "APPLICATION", tags: "Boss" },
+];
+
+const GUILD_DATA = [
+  { name: "Knights of Aincrad", code: "KOA-001", members: 42, max: 50, policy: "APPLICATION", rank: 1 },
+  { name: "Thunder Wolves", code: "TWL-002", members: 28, max: 30, policy: "APPLICATION", rank: 3 },
+  { name: "Merchant Lords", code: "MCL-003", members: 18, max: 20, policy: "INVITE_ONLY", rank: 5 },
+  { name: "Phantom Blades", code: "PHB-004", members: 12, max: 15, policy: "INVITE_ONLY", rank: 8 },
+  { name: "Eternal Crafters", code: "ETC-005", members: 35, max: 40, policy: "OPEN", rank: 4 },
+  { name: "Seekers of Lore", code: "SOL-006", members: 22, max: 25, policy: "APPLICATION", rank: 6 },
+];
+
+const FRIEND_DATA = [
+  { nickname: "Asuna", level: 76, job: "Fencer", status: "ONLINE", muted: false },
+  { nickname: "Klein", level: 65, job: "Samurai", status: "IN_DUNGEON", muted: false },
+  { nickname: "Agil", level: 72, job: "Warrior", status: "ONLINE", muted: true },
+  { nickname: "Lisbeth", level: 60, job: "Blacksmith", status: "CRAFTING", muted: false },
+  { nickname: "Silica", level: 55, job: "Beast Tamer", status: "ONLINE", muted: false },
+  { nickname: "Leafa", level: 48, job: "Spriggan", status: "AWAY", muted: false },
+  { nickname: "Sinon", level: 70, job: "Gunner", status: "ONLINE", muted: false },
+  { nickname: "Eugeo", level: 68, job: "Swordsman", status: "OFFLINE", muted: false },
+  { nickname: "Alice", level: 80, job: "Integrity Knight", status: "ONLINE", muted: false },
+  { nickname: "Heathcliff", level: 100, job: "Paladin", status: "AWAY", muted: false },
+];
 
 export const SOCIAL_LISTS: Record<SocialSubId, PanelDataItem[]> = {
-  party: makeList({
-    count: 42,
-    idPrefix: "social-party",
-    slotPrefix: "PT",
-    label: (index) => `Party ${pad(index + 1, 3)}`,
-    subtitle: (index) => `${(index % 6) + 2}/6 members | Avg Lv ${(index % 50) + 10}`,
+  party: PARTY_DATA.map((p, i) => ({
+    id: `social-party-${pad(i + 1, 3)}`,
+    label: p.name,
+    slotLabel: `PT`,
+    subtitle: `${p.members}/${p.max} members | ${p.policy}`,
     detailTitle: "Party Detail",
-    detailDescription: (index) => `Party detail profile ${pad(index + 1, 3)}.`,
-    detailRows: (index) => makeStandardRows(index, "Party"),
-    contextTitle: (index) => `Party Context ${pad(index + 1, 3)}`,
-    contextDescription: () =>
-      "Party detail is rendered in left context. Right detail panel is intentionally disabled.",
-    contextRows: (index) => [
-      `Recruitment: ${(index % 2) === 0 ? "Open" : "Closed"}`,
-      `Leader: Player ${(index % 90) + 10}`,
-      `Region: Zone ${(index % 8) + 1}`,
-      `Last Activity: ${dateAt(index + 1)}`,
+    detailDescription: `${p.name} — Active party.`,
+    detailRows: [
+      `Code: ${p.code}`,
+      `Members: ${p.members}/${p.max}`,
+      `Join Policy: ${p.policy}`,
+      `Tags: ${p.tags}`,
     ],
-  }),
-  guild: makeList({
-    count: 38,
-    idPrefix: "social-guild",
-    slotPrefix: "GD",
-    label: (index) => `Guild ${pad(index + 1, 3)}`,
-    subtitle: (index) => `${(index % 120) + 20} members | Rank ${(index % 40) + 1}`,
+    contextTitle: p.name,
+    contextDescription: `Active party with ${p.members}/${p.max} members. Join policy: ${p.policy}.`,
+    contextRows: [
+      `Code: ${p.code}`,
+      `Recruitment: ${p.policy}`,
+      `Tags: ${p.tags}`,
+      `Last Activity: ${dateAt(i + 1)}`,
+    ],
+  })),
+  guild: GUILD_DATA.map((g, i) => ({
+    id: `social-guild-${pad(i + 1, 3)}`,
+    label: g.name,
+    slotLabel: `GD`,
+    subtitle: `${g.members}/${g.max} members | Rank ${g.rank}`,
     detailTitle: "Guild Detail",
-    detailDescription: (index) => `Guild detail profile ${pad(index + 1, 3)}.`,
-    detailRows: (index) => makeStandardRows(index, "Guild"),
-    contextTitle: (index) => `Guild Context ${pad(index + 1, 3)}`,
-    contextDescription: () =>
-      "Guild detail is rendered in left context. Right detail panel is intentionally disabled.",
-    contextRows: (index) => [
-      `Join Rule: ${(index % 2) === 0 ? "Application" : "Invite Only"}`,
-      `Treasury: ${(index % 9000) + 12000} col`,
-      `Contribution Req: ${80 + index} / week`,
-      `Last Event: ${dateAt(index + 2)}`,
+    detailDescription: `${g.name} — Established guild.`,
+    detailRows: [
+      `Code: ${g.code}`,
+      `Members: ${g.members}/${g.max}`,
+      `Join Policy: ${g.policy}`,
+      `Rank: #${g.rank}`,
     ],
-  }),
-  friend: makeList({
-    count: 52,
-    idPrefix: "social-friend",
-    slotPrefix: "FR",
-    label: (index) => `Friend ${pad(index + 1, 3)}`,
-    subtitle: (index) => `Lv.${(index % 70) + 8} | ${(index % 2) === 0 ? "Online" : "Away"}`,
+    contextTitle: g.name,
+    contextDescription: `Established guild, ranked #${g.rank} in Aincrad. Join policy: ${g.policy}.`,
+    contextRows: [
+      `Code: ${g.code}`,
+      `Members: ${g.members}/${g.max}`,
+      `Join Rule: ${g.policy}`,
+      `Rank: #${g.rank}`,
+    ],
+  })),
+  friend: FRIEND_DATA.map((f, i) => ({
+    id: `social-friend-${pad(i + 1, 3)}`,
+    label: f.nickname,
+    slotLabel: f.nickname.slice(0, 2).toUpperCase(),
+    subtitle: `Lv.${f.level} ${f.job} | ${f.status}${f.muted ? " | MUTED" : ""}`,
     detailTitle: "Friend Detail",
-    detailDescription: (index) => `Friend profile ${pad(index + 1, 3)}.`,
-    detailRows: (index) => makeStandardRows(index, "Friend"),
-    contextTitle: (index) => `Friend Context ${pad(index + 1, 3)}`,
-    contextDescription: () => "Friend profile and record are rendered in left context.",
-    contextRows: (index) => [
-      `Affinity: ${(index % 100) + 1}`,
-      `Shared Runs: ${(index % 26) + 2}`,
-      `Last Seen: ${dateAt(index + 1)}`,
-      `Memo Tag: ${(index % 6) + 1}`,
+    detailDescription: `${f.nickname} — ${f.job}, Level ${f.level}.`,
+    detailRows: [
+      `Job: ${f.job}`,
+      `Level: ${f.level}`,
+      `Status: ${f.status}`,
+      `Muted: ${f.muted ? "Yes" : "No"}`,
     ],
-  }),
+    contextTitle: f.nickname,
+    contextDescription: `${f.nickname}, Lv.${f.level} ${f.job}. Currently ${f.status.toLowerCase().replace("_", " ")}.`,
+    contextRows: [
+      `Job: ${f.job}`,
+      `Level: ${f.level}`,
+      `Status: ${f.status}`,
+      `Last Seen: ${dateAt(i + 1)}`,
+    ],
+  })),
 };
+
+// ─── Lifelog ─────────────────────────────────────────────────────────────────
+
+const COLLECTION_DATA = [
+  { title: "Kirito 1/7 Scale Figure", cat: "Figure", qty: 1, cond: "Mint in box", from: "Good Smile" },
+  { title: "Asuna ALO Ver. Figure", cat: "Figure", qty: 1, cond: "Mint", from: "Kotobukiya" },
+  { title: "SAO Progressive Manga", cat: "Manga", qty: 8, cond: "Like new", from: "Kyobo" },
+  { title: "SAO Light Novel JP Complete", cat: "Light Novel", qty: 27, cond: "JP edition", from: "Amazon JP" },
+  { title: "SAO Artbook Vol. 1", cat: "Artbook", qty: 1, cond: "Like new", from: "Comiket" },
+  { title: "Elucidator Replica Sword", cat: "Merchandise", qty: 1, cond: "Display", from: "Animax Shop" },
+  { title: "SAO Complete Series Bluray", cat: "Bluray", qty: 1, cond: "Sealed", from: "Aniplex" },
+  { title: "SAO Enamel Pin Set", cat: "Merchandise", qty: 12, cond: "Complete set", from: "CR Shop" },
+];
+
+const MEDIA_DATA = [
+  { title: "Sword Art Online", cat: "Anime", cur: 25, total: 25, status: "COMPLETED", rating: 9.5 },
+  { title: "Attack on Titan", cat: "Anime", cur: 87, total: 87, status: "COMPLETED", rating: 9.8 },
+  { title: "Demon Slayer", cat: "Anime", cur: 26, total: 26, status: "COMPLETED", rating: 9.2 },
+  { title: "Clean Code", cat: "Book", cur: 464, total: 464, status: "COMPLETED", rating: 9.0 },
+  { title: "Fullmetal Alchemist: Brotherhood", cat: "Anime", cur: 48, total: 64, status: "WATCHING", rating: null },
+  { title: "The Pragmatic Programmer", cat: "Book", cur: 100, total: 352, status: "READING", rating: null },
+  { title: "Your Name", cat: "Movie", cur: 1, total: 1, status: "COMPLETED", rating: 10.0 },
+  { title: "Overlord", cat: "Anime", cur: 0, total: 13, status: "PLAN_TO_WATCH", rating: null },
+  { title: "Designing Data-Intensive Apps", cat: "Book", cur: 250, total: 616, status: "READING", rating: null },
+  { title: "Spirited Away", cat: "Movie", cur: 1, total: 1, status: "COMPLETED", rating: 9.9 },
+];
+
+const EXERCISE_DATA = [
+  { cat: "Running", dur: 32, dist: 5.2, cal: 310, date: "2026-03-02" },
+  { cat: "Cycling", dur: 75, dist: 28.4, cal: 620, date: "2026-03-01" },
+  { cat: "Strength Training", dur: 55, dist: null, cal: 380, date: "2026-02-28" },
+  { cat: "Swimming", dur: 40, dist: 1.5, cal: 420, date: "2026-02-26" },
+  { cat: "Running", dur: 28, dist: 4.8, cal: 285, date: "2026-02-25" },
+  { cat: "Yoga", dur: 45, dist: null, cal: 120, date: "2026-02-24" },
+  { cat: "Hiking", dur: 180, dist: 12.0, cal: 850, date: "2026-02-22" },
+  { cat: "Strength Training", dur: 60, dist: null, cal: 420, date: "2026-02-21" },
+  { cat: "Running", dur: 35, dist: 6.0, cal: 360, date: "2026-02-19" },
+  { cat: "Cycling", dur: 90, dist: 35.2, cal: 750, date: "2026-02-16" },
+  { cat: "Jump Rope", dur: 20, dist: null, cal: 200, date: "2026-02-15" },
+  { cat: "Swimming", dur: 50, dist: 2.0, cal: 530, date: "2026-02-12" },
+];
 
 export const LIFELOG_LISTS: Record<LifelogSubId, PanelDataItem[]> = {
-  collection: makeStandardList("Collection", "lifelog-collection", "CL", 42, "Collection Detail"),
-  media: makeStandardList("Media", "lifelog-media", "MD", 40, "Media Detail"),
-  exercise: makeStandardList("Exercise", "lifelog-exercise", "EX", 41, "Exercise Detail"),
+  collection: COLLECTION_DATA.map((c, i) => ({
+    id: `lifelog-collection-${pad(i + 1, 3)}`,
+    label: c.title,
+    slotLabel: c.cat.slice(0, 2).toUpperCase(),
+    subtitle: `${c.cat} | Qty: ${c.qty} | ${c.cond}`,
+    detailTitle: "Collection Detail",
+    detailDescription: `${c.title} — ${c.cat}`,
+    detailRows: [
+      `Category: ${c.cat}`,
+      `Quantity: ${c.qty}`,
+      `Condition: ${c.cond}`,
+      `Source: ${c.from}`,
+    ],
+  })),
+  media: MEDIA_DATA.map((m, i) => ({
+    id: `lifelog-media-${pad(i + 1, 3)}`,
+    label: m.title,
+    slotLabel: m.cat.slice(0, 2).toUpperCase(),
+    subtitle: `${m.cat} | ${m.status}${m.rating !== null ? ` | ★${m.rating}` : ""}`,
+    detailTitle: "Media Log Detail",
+    detailDescription: `${m.title} — ${m.cat}`,
+    detailRows: [
+      `Category: ${m.cat}`,
+      `Status: ${m.status}`,
+      `Progress: ${m.cur}/${m.total}`,
+      m.rating !== null ? `Rating: ★${m.rating}` : `Not rated yet`,
+    ],
+  })),
+  exercise: EXERCISE_DATA.map((e, i) => ({
+    id: `lifelog-exercise-${pad(i + 1, 3)}`,
+    label: `${e.cat} — ${e.date}`,
+    slotLabel: e.cat.slice(0, 2).toUpperCase(),
+    subtitle: `${e.dur}min | ${e.cal} kcal${e.dist !== null ? ` | ${e.dist}km` : ""}`,
+    detailTitle: "Exercise Detail",
+    detailDescription: `${e.cat} session on ${e.date}.`,
+    detailRows: [
+      `Category: ${e.cat}`,
+      `Duration: ${e.dur} min`,
+      `Calories: ${e.cal} kcal`,
+      e.dist !== null ? `Distance: ${e.dist} km` : `No distance tracked`,
+    ],
+  })),
 };
 
-export const MARKET_WALLET_SUMMARY_LIST = makeList({
-  count: 36,
-  idPrefix: "market-wallet",
-  slotPrefix: "WL",
-  label: (index) => `Wallet Summary ${pad(index + 1, 3)}`,
-  subtitle: (index) => `Balance ${(index % 90000) + 20000} col | ${dateAt(index)}`,
-  detailTitle: "Wallet Detail",
-  detailDescription: (index) => `Wallet transaction detail ${pad(index + 1, 3)}.`,
-  detailRows: (index) => [
-    `Available: ${(index % 70000) + 12000} col`,
-    `Pending: ${(index % 9000) + 800} col`,
-    `Settlement: ${dateAt(index + 2)}`,
-    `Risk: ${(index % 5) === 0 ? "Review" : "Clear"}`,
-  ],
-});
+// ─── Market ──────────────────────────────────────────────────────────────────
 
-export const MARKET_SHOP_CATALOG_LIST = makeList({
-  count: 84,
-  idPrefix: "market-catalog",
-  slotPrefix: "CA",
-  label: (index) => `Catalog Item ${pad(index + 1, 3)}`,
-  subtitle: (index) => `${RARITY[index % RARITY.length]} | ${(index % 14000) + 400} col`,
+const WALLET_TRANSACTIONS = [
+  { type: "SELL", item: "Pale Edge", amount: 35000, partner: "Klein", date: "2026-03-02" },
+  { type: "BUY", item: "Mithril Plate ×3", amount: -12000, partner: "Shop", date: "2026-03-01" },
+  { type: "SELL", item: "Iron Ore ×50", amount: 2500, partner: "Agil", date: "2026-02-28" },
+  { type: "SELL", item: "Dragon Scale ×1", amount: 55000, partner: "Lisbeth", date: "2026-02-27" },
+  { type: "BUY", item: "HP Potion (L) ×20", amount: -4000, partner: "Shop", date: "2026-02-25" },
+  { type: "REWARD", item: "Party quest reward", amount: 8500, partner: "System", date: "2026-02-22" },
+  { type: "BUY", item: "Enchant Scroll ×2", amount: -9800, partner: "Argo", date: "2026-02-20" },
+];
+
+const CATALOG_ITEMS = [
+  { name: "Liberator Sword", cat: "Weapon", rarity: "Epic", price: 45000, stock: 3 },
+  { name: "Night Sky Blade", cat: "Weapon", rarity: "Rare", price: 28000, stock: 7 },
+  { name: "Crystalline Breastplate", cat: "Armor", rarity: "Epic", price: 62000, stock: 2 },
+  { name: "HP Potion (L)", cat: "Consumable", rarity: "Uncommon", price: 2500, stock: 98 },
+  { name: "MP Potion (M)", cat: "Consumable", rarity: "Common", price: 1800, stock: 200 },
+  { name: "Floor Teleport Crystal", cat: "Consumable", rarity: "Uncommon", price: 8000, stock: 15 },
+  { name: "Mithril Plate", cat: "Material", rarity: "Rare", price: 18000, stock: 50 },
+  { name: "Enchantment Scroll (ATK)", cat: "Scroll", rarity: "Uncommon", price: 6500, stock: 30 },
+  { name: "Shadow Cloak", cat: "Armor", rarity: "Epic", price: 32000, stock: 4 },
+  { name: "Steel Broadsword", cat: "Weapon", rarity: "Uncommon", price: 15000, stock: 12 },
+  { name: "Stamina Boost Potion", cat: "Consumable", rarity: "Common", price: 3200, stock: 80 },
+  { name: "Orichalcum Ore", cat: "Material", rarity: "Legendary", price: 120000, stock: 1 },
+];
+
+const MY_LISTINGS_DATA = [
+  { name: "Pale Edge (Sword)", price: 35000, status: "ACTIVE", watches: 12 },
+  { name: "Mithril Ingot ×3", price: 8500, status: "ACTIVE", watches: 7 },
+  { name: "HP Potion (M) ×10", price: 1200, status: "ACTIVE", watches: 3 },
+  { name: "Lucky Charm", price: 12000, status: "RESERVED", watches: 18 },
+  { name: "Dragon Scale ×1", price: 55000, status: "ACTIVE", watches: 24 },
+];
+
+const TRADE_PARTNERS = [
+  { nickname: "Asuna", level: 76, trust: 98, status: "ONLINE", trades: 14 },
+  { nickname: "Klein", level: 65, trust: 88, status: "IN_DUNGEON", trades: 8 },
+  { nickname: "Agil", level: 72, trust: 95, status: "ONLINE", trades: 22 },
+  { nickname: "Lisbeth", level: 60, trust: 92, status: "CRAFTING", trades: 11 },
+  { nickname: "Argo", level: 63, trust: 80, status: "ONLINE", trades: 6 },
+  { nickname: "Heathcliff", level: 100, trust: 75, status: "AWAY", trades: 3 },
+];
+
+export const MARKET_WALLET_SUMMARY_LIST: PanelDataItem[] = WALLET_TRANSACTIONS.map((t, i) => ({
+  id: `wallet-tx-${pad(i + 1, 3)}`,
+  label: `${t.type}: ${t.item}`,
+  slotLabel: t.type.slice(0, 2),
+  subtitle: `${t.amount > 0 ? "+" : ""}${t.amount.toLocaleString()} col | ${t.partner} | ${t.date}`,
+  detailTitle: "Transaction Detail",
+  detailDescription: `${t.type} transaction on ${t.date}.`,
+  detailRows: [
+    `Type: ${t.type}`,
+    `Item: ${t.item}`,
+    `Amount: ${t.amount > 0 ? "+" : ""}${t.amount.toLocaleString()} col`,
+    `Partner: ${t.partner}`,
+  ],
+}));
+
+export const MARKET_SHOP_CATALOG_LIST: PanelDataItem[] = CATALOG_ITEMS.map((item, i) => ({
+  id: `catalog-${pad(i + 1, 3)}`,
+  label: item.name,
+  slotLabel: item.rarity.slice(0, 2).toUpperCase(),
+  subtitle: `${item.rarity} | ${item.price.toLocaleString()} col | Stock: ${item.stock}`,
   detailTitle: "Item Detail / Buy",
-  detailDescription: (index) => `Catalog item detail ${pad(index + 1, 3)}.`,
-  detailRows: (index) => [
-    `Seller Score: ${(index % 98) + 2}`,
-    `Stock: ${(index % 16) + 1}`,
-    `Delivery ETA: ${(index % 12) + 1}h`,
-    `Listed At: ${dateAt(index + 1)}`,
+  detailDescription: `${item.name} — ${item.cat}`,
+  detailRows: [
+    `Category: ${item.cat}`,
+    `Rarity: ${item.rarity}`,
+    `Price: ${item.price.toLocaleString()} col`,
+    `Stock: ${item.stock}`,
   ],
-});
+}));
 
-export const MARKET_SHOP_MY_LISTINGS = makeList({
-  count: 42,
-  idPrefix: "market-my-listing",
-  slotPrefix: "ML",
-  label: (index) => `My Listing ${pad(index + 1, 3)}`,
-  subtitle: (index) => `Ask ${(index % 18000) + 1200} col | Watch ${(index % 80) + 1}`,
+export const MARKET_SHOP_MY_LISTINGS: PanelDataItem[] = MY_LISTINGS_DATA.map((l, i) => ({
+  id: `my-listing-${pad(i + 1, 3)}`,
+  label: l.name,
+  slotLabel: "ML",
+  subtitle: `${l.price.toLocaleString()} col | ${l.status} | Watches: ${l.watches}`,
   detailTitle: "Listing Detail",
-  detailDescription: (index) => `My listing detail ${pad(index + 1, 3)}.`,
-  detailRows: (index) => [
-    `Views: ${(index % 220) + 10}`,
-    `Current Bid: ${(index % 16000) + 1000} col`,
-    `Expire In: ${(index % 20) + 1} days`,
-    `State: ${STATUS[index % STATUS.length]}`,
+  detailDescription: `Your listing: ${l.name}`,
+  detailRows: [
+    `Price: ${l.price.toLocaleString()} col`,
+    `Status: ${l.status}`,
+    `Watches: ${l.watches}`,
+    `Listed: ${dateAt(i)}`,
   ],
-});
+}));
 
-export const MARKET_TRADE_FRIENDS = makeList({
-  count: 48,
-  idPrefix: "market-trade-friend",
-  slotPrefix: "TR",
-  label: (index) => `Trade Partner ${pad(index + 1, 3)}`,
-  subtitle: (index) =>
-    `Lv.${(index % 68) + 8} | Trust ${(index % 100) + 1} | ${(index % 2) === 0 ? "Online" : "Away"}`,
+export const MARKET_TRADE_FRIENDS: PanelDataItem[] = TRADE_PARTNERS.map((p, i) => ({
+  id: `trade-partner-${pad(i + 1, 3)}`,
+  label: p.nickname,
+  slotLabel: p.nickname.slice(0, 2).toUpperCase(),
+  subtitle: `Lv.${p.level} | Trust: ${p.trust}/100 | ${p.status}`,
   detailTitle: "Trade Window",
-  detailDescription: (index) => `Trade session detail ${pad(index + 1, 3)}.`,
-  detailRows: (index) => [
-    `Allowed Slots: ${(index % 6) + 4}`,
-    `Recent Trades: ${(index % 22) + 1}`,
-    `Last Trade: ${dateAt(index + 1)}`,
-    `Partner Fee: ${(index % 4) + 1}%`,
+  detailDescription: `Trade session with ${p.nickname}.`,
+  detailRows: [
+    `Level: ${p.level}`,
+    `Trust Score: ${p.trust}/100`,
+    `Status: ${p.status}`,
+    `Past Trades: ${p.trades}`,
   ],
-});
+}));
 
-export const SYSTEM_PANEL_ROWS: Record<Exclude<SystemSubId, "logout">, {
-  description: string;
-  rows: string[];
-}> = {
+// ─── System ──────────────────────────────────────────────────────────────────
+
+export const SYSTEM_PANEL_ROWS: Record<
+  Exclude<SystemSubId, "logout">,
+  { description: string; rows: string[] }
+> = {
   options: {
-    description: "System options panel for graphics, controls, and gameplay settings.",
+    description: "System settings for graphics, audio, notifications, and UI preferences.",
     rows: [
-      "Graphics: High",
+      "Graphics Quality: High",
       "Master Volume: 78%",
-      "Voice Chat: Team Only",
+      "Notifications: Enabled",
+      "Language: Korean",
       "UI Scale: 100%",
-      "Input Preset: Standard",
     ],
   },
   help: {
-    description: "Help panel for quick guides, FAQ, and support routes.",
+    description: "Help resources — quick start guide, FAQ, support, and patch notes.",
     rows: [
       "Quick Start Guide",
       "Frequently Asked Questions",
       "Contact Support",
       "Patch Notes",
-      "Terms and Safety",
+      "Terms of Service & Safety",
     ],
   },
 };
-
