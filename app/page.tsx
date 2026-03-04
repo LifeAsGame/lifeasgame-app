@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import LeftContext from "@/components/LeftContext";
+import type { FriendMemoData } from "@/components/LeftContext";
 import OrbNav from "@/components/OrbNav";
 import RightPanels from "@/components/RightPanels";
 import SaoAlert from "@/components/SaoAlert";
@@ -11,12 +12,16 @@ import { useAuth } from "@/context/AuthContext";
 import { usePanScroll } from "@/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/lib/api/mock/player.mock";
 import {
+  COLLECTION_FORM_FIELDS,
   DEFAULT_SUB_SELECTIONS,
+  EXERCISE_FORM_FIELDS,
+  GUILD_FORM_FIELDS,
   INVENTORY_GEAR_LISTS,
   INVENTORY_GEAR_PARTS,
   INVENTORY_INBOX_LIST,
   INVENTORY_ITEMS_LIST,
   LIFELOG_LISTS,
+  LISTING_FORM_FIELDS,
   MAIN_NAV_ITEMS,
   MAIN_PANEL_TITLES,
   MARKET_SHOP_CATALOG_LIST,
@@ -25,6 +30,8 @@ import {
   MARKET_TRADE_FRIENDS,
   MARKET_TRADE_WINDOW_ACTIONS,
   MARKET_WALLET_SUMMARY_LIST,
+  MEDIA_FORM_FIELDS,
+  PARTY_FORM_FIELDS,
   PLAYER_LISTS,
   QUEST_LISTS,
   SKILLS_LISTS,
@@ -33,6 +40,7 @@ import {
   SYSTEM_PANEL_ROWS,
 } from "@/lib/nav";
 import type {
+  FormFieldSpec,
   MainNavId,
   PanelDataItem,
   PanelStackItem,
@@ -534,6 +542,24 @@ export default function Home() {
     lastFocusBySurface: {},
   });
 
+  // Form panel overlaid on the base panel stack
+  const [activeFormPanel, setActiveFormPanel] = useState<Extract<PanelStackItem, { kind: "form" }> | null>(null);
+  // Message / gift special panels
+  const [activeSpecialPanel, setActiveSpecialPanel] = useState<
+    Extract<PanelStackItem, { kind: "message" }> | Extract<PanelStackItem, { kind: "gift" }> | null
+  >(null);
+  // Pending action waiting for SaoAlert confirmation
+  const [pendingAction, setPendingAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  // Friend memo data persisted to localStorage
+  const [friendMemos, setFriendMemos] = useState<Record<string, FriendMemoData>>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("lag_friendMemos") : null;
+      return raw ? (JSON.parse(raw) as Record<string, FriendMemoData>) : {};
+    } catch {
+      return {};
+    }
+  });
+
   const updateDetailSelections = (updates: Partial<Record<DetailSelectionKey, string | null>>) => {
     setSelectedDetailByKey((prev) => ({ ...prev, ...updates }));
   };
@@ -556,7 +582,7 @@ export default function Home() {
     }
   };
 
-  const { panelStack, socialContext } = useMemo(
+  const { panelStack: basePanelStack, socialContext } = useMemo(
     () =>
       buildPanels(
         selectedMain,
@@ -573,6 +599,13 @@ export default function Home() {
       selectedDetailByKey,
     ],
   );
+
+  // Append form or special panel after the base stack
+  const panelStack = useMemo<PanelStackItem[]>(() => {
+    if (activeSpecialPanel) return [...basePanelStack, activeSpecialPanel];
+    if (activeFormPanel) return [...basePanelStack, activeFormPanel];
+    return basePanelStack;
+  }, [basePanelStack, activeFormPanel, activeSpecialPanel]);
 
   const orderedNavItems = bringToFrontStable(MAIN_NAV_ITEMS, selectedMain, (item) => item.id);
 
@@ -602,6 +635,8 @@ export default function Home() {
     setSelectedInventoryGearPartId(null);
     setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
+    setActiveFormPanel(null);
+    setActiveSpecialPanel(null);
   };
 
   const handlePanelItemSelect = (panelIndex: number, itemId: string) => {
@@ -665,6 +700,166 @@ export default function Home() {
     }
   };
 
+  // ─── Form panel helpers ────────────────────────────────────────────────────
+
+  const openForm = (
+    formKey: string,
+    title: string,
+    fields: FormFieldSpec[],
+    submitLabel?: string,
+    prefillValues?: Record<string, string>,
+  ) => {
+    setActiveFormPanel({
+      id: `form-${formKey}`,
+      kind: "form",
+      title,
+      formKey,
+      fields,
+      submitLabel,
+      prefillValues,
+      context: { main: selectedMain, route: `form-${formKey}` },
+    });
+    setActiveSpecialPanel(null);
+  };
+
+  const handlePanelBack = () => {
+    setActiveFormPanel(null);
+    setActiveSpecialPanel(null);
+  };
+
+  // Called when list's actionLabel button is clicked ("Log", "Add", "Create", "Sell")
+  const handlePanelActionClick = (panelIndex: number) => {
+    const panel = basePanelStack[panelIndex];
+    if (!panel || panel.kind !== "list") return;
+    const route = panel.context.route;
+    const sub = selectedSubByMain[panel.context.main];
+
+    if (route === "lifelog-list" && sub === "exercise") {
+      openForm("exercise-create", "Log Exercise", EXERCISE_FORM_FIELDS, "기록하기");
+    } else if (route === "lifelog-list" && sub === "collection") {
+      openForm("collection-create", "Add Collection", COLLECTION_FORM_FIELDS, "추가하기");
+    } else if (route === "lifelog-list" && sub === "media") {
+      openForm("media-create", "Log Media", MEDIA_FORM_FIELDS, "기록하기");
+    } else if (route === "social-list" && sub === "party") {
+      openForm("party-create", "Create Party", PARTY_FORM_FIELDS, "파티 생성");
+    } else if (route === "social-list" && sub === "guild") {
+      openForm("guild-create", "Create Guild", GUILD_FORM_FIELDS, "길드 생성");
+    } else if (route === "market-shop-my-listings") {
+      openForm("listing-create", "New Listing", LISTING_FORM_FIELDS, "등록하기");
+    }
+  };
+
+  // Called from long press action buttons
+  const handlePanelItemAction = (_panelIndex: number, itemId: string, actionType: string) => {
+    if (actionType === "edit") {
+      // Find item across all lists to get prefill data
+      const allLists = [
+        ...LIFELOG_LISTS.exercise,
+        ...LIFELOG_LISTS.collection,
+        ...LIFELOG_LISTS.media,
+      ];
+      const item = allLists.find((i) => i.id === itemId);
+      const sub = selectedSubByMain[selectedMain];
+
+      if (selectedMain === "lifelog" && sub === "exercise") {
+        openForm("exercise-edit", "Edit Exercise", EXERCISE_FORM_FIELDS, "수정하기",
+          item ? { category: item.detailRows[0]?.split(": ")[1] ?? "" } : undefined);
+      } else if (selectedMain === "lifelog" && sub === "collection") {
+        openForm("collection-edit", "Edit Collection", COLLECTION_FORM_FIELDS, "수정하기");
+      } else if (selectedMain === "lifelog" && sub === "media") {
+        openForm("media-edit", "Edit Media", MEDIA_FORM_FIELDS, "수정하기");
+      }
+    } else if (actionType === "equip") {
+      const sub = selectedSubByMain[selectedMain];
+      const isQuestAccept = selectedMain === "quests" && (sub === "suggested" || sub === "daily");
+      setPendingAction({
+        title: isQuestAccept ? "퀘스트 수락" : "아이템 장착",
+        message: isQuestAccept ? "이 퀘스트를 수락하시겠습니까?" : "아이템을 장착하시겠습니까?",
+        onConfirm: () => setPendingAction(null),
+      });
+    } else if (actionType === "unequip") {
+      setPendingAction({
+        title: "아이템 해제",
+        message: "아이템 장착을 해제하시겠습니까?",
+        onConfirm: () => setPendingAction(null),
+      });
+    } else if (actionType === "cancel") {
+      const sub = selectedSubByMain[selectedMain];
+      const isQuest = selectedMain === "quests";
+      setPendingAction({
+        title: isQuest ? "퀘스트 취소" : "취소",
+        message: isQuest ? "진행 중인 퀘스트를 취소하시겠습니까?" : "이 항목을 취소하시겠습니까?",
+        onConfirm: () => setPendingAction(null),
+      });
+    } else if (actionType === "delete") {
+      setPendingAction({
+        title: "삭제",
+        message: "이 항목을 삭제하시겠습니까?",
+        onConfirm: () => setPendingAction(null),
+      });
+    } else if (actionType === "gift") {
+      // Friend gift action from long press — push gift panel
+      const friendItem = SOCIAL_LISTS.friend.find((f) => f.id === itemId);
+      if (friendItem) {
+        setActiveSpecialPanel({
+          id: `gift-${itemId}`,
+          kind: "gift",
+          title: `Send Gift — ${friendItem.label}`,
+          friendId: itemId,
+          friendName: friendItem.label,
+          context: { main: "social", route: "social-gift" },
+        });
+        setActiveFormPanel(null);
+      }
+    }
+  };
+
+  // Called when form panel submit is confirmed
+  const handlePanelFormSubmit = (_formKey: string, _values: Record<string, string>) => {
+    // In mock mode: just close the form panel
+    setActiveFormPanel(null);
+  };
+
+  // Called from LeftContext friend action buttons
+  const handleFriendAction = (action: "message" | "gift" | "unfollow", followId: string) => {
+    const friendItem = SOCIAL_LISTS.friend.find((f) => f.id === followId);
+    if (!friendItem) return;
+
+    if (action === "message") {
+      setActiveSpecialPanel({
+        id: `message-${followId}`,
+        kind: "message",
+        title: `Message — ${friendItem.label}`,
+        friendId: followId,
+        friendName: friendItem.label,
+        context: { main: "social", route: "social-message" },
+      });
+      setActiveFormPanel(null);
+    } else if (action === "gift") {
+      setActiveSpecialPanel({
+        id: `gift-${followId}`,
+        kind: "gift",
+        title: `Send Gift — ${friendItem.label}`,
+        friendId: followId,
+        friendName: friendItem.label,
+        context: { main: "social", route: "social-gift" },
+      });
+      setActiveFormPanel(null);
+    } else if (action === "unfollow") {
+      updateDetailSelections({ social: null });
+      setActiveSpecialPanel(null);
+    }
+  };
+
+  // Friend memo persistence
+  const handleFriendMemoUpdate = (followId: string, memo: FriendMemoData) => {
+    const next = { ...friendMemos, [followId]: memo };
+    setFriendMemos(next);
+    try {
+      localStorage.setItem("lag_friendMemos", JSON.stringify(next));
+    } catch {}
+  };
+
   const leftContextMode =
     selectedMain === "player" ? "player" : selectedMain === "social" ? "social" : "hidden";
 
@@ -692,6 +887,11 @@ export default function Home() {
           mode={leftContextMode}
           playerInfo={playerInfo}
           socialContext={socialContext}
+          selectedFriendId={selectedDetailByKey.social}
+          isFriendMode={selectedMain === "social" && selectedSubByMain.social === "friend"}
+          friendMemoByFollowId={friendMemos}
+          onFriendMemoUpdate={handleFriendMemoUpdate}
+          onFriendAction={handleFriendAction}
           onFocus={() => bringSurfaceToFront("left-context")}
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
@@ -716,6 +916,10 @@ export default function Home() {
               getSurfaceZIndex(`panel-slot-${panelIndex}`, SURFACE_GROUP_BASE_Z.panels, panelIndex * 10)
             }
             onPanelItemSelect={handlePanelItemSelect}
+            onPanelItemAction={handlePanelItemAction}
+            onPanelFormSubmit={handlePanelFormSubmit}
+            onPanelBack={handlePanelBack}
+            onPanelActionClick={handlePanelActionClick}
           />
         </div>
       </main>
@@ -729,6 +933,17 @@ export default function Home() {
           router.push("/login");
         }}
         onCancel={() => setLogoutAlertOpen(false)}
+      />
+
+      <SaoAlert
+        isOpen={Boolean(pendingAction)}
+        title={pendingAction?.title ?? ""}
+        message={pendingAction?.message}
+        onConfirm={() => {
+          pendingAction?.onConfirm();
+          setPendingAction(null);
+        }}
+        onCancel={() => setPendingAction(null)}
       />
     </div>
   );

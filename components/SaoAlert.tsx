@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
+import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, SAO_ICON } from "@/lib/design/tokens";
 
 export type SaoAlertProps = {
   isOpen: boolean;
@@ -44,100 +45,151 @@ export default function SaoAlert({
           className="fixed inset-0 flex items-center justify-center"
           style={{
             zIndex: 9999999,
-            backdropFilter: "blur(4px)",
-            background: "rgba(5,7,10,0.7)",
+            backdropFilter: "blur(2px)",
+            background: SAO.color.bg.overlay,
           }}
           onClick={onCancel}
         >
           <motion.div
             key="sao-alert-panel"
-            initial={{ scale: 0.85, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.88, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 380, damping: 32 }}
-            className="relative overflow-hidden rounded-sm"
+            initial={{ scale: 0.88, opacity: 0, y: 8 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.92, opacity: 0, y: 4 }}
+            transition={{ type: "spring", stiffness: 340, damping: 28 }}
+            className="relative overflow-hidden"
             style={{
-              width: 340,
-              boxShadow:
-                "0 24px 60px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.2)",
-              background:
-                "linear-gradient(180deg, rgba(232,236,243,0.99), rgba(215,221,232,0.98))",
+              ...PANEL_STYLE,
+              width: 380,
+              boxShadow: `0 24px 60px rgba(0,0,0,0.55), ${SAO.shadow.panelInset}`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Grid overlay */}
-            <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(0,0,0,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.7)_1px,transparent_1px)] [background-size:20px_20px]" />
+            <div style={GRID_OVERLAY_STYLE} />
 
             {/* Header */}
             <div
-              className="relative px-5 py-3.5"
+              className="relative px-6 py-4"
               style={{
-                background:
-                  "linear-gradient(180deg, rgba(205,212,224,0.99), rgba(192,200,214,0.98))",
-                borderBottom: "1px solid rgba(160,172,190,0.45)",
+                background: "linear-gradient(180deg, #e8eaed, #d8dce2)",
               }}
             >
-              <p className="text-center text-sm font-bold tracking-[0.18em] text-zinc-700 uppercase">
+              <p
+                className="text-center text-sm font-semibold uppercase"
+                style={{
+                  letterSpacing: "0.16em",
+                  color: SAO.color.text.primary,
+                }}
+              >
                 {title}
               </p>
             </div>
 
+            {/* Double divider line for depth */}
+            <div
+              style={{
+                height: 0,
+                borderTop: `1px solid rgba(20,23,28,0.3)`,
+                borderBottom: `1px solid rgba(255,255,255,0.6)`,
+              }}
+            />
+
             {/* Body */}
             {message ? (
-              <div
-                className="relative m-4 rounded-sm px-4 py-3"
-                style={{
-                  background: "rgba(255,255,255,0.6)",
-                  border: "1px solid rgba(160,172,190,0.35)",
-                  boxShadow: "inset 0 2px 6px rgba(0,0,0,0.05)",
-                }}
-              >
-                <p className="text-sm leading-relaxed tracking-[0.06em] text-zinc-700">
-                  {message}
-                </p>
+              <div className="relative px-6 py-5">
+                <div
+                  className="rounded-sm px-4 py-3"
+                  style={{
+                    background: "rgba(210,215,222,0.6)",
+                    border: `1px solid rgba(20,23,28,0.15)`,
+                    boxShadow: "inset 0 2px 6px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{
+                      letterSpacing: "0.06em",
+                      color: SAO.color.text.secondary,
+                    }}
+                  >
+                    {message}
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="h-4" />
+              <div className="h-5" />
             )}
 
             {/* Actions */}
-            <div className="relative flex items-center justify-center gap-14 pb-6 pt-2">
-              {/* Confirm — Blue O */}
+            <div className="relative flex items-end justify-around pb-6 pt-2">
+              {/* Confirm — Blue O (Yes.svg) */}
               <button
                 type="button"
                 onClick={onConfirm}
                 className="flex flex-col items-center gap-2 transition-transform active:scale-95"
               >
                 <div
-                  className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
+                  className="flex h-16 w-16 items-center justify-center rounded-full overflow-hidden"
                   style={{
-                    background: "linear-gradient(150deg, #60a5fa, #1d4ed8)",
-                    boxShadow:
-                      "0 4px 18px rgba(37,99,235,0.6), inset 0 1px 0 rgba(255,255,255,0.35)",
+                    border: `2px solid ${SAO.color.action.blue}`,
+                    boxShadow: `0 0 12px rgba(59,130,246,0.4)`,
+                    background: "rgba(255,255,255,0.1)",
                   }}
                 >
-                  <span className="text-2xl font-bold leading-none text-white">O</span>
+                  <img
+                    src={SAO_ICON.yes}
+                    alt="Yes"
+                    width={40}
+                    height={40}
+                    style={{ display: "block" }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.parentElement!.innerHTML =
+                        '<span style="font-size:1.5rem;font-weight:bold;color:#3b82f6">O</span>';
+                    }}
+                  />
                 </div>
-                <span className="text-xs tracking-[0.14em] text-zinc-600">{confirmLabel}</span>
+                <span
+                  className="text-xs"
+                  style={{ letterSpacing: "0.14em", color: SAO.color.text.secondary }}
+                >
+                  {confirmLabel}
+                </span>
               </button>
 
-              {/* Cancel — Pink X */}
+              {/* Cancel — Pink X (No.svg) */}
               <button
                 type="button"
                 onClick={onCancel}
                 className="flex flex-col items-center gap-2 transition-transform active:scale-95"
               >
                 <div
-                  className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
+                  className="flex h-16 w-16 items-center justify-center rounded-full overflow-hidden"
                   style={{
-                    background: "linear-gradient(150deg, #f9a8d4, #db2777)",
-                    boxShadow:
-                      "0 4px 18px rgba(219,39,119,0.55), inset 0 1px 0 rgba(255,255,255,0.3)",
+                    border: `2px solid ${SAO.color.action.red}`,
+                    boxShadow: `0 0 12px rgba(224,62,99,0.4)`,
+                    background: "rgba(255,255,255,0.1)",
                   }}
                 >
-                  <span className="text-2xl font-bold leading-none text-white">X</span>
+                  <img
+                    src={SAO_ICON.no}
+                    alt="No"
+                    width={40}
+                    height={40}
+                    style={{ display: "block" }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.parentElement!.innerHTML =
+                        '<span style="font-size:1.5rem;font-weight:bold;color:#e03e63">X</span>';
+                    }}
+                  />
                 </div>
-                <span className="text-xs tracking-[0.14em] text-zinc-600">{cancelLabel}</span>
+                <span
+                  className="text-xs"
+                  style={{ letterSpacing: "0.14em", color: SAO.color.text.secondary }}
+                >
+                  {cancelLabel}
+                </span>
               </button>
             </div>
           </motion.div>

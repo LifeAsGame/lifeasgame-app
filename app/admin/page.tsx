@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import SaoAlert from "@/components/SaoAlert";
 import SaoFormPanel, { type FieldConfig } from "@/components/SaoFormPanel";
 import { useAuth } from "@/context/AuthContext";
+import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, GOLD_BTN_STYLE } from "@/lib/design/tokens";
 import {
   adminCancelListingApi,
   adminCreateAchievementApi,
@@ -77,29 +78,36 @@ function AdminTable({
     <div
       className="overflow-hidden rounded-sm"
       style={{
-        border: "1px solid rgba(160,172,190,0.35)",
-        background: "rgba(255,255,255,0.5)",
+        ...PANEL_STYLE,
+        background: `linear-gradient(180deg, ${SAO.color.bg.panel}, ${SAO.color.bg.panelAlt})`,
       }}
     >
+      {/* Grid overlay */}
+      <div style={GRID_OVERLAY_STYLE} />
+
       {/* Header */}
       <div
-        className="grid px-4 py-2.5"
+        className="relative grid px-4 py-2.5"
         style={{
           gridTemplateColumns: columns.map((c) => c.width ?? "1fr").join(" ") + (onAction ? " 80px" : ""),
-          background: "linear-gradient(180deg, rgba(200,208,222,0.8), rgba(185,195,212,0.8))",
-          borderBottom: "1px solid rgba(160,172,190,0.4)",
+          background: "linear-gradient(180deg, #e8eaed, #d8dce2)",
+          borderBottom: `1px solid ${SAO.color.border.panel}`,
         }}
       >
         {columns.map((col) => (
           <span
             key={col.key}
-            className="text-[11px] font-bold tracking-[0.2em] text-zinc-600 uppercase"
+            className="uppercase"
+            style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label, fontWeight: 600 }}
           >
             {col.label}
           </span>
         ))}
         {onAction ? (
-          <span className="text-[11px] font-bold tracking-[0.2em] text-zinc-600 uppercase">
+          <span
+            className="uppercase"
+            style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label, fontWeight: 600 }}
+          >
             Action
           </span>
         ) : null}
@@ -107,22 +115,25 @@ function AdminTable({
 
       {/* Rows */}
       {rows.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-zinc-500">No data</div>
+        <div className="relative px-4 py-6 text-center" style={{ fontSize: "0.875rem", color: SAO.color.text.label }}>
+          No data
+        </div>
       ) : (
         rows.map((row, i) => (
           <div
             key={i}
-            className="grid items-center px-4 py-2.5"
+            className="relative grid items-center px-4 py-2.5 transition-colors hover:bg-white/20"
             style={{
               gridTemplateColumns:
                 columns.map((c) => c.width ?? "1fr").join(" ") + (onAction ? " 80px" : ""),
-              borderTop: i > 0 ? "1px solid rgba(160,172,190,0.2)" : undefined,
+              borderTop: i > 0 ? `1px solid rgba(20,23,28,0.1)` : undefined,
             }}
           >
             {columns.map((col) => (
               <span
                 key={col.key}
-                className="truncate text-xs tracking-[0.06em] text-zinc-700"
+                className="truncate text-xs"
+                style={{ letterSpacing: "0.06em", color: SAO.color.text.primary }}
               >
                 {String(row[col.key] ?? "—")}
               </span>
@@ -132,7 +143,7 @@ function AdminTable({
                 type="button"
                 onClick={() => onAction(row)}
                 className="rounded-sm px-2 py-1 text-[11px] font-semibold tracking-[0.1em] uppercase transition-opacity hover:opacity-80"
-                style={{ background: btnColor, color: btnText }}
+                style={{ background: btnColor, color: btnText, borderRadius: SAO.radius.panel }}
               >
                 {actionLabel}
               </button>
@@ -172,10 +183,9 @@ function AdminPanel({
           <button
             type="button"
             onClick={onAdd}
-            className="rounded-sm px-4 py-1.5 text-xs font-bold tracking-[0.16em] uppercase"
+            className="px-4 py-1.5 text-xs font-bold tracking-[0.16em] uppercase transition-opacity hover:opacity-85"
             style={{
-              background: "linear-gradient(150deg, rgba(248,197,78,0.92), rgba(234,168,40,0.92))",
-              color: "#2a2008",
+              ...GOLD_BTN_STYLE,
               boxShadow: "0 2px 8px rgba(248,197,78,0.3)",
             }}
           >
@@ -542,25 +552,29 @@ export default function AdminPage() {
       <aside
         className="flex shrink-0 flex-col overflow-hidden"
         style={{
-          width: 220,
-          borderRight: "1px solid rgba(203,211,221,0.22)",
-          background:
-            "linear-gradient(180deg, rgba(230,234,241,0.97), rgba(215,221,232,0.96))",
+          width: 240,
+          borderRight: "1px solid rgba(255,255,255,0.08)",
+          background: "rgba(10,12,17,0.95)",
         }}
       >
         {/* Sidebar header */}
         <div
           className="relative px-5 py-4"
           style={{
-            borderBottom: "1px solid rgba(160,172,190,0.35)",
-            background: "linear-gradient(180deg, rgba(205,212,224,0.99), rgba(192,200,214,0.98))",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          <div className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(0,0,0,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.7)_1px,transparent_1px)] [background-size:20px_20px]" />
-          <p className="relative text-[11px] font-bold tracking-[0.28em] text-zinc-500 uppercase">
+          <div style={GRID_OVERLAY_STYLE} />
+          <p
+            className="relative uppercase"
+            style={{ fontSize: "10px", letterSpacing: "0.28em", color: SAO.color.text.goldDim }}
+          >
             Admin Panel
           </p>
-          <p className="relative mt-0.5 text-sm font-semibold tracking-[0.06em] text-zinc-700">
+          <p
+            className="relative mt-0.5 text-sm font-semibold"
+            style={{ letterSpacing: "0.06em", color: SAO.color.text.onDark }}
+          >
             {currentUser.nickname}
           </p>
         </div>
@@ -574,30 +588,32 @@ export default function AdminPage() {
                 key={menu.id}
                 type="button"
                 onClick={() => setSelectedMenu(menu.id)}
-                className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-left transition-colors"
-                style={{
-                  background: isActive
-                    ? "linear-gradient(150deg, rgba(248,197,78,0.22), rgba(234,168,40,0.18))"
-                    : "transparent",
-                  border: isActive
-                    ? "1px solid rgba(248,197,78,0.35)"
-                    : "1px solid transparent",
-                }}
+                className="relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                style={{ background: isActive ? "rgba(248,197,78,0.08)" : "transparent" }}
               >
+                {/* Active left bar */}
+                {isActive ? (
+                  <span
+                    className="absolute inset-y-0 left-0 rounded-l-sm"
+                    style={{ width: "3px", background: SAO.color.action.gold }}
+                  />
+                ) : null}
                 <span
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm text-[10px] font-bold"
                   style={{
-                    background: isActive
-                      ? "linear-gradient(150deg, rgba(248,197,78,0.9), rgba(234,168,40,0.9))"
-                      : "rgba(140,155,175,0.2)",
-                    color: isActive ? "#2a2008" : "#6b7280",
+                    background: isActive ? "rgba(248,197,78,0.15)" : "rgba(255,255,255,0.06)",
+                    color: isActive ? SAO.color.action.gold : SAO.color.text.onDark,
                   }}
                 >
                   {menu.slotLabel}
                 </span>
                 <span
-                  className="text-sm tracking-[0.06em]"
-                  style={{ color: isActive ? "#3d3010" : "#4b5563", fontWeight: isActive ? 600 : 400 }}
+                  className="text-sm"
+                  style={{
+                    letterSpacing: "0.06em",
+                    color: isActive ? SAO.color.text.gold : SAO.color.text.onDark,
+                    fontWeight: isActive ? 600 : 400,
+                  }}
                 >
                   {menu.label}
                 </span>
@@ -609,12 +625,13 @@ export default function AdminPage() {
         {/* Logout */}
         <div
           className="p-3"
-          style={{ borderTop: "1px solid rgba(160,172,190,0.3)" }}
+          style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
         >
           <button
             type="button"
             onClick={() => setLogoutAlertOpen(true)}
-            className="w-full rounded-sm px-3 py-2 text-sm tracking-[0.08em] text-zinc-600 transition-colors hover:bg-zinc-600/10"
+            className="w-full rounded-sm px-3 py-2 text-sm tracking-[0.08em] transition-colors hover:bg-white/5"
+            style={{ color: SAO.color.text.onDark }}
           >
             Logout
           </button>
@@ -627,23 +644,20 @@ export default function AdminPage() {
         <div
           className="relative shrink-0 px-7 py-4"
           style={{
-            borderBottom: "1px solid rgba(160,172,190,0.18)",
-            background: "rgba(10,12,17,0.6)",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            background: "rgba(7,9,13,0.8)",
           }}
         >
-          <p className="text-[11px] tracking-[0.28em] text-zinc-500 uppercase">
+          <p
+            className="uppercase"
+            style={{ fontSize: "11px", letterSpacing: "0.28em", color: SAO.color.text.onDark }}
+          >
             Life As Game — Admin
           </p>
         </div>
 
         {/* Content */}
-        <div
-          className="flex-1 overflow-y-auto p-7"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(230,234,241,0.04), rgba(215,221,232,0.06))",
-          }}
-        >
+        <div className="flex-1 overflow-y-auto p-7">
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedMenu}

@@ -614,7 +614,7 @@ export default function EdgeFadeScrollArea({
         style={{
           height: fadeSize,
           opacity: fadeState.canScrollUp ? 1 : 0,
-          background: `linear-gradient(180deg, ${fadeColor} 0%, rgba(229,235,243,0.72) 42%, rgba(229,235,243,0) 100%)`,
+          background: `linear-gradient(180deg, ${fadeColor} 0%, transparent 100%)`,
         }}
       />
 
@@ -624,7 +624,7 @@ export default function EdgeFadeScrollArea({
         style={{
           height: fadeSize + 2,
           opacity: fadeState.canScrollDown ? 1 : 0,
-          background: `linear-gradient(0deg, ${fadeColor} 0%, rgba(229,235,243,0.72) 42%, rgba(229,235,243,0) 100%)`,
+          background: `linear-gradient(0deg, ${fadeColor} 0%, transparent 100%)`,
         }}
       />
     </div>

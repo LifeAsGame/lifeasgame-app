@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 
+import { SAO_ICON } from "@/lib/design/tokens";
 import type { MainNavId } from "@/lib/nav";
 import { MOTION } from "@/lib/motion";
 import { UI_CONSTS } from "@/lib/uiConsts";
@@ -21,6 +22,18 @@ type OrbNavProps = {
   onSelect: (id: MainNavId) => void;
   zIndex?: number;
   onFocus?: () => void;
+};
+
+// Map orb nav ID → { icon, iconOn }
+const ORB_ICONS: Partial<Record<MainNavId, { off: string; on: string }>> = {
+  player:    { off: SAO_ICON.player,   on: SAO_ICON.playerOn },
+  skills:    { off: SAO_ICON.skills,   on: SAO_ICON.skillsOn },
+  inventory: { off: SAO_ICON.items,    on: SAO_ICON.itemsOn },
+  quests:    { off: SAO_ICON.quest,    on: SAO_ICON.questOn },
+  social:    { off: SAO_ICON.social,   on: SAO_ICON.socialOn },
+  lifelog:   { off: SAO_ICON.lifelog,  on: SAO_ICON.lifelogOn },
+  market:    { off: SAO_ICON.market,   on: SAO_ICON.marketOn },
+  system:    { off: SAO_ICON.config,   on: SAO_ICON.configOn },
 };
 
 export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }: OrbNavProps) {
@@ -90,6 +103,8 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
           >
             {items.map((item) => {
               const selected = item.id === selectedId;
+              const icons = ORB_ICONS[item.id];
+              const iconSrc = icons ? (selected ? icons.on : icons.off) : undefined;
 
               return (
                 <motion.button
@@ -106,6 +121,7 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
                   aria-pressed={selected}
                   aria-label={item.label}
                 >
+                  {/* Glow halo */}
                   <div
                     className="absolute rounded-full transition-opacity duration-300"
                     style={{
@@ -113,18 +129,19 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
                       height: UI_CONSTS.orbNav.orbSize + 16,
                       opacity: selected ? 1 : 0,
                       background:
-                        "radial-gradient(circle, rgba(248, 201, 87, 0.22) 0%, rgba(248, 201, 87, 0.08) 48%, rgba(248, 201, 87, 0) 72%)",
+                        "radial-gradient(circle, rgba(248,201,87,0.22) 0%, rgba(248,201,87,0.08) 48%, rgba(248,201,87,0) 72%)",
                       filter: "blur(1px)",
                     }}
                   />
+                  {/* Orb ring */}
                   <div
                     className="relative rounded-full p-[4px]"
                     style={{
                       border: selected
-                        ? "1px solid rgba(249, 208, 105, 0.9)"
-                        : "1px solid rgba(229, 236, 246, 0.68)",
+                        ? "1px solid rgba(249,208,105,0.9)"
+                        : "1px solid rgba(229,236,246,0.68)",
                       boxShadow: selected
-                        ? "0 0 0 1px rgba(248, 197, 78, 0.35), 0 0 18px rgba(247, 196, 70, 0.16)"
+                        ? "0 0 0 1px rgba(248,197,78,0.35), 0 0 18px rgba(247,196,70,0.16)"
                         : "0 0 0 1px rgba(255,255,255,0.03)",
                       background: "rgba(0,0,0,0.22)",
                     }}
@@ -133,8 +150,10 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
                       label={item.slotLabel}
                       active={selected}
                       size={UI_CONSTS.orbNav.orbSize}
+                      iconSrc={iconSrc}
                     />
                   </div>
+                  {/* Label */}
                   <span
                     className="flex items-center justify-center text-center text-xs uppercase tracking-[0.28em] transition-colors duration-300"
                     style={{
@@ -144,8 +163,8 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
                       paddingInline: 4,
                       paddingBlock: labelPaddingY,
                       color: selected
-                        ? "rgba(248, 220, 152, 0.95)"
-                        : "rgba(220, 228, 240, 0.72)",
+                        ? "rgba(248,220,152,0.95)"
+                        : "rgba(220,228,240,0.72)",
                     }}
                   >
                     {item.label}

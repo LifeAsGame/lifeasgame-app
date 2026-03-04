@@ -26,6 +26,20 @@ export type PanelMenuItem = {
   description?: string;
 };
 
+export type PanelItemAction = {
+  type: "edit" | "delete" | "cancel" | "equip" | "unequip" | "gift";
+  label: string;
+};
+
+export type FormFieldSpec = {
+  key: string;
+  label: string;
+  type: "text" | "number" | "select" | "date" | "textarea";
+  options?: { value: string; label: string }[];
+  placeholder?: string;
+  required?: boolean;
+};
+
 export type PanelDataItem = {
   id: string;
   label: string;
@@ -37,6 +51,7 @@ export type PanelDataItem = {
   contextTitle?: string;
   contextDescription?: string;
   contextRows?: string[];
+  actions?: PanelItemAction[];
 };
 
 export type SocialContextData = {
@@ -68,6 +83,7 @@ export type PanelStackItem =
       items: PanelDataItem[];
       selectedId?: string;
       actionLabel?: string;
+      actionable?: boolean;
       context: PanelContext;
     }
   | {
@@ -85,6 +101,32 @@ export type PanelStackItem =
       description: string;
       rows?: string[];
       confirmLabel: string;
+    }
+  | {
+      id: string;
+      kind: "form";
+      title: string;
+      formKey: string;
+      fields: FormFieldSpec[];
+      submitLabel?: string;
+      prefillValues?: Record<string, string>;
+      context: PanelContext;
+    }
+  | {
+      id: string;
+      kind: "message";
+      title: string;
+      friendId: string;
+      friendName: string;
+      context: { main: "social"; route: "social-message" };
+    }
+  | {
+      id: string;
+      kind: "gift";
+      title: string;
+      friendId: string;
+      friendName: string;
+      context: { main: "social"; route: "social-gift" };
     };
 
 export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: string }> = [
@@ -443,6 +485,10 @@ function makeGearList(items: typeof INV_ITEMS, prefix: string): PanelDataItem[] 
       item.dur !== null ? `Durability: ${item.dur}/100` : `Non-degradable`,
       `Slot: ${item.cat}`,
     ],
+    actions: [
+      { type: "equip", label: "장착" },
+      { type: "unequip", label: "해제" },
+    ],
   }));
 }
 
@@ -533,6 +579,7 @@ export const QUEST_LISTS: Record<QuestsSubId, PanelDataItem[]> = {
       `Progress: ${q.progress}/${q.target}`,
       `Category: ${q.cat}`,
     ],
+    actions: q.status === "IN_PROGRESS" ? [{ type: "cancel", label: "취소" }] : undefined,
   })),
   suggested: SUGGESTED_QUESTS.map((q, i) => ({
     id: `quest-suggested-${pad(i + 1, 3)}`,
@@ -547,6 +594,7 @@ export const QUEST_LISTS: Record<QuestsSubId, PanelDataItem[]> = {
       `Target: ${q.target}`,
       `Reward EXP: ${q.reward}`,
     ],
+    actions: [{ type: "equip", label: "수락" }],
   })),
   daily: DAILY_QUESTS.map((q, i) => ({
     id: `quest-daily-${pad(i + 1, 3)}`,
@@ -561,6 +609,7 @@ export const QUEST_LISTS: Record<QuestsSubId, PanelDataItem[]> = {
       `Value: ${q.value}`,
       `Reward EXP: ${q.reward}`,
     ],
+    actions: [{ type: "equip", label: "수락" }, { type: "cancel", label: "취소" }],
   })),
   party: PARTY_QUESTS.map((q, i) => ({
     id: `quest-party-${pad(i + 1, 3)}`,
@@ -575,6 +624,7 @@ export const QUEST_LISTS: Record<QuestsSubId, PanelDataItem[]> = {
       `Progress: ${q.progress}/${q.target}`,
       `Type: Party`,
     ],
+    actions: q.status !== "COMPLETED" ? [{ type: "cancel", label: "취소" }] : undefined,
   })),
   guild: GUILD_QUESTS.map((q, i) => ({
     id: `quest-guild-${pad(i + 1, 3)}`,
@@ -589,6 +639,7 @@ export const QUEST_LISTS: Record<QuestsSubId, PanelDataItem[]> = {
       `Progress: ${q.progress}/${q.target}`,
       `Type: Guild`,
     ],
+    actions: [{ type: "cancel", label: "취소" }],
   })),
 };
 
@@ -693,6 +744,10 @@ export const SOCIAL_LISTS: Record<SocialSubId, PanelDataItem[]> = {
       `Status: ${f.status}`,
       `Last Seen: ${dateAt(i + 1)}`,
     ],
+    actions: [
+      { type: "gift", label: "선물" },
+      { type: "delete", label: "언팔로우" },
+    ],
   })),
 };
 
@@ -737,6 +792,11 @@ const EXERCISE_DATA = [
   { cat: "Swimming", dur: 50, dist: 2.0, cal: 530, date: "2026-02-12" },
 ];
 
+const CRUD_ACTIONS: PanelItemAction[] = [
+  { type: "edit", label: "수정" },
+  { type: "delete", label: "삭제" },
+];
+
 export const LIFELOG_LISTS: Record<LifelogSubId, PanelDataItem[]> = {
   collection: COLLECTION_DATA.map((c, i) => ({
     id: `lifelog-collection-${pad(i + 1, 3)}`,
@@ -751,6 +811,7 @@ export const LIFELOG_LISTS: Record<LifelogSubId, PanelDataItem[]> = {
       `Condition: ${c.cond}`,
       `Source: ${c.from}`,
     ],
+    actions: CRUD_ACTIONS,
   })),
   media: MEDIA_DATA.map((m, i) => ({
     id: `lifelog-media-${pad(i + 1, 3)}`,
@@ -760,11 +821,12 @@ export const LIFELOG_LISTS: Record<LifelogSubId, PanelDataItem[]> = {
     detailTitle: "Media Log Detail",
     detailDescription: `${m.title} — ${m.cat}`,
     detailRows: [
-      `Category: ${m.cat}`,
+      `Type: ${m.cat}`,
       `Status: ${m.status}`,
       `Progress: ${m.cur}/${m.total}`,
       m.rating !== null ? `Rating: ★${m.rating}` : `Not rated yet`,
     ],
+    actions: CRUD_ACTIONS,
   })),
   exercise: EXERCISE_DATA.map((e, i) => ({
     id: `lifelog-exercise-${pad(i + 1, 3)}`,
@@ -776,9 +838,10 @@ export const LIFELOG_LISTS: Record<LifelogSubId, PanelDataItem[]> = {
     detailRows: [
       `Category: ${e.cat}`,
       `Duration: ${e.dur} min`,
-      `Calories: ${e.cal} kcal`,
+      `Calories Burned: ${e.cal} kcal`,
       e.dist !== null ? `Distance: ${e.dist} km` : `No distance tracked`,
     ],
+    actions: CRUD_ACTIONS,
   })),
 };
 
@@ -869,6 +932,7 @@ export const MARKET_SHOP_MY_LISTINGS: PanelDataItem[] = MY_LISTINGS_DATA.map((l,
     `Watches: ${l.watches}`,
     `Listed: ${dateAt(i)}`,
   ],
+  actions: l.status === "ACTIVE" ? [{ type: "cancel", label: "취소" }] : undefined,
 }));
 
 export const MARKET_TRADE_FRIENDS: PanelDataItem[] = TRADE_PARTNERS.map((p, i) => ({
@@ -885,6 +949,103 @@ export const MARKET_TRADE_FRIENDS: PanelDataItem[] = TRADE_PARTNERS.map((p, i) =
     `Past Trades: ${p.trades}`,
   ],
 }));
+
+// ─── Form Field Definitions ──────────────────────────────────────────────────
+
+export const EXERCISE_FORM_FIELDS: FormFieldSpec[] = [
+  { key: "category", label: "Category", type: "select", options: [
+    { value: "CARDIO", label: "Cardio" }, { value: "STRENGTH", label: "Strength" },
+    { value: "YOGA", label: "Yoga" }, { value: "STRETCHING", label: "Stretching" },
+    { value: "WALKING", label: "Walking" }, { value: "CYCLING", label: "Cycling" },
+    { value: "SWIMMING", label: "Swimming" }, { value: "SPORTS", label: "Sports" },
+    { value: "OTHER", label: "Other" },
+  ], required: true },
+  { key: "duration", label: "Duration (min)", type: "number", placeholder: "30", required: true },
+  { key: "intensity", label: "Intensity", type: "select", options: [
+    { value: "LOW", label: "Low" }, { value: "MODERATE", label: "Moderate" },
+    { value: "HIGH", label: "High" }, { value: "VERY_HIGH", label: "Very High" },
+  ], required: true },
+  { key: "caloriesBurned", label: "Calories Burned", type: "number", placeholder: "300" },
+  { key: "notes", label: "Notes", type: "textarea", placeholder: "Session notes..." },
+];
+
+export const COLLECTION_FORM_FIELDS: FormFieldSpec[] = [
+  { key: "name", label: "Item Name", type: "text", placeholder: "e.g. Kirito 1/7 Figure", required: true },
+  { key: "category", label: "Category", type: "select", options: [
+    { value: "FIGURE", label: "Figure" }, { value: "BOOK", label: "Book" },
+    { value: "GAME", label: "Game" }, { value: "ART", label: "Art" },
+    { value: "MUSIC", label: "Music" }, { value: "OTHER", label: "Other" },
+  ], required: true },
+  { key: "rarity", label: "Rarity", type: "select", options: [
+    { value: "COMMON", label: "Common" }, { value: "UNCOMMON", label: "Uncommon" },
+    { value: "RARE", label: "Rare" }, { value: "EPIC", label: "Epic" },
+    { value: "LEGENDARY", label: "Legendary" },
+  ], required: true },
+  { key: "condition", label: "Condition", type: "select", options: [
+    { value: "MINT", label: "Mint" }, { value: "EXCELLENT", label: "Excellent" },
+    { value: "GOOD", label: "Good" }, { value: "FAIR", label: "Fair" },
+    { value: "POOR", label: "Poor" },
+  ], required: true },
+  { key: "acquiredAt", label: "Acquired Date", type: "date", required: true },
+  { key: "source", label: "Source", type: "text", placeholder: "e.g. Amazon JP" },
+  { key: "notes", label: "Notes", type: "textarea", placeholder: "Notes..." },
+];
+
+export const MEDIA_FORM_FIELDS: FormFieldSpec[] = [
+  { key: "type", label: "Type", type: "select", options: [
+    { value: "ANIME", label: "Anime" }, { value: "BOOK", label: "Book" },
+    { value: "MOVIE", label: "Movie" }, { value: "GAME", label: "Game" },
+    { value: "SERIES", label: "Series" },
+  ], required: true },
+  { key: "title", label: "Title", type: "text", placeholder: "e.g. Sword Art Online", required: true },
+  { key: "status", label: "Status", type: "select", options: [
+    { value: "PLANNING", label: "Planning" }, { value: "WATCHING", label: "Watching/Reading" },
+    { value: "COMPLETED", label: "Completed" }, { value: "DROPPED", label: "Dropped" },
+  ], required: true },
+  { key: "progress", label: "Progress (ep/pages)", type: "number", placeholder: "0" },
+  { key: "totalEpisodes", label: "Total Episodes/Pages", type: "number", placeholder: "12" },
+  { key: "rating", label: "Rating (1-10)", type: "number", placeholder: "8" },
+];
+
+export const PARTY_FORM_FIELDS: FormFieldSpec[] = [
+  { key: "name", label: "Party Name", type: "text", placeholder: "e.g. Frontline Assault", required: true },
+  { key: "description", label: "Description", type: "textarea", placeholder: "Party description..." },
+  { key: "maxMembers", label: "Max Members", type: "number", placeholder: "6", required: true },
+  { key: "joinPolicy", label: "Join Policy", type: "select", options: [
+    { value: "OPEN", label: "Open" }, { value: "APPROVAL", label: "Application" },
+    { value: "INVITE_ONLY", label: "Invite Only" },
+  ], required: true },
+  { key: "tags", label: "Tags (comma-separated)", type: "text", placeholder: "PvE, Boss, Exploration" },
+];
+
+export const GUILD_FORM_FIELDS: FormFieldSpec[] = [
+  { key: "name", label: "Guild Name", type: "text", placeholder: "e.g. Knights of Aincrad", required: true },
+  { key: "description", label: "Description", type: "textarea", placeholder: "Guild description..." },
+  { key: "maxMembers", label: "Max Members", type: "number", placeholder: "50", required: true },
+  { key: "joinPolicy", label: "Join Policy", type: "select", options: [
+    { value: "OPEN", label: "Open" }, { value: "APPROVAL", label: "Application" },
+    { value: "INVITE_ONLY", label: "Invite Only" },
+  ], required: true },
+  { key: "tags", label: "Tags (comma-separated)", type: "text", placeholder: "PvE, Boss, Crafting" },
+];
+
+export const LISTING_FORM_FIELDS: FormFieldSpec[] = [
+  { key: "itemName", label: "Item Name", type: "text", placeholder: "e.g. Elucidator", required: true },
+  { key: "price", label: "Price (col)", type: "number", placeholder: "10000", required: true },
+  { key: "quantity", label: "Quantity", type: "number", placeholder: "1", required: true },
+];
+
+export const FRIEND_MEMO_FORM_FIELDS: FormFieldSpec[] = [
+  { key: "hobbies", label: "취미", type: "text", placeholder: "예: 달리기, 독서, 게임" },
+  { key: "favorites", label: "좋아하는 것", type: "text", placeholder: "예: 라멘, 애니, 고양이" },
+  { key: "birthday", label: "생일", type: "date" },
+  { key: "closeness", label: "친한 정도", type: "select", options: [
+    { value: "지인", label: "지인" }, { value: "친구", label: "친구" },
+    { value: "절친", label: "절친" }, { value: "소울메이트", label: "소울메이트" },
+  ] },
+  { key: "firstMet", label: "처음 만난 날", type: "date" },
+  { key: "note", label: "한 줄 메모", type: "textarea", placeholder: "친구에 대한 메모..." },
+];
 
 // ─── System ──────────────────────────────────────────────────────────────────
 

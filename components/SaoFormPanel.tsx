@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
+import { SAO, PANEL_STYLE, INPUT_STYLE, GOLD_BTN_STYLE, GRID_OVERLAY_STYLE } from "@/lib/design/tokens";
 
 import SaoAlert from "./SaoAlert";
 
@@ -38,6 +39,7 @@ export default function SaoFormPanel({
 
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleChange = (key: string, value: string) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -61,23 +63,18 @@ export default function SaoFormPanel({
     onClose();
   };
 
-  const inputStyle = {
-    background: "rgba(255,255,255,0.72)",
-    border: "1px solid rgba(140,155,175,0.5)",
-    borderRadius: "2px",
-    color: "#3f4550",
-    fontSize: "13px",
-    letterSpacing: "0.04em",
-    padding: "8px 12px",
-    width: "100%",
-    outline: "none",
-  } as const;
+  const getInputStyle = (key: string) => ({
+    ...INPUT_STYLE,
+    ...(focusedField === key
+      ? { border: `1px solid ${SAO.color.border.gold}` }
+      : {}),
+  });
 
   const labelStyle = {
     display: "block",
-    fontSize: "11px",
-    letterSpacing: "0.2em",
-    color: "#5a6272",
+    fontSize: "10px",
+    letterSpacing: "0.24em",
+    color: SAO.color.text.label,
     marginBottom: "6px",
     textTransform: "uppercase" as const,
   };
@@ -109,41 +106,49 @@ export default function SaoFormPanel({
               className="relative flex flex-col overflow-hidden"
               style={{
                 width: 360,
-                borderLeft: "1px solid rgba(203,211,221,0.4)",
-                background:
-                  "linear-gradient(180deg, rgba(238,241,245,0.99), rgba(223,228,236,0.98))",
-                boxShadow: "-8px 0 32px rgba(0,0,0,0.3)",
+                ...PANEL_STYLE,
+                borderRadius: 0,
+                borderRight: "none",
+                borderTop: "none",
+                borderBottom: "none",
+                borderLeft: `1px solid ${SAO.color.border.panel}`,
+                boxShadow: `-8px 0 32px rgba(0,0,0,0.3), ${SAO.shadow.panelInset}`,
               }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Grid overlay */}
-              <div className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(0,0,0,0.7)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.7)_1px,transparent_1px)] [background-size:24px_24px]" />
+              <div style={GRID_OVERLAY_STYLE} />
 
               {/* Header */}
               <div
-                className="relative flex items-center justify-between px-6 py-4"
+                className="relative px-6 py-4"
                 style={{
-                  background:
-                    "linear-gradient(180deg, rgba(205,212,224,0.99), rgba(192,200,214,0.98))",
-                  borderBottom: "1px solid rgba(160,172,190,0.4)",
+                  background: "linear-gradient(180deg, #e8eaed, #d8dce2)",
+                  borderBottom: `1px solid rgba(20,23,28,0.3)`,
                 }}
               >
-                <p className="text-sm font-bold tracking-[0.18em] text-zinc-700 uppercase">
-                  {title}
-                </p>
+                {/* Back button */}
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-600/15 hover:text-zinc-700"
+                  className="flex items-center gap-1.5 mb-2 transition-colors hover:opacity-70"
+                  style={{ color: SAO.color.text.label, fontSize: "10px", letterSpacing: "0.24em", textTransform: "uppercase" }}
                 >
-                  <span className="text-base font-bold leading-none">×</span>
+                  <span>←</span>
+                  <span>Back</span>
                 </button>
+                <p
+                  className="font-semibold uppercase"
+                  style={{ fontSize: "13px", letterSpacing: "0.18em", color: SAO.color.text.primary }}
+                >
+                  {title}
+                </p>
               </div>
 
               {/* Form */}
               <form
                 onSubmit={handleSubmitClick}
-                className="relative flex flex-1 flex-col gap-0 overflow-y-auto p-6"
+                className="relative flex flex-1 flex-col overflow-y-auto p-6"
               >
                 <div className="space-y-5 flex-1">
                   {fields.map((field) => (
@@ -153,17 +158,25 @@ export default function SaoFormPanel({
                         <textarea
                           value={values[field.key] ?? ""}
                           onChange={(e) => handleChange(field.key, e.target.value)}
+                          onFocus={() => setFocusedField(field.key)}
+                          onBlur={() => setFocusedField(null)}
                           placeholder={field.placeholder}
                           required={field.required}
                           rows={3}
-                          style={{ ...inputStyle, resize: "vertical" }}
+                          style={{
+                            ...getInputStyle(field.key),
+                            resize: "vertical",
+                            minHeight: "72px",
+                          }}
                         />
                       ) : field.type === "select" ? (
                         <select
                           value={values[field.key] ?? ""}
                           onChange={(e) => handleChange(field.key, e.target.value)}
+                          onFocus={() => setFocusedField(field.key)}
+                          onBlur={() => setFocusedField(null)}
                           required={field.required}
-                          style={inputStyle}
+                          style={getInputStyle(field.key)}
                         >
                           <option value="">Select…</option>
                           {field.options?.map((opt) => (
@@ -177,9 +190,11 @@ export default function SaoFormPanel({
                           type={field.type}
                           value={values[field.key] ?? ""}
                           onChange={(e) => handleChange(field.key, e.target.value)}
+                          onFocus={() => setFocusedField(field.key)}
+                          onBlur={() => setFocusedField(null)}
                           placeholder={field.placeholder}
                           required={field.required}
-                          style={inputStyle}
+                          style={getInputStyle(field.key)}
                         />
                       )}
                     </div>
@@ -189,12 +204,12 @@ export default function SaoFormPanel({
                 <div className="mt-8 flex gap-3">
                   <button
                     type="submit"
-                    className="flex-1 rounded-sm py-2.5 text-sm font-bold tracking-[0.16em] uppercase transition-opacity"
+                    className="flex-1 transition-opacity active:scale-[0.98]"
                     style={{
-                      background:
-                        "linear-gradient(150deg, rgba(248,197,78,0.95), rgba(234,168,40,0.95))",
-                      color: "#2a2008",
-                      boxShadow: "0 3px 12px rgba(248,197,78,0.35)",
+                      ...GOLD_BTN_STYLE,
+                      padding: "10px 0",
+                      fontSize: "0.8rem",
+                      width: "100%",
                     }}
                   >
                     {submitLabel}
@@ -202,11 +217,12 @@ export default function SaoFormPanel({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="rounded-sm px-5 py-2.5 text-sm font-medium tracking-[0.12em] uppercase"
+                    className="rounded-sm px-5 text-sm font-medium tracking-[0.12em] uppercase transition-colors hover:bg-zinc-500/10"
                     style={{
                       background: "rgba(160,170,185,0.2)",
-                      border: "1px solid rgba(140,155,175,0.4)",
-                      color: "#5a6272",
+                      border: `1px solid rgba(140,155,175,0.4)`,
+                      color: SAO.color.text.secondary,
+                      borderRadius: SAO.radius.input,
                     }}
                   >
                     Cancel
