@@ -1,58 +1,116 @@
-# Life As Game — App (Frontend)
+# Life As Game — Frontend
 
-**Life As Game**를 웹에서 재현하기 위한 프론트엔드 앱입니다.  
-중앙의 **Orb Navigation(원형 네비게이션)** 과 우측의 **계층형 패널 스택(Panel Stack)** 을 통해,
-상태/메뉴 이동에 따라 패널이 “쌓이고/초기화되는” UX를 제공합니다. :contentReference[oaicite:4]{index=4}
-
-> 현재는 UI/UX MVP에 집중한 프로토타입이며, 실제 데이터 연동 대신 mock/placeholder 패널을 포함합니다. :contentReference[oaicite:5]{index=5}
-
----
-
-## Preview
-
-- 
-
----
-
-## Key Features
-
-### 1) Orb Navigation (Main Context Switch)
-- Player / Equipment / Social / Friend / System의 5개 메인 컨텍스트를 Orb 형태로 전환합니다. :contentReference[oaicite:6]{index=6}
-
-### 2) Panel Stack (Hierarchical Panels)
-- 우측 패널은 **메뉴 → 하위 패널 → 상세 패널** 순서로 “스택처럼” 렌더링됩니다. :contentReference[oaicite:7]{index=7}
-- 메인 컨텍스트가 바뀌면, 이전에 열려 있던 하위 패널을 정리하고 **초기 스택으로 리셋**합니다. :contentReference[oaicite:8]{index=8}
-
-### 3) Selection Highlight / Interaction Rules (UX Rule)
-- 선택된 항목은 “선택 이후”부터 강조 표시(Selected 스타일)됩니다.  
-- 패널 간 전환/리셋 중에는 입력을 잠시 막아 UX 흔들림을 줄입니다. :contentReference[oaicite:9]{index=9}
-
-### 4) Friend Detail (Tab UI)
-- Friend Detail 패널에서 `message / profile` 탭 전환과 Draft 입력/저장 UI를 제공합니다(MVP). :contentReference[oaicite:10]{index=10}
-
-### 5) Motion/Animation
-- 패널 등장/교체/리셋에 Framer Motion 기반 트랜지션을 사용합니다. :contentReference[oaicite:11]{index=11}
+SAO(Sword Art Online) 게임 UI에서 영감을 받은 **인생 관리 대시보드** 프론트엔드입니다.
+캐릭터 스탯, 스킬, 퀘스트, 소셜, 라이프로그, 마켓 등 게임 요소로 현실 삶을 관리합니다.
 
 ---
 
 ## Tech Stack
 
-- **Next.js** (App Router) :contentReference[oaicite:12]{index=12}
-- **React 19**
-- **TypeScript**
-- **Tailwind CSS v4** :contentReference[oaicite:13]{index=13}
-- **Framer Motion** (애니메이션) :contentReference[oaicite:14]{index=14}
+| 분류 | 기술 |
+|------|------|
+| Framework | Next.js 15 (App Router) |
+| UI Library | React 19 |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 + Inline Styles |
+| Animation | Framer Motion |
+| Architecture | FSD (Feature-Sliced Design) |
 
-> Dependencies / scripts는 `package.json` 기준입니다. :contentReference[oaicite:15]{index=15}
+---
+
+## Architecture — FSD
+
+```
+life-as-game-v2/
+├── app/                     # Next.js App Router (진입점)
+│   ├── page.tsx             # 메인 대시보드 (상태 오케스트레이터)
+│   ├── login/page.tsx
+│   └── admin/page.tsx
+│
+├── widgets/                 # 독립적인 대형 UI 블록
+│   ├── left-context/        # 좌측 사이드바 (플레이어/소셜 정보)
+│   ├── right-panels/        # 우측 패널 스택 렌더러
+│   └── orb-nav/             # 중앙 원형 네비게이션
+│
+├── features/                # 도메인별 비즈니스 로직
+│   ├── auth/                # 인증 (AuthContext, API, Mock)
+│   ├── player/              # 플레이어 (자격증, 칭호, 관심사)
+│   ├── skills/              # 스킬 (패시브/액티브)
+│   ├── inventory/           # 인벤토리 (아이템, 장비, 우편함)
+│   ├── quests/              # 퀘스트 (스토리/일일/파티/길드)
+│   ├── social/              # 소셜 (파티, 길드, 친구)
+│   ├── lifelog/             # 라이프로그 (컬렉션, 미디어, 운동)
+│   ├── market/              # 마켓 (지갑, 상점, 거래)
+│   └── system/              # 시스템 (설정, 로그아웃)
+│
+├── entities/                # 도메인 타입 + 공유 Nav 설정
+│   └── nav/
+│       ├── types.ts         # 모든 TypeScript 타입 정의
+│       ├── config.ts        # Nav 구조 상수
+│       └── index.ts         # 배럴 export
+│
+└── shared/                  # 레이어 무관 공용 코드
+    ├── ui/                  # 재사용 컴포넌트 (PanelCard, SaoAlert 등)
+    ├── hooks/               # 공용 훅 (useLongPress, useDoubleClick 등)
+    ├── lib/                 # 유틸리티 (motion, uiConsts, reorder)
+    ├── design/              # 디자인 토큰 (SAO 컬러, 타이포, 그림자)
+    └── api/                 # HTTP 클라이언트 + 공용 DTO 타입
+```
+
+### FSD 레이어 의존성 규칙
+
+```
+app → widgets → features → entities → shared
+```
+
+상위 레이어는 하위 레이어만 import 가능. 동일 레이어 간 import 금지.
+
+---
+
+## Key Features
+
+### 1. Orb Navigation
+8개 도메인(Player, Skills, Inventory, Quests, Social, Lifelog, Market, System)을 원형 Orb로 전환.
+선택된 Orb가 앞으로 이동하는 Framer Motion 레이아웃 애니메이션.
+
+### 2. Panel Stack (계층형 패널)
+메뉴 → 카테고리 → 리스트 → 상세 순서로 패널이 우측으로 누적.
+도메인 전환 시 AnimatePresence로 전체 스택 교체 애니메이션.
+
+### 3. CRUD 인터랙션
+- **더블클릭**: 항목 수정 폼 열기
+- **롱프레스 (600ms)**: 수정/삭제/장착/선물 액션 오버레이
+- **스와이프 좌측**: 삭제 확인 UI
+
+### 4. Social & Friend System
+친구 상세 탭 UI, 친구 메모 localStorage 영속화, 메시지/선물 특수 패널.
+
+### 5. SAO 디자인 시스템
+다크 배경 + 골드 강조, 희귀도 컬러 시스템, SAO 애니메이션 SVG 아이콘 80종.
 
 ---
 
 ## Getting Started
 
-### Requirements
-- Node.js (권장: LTS)
-
-### Install & Run
 ```bash
 npm install
 npm run dev
+```
+
+[http://localhost:3000](http://localhost:3000) 접속
+
+### 테스트 계정
+
+| 역할 | 이메일 | 비밀번호 |
+|------|--------|----------|
+| 일반 유저 | player@lag.io | player123 |
+| 어드민 | admin@lag.io | admin123 |
+
+---
+
+## API 연동
+
+`shared/api/client.ts`의 `USE_MOCK = true` (기본값)로 Mock 데이터 사용.
+실제 백엔드 연동 시 `USE_MOCK = false`로 변경하면 `features/*/api.ts`가 실제 API 호출.
+
+백엔드 도메인: `character`, `inventory`, `quest`, `social`, `lifelog`, `economy`, `user`

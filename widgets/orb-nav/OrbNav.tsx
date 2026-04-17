@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 
-import type { MainNavId } from "@/lib/nav";
-import { MOTION } from "@/lib/motion";
-import { UI_CONSTS } from "@/lib/uiConsts";
+import type { MainNavId } from "@/entities/nav";
+import { MOTION } from "@/shared/lib/motion";
+import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
-import IconSlot from "./IconSlot";
+import IconSlot from "@/shared/ui/IconSlot";
 
 type OrbItem = {
   id: MainNavId;
