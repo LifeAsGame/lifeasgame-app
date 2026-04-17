@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { useAuth } from "@/context/AuthContext";
-import { MOTION } from "@/lib/motion";
-import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, INPUT_STYLE, GOLD_BTN_STYLE } from "@/lib/design/tokens";
+import { useAuth } from "@/features/auth/AuthContext";
+import { MOTION } from "@/shared/lib/motion";
+import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, INPUT_STYLE, GOLD_BTN_STYLE } from "@/shared/design/tokens";
 
 export default function LoginPage() {
   const router = useRouter();

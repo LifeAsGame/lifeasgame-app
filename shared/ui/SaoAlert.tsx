@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
-import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, SAO_ICON } from "@/lib/design/tokens";
+import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, SAO_ICON } from "@/shared/design/tokens";
 
 export type SaoAlertProps = {
   isOpen: boolean;

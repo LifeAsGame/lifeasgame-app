@@ -3,16 +3,16 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
 
-import { MOCK_CHAT_HISTORY } from "@/lib/api/mock/chat.mock";
-import { SAO, INPUT_STYLE, GOLD_BTN_STYLE, SAO_ICON } from "@/lib/design/tokens";
-import type { FormFieldSpec, MainNavId, PanelStackItem } from "@/lib/nav";
-import { MOTION } from "@/lib/motion";
-import { reorderToCenter } from "@/lib/reorder";
-import { UI_CONSTS } from "@/lib/uiConsts";
+import { MOCK_CHAT_HISTORY } from "@/features/social/chat.mock";
+import { SAO, INPUT_STYLE, GOLD_BTN_STYLE, SAO_ICON } from "@/shared/design/tokens";
+import type { FormFieldSpec, MainNavId, PanelStackItem } from "@/entities/nav";
+import { MOTION } from "@/shared/lib/motion";
+import { reorderToCenter } from "@/shared/lib/reorder";
+import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
-import SaoAlert from "./SaoAlert";
-import EdgeFadeScrollArea from "./EdgeFadeScrollArea";
-import PanelCard from "./PanelCard";
+import SaoAlert from "@/shared/ui/SaoAlert";
+import EdgeFadeScrollArea from "@/shared/ui/EdgeFadeScrollArea";
+import PanelCard from "@/shared/ui/PanelCard";
 
 type RightPanelsProps = {
   selectedMain: MainNavId;
@@ -22,20 +22,31 @@ type RightPanelsProps = {
   getPanelZIndex?: (panelIndex: number, panelId: string) => number;
   onPanelItemSelect: (panelIndex: number, itemId: string) => void;
   onPanelItemAction?: (panelIndex: number, itemId: string, actionType: string) => void;
+  /** Double-click/tap on a list item → open edit form */
+  onPanelItemDoubleClick?: (panelIndex: number, itemId: string) => void;
   onPanelFormSubmit?: (formKey: string, values: Record<string, string>) => void;
+  onPanelFormFieldChange?: (formKey: string, fieldKey: string, value: string) => void;
   onPanelBack?: (panelIndex: number) => void;
   onPanelActionClick?: (panelIndex: number) => void;
 };
 
 // ─── Shared styles (light-panel context) ─────────────────────────────────────
 
-// Light panel frame style (SAO reference: bright white panel, subtle border)
-const FRAME_STYLE = {
-  background: "linear-gradient(180deg, rgba(251,252,254,0.98), rgba(243,246,252,0.96))",
-  border: "1px solid rgba(182,190,215,0.42)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.92), 0 8px 28px rgba(0,0,0,0.20)",
-  borderRadius: SAO.radius.panel,
-} as const;
+// Light panel frame style — background shifts gray as depth increases (no opacity/filter)
+function getFrameStyle(depth: number) {
+  const bg =
+    depth === 0
+      ? "linear-gradient(180deg, rgba(251,252,254,0.98), rgba(243,246,252,0.96))"
+      : depth === 1
+      ? "linear-gradient(180deg, rgba(224,227,236,0.97), rgba(216,220,231,0.96))"
+      : "linear-gradient(180deg, rgba(205,209,222,0.97), rgba(198,203,217,0.96))";
+  return {
+    background: bg,
+    border: "1px solid rgba(182,190,215,0.42)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.92), 0 8px 28px rgba(0,0,0,0.20)",
+    borderRadius: SAO.radius.panel,
+  };
+}
 
 // Colors for text rendered inside the light panel
 const D = {
@@ -82,6 +93,7 @@ function PanelFrame({
   backButton,
   iconSrc,
   depth = 0,
+  fixedScrollHeight,
 }: {
   title: string;
   children: React.ReactNode;
@@ -91,14 +103,17 @@ function PanelFrame({
   backButton?: React.ReactNode;
   iconSrc?: string;
   depth?: number;
+  /** When set, the scroll area uses a fixed height (windowed view) instead of maxHeight */
+  fixedScrollHeight?: number;
 }) {
   return (
     <div
       className="relative overflow-hidden rounded-[2px]"
       style={{
-        ...FRAME_STYLE,
+        ...getFrameStyle(depth),
         width: UI_CONSTS.rightPanels.panelWidth,
         minHeight: 160,
+        transition: "background 0.35s ease",
       }}
     >
       {/* Header */}
@@ -149,24 +164,25 @@ function PanelFrame({
         resetScrollKey={resetScrollKey ?? null}
         centerBehavior={centerBehavior}
         fadeColor="rgba(244,247,252,0.96)"
-        style={{
-          maxHeight: "min(62vh, 560px)",
-          paddingTop: UI_CONSTS.rightPanels.panelContentPaddingY,
-          paddingBottom:
-            UI_CONSTS.rightPanels.panelContentPaddingY +
-            UI_CONSTS.rightPanels.panelContentBottomSafePadding,
-        }}
+        style={
+          fixedScrollHeight
+            ? {
+                height: fixedScrollHeight,
+                paddingTop: UI_CONSTS.rightPanels.panelContentPaddingY,
+                paddingBottom: UI_CONSTS.rightPanels.panelContentPaddingY,
+              }
+            : {
+                maxHeight: "min(62vh, 560px)",
+                paddingTop: UI_CONSTS.rightPanels.panelContentPaddingY,
+                paddingBottom:
+                  UI_CONSTS.rightPanels.panelContentPaddingY +
+                  UI_CONSTS.rightPanels.panelContentBottomSafePadding,
+              }
+        }
       >
         {children}
       </EdgeFadeScrollArea>
 
-      {/* Depth dimming overlay — inactive panels recede naturally */}
-      <motion.div
-        className="pointer-events-none absolute inset-0"
-        animate={{ opacity: depth === 0 ? 0 : depth === 1 ? 0.22 : 0.38 }}
-        transition={{ duration: 0.35, ease: "easeInOut" }}
-        style={{ background: "rgba(200,210,232,1)", zIndex: 20 }}
-      />
     </div>
   );
 }
@@ -192,15 +208,21 @@ function FormFieldInput({
   field,
   value,
   onChange,
+  prefilled,
 }: {
   field: FormFieldSpec;
   value: string;
   onChange: (val: string) => void;
+  prefilled?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   const style = {
     ...INPUT_STYLE,
-    ...(focused ? { border: `1px solid ${SAO.color.border.gold}` } : {}),
+    ...(focused
+      ? { border: `1px solid ${SAO.color.border.gold}` }
+      : prefilled && value
+      ? { border: `1px solid rgba(248,197,78,0.65)`, background: "rgba(248,197,78,0.08)" }
+      : {}),
   };
 
   if (field.type === "select") {
@@ -253,19 +275,23 @@ function FormPanel({
   panelIndex,
   onSubmit,
   onBack,
+  onFieldChange,
   depth,
 }: {
   panel: Extract<PanelStackItem, { kind: "form" }>;
   panelIndex: number;
   onSubmit: (formKey: string, values: Record<string, string>) => void;
   onBack: (panelIndex: number) => void;
+  onFieldChange?: (formKey: string, fieldKey: string, value: string) => void;
   depth?: number;
 }) {
   const [values, setValues] = useState<Record<string, string>>(panel.prefillValues ?? {});
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const setValue = (key: string, val: string) =>
+  const setValue = (key: string, val: string) => {
     setValues((prev) => ({ ...prev, [key]: val }));
+    onFieldChange?.(panel.formKey, key, val);
+  };
 
   return (
     <PanelFrame
@@ -288,6 +314,7 @@ function FormPanel({
               field={field}
               value={values[field.key] ?? ""}
               onChange={(val) => setValue(field.key, val)}
+              prefilled={Boolean(panel.prefillValues?.[field.key])}
             />
           </div>
         ))}
@@ -669,7 +696,9 @@ function PanelContent({
   depth,
   onPanelItemSelect,
   onPanelItemAction,
+  onPanelItemDoubleClick,
   onPanelFormSubmit,
+  onPanelFormFieldChange,
   onPanelBack,
   onPanelActionClick,
   chatMessages,
@@ -679,7 +708,9 @@ function PanelContent({
   depth: number;
   onPanelItemSelect: (panelIndex: number, itemId: string) => void;
   onPanelItemAction?: (panelIndex: number, itemId: string, actionType: string) => void;
+  onPanelItemDoubleClick?: (panelIndex: number, itemId: string) => void;
   onPanelFormSubmit?: (formKey: string, values: Record<string, string>) => void;
+  onPanelFormFieldChange?: (formKey: string, fieldKey: string, value: string) => void;
   onPanelBack?: (panelIndex: number) => void;
   onPanelActionClick?: (panelIndex: number) => void;
   chatMessages?: MockMessage[];
@@ -687,10 +718,12 @@ function PanelContent({
   if (panel.kind === "form") {
     return (
       <FormPanel
+        key={panel.id}
         panel={panel}
         panelIndex={panelIndex}
         onSubmit={onPanelFormSubmit ?? (() => {})}
         onBack={onPanelBack ?? (() => {})}
+        onFieldChange={onPanelFormFieldChange}
         depth={depth}
       />
     );
@@ -732,15 +765,34 @@ function PanelContent({
     );
   }
 
+  const isCategoryPanelRoute =
+    "context" in panel &&
+    (panel.context.route === "player-category" || panel.context.route === "lifelog-category");
+  // All menu panels use reorderToCenter (DOM reorder) so selected item moves to center position.
+  // Category panels ALSO get spring scroll-centering on top of the DOM reorder.
   const menuItemsForRender =
-    panel.kind === "menu" ? reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id) : null;
+    panel.kind === "menu"
+      ? reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id)
+      : null;
   const centerTargetKey =
     panel.kind === "menu" || panel.kind === "list" ? (panel.selectedId ?? null) : null;
-  const centerBehavior: ScrollBehavior | "spring" = panel.kind === "list" ? "spring" : "smooth";
+  const centerBehavior: ScrollBehavior | "spring" =
+    panel.kind === "list" || isCategoryPanelRoute ? "spring" : "smooth";
   const isCompactList =
     panel.kind === "list" && (panel.items.length >= 40 || panel.context.route === "market-wallet-summary");
   const navIconSrc =
     "context" in panel ? NAV_ICONS[(panel as { context: { main: MainNavId } }).context.main] : undefined;
+
+  // Windowed height for category panels: show 3/5/7 items + 0.5 peek above + 0.5 peek below.
+  // Formula: (visibleN + 1) * (rowHeight + rowGap) where menu rowGap=4.
+  const CATEGORY_ROW_GAP = 4;
+  const categoryScrollHeight = isCategoryPanelRoute && panel.kind === "menu"
+    ? (() => {
+        const n = panel.items.length;
+        const visibleN = n <= 3 ? 3 : n <= 5 ? 5 : 7;
+        return (visibleN + 1) * (UI_CONSTS.rightPanels.rowHeight + CATEGORY_ROW_GAP);
+      })()
+    : undefined;
 
   return (
     <PanelFrame
@@ -750,31 +802,42 @@ function PanelContent({
       centerBehavior={centerBehavior}
       iconSrc={navIconSrc}
       depth={depth}
+      fixedScrollHeight={categoryScrollHeight}
     >
       {panel.kind === "menu" ? (
         <div
           style={{
             width: "100%",
             display: "grid",
-            rowGap: UI_CONSTS.rightPanels.rowGap,
+            rowGap: 4,
           }}
         >
-          {menuItemsForRender?.map((item, itemIndex) => (
-            <PanelCard
-              key={item.id}
-              label={item.label}
-              slotLabel={item.slotLabel}
-              selected={panel.selectedId === item.id}
-              centerTarget={panel.selectedId === item.id}
-              index={itemIndex}
-              onClick={() => onPanelItemSelect(panelIndex, item.id)}
-            />
-          ))}
+          {menuItemsForRender?.map((item, itemIndex) => {
+            const isCategoryPanel =
+              panel.context.route === "player-category" ||
+              panel.context.route === "lifelog-category";
+            return (
+              <PanelCard
+                key={item.id}
+                label={item.label}
+                slotLabel={item.slotLabel}
+                selected={panel.selectedId === item.id}
+                centerTarget={panel.selectedId === item.id}
+                index={itemIndex}
+                onClick={() => onPanelItemSelect(panelIndex, item.id)}
+                onDoubleClick={
+                  isCategoryPanel && onPanelItemDoubleClick
+                    ? () => onPanelItemDoubleClick(panelIndex, item.id)
+                    : undefined
+                }
+              />
+            );
+          })}
         </div>
       ) : null}
 
       {panel.kind === "list" ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {panel.actionLabel ? (
             <div style={{ paddingInline: UI_CONSTS.rightPanels.panelContentPaddingX }}>
               <button
@@ -791,24 +854,29 @@ function PanelContent({
             style={{
               width: "100%",
               display: "grid",
-              rowGap: UI_CONSTS.rightPanels.rowGap,
+              rowGap: 4,
             }}
           >
             {panel.items.map((item, itemIndex) => (
-              <PanelCard
-                key={item.id}
-                label={item.label}
-                slotLabel={item.slotLabel}
-                subtitle={item.subtitle}
-                selected={panel.selectedId === item.id}
-                centerTarget={panel.selectedId === item.id}
-                compact={isCompactList}
-                index={itemIndex}
-                onClick={() => onPanelItemSelect(panelIndex, item.id)}
-                actions={item.actions}
-                onAction={(type) => onPanelItemAction?.(panelIndex, item.id, type)}
-              />
-            ))}
+                <PanelCard
+                  key={item.id}
+                  label={item.label}
+                  slotLabel={item.slotLabel}
+                  subtitle={item.subtitle}
+                  selected={panel.selectedId === item.id}
+                  centerTarget={panel.selectedId === item.id}
+                  compact={isCompactList}
+                  index={itemIndex}
+                  onClick={() => onPanelItemSelect(panelIndex, item.id)}
+                  onDoubleClick={
+                    onPanelItemDoubleClick && item.actions?.some((a) => a.type === "edit")
+                      ? () => onPanelItemDoubleClick(panelIndex, item.id)
+                      : undefined
+                  }
+                  actions={item.actions}
+                  onAction={(type) => onPanelItemAction?.(panelIndex, item.id, type)}
+                />
+              ))}
           </div>
         </div>
       ) : null}
@@ -844,7 +912,9 @@ export default function RightPanels({
   getPanelZIndex,
   onPanelItemSelect,
   onPanelItemAction,
+  onPanelItemDoubleClick,
   onPanelFormSubmit,
+  onPanelFormFieldChange,
   onPanelBack,
   onPanelActionClick,
 }: RightPanelsProps) {
@@ -897,7 +967,9 @@ export default function RightPanels({
                   depth={depth}
                   onPanelItemSelect={onPanelItemSelect}
                   onPanelItemAction={onPanelItemAction}
+                  onPanelItemDoubleClick={onPanelItemDoubleClick}
                   onPanelFormSubmit={onPanelFormSubmit}
+                  onPanelFormFieldChange={onPanelFormFieldChange}
                   onPanelBack={onPanelBack}
                   onPanelActionClick={onPanelActionClick}
                   chatMessages={

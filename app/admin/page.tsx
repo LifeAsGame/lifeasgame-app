@@ -4,10 +4,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import SaoAlert from "@/components/SaoAlert";
-import SaoFormPanel, { type FieldConfig } from "@/components/SaoFormPanel";
-import { useAuth } from "@/context/AuthContext";
-import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, GOLD_BTN_STYLE } from "@/lib/design/tokens";
+import SaoAlert from "@/shared/ui/SaoAlert";
+import SaoFormPanel, { type FieldConfig } from "@/shared/ui/SaoFormPanel";
+import { useAuth } from "@/features/auth/AuthContext";
+import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, GOLD_BTN_STYLE } from "@/shared/design/tokens";
 import {
   adminCancelListingApi,
   adminCreateAchievementApi,
@@ -28,7 +28,7 @@ import {
   adminGetTitlesApi,
   adminGetUsersApi,
 } from "@/lib/api/endpoints/admin.api";
-import { MOTION } from "@/lib/motion";
+import { MOTION } from "@/shared/lib/motion";
 
 type AdminMenu =
   | "players"

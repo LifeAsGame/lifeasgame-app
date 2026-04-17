@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { SAO, PANEL_STYLE, INPUT_STYLE, GOLD_BTN_STYLE, GRID_OVERLAY_STYLE } from "@/lib/design/tokens";
+import { SAO, PANEL_STYLE, INPUT_STYLE, GOLD_BTN_STYLE, GRID_OVERLAY_STYLE } from "@/shared/design/tokens";
 
 import SaoAlert from "./SaoAlert";
 
