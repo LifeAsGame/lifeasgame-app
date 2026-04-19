@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import AmbientOverlay from "@/shared/ui/AmbientOverlay";
+import ParticleBackground from "@/shared/ui/ParticleBackground";
 import LeftContext from "@/widgets/left-context/LeftContext";
 import type { FriendMemoData } from "@/widgets/left-context/LeftContext";
 import OrbNav from "@/widgets/orb-nav/OrbNav";
@@ -1098,8 +1100,21 @@ export default function Home() {
       ref={viewportRef}
       className="h-screen overflow-auto"
       style={{
-        background:
-          "radial-gradient(circle at 18% 20%, rgba(82, 127, 214, 0.12), transparent 42%), radial-gradient(circle at 80% 18%, rgba(247, 191, 78, 0.06), transparent 36%), linear-gradient(180deg, #07090d 0%, #090b10 38%, #0a0c11 100%)",
+        /* SAO 가상공간 배경 — 파란 격자 + 방사형 빛 + 깊이감 */
+        background: [
+          /* 파란 격자 — 홀로그램 바닥 */
+          "linear-gradient(rgba(82,127,214,0.042) 1px, transparent 1px)",
+          "linear-gradient(90deg, rgba(82,127,214,0.042) 1px, transparent 1px)",
+          /* 좌상단 파란 빛 */
+          "radial-gradient(ellipse at 16% 22%, rgba(82,127,214,0.22) 0%, transparent 48%)",
+          /* 우상단 골드 빛 */
+          "radial-gradient(ellipse at 84% 14%, rgba(247,191,78,0.09) 0%, transparent 38%)",
+          /* 중앙 하단 보조 파란 빛 */
+          "radial-gradient(ellipse at 50% 88%, rgba(60,100,200,0.10) 0%, transparent 44%)",
+          /* 기본 다크 그라데이션 */
+          "linear-gradient(180deg, #06080d 0%, #08090f 40%, #090b11 100%)",
+        ].join(", "),
+        backgroundSize: "44px 44px, 44px 44px, 100% 100%, 100% 100%, 100% 100%, 100% 100%",
       }}
     >
       <main
@@ -1157,6 +1172,9 @@ export default function Home() {
           />
         </div>
       </main>
+
+      <ParticleBackground />
+      <AmbientOverlay />
 
       <SaoAlert
         isOpen={logoutAlertOpen}

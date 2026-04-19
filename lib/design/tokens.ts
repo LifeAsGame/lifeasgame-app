@@ -1,32 +1,39 @@
 import type React from 'react'
 
-// SAO (Sword Art Online) Design System Tokens
-// All components should reference these tokens instead of hardcoding values.
+// ═══════════════════════════════════════════════════════════════════════════
+//  SAO (Sword Art Online) Design System — Dark Hologram Edition
+//
+//  실제 SAO 애니메이션 UI 색채 기준:
+//  • 패널:   깊은 네이비 다크 (#040918) + 시안 네온 엣지 (#00c8ff)
+//  • 텍스트: 밝은 블루-화이트 (rgba(200,228,255)) — 다크 패널 위
+//  • 악센트: 골드 (#f8c547) 선택 상태, 시안 (#00c8ff) UI 엣지
+//  • 바탕:   거의 블랙 (#06080e)
+// ═══════════════════════════════════════════════════════════════════════════
 
 export const SAO = {
   color: {
     bg: {
-      page:     '#07090d',
-      dark:     '#0a0c11',
-      panel:    'rgba(231,236,243,0.94)',
-      panelAlt: 'rgba(220,227,236,0.90)',
-      inset:    'rgba(255,255,255,0.35)',
-      overlay:  'rgba(0,0,0,0.55)',
+      page:     '#06080e',
+      dark:     '#08090f',
+      panel:    'rgba(4,9,24,0.92)',
+      panelAlt: 'rgba(3,7,20,0.89)',
+      inset:    'rgba(0,28,68,0.55)',    // 셀/카드 안쪽 다크 블루 글래스
+      overlay:  'rgba(0,0,0,0.65)',
     },
     border: {
-      panel:   'rgba(20,23,28,0.78)',
-      inner:   'rgba(203,211,221,0.3)',
-      subtle:  'rgba(255,255,255,0.48)',
-      gold:    'rgba(249,208,105,0.9)',
-      goldDim: 'rgba(248,197,78,0.35)',
+      panel:   'rgba(0,190,255,0.32)',   // SAO 시그니처 시안
+      inner:   'rgba(0,150,220,0.22)',   // 내부 구분선
+      subtle:  'rgba(0,120,200,0.14)',   // 매우 흐린 시안
+      gold:    'rgba(249,208,105,0.90)', // 골드 선택 테두리
+      goldDim: 'rgba(248,197,78,0.35)',  // 흐린 골드
     },
     text: {
-      primary:   '#3d3d3d',
-      secondary: 'rgba(80,80,90,0.85)',
-      label:     'rgba(100,108,120,1)',
-      gold:      'rgba(248,220,152,0.95)',
+      primary:   'rgba(200,228,255,0.92)', // 밝은 블루-화이트 (메인)
+      secondary: 'rgba(140,175,220,0.70)', // 미디엄 블루
+      label:     'rgba(90,128,178,0.62)',  // 딤 블루 (마이크로 레이블)
+      gold:      'rgba(248,220,152,0.95)', // 골드 텍스트
       goldDim:   'rgba(220,183,100,0.72)',
-      onDark:    'rgba(220,228,240,0.72)',
+      onDark:    'rgba(180,215,255,0.80)',
     },
     action: {
       gold:      '#f8c547',
@@ -36,27 +43,30 @@ export const SAO = {
       red:       '#e03e63',
       redRing:   'rgba(224,62,99,0.6)',
       danger:    '#dc2626',
+      cyan:      '#00c8ff',             // SAO 시안 (새로 추가)
+      cyanDim:   'rgba(0,200,255,0.55)',
     },
     rarity: {
       Common:    '#9ca3af',
       Uncommon:  '#4ade80',
-      Rare:      '#60a5fa',
+      Rare:      '#38bdf8',             // 더 밝은 하늘색
       Epic:      '#c084fc',
       Legendary: '#fbbf24',
     },
     bar: {
-      hp:    '#ef4444',
-      mp:    '#3b82f6',
+      hp:    '#f43f5e',                  // 더 밝은 레드
+      mp:    '#38bdf8',                  // 하늘색
       exp:   '#f8c547',
-      track: 'rgba(0,0,0,0.15)',
+      track: 'rgba(0,25,70,0.65)',       // 다크 패널용 트랙
     },
   },
 
   shadow: {
-    panel:     '0 12px 26px rgba(0,0,0,0.22)',
-    panelInset:'inset 0 0 0 1px rgba(255,255,255,0.48)',
-    gold:      '0 0 18px rgba(247,196,70,0.16)',
-    orbActive: '0 0 0 1px rgba(248,197,78,0.35), 0 0 18px rgba(247,196,70,0.16)',
+    panel:     '0 16px 44px rgba(0,0,0,0.62)',
+    panelInset:'inset 0 0 0 1px rgba(0,190,255,0.08)',
+    gold:      '0 0 22px rgba(247,196,70,0.22)',
+    orbActive: '0 0 0 1px rgba(248,197,78,0.40), 0 0 24px rgba(247,196,70,0.22)',
+    cyan:      '0 0 22px rgba(0,190,255,0.22)',   // 시안 글로우 (새로 추가)
   },
 
   font: {
@@ -73,31 +83,47 @@ export const SAO = {
   },
 
   grid: {
-    overlay: `opacity-[0.08] [background-image:linear-gradient(rgba(0,0,0,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.8)_1px,transparent_1px)] [background-size:22px_22px]`,
+    overlay: `opacity-[0.08] [background-image:linear-gradient(rgba(0,190,255,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(0,190,255,0.15)_1px,transparent_1px)] [background-size:22px_22px]`,
   },
 } as const
 
 // ─── Reusable inline style objects ───────────────────────────────────────────
 
-/** Light panel — LeftContext, SaoAlert, SaoFormPanel, Login */
+/**
+ * 다크 홀로그램 패널 — SAO 진짜 UI 스타일
+ * 깊은 네이비 + 시안 네온 엣지 + glassmorphism
+ */
 export const PANEL_STYLE: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(248,249,251,0.97), rgba(238,241,246,0.95))',
-  border: `1px solid ${SAO.color.border.panel}`,
-  boxShadow: `${SAO.shadow.panelInset}, ${SAO.shadow.panel}`,
+  background: 'linear-gradient(155deg, rgba(5,10,28,0.93), rgba(3,8,22,0.91))',
+  border: '1px solid rgba(0,190,255,0.32)',
+  boxShadow: [
+    'inset 0 0 0 1px rgba(0,190,255,0.07)',
+    '0 0 0 1px rgba(0,160,255,0.10)',
+    '0 16px 44px rgba(0,0,0,0.60)',
+    '0 0 36px rgba(0,130,255,0.10)',
+  ].join(', '),
   borderRadius: SAO.radius.panel,
+  backdropFilter: 'blur(18px) saturate(1.5)',
+  WebkitBackdropFilter: 'blur(18px) saturate(1.5)',
 }
 
-/** Dark metallic panel — RightPanels navigation frames (SAO anime dark UI style) */
+/** 다크 메탈릭 패널 — 리스트 아이템 컨텍스트 */
 export const DARK_PANEL_STYLE: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(40,42,48,0.97), rgba(31,33,40,0.97))',
-  border: '1px solid rgba(88,93,104,0.55)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.055), 0 12px 36px rgba(0,0,0,0.62)',
+  background: 'linear-gradient(180deg, rgba(3,7,22,0.97), rgba(2,5,18,0.97))',
+  border: '1px solid rgba(0,190,255,0.35)',
+  boxShadow: [
+    'inset 0 1px 0 rgba(0,190,255,0.10)',
+    '0 0 0 1px rgba(0,160,255,0.10)',
+    '0 14px 44px rgba(0,0,0,0.75)',
+    '0 0 32px rgba(0,130,255,0.12)',
+  ].join(', '),
   borderRadius: SAO.radius.panel,
 }
 
+/** 인풋 — 다크 글래스 + 시안 포커스 */
 export const INPUT_STYLE: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.6)',
-  border: `1px solid rgba(20,23,28,0.35)`,
+  background: 'rgba(0,20,55,0.72)',
+  border: '1px solid rgba(0,150,220,0.30)',
   borderRadius: SAO.radius.input,
   padding: '8px 12px',
   outline: 'none',
@@ -111,36 +137,35 @@ export const INPUT_STYLE: React.CSSProperties = {
 export const INPUT_FOCUS_STYLE: React.CSSProperties = {
   ...INPUT_STYLE,
   border: `1px solid ${SAO.color.border.gold}`,
+  background: 'rgba(0,25,65,0.82)',
 }
 
+/** 골드 버튼 — 선택/확인 액션 */
 export const GOLD_BTN_STYLE: React.CSSProperties = {
   background: SAO.color.action.gold,
-  color: '#1a1a1a',
+  color: '#12100a',
   borderRadius: SAO.radius.input,
-  fontWeight: 600,
-  letterSpacing: '0.2em',
+  fontWeight: 700,
+  letterSpacing: '0.18em',
   textTransform: 'uppercase',
   border: 'none',
   cursor: 'pointer',
 }
 
+/** 그리드 오버레이 — 다크 패널 위 시안 그리드 */
 export const GRID_OVERLAY_STYLE: React.CSSProperties = {
   position: 'absolute',
   inset: 0,
-  opacity: 0.08,
+  opacity: 0.10,
   backgroundImage:
-    'linear-gradient(rgba(0,0,0,0.8) 1px,transparent 1px),' +
-    'linear-gradient(90deg,rgba(0,0,0,0.8) 1px,transparent 1px)',
+    'linear-gradient(rgba(0,190,255,0.20) 1px,transparent 1px),' +
+    'linear-gradient(90deg,rgba(0,190,255,0.20) 1px,transparent 1px)',
   backgroundSize: '22px 22px',
   pointerEvents: 'none',
 }
 
 // ─── SAO icon paths ───────────────────────────────────────────────────────────
-// Usage: <img src={SAO_ICON.player} />
-// Files are in /public/icons/sao/
-
 export const SAO_ICON = {
-  // Orb navigation
   player:    '/icons/sao/Man.svg',
   playerOn:  '/icons/sao/Man_on.svg',
   skills:    '/icons/sao/Skills.svg',
@@ -161,7 +186,6 @@ export const SAO_ICON = {
   optionOn:  '/icons/sao/Option_on.svg',
   logout:    '/icons/sao/Logout.svg',
   logoutOn:  '/icons/sao/Logout_on.svg',
-  // Buttons
   yes:       '/icons/sao/Yes.svg',
   yesOn:     '/icons/sao/Yes_on.svg',
   no:        '/icons/sao/No.svg',
@@ -180,7 +204,6 @@ export const SAO_ICON = {
   callingOn: '/icons/sao/Calling_on.svg',
   cancel:    '/icons/sao/Cancel & Dissolve.svg',
   cancelOn:  '/icons/sao/Cancel & Dissolve_on.svg',
-  // Social
   man:       '/icons/sao/Man.svg',
   manOn:     '/icons/sao/Man_on.svg',
   men:       '/icons/sao/Men.svg',
@@ -198,4 +221,3 @@ export const SAO_ICON = {
   invite:    '/icons/sao/Invite.svg',
   inviteOn:  '/icons/sao/Invite_on.svg',
 } as const
-

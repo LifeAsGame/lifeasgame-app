@@ -32,32 +32,45 @@ type RightPanelsProps = {
 
 // ─── Shared styles (light-panel context) ─────────────────────────────────────
 
-// Light panel frame style — background shifts gray as depth increases (no opacity/filter)
+// ─── 다크 홀로그램 패널 프레임 ────────────────────────────────────────────────
+// SAO 애니메이션 UI 기준: 깊은 네이비 + 시안 엣지 + 깊이에 따른 투명도 조절
 function getFrameStyle(depth: number) {
   const bg =
     depth === 0
-      ? "linear-gradient(180deg, rgba(251,252,254,0.98), rgba(243,246,252,0.96))"
+      ? "linear-gradient(155deg, rgba(5,10,28,0.93), rgba(4,8,22,0.91))"
       : depth === 1
-      ? "linear-gradient(180deg, rgba(224,227,236,0.97), rgba(216,220,231,0.96))"
-      : "linear-gradient(180deg, rgba(205,209,222,0.97), rgba(198,203,217,0.96))";
+      ? "linear-gradient(155deg, rgba(4,8,24,0.91), rgba(3,6,18,0.89))"
+      : "linear-gradient(155deg, rgba(3,6,18,0.89), rgba(2,5,15,0.87))";
+
+  const borderAlpha = depth === 0 ? 0.32 : depth === 1 ? 0.24 : 0.18;
+  const glowAlpha   = depth === 0 ? 0.14 : depth === 1 ? 0.08 : 0.05;
+
   return {
     background: bg,
-    border: "1px solid rgba(182,190,215,0.42)",
-    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.92), 0 8px 28px rgba(0,0,0,0.20)",
+    border: `1px solid rgba(0,190,255,${borderAlpha})`,
+    boxShadow: [
+      `inset 0 0 0 1px rgba(0,190,255,0.06)`,
+      `0 0 0 1px rgba(0,160,255,${glowAlpha})`,
+      `0 14px 40px rgba(0,0,0,0.60)`,
+      `0 0 30px rgba(0,130,255,${Math.max(glowAlpha - 0.04, 0.01)})`,
+    ].join(", "),
     borderRadius: SAO.radius.panel,
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
   };
 }
 
-// Colors for text rendered inside the light panel
+// 다크 패널 위 텍스트 — 밝은 블루-화이트 계열
 const D = {
-  text:    "rgba(22,30,52,0.86)",    // main text on light bg
-  textSub: "rgba(72,85,118,0.68)",   // secondary text
-  label:   "rgba(112,125,158,0.60)", // micro-label (10px uppercase)
+  text:    "rgba(200,228,255,0.90)",  // 메인 텍스트 (밝은 블루-화이트)
+  textSub: "rgba(140,175,220,0.70)",  // 서브 텍스트
+  label:   "rgba(90,128,178,0.60)",   // 마이크로 레이블
 } as const;
 
+// 정보 셀 — 다크 글래스
 const cellStyle = {
-  background: "rgba(255,255,255,0.55)",
-  border: "1px solid rgba(175,182,210,0.38)",
+  background: "rgba(0,25,65,0.60)",
+  border: "1px solid rgba(0,150,220,0.22)",
   borderRadius: SAO.radius.panel,
 } as const;
 
@@ -116,14 +129,27 @@ function PanelFrame({
         transition: "background 0.35s ease",
       }}
     >
+      {/* SAO 시그니처 — 패널 상단 시안 글로우 라인 */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0,
+          height: "1px",
+          zIndex: 20,
+          background: "linear-gradient(90deg, transparent 5%, rgba(0,200,255,0.72) 35%, rgba(0,200,255,0.72) 65%, transparent 95%)",
+          pointerEvents: "none",
+        }}
+      />
+
       {/* Header */}
       <div
         className="relative z-10"
         style={{
-          borderBottom: "1px solid rgba(182,190,215,0.38)",
+          borderBottom: "1px solid rgba(0,180,255,0.18)",
           paddingInline: UI_CONSTS.rightPanels.panelHeaderPaddingX,
           paddingBlock: UI_CONSTS.rightPanels.panelHeaderPaddingY,
-          background: "rgba(0,0,0,0.025)",
+          background: "rgba(0,30,70,0.28)",
         }}
       >
         <div className="flex items-center gap-2">
@@ -136,16 +162,20 @@ function PanelFrame({
               height={20}
               draggable={false}
               aria-hidden
-              style={{ opacity: 0.50, flexShrink: 0 }}
+              style={{
+                opacity: 0.75,
+                flexShrink: 0,
+                filter: "brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(185deg)",
+              }}
               onError={(e) => { e.currentTarget.style.display = "none"; }}
             />
           ) : null}
           <div className="min-w-0 flex-1">
             <p
               className="uppercase"
-              style={{ fontSize: "10px", letterSpacing: "0.32em", color: D.label }}
+              style={{ fontSize: "10px", letterSpacing: "0.32em", color: "rgba(0,190,255,0.65)" }}
             >
-              Panel
+              System
             </p>
             <h3
               className="break-words font-semibold uppercase"
@@ -163,7 +193,7 @@ function PanelFrame({
         centerTargetKey={centerTargetKey ?? null}
         resetScrollKey={resetScrollKey ?? null}
         centerBehavior={centerBehavior}
-        fadeColor="rgba(244,247,252,0.96)"
+        fadeColor="rgba(4,9,24,0.97)"
         style={
           fixedScrollHeight
             ? {
@@ -197,7 +227,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
       style={cellStyle}
       onClick={onClick}
     >
-      <span style={{ fontSize: "12px", color: D.textSub }}>←</span>
+      <span style={{ fontSize: "14px", color: "rgba(0,190,255,0.80)" }}>←</span>
     </button>
   );
 }
@@ -925,10 +955,10 @@ export default function RightPanels({
       {panelStack.length > 0 ? (
         <motion.div
           key={panelStackKey}
-          initial={MOTION.panelReset.initial}
-          animate={MOTION.panelReset.animate}
-          exit={MOTION.panelReset.exit}
-          transition={MOTION.panelReset.transition}
+          initial={MOTION.hologramIn.initial}
+          animate={MOTION.hologramIn.animate}
+          exit={MOTION.hologramIn.exit}
+          transition={MOTION.hologramIn.transition}
           className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center overflow-x-hidden"
           data-main={selectedMain}
           style={{
@@ -952,8 +982,10 @@ export default function RightPanels({
                 animate={MOTION.panelSlot.animate}
                 exit={MOTION.panelSlot.exit}
                 transition={{
-                  ...MOTION.panelSlot.transition,
-                  delay: panelIndex * 0.035,
+                  type: "spring",
+                  stiffness: 380,
+                  damping: 28,
+                  delay: panelIndex * 0.055,
                 }}
                 style={{
                   willChange: "transform, opacity",

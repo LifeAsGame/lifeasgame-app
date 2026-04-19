@@ -264,10 +264,12 @@ export default function PanelCard({
           onPointerUp={(hasActions || hasDelete || onDoubleClick) ? handlePointerUp : undefined}
           onPointerLeave={(hasActions || hasDelete || onDoubleClick) ? handlePointerLeave : undefined}
           onPointerCancel={(hasActions || hasDelete || onDoubleClick) ? handlePointerCancel : undefined}
-          whileTap={isInteractive ? { scale: 0.995 } : undefined}
+          whileTap={isInteractive ? { scale: 0.97 } : undefined}
+          transition={{ type: "spring", stiffness: 480, damping: 28 }}
           className={[
             "group relative flex w-full items-center gap-4 overflow-hidden",
             "border text-left",
+            "sao-card-shimmer",
             isInteractive || hasActions || onDoubleClick ? "cursor-pointer" : "cursor-default",
           ].join(" ")}
           style={{
@@ -371,14 +373,15 @@ export default function PanelCard({
                   <motion.button
                     key={action.type}
                     type="button"
-                    initial={{ scale: 0, opacity: 0, x: -10 }}
-                    animate={{ scale: 1, opacity: 1, x: 0 }}
+                    initial={MOTION.actionPop.initial}
+                    animate={MOTION.actionPop.animate}
+                    exit={MOTION.actionPop.exit}
                     transition={{
-                      delay: i * 0.06,
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 24,
+                      ...MOTION.actionPop.transition,
+                      delay: i * 0.07,
                     }}
+                    whileHover={{ scale: 1.12 }}
+                    whileTap={{ scale: 0.90 }}
                     className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-80"
                     style={{ background: style.bg }}
                     onPointerDown={(e) => e.stopPropagation()}

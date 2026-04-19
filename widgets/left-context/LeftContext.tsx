@@ -80,6 +80,7 @@ function StatBar({
             background: color,
             borderRadius: "1px",
             transition: "width 0.5s ease",
+            boxShadow: `0 0 8px ${color.includes("f43") || color.includes("f87") ? "rgba(244,63,94,0.60)" : color.includes("38b") || color.includes("60a") ? "rgba(56,189,248,0.60)" : "rgba(248,197,78,0.55)"}`,
           }}
         />
       </div>
@@ -131,7 +132,7 @@ function PlayerPanel({
 
   const statCellStyle = {
     background: SAO.color.bg.inset,
-    border: `1px solid rgba(20,23,28,0.2)`,
+    border: `1px solid rgba(0,150,220,0.22)`,
     borderRadius: SAO.radius.panel,
   };
 
@@ -199,7 +200,7 @@ function PlayerPanel({
                 className="flex flex-col items-center px-1 py-2"
                 style={{
                   ...statCellStyle,
-                  border: `1px solid ${isTop ? SAO.color.border.gold : "rgba(20,23,28,0.2)"}`,
+                  border: `1px solid ${isTop ? SAO.color.border.gold : "rgba(0,150,220,0.22)"}`,
                 }}
               >
                 <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label }}>
@@ -259,7 +260,7 @@ function PlayerPanel({
                               className="flex items-center gap-2 rounded-sm px-3 py-2 transition-colors"
                               style={{
                                 background: isSelected ? "rgba(249,208,105,0.12)" : SAO.color.bg.inset,
-                                border: `1px solid ${isSelected ? SAO.color.border.gold : "rgba(20,23,28,0.2)"}`,
+                                border: `1px solid ${isSelected ? SAO.color.border.gold : "rgba(0,150,220,0.22)"}`,
                                 borderRadius: SAO.radius.panel,
                               }}
                             >
@@ -271,7 +272,7 @@ function PlayerPanel({
                               </span>
                               <span
                                 className="min-w-0 flex-1 truncate text-sm"
-                                style={{ color: item ? SAO.color.text.primary : "rgba(20,23,28,0.35)", fontStyle: item ? "normal" : "italic" }}
+                                style={{ color: item ? SAO.color.text.primary : "rgba(90,128,178,0.55)", fontStyle: item ? "normal" : "italic" }}
                               >
                                 {item ? item.name : "Empty"}
                               </span>
@@ -350,7 +351,7 @@ function ClosenessBar({ value }: { value: string }) {
           className="flex-1 rounded-sm"
           style={{
             height: "6px",
-            background: i < filled ? SAO.color.action.gold : "rgba(20,23,28,0.15)",
+            background: i < filled ? SAO.color.action.gold : "rgba(0,25,65,0.60)",
             transition: "background 0.25s ease",
           }}
           title={lvl}
@@ -467,7 +468,7 @@ function FriendDetailPanel({
 
   const cellStyle = {
     background: SAO.color.bg.inset,
-    border: `1px solid rgba(20,23,28,0.2)`,
+    border: `1px solid rgba(0,150,220,0.22)`,
     borderRadius: SAO.radius.panel,
   };
 
@@ -542,7 +543,7 @@ function FriendDetailPanel({
       {/* Tabs with animated underline */}
       <div
         className="relative mt-5 flex"
-        style={{ borderBottom: `1px solid rgba(20,23,28,0.15)` }}
+        style={{ borderBottom: `1px solid rgba(0,25,65,0.60)` }}
       >
         {(["info", "memo"] as const).map((id) => (
           <button
@@ -592,7 +593,7 @@ function FriendDetailPanel({
                 >
                   <span
                     className="rounded-full flex-shrink-0"
-                    style={{ width: "6px", height: "6px", background: "rgba(20,23,28,0.5)" }}
+                    style={{ width: "6px", height: "6px", background: "rgba(0,190,255,0.50)" }}
                   />
                   <span className="break-words text-sm" style={{ letterSpacing: "0.06em", color: SAO.color.text.primary }}>
                     {row}
@@ -806,7 +807,7 @@ function SocialPanel({
 
   const cellStyle = {
     background: SAO.color.bg.inset,
-    border: `1px solid rgba(20,23,28,0.2)`,
+    border: `1px solid rgba(0,150,220,0.22)`,
     borderRadius: SAO.radius.panel,
   };
 
@@ -863,7 +864,7 @@ function SocialPanel({
               >
                 <span
                   className="rounded-full flex-shrink-0"
-                  style={{ width: "6px", height: "6px", background: "rgba(20,23,28,0.4)" }}
+                  style={{ width: "6px", height: "6px", background: "rgba(0,190,255,0.45)" }}
                 />
                 <span className="break-words text-sm" style={{ letterSpacing: "0.06em", color: SAO.color.text.primary }}>
                   {row}
@@ -915,11 +916,8 @@ export default function LeftContext({
           onPointerDownCapture={onFocus}
           style={{
             ...PANEL_STYLE,
-            background: "linear-gradient(180deg, rgba(251,252,254,0.98), rgba(242,245,250,0.97))",
-            border: "1px solid rgba(20,23,28,0.65)",
             width: UI_CONSTS.leftContext.width,
             minHeight: UI_CONSTS.leftContext.minHeight,
-            boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.6), 0 20px 48px rgba(0,0,0,0.32)`,
             willChange: "transform, opacity",
             zIndex,
           }}
