@@ -71,13 +71,14 @@ export default function SaoAlert({
             <div
               className="relative px-6 py-4"
               style={{
-                background: "linear-gradient(180deg, #e8eaed, #d8dce2)",
+                background: "linear-gradient(180deg, rgba(240,243,250,0.95), rgba(230,235,245,0.92))",
+                borderBottom: "1px solid rgba(0,0,0,0.08)",
               }}
             >
               <p
                 className="text-center text-sm font-semibold uppercase"
                 style={{
-                  letterSpacing: "0.16em",
+                  letterSpacing: "0.18em",
                   color: SAO.color.text.primary,
                 }}
               >
@@ -85,24 +86,14 @@ export default function SaoAlert({
               </p>
             </div>
 
-            {/* Double divider line for depth */}
-            <div
-              style={{
-                height: 0,
-                borderTop: `1px solid rgba(20,23,28,0.3)`,
-                borderBottom: `1px solid rgba(255,255,255,0.6)`,
-              }}
-            />
-
             {/* Body */}
             {message ? (
               <div className="relative px-6 py-5">
                 <div
                   className="rounded-sm px-4 py-3"
                   style={{
-                    background: "rgba(210,215,222,0.6)",
-                    border: `1px solid rgba(20,23,28,0.15)`,
-                    boxShadow: "inset 0 2px 6px rgba(0,0,0,0.06)",
+                    background: "rgba(0,0,0,0.04)",
+                    border: `1px solid rgba(0,0,0,0.08)`,
                   }}
                 >
                   <p
