@@ -362,14 +362,12 @@ type PanelStackItem =
 TypeScript 유니온 타입입니다. 백엔드의 상속 계층 없이 타입을 구분합니다.
 
 ```tsx
-// widgets/right-panels/RightPanels.tsx
-function renderPanel(panel: PanelStackItem) {
-  switch (panel.kind) {   // kind로 타입 가드
-    case "menu": return <MenuPanel items={panel.items} />;
-    case "list": return <ListPanel items={panel.items} />;
-    case "form": return <FormPanel fields={panel.fields} />;
-    // TypeScript가 각 case에서 panel의 타입을 정확히 추론합니다
-  }
+// widgets/right-panels/RightPanels.tsx — PanelContent()
+function PanelContent({ panel }) {
+  if (panel.kind === "form")    return <FormPanel ... />;
+  if (panel.kind === "message") return <MessagePanel ... />;
+  if (panel.kind === "gift")    return <GiftPanel ... />;
+  // TypeScript가 각 분기에서 panel의 타입을 정확히 추론합니다
 }
 ```
 
@@ -414,9 +412,10 @@ import { AnimatePresence } from "framer-motion";
 
 ```tsx
 // 탭 밑줄 인디케이터가 탭 간 이동 시 자연스럽게 슬라이드
-{selectedTab === tab.id && (
+// widgets/left-context/ui/FriendDetailPanel.tsx
+{tab === id && (
   <motion.div
-    layoutId="tab-underline"    // 이 ID를 공유하는 div가 위치 보간됨
+    layoutId="friend-tab-underline"    // 이 ID를 공유하는 div가 위치 보간됨
     className="absolute bottom-0 h-0.5"
   />
 )}
@@ -507,7 +506,7 @@ type FormFieldSpec = {
   required?: boolean;
 };
 
-// features/player/model.ts — 폼 스펙 정의
+// features/player/forms.ts — 폼 스펙 정의 (data/forms 분리 패턴)
 export const CERTIFICATION_FORM_FIELDS: FormFieldSpec[] = [
   { key: "name",     label: "Name",     type: "text",   required: true },
   { key: "issuer",   label: "Issuer",   type: "text",   required: true },
@@ -519,7 +518,7 @@ export const CERTIFICATION_FORM_FIELDS: FormFieldSpec[] = [
 ];
 ```
 
-`RightPanels`에서 `FormFieldSpec[]`을 받아 동적으로 폼 필드를 렌더링합니다.
+`widgets/right-panels/ui/FormPanel.tsx`에서 `FormFieldSpec[]`을 받아 동적으로 폼 필드를 렌더링합니다.
 백엔드 리플렉션 기반 폼 생성과 유사한 방식입니다.
 
 ### 더블클릭 편집 흐름
@@ -554,49 +553,134 @@ const handlePanelItemDoubleClick = (panelIndex: number, itemId: string) => {
 
 ## 13. FSD 아키텍처
 
-### 기존 구조의 문제
-
-```
-components/LeftContext.tsx  945줄  (너무 큰 파일, 도메인 혼재)
-lib/nav.ts                  1164줄 (모든 도메인 데이터 한 파일)
-```
-
-### FSD로 해결된 것
-
-**도메인 데이터 격리**
-
-```
-lib/nav.ts (1164줄, 8개 도메인 혼재)
-  ↓ 분리
-features/player/model.ts    player 데이터만
-features/social/model.ts    social 데이터만
-entities/nav/types.ts       공유 타입만
-```
-
-**의존성 방향 명확화**
-
-```
-Before: components/ → lib/  (방향 불명확, 순환 의존성 위험)
-After:  widgets/ → features/ → entities/ → shared/  (단방향)
-```
-
-**신입 개발자 온보딩**
-
-```
-"social 기능 수정해주세요"
-  → features/social/ 폴더만 보면 됩니다
-  → model.ts (데이터), api.ts (API 호출), mock.ts (목 데이터)
-```
-
 ### 레이어별 역할
 
 | 레이어 | 역할 | 수정 빈도 |
 |--------|------|-----------|
-| shared | 프레임워크 무관 공용 코드 | 낮음 |
-| entities | 도메인 타입 + Nav 구조 | 낮음 |
-| features | 도메인별 비즈니스 로직 | 높음 |
-| widgets | 페이지 섹션 (feature 조합) | 중간 |
-| app | 라우팅 + 상태 조율 | 낮음 |
+| `shared/` | 프레임워크 무관 공용 코드 | 낮음 |
+| `entities/` | 도메인 타입 + Nav 구조 | 낮음 |
+| `features/` | 도메인별 비즈니스 로직 | 높음 |
+| `widgets/` | 페이지 섹션 (feature 조합) | 중간 |
+| `app/` | 라우팅 + 상태 조율 | 낮음 |
+
+의존성은 단방향입니다: `widgets/ → features/ → entities/ → shared/`
+
+### Feature 모듈 내부 분리 패턴
+
+각 도메인 Feature는 역할별로 3개 파일로 나뉩니다.
+
+```
+features/player/
+  data.ts    — 원시 배열 (ACHIEVEMENT_DATA, CERTIFICATION_DATA, ...)
+  forms.ts   — FormFieldSpec 배열 (CERTIFICATION_FORM_FIELDS, ...)
+  model.ts   — 가공된 리스트 + forms 재export (PLAYER_LISTS, PLAYER_CATEGORY_ITEMS)
+  mock.ts    — 백엔드 DTO 목 데이터 (API 응답 형태)
+```
+
+```
+features/social/
+  data.ts    — PARTY_DATA, GUILD_DATA, FRIEND_DATA
+  forms.ts   — PARTY_FORM_FIELDS, GUILD_FORM_FIELDS
+  model.ts   — SOCIAL_LISTS
+
+features/lifelog/
+  data.ts    — COLLECTION_DATA, MEDIA_DATA, EXERCISE_DATA
+  forms.ts   — EXERCISE_FORM_FIELDS, COLLECTION_FORM_FIELDS, MEDIA_FORM_FIELDS
+  model.ts   — LIFELOG_LISTS, LIFELOG_CATEGORY_ITEMS
+```
+
+**왜 분리했나**: `model.ts` 하나에 원시 데이터 + 폼 스펙 + 가공 로직이 섞이면
+어디를 고쳐야 할지 찾기 어렵습니다. "폼 필드 추가"는 `forms.ts`만, "목 데이터 추가"는 `data.ts`만 보면 됩니다.
+
+### entities/nav 내부 분리 패턴
+
+```
+entities/nav/
+  types.ts      — PanelStackItem, PanelDataItem, FormFieldSpec 등 타입 정의
+  config.ts     — CRUD_ACTIONS, MAIN_NAV_ITEMS, SUBMENUS_BY_MAIN 등 상수
+  generators.ts — makeList(), makeStandardList(), uniqueOrderedCats() 등 유틸 함수
+  index.ts      — 위 3개를 모두 re-export (배럴)
+```
+
+`uniqueOrderedCats()` + `catMenuItems()` 같은 함수는 player와 lifelog 양쪽에서 필요해
+중복 없이 `generators.ts`에서 공유합니다.
+
+### shared/design 토큰 분리 패턴
+
+```
+shared/design/
+  colors.ts  — SAO 디자인 토큰 객체 (색상, 반경, 폰트, 그림자)
+  styles.ts  — CSS 오브젝트 상수 (PANEL_STYLE, INPUT_STYLE_DARK, GOLD_BTN_STYLE, ...)
+  icons.ts   — SAO_ICON SVG 경로 맵 (50+ 아이콘)
+  tokens.ts  — 위 3개를 re-export하는 배럴 (기존 import 경로 유지)
+```
+
+```typescript
+// 어디서든 동일한 경로로 접근 가능
+import { SAO, PANEL_STYLE, SAO_ICON } from "@/shared/design/tokens";
+
+// 실제로는 각각 다른 파일에서 옵니다:
+// SAO       → colors.ts
+// PANEL_STYLE → styles.ts
+// SAO_ICON  → icons.ts
+```
+
+**배럴(barrel) 패턴**: `index.ts` 또는 `tokens.ts` 하나가 여러 파일을 re-export합니다.
+소비자는 파일이 몇 개인지 신경 쓸 필요 없이 항상 같은 경로를 씁니다.
+
+### shared/api/types 도메인 분리
+
+```
+shared/api/types/
+  common.ts     — ApiPage<T>
+  auth.ts       — AuthUser
+  character.ts  — PlayerInfo, CharacterSheet, EquipmentView, ...
+  inventory.ts  — InventoryEntry, InventoryView, MailEntry
+  quest.ts      — QuestBlueprint, QuestAcceptance
+  social.ts     — FollowSummary, PartyInfo, GuildInfo
+  lifelog.ts    — ExerciseInfo, MediaLogInfo, CollectionInfo
+  economy.ts    — WalletBalance, ListingSummary, ShopItem
+  user.ts       — UserSummary, UserInfo, UserSettings
+  index.ts      — 모두 re-export (배럴)
+
+shared/api/types.ts  — index.ts를 다시 re-export (기존 경로 호환)
+```
+
+백엔드의 패키지 구조(`com.lag.character`, `com.lag.social`, ...)와 1:1로 매핑됩니다.
+
+### Widget 내부 ui/ 분리 패턴
+
+거대 위젯 파일은 `ui/` 서브디렉터리로 쪼갭니다.
+위젯 본체는 **오케스트레이터(조율자)** 역할만 합니다.
+
+```
+widgets/right-panels/
+  RightPanels.tsx          — 오케스트레이터 (~320줄): 패널 스택 애니메이션 + kind 라우팅
+  ui/
+    styles.ts              — getFrameStyle, D, cellStyle, NAV_ICONS
+    PanelFrame.tsx         — 공통 패널 프레임 + BackButton
+    Rows.tsx               — GoldRow, InfoCard
+    FormPanel.tsx          — 동적 폼 렌더러
+    MessagePanel.tsx       — 1:1 채팅 UI
+    GiftPanel.tsx          — 아이템 선물 UI
+
+widgets/left-context/
+  LeftContext.tsx           — 오케스트레이터 (~95줄): mode에 따라 패널 전환
+  ui/
+    PlayerPanel.tsx         — 플레이어 스탯/장비 패널 (StatBar 포함)
+    FriendDetailPanel.tsx   — 친구 상세 + 탭 + 메모 편집 (ClosenessBar, TagChipInput 포함)
+    SocialPanel.tsx         — 소셜 컨텍스트 패널
+```
+
+```typescript
+// LeftContext.tsx — 95줄짜리 오케스트레이터
+import { PlayerPanel }       from "./ui/PlayerPanel";
+import { SocialPanel }       from "./ui/SocialPanel";
+import { type FriendMemoData } from "./ui/FriendDetailPanel";
+
+// mode에 따라 어떤 패널을 보여줄지만 결정
+{mode === "player" ? <PlayerPanel ... /> : <SocialPanel ... />}
+```
 
 ---
 
@@ -617,9 +701,21 @@ After:  widgets/ → features/ → entities/ → shared/  (단방향)
 
 ```
 PanelStackItem[] 배열을 받아서
-각 kind에 따라 올바른 UI 컴포넌트를 렌더링
+각 kind에 따라 올바른 ui/ 서브컴포넌트를 렌더링
 + Framer Motion으로 등장/소멸 애니메이션
 ```
+
+`PanelContent()` 함수가 `kind` 기반 라우터 역할을 합니다.
+실제 UI는 `ui/FormPanel`, `ui/MessagePanel`, `ui/GiftPanel` 등에 위임합니다.
+
+### [widgets/left-context/LeftContext.tsx](widgets/left-context/LeftContext.tsx) — 좌측 컨텍스트 패널
+
+```
+mode = "player" → PlayerPanel (스탯, HP/MP, 장비 슬롯)
+mode = "social" → SocialPanel (소셜 컨텍스트 / 친구 상세)
+```
+
+`FriendMemoData` 타입을 re-export해 `app/page.tsx`가 `left-context`에서 직접 임포트합니다.
 
 ### [shared/ui/EdgeFadeScrollArea.tsx](shared/ui/EdgeFadeScrollArea.tsx) — 고급 스크롤
 
@@ -655,19 +751,32 @@ type PanelDataItem = {
 ### [shared/design/tokens.ts](shared/design/tokens.ts) — 디자인 토큰
 
 ```typescript
+// shared/design/colors.ts
 export const SAO = {
   color: {
-    bg: { page: "#07090d", dark: "#0a0c11" },
+    bg:     { page: "#07090d", dark: "#0a0c11", inset: "rgba(238,241,245,0.96)" },
     border: { subtle: "rgba(255,255,255,0.08)", gold: "rgba(248,197,78,0.5)" },
-    text: { primary: "#e8eaf0", gold: "rgba(248,197,78,0.9)" },
+    text:   { primary: "#1a1c22", gold: "rgba(248,197,78,0.9)", label: "rgba(90,95,108,0.82)" },
     rarity: {
-      Common: "#9ca3af",
-      Uncommon: "#4ade80",
-      Rare: "#60a5fa",
-      Epic: "#a78bfa",
-      Legendary: "rgba(248,197,78,0.95)",
+      Common: "#9ca3af", Uncommon: "#4ade80", Rare: "#60a5fa",
+      Epic: "#a78bfa",   Legendary: "rgba(248,197,78,0.95)",
     },
+    action: { gold: "rgba(248,197,78,0.9)", blue: "#60a5fa", red: "#f87171", danger: "#ef4444" },
   },
+  radius: { panel: "3px" },
+};
+
+// shared/design/styles.ts — 재사용 CSS 오브젝트
+export const PANEL_STYLE = { background: "linear-gradient(...)", border: "..." };
+export const INPUT_STYLE_DARK = { background: "rgba(0,0,0,0.28)", ... };
+export const GOLD_BTN_STYLE = { background: "rgba(248,197,78,...)", ... };
+
+// shared/design/icons.ts — SVG 경로 맵
+export const SAO_ICON = {
+  player: "/icons/sao/Man.svg",
+  skills: "/icons/sao/Skills.svg",
+  plus:   "/icons/sao/Plus.svg",
+  // ... 50+ 아이콘
 };
 ```
 
@@ -706,3 +815,17 @@ Tailwind CSS 클래스로는 표현하기 어려운 동적 rgba 값들이 많기
 ### Q: 왜 전역 상태 라이브러리(Redux, Zustand 등)를 안 쓰나요?
 
 현재 상태 범위가 `app/page.tsx` 한 곳에 집중되어 있고, 크로스 도메인 상태 공유 필요성이 낮기 때문입니다. 앱이 커지면 Zustand 도입을 고려할 수 있습니다.
+
+### Q: `배럴(barrel)` 파일이란?
+
+```typescript
+// entities/nav/index.ts — 배럴 파일
+export * from "./types";
+export * from "./config";
+export * from "./generators";
+```
+
+여러 파일의 export를 하나로 모아주는 파일입니다.
+소비자는 `import { makeList } from "@/entities/nav"` 처럼 경로 한 줄로 가져오고,
+내부가 몇 개 파일로 나뉘었는지 알 필요가 없습니다.
+Java의 `package-info` + re-export 개념과 유사합니다.

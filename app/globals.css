@@ -25,6 +25,169 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* ═══════════════════════════════════════════════════
+   SAO — Ambient Keyframes
+   살아있는 홀로그램 HUD 느낌을 위한 애니메이션
+═══════════════════════════════════════════════════ */
+
+/* 선택된 오브 글로우 — 숨쉬는 느낌 */
+@keyframes sao-breathe {
+  0%, 100% { opacity: 0.60; transform: scale(0.90); }
+  50%       { opacity: 1.00; transform: scale(1.12); }
+}
+
+/* 골드 텍스트 펄스 */
+@keyframes sao-gold-pulse {
+  0%, 100% { text-shadow: 0 0 8px rgba(248,197,78,0.20); opacity: 0.92; }
+  50%       { text-shadow: 0 0 22px rgba(248,197,78,0.55), 0 0 44px rgba(248,197,78,0.18); opacity: 1; }
+}
+
+/* 카드 위를 가로지르는 홀로그램 시머 */
+@keyframes sao-shimmer-sweep {
+  0%   { transform: translateX(-130%) skewX(-12deg); }
+  100% { transform: translateX(230%)  skewX(-12deg); }
+}
+
+/* 화면 상단→하단 스캔 라인 */
+@keyframes sao-scan-sweep {
+  0%   { top: -4px;   opacity: 0;    }
+  3%   {              opacity: 0.90; }
+  18%  { top: 100%;   opacity: 0.90; }
+  20%  {              opacity: 0;    }
+  100% { top: 100%;   opacity: 0;    }
+}
+
+/* 앰비언트 파티클 — 위로 떠오름 */
+@keyframes sao-particle {
+  0%   { transform: translateY(0)     translateX(0);              opacity: 0;    }
+  8%   {                                                           opacity: 0.65; }
+  88%  {                                                           opacity: 0.65; }
+  100% { transform: translateY(-95px) translateX(var(--drift, 14px)); opacity: 0; }
+}
+
+/* HUD 코너 브라켓 숨쉬기 */
+@keyframes sao-bracket-breathe {
+  0%, 100% { opacity: 0.16; }
+  50%       { opacity: 0.38; }
+}
+
+/* 패널 클릭 리플 */
+@keyframes sao-ripple {
+  0%   { transform: scale(0.4); opacity: 0.70; }
+  100% { transform: scale(4.0); opacity: 0;    }
+}
+
+/* 전체 오버레이 — 최초 등장 글리치 */
+@keyframes sao-glitch-in {
+  0%  { opacity: 0; clip-path: inset(0 0 100% 0); }
+  40% { clip-path: inset(0 0 20% 0); opacity: 0.85; }
+  60% { clip-path: inset(0 0 45% 0); opacity: 0.75; }
+  80% { clip-path: inset(0 0 5%  0); opacity: 0.95; }
+  100%{ clip-path: inset(0 0 0%  0); opacity: 1;    }
+}
+
+/* ═══════════════════════════════════════════════════
+   SAO — Utility Classes
+═══════════════════════════════════════════════════ */
+
+/* 오브 선택 글로우 호흡 */
+.sao-glow-breathe {
+  animation: sao-breathe 2.8s ease-in-out infinite;
+}
+
+/* 골드 텍스트 생동감 */
+.sao-gold-pulse {
+  animation: sao-gold-pulse 3.2s ease-in-out infinite;
+}
+
+/* HUD 코너 브라켓 */
+.sao-bracket {
+  animation: sao-bracket-breathe 4s ease-in-out infinite;
+}
+
+/* 카드 호버 시머 */
+.sao-card-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.sao-card-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-130%) skewX(-12deg);
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(120, 200, 255, 0.09) 48%,
+    rgba(200, 230, 255, 0.06) 52%,
+    transparent 70%
+  );
+  pointer-events: none;
+  transition: transform 0s;
+  will-change: transform;
+}
+
+.sao-card-shimmer:hover::after {
+  transform: translateX(230%) skewX(-12deg);
+  transition: transform 0.72s ease;
+}
+
+/* 패널 홀로그램 스캔인 */
+.sao-panel-scan-in {
+  animation: sao-glitch-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ═══════════════════════════════════════════════════
+   다크 패널 인풋 — 플레이스홀더 & 브라우저 기본값 덮어쓰기
+═══════════════════════════════════════════════════ */
+
+/* 전체 color-scheme dark → 브라우저 UI(스크롤바, form)를 다크 모드로 */
+:root {
+  color-scheme: dark;
+}
+
+/* SAO 인풋 플레이스홀더 */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(90,128,178,0.42) !important;
+}
+
+/* select 요소 다크 */
+select {
+  color-scheme: dark;
+}
+
+/* SAO 텍스트 글로우 — 선택 상태, 타이틀 강조 */
+.sao-cyan-glow {
+  color: rgba(0,200,255,0.92);
+  text-shadow: 0 0 12px rgba(0,200,255,0.45);
+}
+
+.sao-gold-glow {
+  color: rgba(248,220,152,0.95);
+  text-shadow: 0 0 14px rgba(248,197,78,0.40);
+}
+
+/* 스탯 바 글로우 효과 */
+.sao-bar-hp   { box-shadow: 0 0 8px rgba(244,63,94,0.55); }
+.sao-bar-mp   { box-shadow: 0 0 8px rgba(56,189,248,0.55); }
+.sao-bar-exp  { box-shadow: 0 0 8px rgba(248,197,78,0.55); }
+
+/* ═══════════════════════════════════════════════════
+   tsParticles — pointer-events 차단
+   detectsOn:"window" 이므로 canvas가 클릭을 가로막으면 안 됨
+═══════════════════════════════════════════════════ */
+
+#sao-particles,
+#sao-particles canvas {
+  pointer-events: none !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   Scrollbar Utilities
+═══════════════════════════════════════════════════ */
+
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none !important;
