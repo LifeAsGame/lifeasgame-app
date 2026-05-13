@@ -67,33 +67,47 @@ export default function SaoAlert({
             {/* Grid overlay */}
             <div style={GRID_OVERLAY_STYLE} />
 
+            {/* Corner ornaments */}
+            {[
+              { top: 4, left: 4, borderTop: "1.5px solid rgba(218,178,55,0.62)", borderLeft: "1.5px solid rgba(218,178,55,0.62)" },
+              { top: 4, right: 4, borderTop: "1.5px solid rgba(218,178,55,0.62)", borderRight: "1.5px solid rgba(218,178,55,0.62)" },
+              { bottom: 4, left: 4, borderBottom: "1.5px solid rgba(218,178,55,0.62)", borderLeft: "1.5px solid rgba(218,178,55,0.62)" },
+              { bottom: 4, right: 4, borderBottom: "1.5px solid rgba(218,178,55,0.62)", borderRight: "1.5px solid rgba(218,178,55,0.62)" },
+            ].map((c, i) => (
+              <div key={i} aria-hidden style={{ position: "absolute", width: 12, height: 12, pointerEvents: "none", zIndex: 30, ...c }} />
+            ))}
+
             {/* Header */}
             <div
               className="relative px-6 py-4"
               style={{
-                background: "linear-gradient(180deg, rgba(240,243,250,0.95), rgba(230,235,245,0.92))",
-                borderBottom: "1px solid rgba(0,0,0,0.08)",
+                background: "rgba(0,0,0,0.32)",
+                borderBottom: "1px solid rgba(200,165,50,0.22)",
               }}
             >
-              <p
-                className="text-center text-sm font-semibold uppercase"
-                style={{
-                  letterSpacing: "0.18em",
-                  color: SAO.color.text.primary,
-                }}
-              >
-                {title}
-              </p>
+              <div className="flex items-center gap-2">
+                <div style={{ flex: 1, height: "1px", background: "linear-gradient(90deg, transparent, rgba(200,165,50,0.42))" }} />
+                <span aria-hidden style={{ color: "rgba(218,178,55,0.55)", fontSize: "9px" }}>◆</span>
+                <p
+                  className="text-sm font-semibold uppercase"
+                  style={{ letterSpacing: "0.20em", color: SAO.color.text.primary }}
+                >
+                  {title}
+                </p>
+                <span aria-hidden style={{ color: "rgba(218,178,55,0.55)", fontSize: "9px" }}>◆</span>
+                <div style={{ flex: 1, height: "1px", background: "linear-gradient(90deg, rgba(200,165,50,0.42), transparent)" }} />
+              </div>
             </div>
 
             {/* Body */}
             {message ? (
               <div className="relative px-6 py-5">
                 <div
-                  className="rounded-sm px-4 py-3"
+                  className="px-4 py-3"
                   style={{
-                    background: "rgba(0,0,0,0.04)",
-                    border: `1px solid rgba(0,0,0,0.08)`,
+                    background: "rgba(218,178,55,0.06)",
+                    border: `1px solid rgba(200,165,50,0.22)`,
+                    borderRadius: "10px",
                   }}
                 >
                   <p

@@ -1,21 +1,20 @@
 import type React from 'react'
 import { SAO } from './colors'
 
-/** Light premium panel — LeftContext, SaoAlert, login */
+/** Dark warm RPG panel — used everywhere (LeftContext, SaoAlert, login, etc.) */
 export const PANEL_STYLE: React.CSSProperties = {
-  background: 'linear-gradient(160deg, rgba(252,253,255,0.98), rgba(242,245,252,0.96))',
-  border: '1px solid rgba(0,0,0,0.09)',
+  background: 'linear-gradient(160deg, rgba(18,15,10,0.98), rgba(14,12,8,0.97))',
+  border: `1px solid ${SAO.color.border.panel}`,
   boxShadow: [
-    'inset 0 0 0 1px rgba(255,255,255,0.60)',
-    '0 12px 40px rgba(0,0,0,0.22)',
-    '0 2px 8px rgba(0,0,0,0.10)',
+    SAO.shadow.panelInset,
+    SAO.shadow.panel,
   ].join(', '),
   borderRadius: SAO.radius.panel,
-  backdropFilter: 'blur(20px) saturate(1.4)',
-  WebkitBackdropFilter: 'blur(20px) saturate(1.4)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
 }
 
-/** Dark metallic panel — for dark-context usage */
+/** Legacy dark metallic panel — kept for backward compat */
 export const DARK_PANEL_STYLE: React.CSSProperties = {
   background: 'linear-gradient(180deg, rgba(3,7,22,0.97), rgba(2,5,18,0.97))',
   border: '1px solid rgba(0,190,255,0.35)',
@@ -26,10 +25,10 @@ export const DARK_PANEL_STYLE: React.CSSProperties = {
   borderRadius: SAO.radius.panel,
 }
 
-/** Light input — for use inside light panels (LeftContext) */
+/** Input — warm dark style for all panels */
 export const INPUT_STYLE: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.72)',
-  border: '1px solid rgba(0,0,0,0.14)',
+  background: 'rgba(218,178,55,0.08)',
+  border: `1px solid ${SAO.color.border.inner}`,
   borderRadius: SAO.radius.input,
   padding: '8px 12px',
   outline: 'none',
@@ -41,28 +40,35 @@ export const INPUT_STYLE: React.CSSProperties = {
 }
 
 export const INPUT_FOCUS_STYLE: React.CSSProperties = {
-  ...INPUT_STYLE,
+  background: 'rgba(218,178,55,0.12)',
   border: `1px solid ${SAO.color.border.gold}`,
-  background: 'rgba(255,255,255,0.88)',
-}
-
-/** Dark input — for use inside dark panels (RightPanels forms) */
-export const INPUT_STYLE_DARK: React.CSSProperties = {
-  background: 'rgba(0,20,55,0.72)',
-  border: '1px solid rgba(0,150,220,0.30)',
   borderRadius: SAO.radius.input,
   padding: '8px 12px',
   outline: 'none',
   fontSize: '0.875rem',
   letterSpacing: '0.04em',
-  color: 'rgba(200,228,255,0.92)',
+  color: SAO.color.text.primary,
+  width: '100%',
+  boxSizing: 'border-box' as const,
+}
+
+/** Dark input — same as INPUT_STYLE, kept for backward compat */
+export const INPUT_STYLE_DARK: React.CSSProperties = {
+  background: 'rgba(218,178,55,0.08)',
+  border: `1px solid ${SAO.color.border.inner}`,
+  borderRadius: SAO.radius.input,
+  padding: '8px 12px',
+  outline: 'none',
+  fontSize: '0.875rem',
+  letterSpacing: '0.04em',
+  color: SAO.color.text.primary,
   width: '100%',
   boxSizing: 'border-box' as const,
 }
 
 /** Gold CTA button */
 export const GOLD_BTN_STYLE: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #fad261, #f8c547 55%, #e8b030)',
+  background: 'linear-gradient(135deg, #fad261, #f8c547 55%, #d4a825)',
   color: '#12100a',
   borderRadius: SAO.radius.input,
   fontWeight: 700,
@@ -70,17 +76,17 @@ export const GOLD_BTN_STYLE: React.CSSProperties = {
   textTransform: 'uppercase',
   border: 'none',
   cursor: 'pointer',
-  boxShadow: '0 0 16px rgba(248,197,78,0.22), inset 0 0 0 1px rgba(255,240,160,0.20)',
+  boxShadow: '0 0 18px rgba(212,168,37,0.30), inset 0 0 0 1px rgba(255,240,160,0.22)',
 }
 
-/** Grid overlay — very subtle on light panels */
+/** Grid overlay — warm gold grid on dark panels */
 export const GRID_OVERLAY_STYLE: React.CSSProperties = {
   position: 'absolute',
   inset: 0,
   opacity: 0.04,
   backgroundImage:
-    'linear-gradient(rgba(0,0,0,0.6) 1px,transparent 1px),' +
-    'linear-gradient(90deg,rgba(0,0,0,0.6) 1px,transparent 1px)',
+    'linear-gradient(rgba(218,178,55,0.5) 1px,transparent 1px),' +
+    'linear-gradient(90deg,rgba(218,178,55,0.5) 1px,transparent 1px)',
   backgroundSize: '22px 22px',
   pointerEvents: 'none',
 }

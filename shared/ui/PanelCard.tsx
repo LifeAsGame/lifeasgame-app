@@ -274,41 +274,43 @@ export default function PanelCard({
           ].join(" ")}
           style={{
             height: UI_CONSTS.rightPanels.rowHeight,
+            borderRadius: "9px",
             background: showActions
-              ? `rgba(28,24,18,0.97)`
+              ? `rgba(30,25,12,0.97)`
               : selected
-              ? "linear-gradient(165deg, rgba(28,24,18,0.97), rgba(22,18,14,0.96))"
-              : "linear-gradient(165deg, rgba(16,16,18,0.96), rgba(12,12,14,0.94))",
+              ? "linear-gradient(165deg, rgba(32,26,10,0.97), rgba(26,20,8,0.96))"
+              : "linear-gradient(165deg, rgba(18,15,10,0.95), rgba(14,12,8,0.93))",
             borderColor: showActions
-              ? `rgba(225,195,85,0.70)`
+              ? `rgba(225,185,60,0.72)`
               : isLongPressing
-              ? `rgba(218,185,70,0.65)`
+              ? `rgba(218,178,55,0.68)`
               : selected
-              ? "rgba(218,178,55,0.58)"
-              : "rgba(185,185,192,0.20)",
+              ? "rgba(218,178,55,0.62)"
+              : "rgba(200,165,50,0.24)",
             boxShadow: selected
               ? [
-                  "inset 0 0 0 1px rgba(218,178,60,0.14)",
-                  "0 0 20px rgba(218,178,55,0.10)",
+                  "inset 0 0 0 1px rgba(218,178,55,0.12)",
+                  "0 0 22px rgba(212,168,37,0.14)",
                 ].join(", ")
               : isLongPressing
-              ? `inset 0 0 0 1px rgba(218,185,70,0.18), 0 0 12px rgba(218,185,70,0.10)`
-              : `inset 0 0 0 1px rgba(255,255,255,0.04)`,
+              ? `inset 0 0 0 1px rgba(218,178,55,0.18), 0 0 14px rgba(212,168,37,0.12)`
+              : `inset 0 0 0 1px rgba(218,178,55,0.04)`,
             transition: "border-color 0.5s ease, background 0.3s ease, box-shadow 0.4s ease",
           }}
         >
           <div
-            className="absolute inset-y-0 left-0 w-[5px]"
+            className="absolute inset-y-0 left-0 w-[4px]"
             style={{
+              borderRadius: "0 3px 3px 0",
               background: selected
-                ? "linear-gradient(180deg, rgba(255,232,120,0.98), rgba(228,168,28,0.96))"
+                ? "linear-gradient(180deg, rgba(255,232,120,0.98), rgba(212,168,30,0.96))"
                 : showActions
-                ? "rgba(248,197,78,0.65)"
-                : "rgba(155,157,165,0.38)",
+                ? "rgba(218,178,55,0.70)"
+                : "rgba(200,165,50,0.28)",
               boxShadow: selected
-                ? "0 0 10px rgba(244,188,48,0.55), inset 0 1px 0 rgba(255,248,180,0.60)"
+                ? "0 0 12px rgba(212,168,37,0.60), inset 0 1px 0 rgba(255,248,180,0.55)"
                 : showActions
-                ? "0 0 6px rgba(248,197,78,0.35)"
+                ? "0 0 8px rgba(218,178,55,0.40)"
                 : "none",
             }}
           />
@@ -325,7 +327,7 @@ export default function PanelCard({
             <p
               className="break-words font-semibold uppercase tracking-[0.08em]"
               style={{
-                color: selected ? "rgba(245,218,152,0.96)" : "rgba(218,220,228,0.92)",
+                color: selected ? "rgba(242,222,158,0.98)" : "rgba(225,208,162,0.90)",
                 fontSize: compact ? "0.9rem" : "1.1rem",
                 lineHeight: compact ? 1.2 : 1.15,
                 display: "-webkit-box",
@@ -340,7 +342,7 @@ export default function PanelCard({
               <p
                 className="mt-1 break-words text-sm tracking-[0.08em]"
                 style={{
-                  color: rarityColor(subtitle) ?? (selected ? "rgba(188,162,100,0.82)" : "rgba(138,140,150,0.78)"),
+                  color: rarityColor(subtitle) ?? (selected ? "rgba(195,172,112,0.85)" : "rgba(162,148,108,0.78)"),
                   display: "-webkit-box",
                   WebkitLineClamp: compact ? 1 : 2,
                   WebkitBoxOrient: "vertical",
@@ -370,17 +372,18 @@ export default function PanelCard({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.85 }}
               transition={{ type: "spring", stiffness: 400, damping: 28 }}
-              className="absolute inset-0 z-[400001] flex items-center justify-end gap-2 overflow-hidden rounded-[2px] border"
+              className="absolute inset-0 z-[400001] flex items-center justify-end gap-2 overflow-hidden border"
               style={{
-                background: "linear-gradient(180deg, rgba(14,14,16,0.98), rgba(10,10,12,0.97))",
-                borderColor: `rgba(220,185,70,0.55)`,
-                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 20px rgba(220,185,70,0.06)",
+                borderRadius: "9px",
+                background: "linear-gradient(180deg, rgba(22,18,10,0.98), rgba(16,13,7,0.97))",
+                borderColor: `rgba(218,178,55,0.58)`,
+                boxShadow: "inset 0 0 0 1px rgba(218,178,55,0.06), 0 0 20px rgba(212,168,37,0.08)",
                 paddingInline: 12,
               }}
             >
               <span
                 className="mr-auto uppercase"
-                style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(148,150,158,0.70)" }}
+                style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(148,135,98,0.72)" }}
               >
                 Action
               </span>

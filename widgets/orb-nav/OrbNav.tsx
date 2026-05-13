@@ -96,13 +96,13 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
           width: UI_CONSTS.layout.centerWidth,
           height: viewportHeight + framePaddingY * 2,
           borderRadius: "18px",
-          border: "1px solid rgba(200,200,205,0.22)",
-          background: "linear-gradient(155deg, rgba(18,18,20,0.97), rgba(14,14,16,0.95))",
+          border: "1px solid rgba(200,165,50,0.42)",
+          background: "linear-gradient(155deg, rgba(16,14,10,0.97), rgba(12,10,7,0.96))",
           backdropFilter: "blur(14px)",
           WebkitBackdropFilter: "blur(14px)",
           boxShadow: [
-            "inset 0 0 0 1px rgba(255,255,255,0.04)",
-            "0 14px 40px rgba(0,0,0,0.65)",
+            "inset 0 0 0 1px rgba(218,178,55,0.07)",
+            "0 20px 50px rgba(0,0,0,0.78)",
           ].join(", "),
         }}
       >
@@ -296,7 +296,7 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
                       lineHeight: 1.2,
                       paddingInline: 4,
                       paddingBlock: labelPaddingY,
-                      color: selected ? "rgba(248, 220, 152, 0.95)" : "rgba(175, 178, 188, 0.72)",
+                      color: selected ? "rgba(242,220,148,0.96)" : "rgba(175,162,122,0.72)",
                       textShadow: selected ? "0 0 10px rgba(248,200,100,0.35)" : "none",
                       transition: "color 0.25s ease",
                     }}

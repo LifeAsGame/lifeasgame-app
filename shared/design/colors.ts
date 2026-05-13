@@ -1,33 +1,33 @@
 export const SAO = {
   color: {
     bg: {
-      page:     '#06080e',
-      dark:     '#08090f',
-      panel:    'rgba(248,249,252,0.97)',
-      panelAlt: 'rgba(238,241,248,0.95)',
-      inset:    'rgba(0,0,0,0.055)',
-      overlay:  'rgba(0,0,0,0.60)',
+      page:     '#080a07',
+      dark:     '#0c0e09',
+      panel:    'rgba(16,14,10,0.97)',
+      panelAlt: 'rgba(20,18,13,0.95)',
+      inset:    'rgba(218,178,55,0.07)',
+      overlay:  'rgba(0,0,0,0.72)',
     },
     border: {
-      panel:   'rgba(0,0,0,0.11)',
-      inner:   'rgba(0,0,0,0.07)',
-      subtle:  'rgba(0,0,0,0.04)',
-      gold:    'rgba(249,208,105,0.90)',
-      goldDim: 'rgba(248,197,78,0.35)',
+      panel:   'rgba(200,165,50,0.42)',
+      inner:   'rgba(200,165,50,0.24)',
+      subtle:  'rgba(200,165,50,0.12)',
+      gold:    'rgba(218,178,55,0.88)',
+      goldDim: 'rgba(200,165,50,0.38)',
     },
     text: {
-      primary:   '#2a3248',
-      secondary: 'rgba(55,70,100,0.78)',
-      label:     'rgba(88,105,138,0.82)',
-      gold:      'rgba(180,130,20,0.95)',
-      goldDim:   'rgba(160,110,18,0.72)',
-      onDark:    'rgba(200,228,255,0.90)',
+      primary:   'rgba(235,218,175,0.96)',
+      secondary: 'rgba(190,175,138,0.88)',
+      label:     'rgba(150,138,100,0.82)',
+      gold:      'rgba(230,190,70,0.98)',
+      goldDim:   'rgba(210,172,55,0.75)',
+      onDark:    'rgba(235,218,175,0.96)',
     },
     action: {
-      gold:      '#f8c547',
-      goldHover: '#fad261',
-      blue:      '#3b82f6',
-      blueRing:  'rgba(59,130,246,0.6)',
+      gold:      '#d4a825',
+      goldHover: '#e0b830',
+      blue:      '#4a9eff',
+      blueRing:  'rgba(74,158,255,0.55)',
       red:       '#e03e63',
       redRing:   'rgba(224,62,99,0.6)',
       danger:    '#dc2626',
@@ -44,16 +44,16 @@ export const SAO = {
     bar: {
       hp:    '#f43f5e',
       mp:    '#38bdf8',
-      exp:   '#f8c547',
-      track: 'rgba(0,0,0,0.12)',
+      exp:   '#d4a825',
+      track: 'rgba(255,255,255,0.10)',
     },
   },
 
   shadow: {
-    panel:      '0 12px 40px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.10)',
-    panelInset: 'inset 0 0 0 1px rgba(255,255,255,0.55)',
-    gold:       '0 0 18px rgba(247,196,70,0.20)',
-    orbActive:  '0 0 0 1px rgba(248,197,78,0.40), 0 0 20px rgba(247,196,70,0.18)',
+    panel:      '0 16px 48px rgba(0,0,0,0.70), 0 4px 12px rgba(0,0,0,0.40)',
+    panelInset: 'inset 0 0 0 1px rgba(218,178,55,0.12)',
+    gold:       '0 0 22px rgba(212,168,37,0.28)',
+    orbActive:  '0 0 0 1px rgba(218,178,55,0.50), 0 0 22px rgba(212,168,37,0.22)',
     cyan:       '0 0 18px rgba(0,190,255,0.18)',
   },
 
@@ -65,12 +65,12 @@ export const SAO = {
   },
 
   radius: {
-    panel:  '2px',
+    panel:  '5px',
     button: '9999px',
-    input:  '2px',
+    input:  '4px',
   },
 
   grid: {
-    overlay: `opacity-[0.05] [background-image:linear-gradient(rgba(0,0,0,0.6)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.6)_1px,transparent_1px)] [background-size:22px_22px]`,
+    overlay: `opacity-[0.04] [background-image:linear-gradient(rgba(218,178,55,0.35)_1px,transparent_1px),linear-gradient(90deg,rgba(218,178,55,0.35)_1px,transparent_1px)] [background-size:22px_22px]`,
   },
 } as const

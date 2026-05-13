@@ -54,7 +54,7 @@ export default function LeftContext({
           animate={MOTION.panelReset.animate}
           exit={MOTION.panelReset.exit}
           transition={MOTION.panelReset.transition}
-          className="relative h-full min-h-[420px] overflow-hidden rounded-sm border"
+          className="relative h-full min-h-[420px] overflow-hidden border"
           onPointerDownCapture={onFocus}
           style={{
             ...PANEL_STYLE,
@@ -62,9 +62,21 @@ export default function LeftContext({
             minHeight: UI_CONSTS.leftContext.minHeight,
             willChange: "transform, opacity",
             zIndex,
+            borderRadius: "6px",
           }}
         >
           <div style={GRID_OVERLAY_STYLE} />
+
+          {/* Corner L-bracket ornaments */}
+          {[
+            { top: 4, left: 4, borderTop: "1.5px solid rgba(218,178,55,0.60)", borderLeft: "1.5px solid rgba(218,178,55,0.60)" },
+            { top: 4, right: 4, borderTop: "1.5px solid rgba(218,178,55,0.60)", borderRight: "1.5px solid rgba(218,178,55,0.60)" },
+            { bottom: 4, left: 4, borderBottom: "1.5px solid rgba(218,178,55,0.60)", borderLeft: "1.5px solid rgba(218,178,55,0.60)" },
+            { bottom: 4, right: 4, borderBottom: "1.5px solid rgba(218,178,55,0.60)", borderRight: "1.5px solid rgba(218,178,55,0.60)" },
+          ].map((c, i) => (
+            <div key={i} aria-hidden style={{ position: "absolute", width: 14, height: 14, pointerEvents: "none", zIndex: 30, ...c }} />
+          ))}
+
           <div
             aria-hidden
             style={{
@@ -72,7 +84,7 @@ export default function LeftContext({
               top: 0, left: 0, right: 0,
               height: "1px",
               zIndex: 20,
-              background: "linear-gradient(90deg, transparent 5%, rgba(248,197,78,0.55) 35%, rgba(248,197,78,0.55) 65%, transparent 95%)",
+              background: "linear-gradient(90deg, transparent 5%, rgba(218,178,55,0.72) 35%, rgba(218,178,55,0.72) 65%, transparent 95%)",
               pointerEvents: "none",
             }}
           />

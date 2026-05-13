@@ -1,41 +1,35 @@
-import { SAO, GOLD_BTN_STYLE, SAO_ICON } from "@/shared/design/tokens";
+import { GOLD_BTN_STYLE, SAO_ICON } from "@/shared/design/tokens";
 import type { MainNavId } from "@/entities/nav";
 
 export function getFrameStyle(depth: number) {
-  const bg =
-    depth === 0
-      ? "linear-gradient(155deg, rgba(18,18,20,0.96), rgba(14,14,16,0.94))"
-      : depth === 1
-      ? "linear-gradient(155deg, rgba(16,16,18,0.94), rgba(12,12,14,0.92))"
-      : "linear-gradient(155deg, rgba(14,14,16,0.92), rgba(10,10,12,0.90))";
-
-  const borderAlpha = depth === 0 ? 0.26 : depth === 1 ? 0.20 : 0.15;
-  const shadowAlpha = depth === 0 ? 0.10 : depth === 1 ? 0.06 : 0.04;
+  const baseR = depth === 0 ? "16,14,10" : depth === 1 ? "14,12,9" : "12,10,7";
+  const bgA   = depth === 0 ? 0.97 : depth === 1 ? 0.94 : 0.91;
+  const borderA = depth === 0 ? 0.42 : depth === 1 ? 0.30 : 0.22;
 
   return {
-    background: bg,
-    border: `1px solid rgba(200,200,205,${borderAlpha})`,
+    background: `linear-gradient(155deg, rgba(${baseR},${bgA}), rgba(${baseR},${bgA - 0.02}))`,
+    border: `1px solid rgba(200,165,50,${borderA})`,
     boxShadow: [
-      `inset 0 0 0 1px rgba(255,255,255,0.04)`,
-      `0 0 0 1px rgba(0,0,0,${shadowAlpha})`,
-      `0 14px 40px rgba(0,0,0,0.65)`,
+      `inset 0 0 0 1px rgba(218,178,55,0.06)`,
+      `0 0 0 1px rgba(0,0,0,0.35)`,
+      `0 22px 55px rgba(0,0,0,0.80)`,
     ].join(", "),
-    borderRadius: SAO.radius.panel,
+    borderRadius: "6px",
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
   };
 }
 
 export const D = {
-  text:    "rgba(228,228,232,0.92)",
-  textSub: "rgba(170,170,178,0.82)",
-  label:   "rgba(135,135,145,0.85)",
+  text:    "rgba(235,218,175,0.96)",
+  textSub: "rgba(185,170,132,0.88)",
+  label:   "rgba(148,135,98,0.80)",
 } as const;
 
 export const cellStyle = {
-  background: "rgba(0,0,0,0.22)",
-  border: "1px solid rgba(200,200,205,0.14)",
-  borderRadius: SAO.radius.panel,
+  background: "rgba(218,178,55,0.07)",
+  border: "1px solid rgba(200,165,50,0.28)",
+  borderRadius: "18px",
 } as const;
 
 export const actionBtnStyle = {

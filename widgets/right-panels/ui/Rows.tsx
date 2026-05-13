@@ -1,19 +1,21 @@
 "use client";
 
-import { SAO } from "@/shared/design/tokens";
-import { cellStyle, D } from "./styles";
+import { D } from "./styles";
 
 export function GoldRow({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="relative flex min-h-10 items-center overflow-hidden rounded-sm px-3 py-2"
-      style={cellStyle}
+      className="flex min-h-[38px] items-center gap-2.5"
+      style={{
+        background: "rgba(218,178,55,0.08)",
+        border: "1px solid rgba(200,165,50,0.30)",
+        borderRadius: "20px",
+        paddingInline: "16px",
+        paddingBlock: "8px",
+      }}
     >
-      <div
-        className="absolute inset-y-0 left-0"
-        style={{ width: "2px", background: SAO.color.action.gold }}
-      />
-      <span className="break-words pl-2 text-sm" style={{ letterSpacing: "0.06em", color: D.text }}>
+      <span aria-hidden style={{ color: "rgba(218,178,55,0.70)", fontSize: "9px", flexShrink: 0 }}>◆</span>
+      <span className="break-words text-sm" style={{ letterSpacing: "0.06em", color: D.text }}>
         {children}
       </span>
     </div>
@@ -22,7 +24,15 @@ export function GoldRow({ children }: { children: React.ReactNode }) {
 
 export function InfoCard({ label, children }: { label?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-sm px-4 py-3" style={cellStyle}>
+    <div
+      style={{
+        background: "rgba(218,178,55,0.06)",
+        border: "1px solid rgba(200,165,50,0.25)",
+        borderRadius: "12px",
+        paddingInline: "16px",
+        paddingBlock: "12px",
+      }}
+    >
       {label ? (
         <p className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: D.label }}>
           {label}
