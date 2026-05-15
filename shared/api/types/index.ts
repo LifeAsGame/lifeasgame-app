@@ -7,3 +7,7 @@ export * from "./social";
 export * from "./lifelog";
 export * from "./economy";
 export * from "./user";
+export * from "./skills";
+export * from "./equipment";
+export * from "./settings";
+export * from "./notifications";

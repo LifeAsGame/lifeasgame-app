@@ -38,6 +38,35 @@ export async function getGuildQuestsApi(): Promise<QuestAcceptance[]> {
   return res.acceptances;
 }
 
+export async function cancelQuestApi(questCode: string, reason?: string): Promise<void> {
+  if (USE_MOCK) return;
+  await apiPost(`/api/v1/players/quests/${questCode}/cancel`, {
+    reason: reason ?? "",
+    idempotencyKey: `cancel-${questCode}-${Date.now()}`,
+  });
+}
+
+export async function claimQuestRewardApi(questCode: string): Promise<{
+  questCode: string;
+  rewardExp: number;
+  rewardStats: Record<string, number>;
+}> {
+  if (USE_MOCK) {
+    const found =
+      MOCK_STORY_ACCEPTANCES.find((q) => q.code === questCode) ??
+      MOCK_GUILD_QUEST_ACCEPTANCES.find((q) => q.code === questCode) ??
+      MOCK_PARTY_QUEST_ACCEPTANCES.find((q) => q.code === questCode);
+    return {
+      questCode,
+      rewardExp: 500,
+      rewardStats: found ? { str: 1 } : {},
+    };
+  }
+  return apiPost(`/api/v1/players/quests/${questCode}/reward`, {
+    idempotencyKey: `reward-${questCode}-${Date.now()}`,
+  });
+}
+
 export async function acceptQuestApi(questCode: string): Promise<QuestAcceptance> {
   if (USE_MOCK) {
     const found =

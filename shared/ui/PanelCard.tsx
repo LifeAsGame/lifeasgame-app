@@ -41,6 +41,9 @@ function actionStyle(type: string): ActionStyle {
   if (type === "cancel")  return { bg: SAO.color.action.red,   icon: SAO_ICON.cancel,  iconFallback: "✕" };
   if (type === "unequip") return { bg: "#64748b",               icon: SAO_ICON.cancel,  iconFallback: "↩" };
   if (type === "gift")    return { bg: SAO.color.action.gold,  icon: SAO_ICON.details, iconFallback: "♦" };
+  if (type === "claim")  return { bg: "#16a34a",               icon: SAO_ICON.start,   iconFallback: "↓" };
+  if (type === "start")  return { bg: SAO.color.action.blue,  icon: SAO_ICON.start,   iconFallback: "▶" };
+  if (type === "sell")   return { bg: "#ca8a04",               icon: SAO_ICON.details, iconFallback: "₩" };
   return { bg: "#64748b", icon: SAO_ICON.list, iconFallback: "…" };
 }
 

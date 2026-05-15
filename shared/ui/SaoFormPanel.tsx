@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SAO, PANEL_STYLE, INPUT_STYLE, GOLD_BTN_STYLE, GRID_OVERLAY_STYLE } from "@/shared/design/tokens";
 
 import SaoAlert from "./SaoAlert";
@@ -23,6 +23,7 @@ export type SaoFormPanelProps = {
   onClose: () => void;
   submitLabel?: string;
   confirmMessage?: string;
+  initialValues?: Record<string, string>;
 };
 
 export default function SaoFormPanel({
@@ -33,11 +34,18 @@ export default function SaoFormPanel({
   onClose,
   submitLabel = "Submit",
   confirmMessage,
+  initialValues,
 }: SaoFormPanelProps) {
-  const initialValues = () =>
-    Object.fromEntries(fields.map((f) => [f.key, ""]));
+  const buildInitial = () =>
+    Object.fromEntries(fields.map((f) => [f.key, initialValues?.[f.key] ?? ""]));
 
-  const [values, setValues] = useState<Record<string, string>>(initialValues);
+  const [values, setValues] = useState<Record<string, string>>(buildInitial);
+
+  // Reset to fresh initialValues each time the panel opens
+  useEffect(() => {
+    if (isOpen) setValues(buildInitial());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
@@ -51,7 +59,7 @@ export default function SaoFormPanel({
       setShowConfirm(true);
     } else {
       onSubmit(values);
-      setValues(initialValues());
+      setValues(buildInitial());
       onClose();
     }
   };
@@ -59,7 +67,7 @@ export default function SaoFormPanel({
   const handleConfirm = () => {
     setShowConfirm(false);
     onSubmit(values);
-    setValues(initialValues());
+    setValues(buildInitial());
     onClose();
   };
 

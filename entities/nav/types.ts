@@ -27,7 +27,7 @@ export type PanelMenuItem = {
 };
 
 export type PanelItemAction = {
-  type: "edit" | "delete" | "cancel" | "equip" | "unequip" | "gift";
+  type: "edit" | "delete" | "cancel" | "equip" | "unequip" | "gift" | "claim" | "start" | "sell";
   label: string;
 };
 

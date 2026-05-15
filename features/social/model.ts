@@ -26,6 +26,7 @@ export const SOCIAL_LISTS: Record<SocialSubId, PanelDataItem[]> = {
       `Tags: ${p.tags}`,
       `Last Activity: ${dateAt(i + 1)}`,
     ],
+    actions: [{ type: "start" as const, label: "가입 신청" }],
   })),
   guild: GUILD_DATA.map((g, i) => ({
     id: `social-guild-${pad(i + 1, 3)}`,
@@ -48,6 +49,7 @@ export const SOCIAL_LISTS: Record<SocialSubId, PanelDataItem[]> = {
       `Join Rule: ${g.policy}`,
       `Rank: #${g.rank}`,
     ],
+    actions: [{ type: "start" as const, label: "가입 신청" }],
   })),
   friend: FRIEND_DATA.map((f, i) => ({
     id: `social-friend-${pad(i + 1, 3)}`,
