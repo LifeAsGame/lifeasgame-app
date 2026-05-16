@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import SaoAlert from "@/shared/ui/SaoAlert";
 import SaoFormPanel, { type FieldConfig } from "@/shared/ui/SaoFormPanel";
 import { useAuth } from "@/features/auth/AuthContext";
-import { SAO, PANEL_STYLE, INPUT_STYLE, GRID_OVERLAY_STYLE, GOLD_BTN_STYLE } from "@/shared/design/tokens";
+import { SAO, GRID_OVERLAY_STYLE, GOLD_BTN_STYLE } from "@/shared/design/tokens";
 import {
   adminAddGuildMemberApi,
   adminAddPartyMemberApi,
@@ -50,6 +50,7 @@ import {
   adminGetPartyMembersApi,
   adminGetPartiesApi,
   adminGetPlayerItemsApi,
+  adminGetPlayerStatsApi,
   adminGetPlayersApi,
   adminGetQuestAcceptancesByCodeApi,
   adminGetQuestDefinitionsApi,
@@ -64,10 +65,11 @@ import {
   adminGrantHobbyApi,
   adminRemoveGuildMemberApi,
   adminRemovePartyMemberApi,
-  adminRevokeCertificationApi,
   adminRevokeAchievementApi,
+  adminRevokeCertificationApi,
   adminRevokeHobbyApi,
   adminRevokeTitleApi,
+  adminSetItemQuantityApi,
   adminToggleShopItemApi,
   adminUpdateAchievementApi,
   adminUpdateCertificationApi,
@@ -146,12 +148,37 @@ const ADMIN_MENUS: NavEntry[] = [
   { kind: "item", id: "users",             label: "Users",          slotLabel: "US" },
 ];
 
+// Dark-theme action button colors
 const ACTION_COLORS: Record<string, { bg: string; text: string }> = {
-  red:   { bg: "rgba(220,38,38,0.14)",  text: "#dc2626" },
-  amber: { bg: "rgba(248,197,78,0.20)", text: "#92620a" },
-  blue:  { bg: "rgba(59,130,246,0.14)", text: "#2563eb" },
-  green: { bg: "rgba(34,197,94,0.14)",  text: "#15803d" },
+  red:   { bg: "rgba(220,38,38,0.20)",  text: "#f87171" },
+  amber: { bg: "rgba(248,197,78,0.18)", text: "#fbbf24" },
+  blue:  { bg: "rgba(59,130,246,0.20)", text: "#60a5fa" },
+  green: { bg: "rgba(34,197,94,0.18)",  text: "#4ade80" },
 };
+
+// ─── Dark palette constants ──────────────────────────────────────────────────
+
+const DK = {
+  tableBg:      "rgba(10,13,20,0.97)",
+  tableBorder:  "1px solid rgba(248,197,78,0.14)",
+  headerBg:     "linear-gradient(180deg, rgba(248,197,78,0.11), rgba(248,197,78,0.06))",
+  headerBorder: "1px solid rgba(248,197,78,0.18)",
+  headerText:   "rgba(248,197,78,0.78)",
+  filterBg:     "rgba(5,7,12,0.7)",
+  filterBorder: "1px solid rgba(255,255,255,0.07)",
+  inputBg:      "rgba(255,255,255,0.05)",
+  inputBorder:  "1px solid rgba(255,255,255,0.1)",
+  inputFocus:   "1px solid rgba(248,197,78,0.55)",
+  inputText:    "rgba(200,215,240,0.7)",
+  rowText:      "rgba(200,215,240,0.88)",
+  rowAlt:       "rgba(255,255,255,0.02)",
+  rowHover:     "rgba(248,197,78,0.05)",
+  rowDivider:   "rgba(255,255,255,0.06)",
+  emptyText:    "rgba(200,215,240,0.28)",
+  titleText:    "rgba(220,230,250,0.92)",
+  crumbText:    "rgba(200,215,240,0.42)",
+  crumbSep:     "rgba(200,215,240,0.25)",
+} as const;
 
 // ─── AdminTable ─────────────────────────────────────────────────────────────
 
@@ -164,67 +191,75 @@ function AdminTable({
   columns: ColumnConfig[];
   actions?: TableAction[];
 }) {
-  const [filter, setFilter] = useState("");
+  const [colFilters, setColFilters] = useState<Record<string, string>>({});
+  const [focusedCol, setFocusedCol] = useState<string | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
-  const visible = filter.trim()
-    ? rows.filter((row) =>
-        columns.some((col) =>
-          String(row[col.key] ?? "").toLowerCase().includes(filter.toLowerCase()),
+  const activeFilters = Object.entries(colFilters).filter(([, v]) => v.trim());
+  const visible = activeFilters.length === 0
+    ? rows
+    : rows.filter((row) =>
+        activeFilters.every(([key, val]) =>
+          String(row[key] ?? "").toLowerCase().includes(val.toLowerCase()),
         ),
-      )
-    : rows;
+      );
 
-  const actionColW = actions?.length ? `${actions.length * 80}px` : undefined;
+  const clearFilters = () => setColFilters({});
+
+  const actionColW = actions?.length
+    ? `${Math.max(actions.length * 72, 80)}px`
+    : undefined;
   const gridTemplate =
     columns.map((c) => c.width ?? "1fr").join(" ") + (actionColW ? ` ${actionColW}` : "");
 
+  const INPUT_BASE: React.CSSProperties = {
+    background: DK.inputBg,
+    border: DK.inputBorder,
+    borderRadius: "2px",
+    color: DK.inputText,
+    fontSize: "10px",
+    padding: "3px 7px",
+    outline: "none",
+    width: "100%",
+    minWidth: 0,
+  };
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <input
-          type="text"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter by any field…"
-          style={{ ...INPUT_STYLE, flex: 1, fontSize: "11px", padding: "5px 10px" }}
-        />
-        {filter ? (
+      {/* Row counter + clear */}
+      <div className="flex items-center justify-between px-0.5">
+        <span style={{ fontSize: "10px", letterSpacing: "0.1em", color: DK.crumbText }}>
+          {activeFilters.length > 0
+            ? `${visible.length} / ${rows.length} rows`
+            : `${rows.length} rows`}
+        </span>
+        {activeFilters.length > 0 && (
           <button
             type="button"
-            onClick={() => setFilter("")}
+            onClick={clearFilters}
             className="transition-opacity hover:opacity-70"
-            style={{ fontSize: "14px", color: SAO.color.text.label, lineHeight: 1 }}
+            style={{ fontSize: "10px", letterSpacing: "0.1em", color: "#fbbf24" }}
           >
-            ✕
+            ✕ Clear ({activeFilters.length})
           </button>
-        ) : null}
-        <span style={{ fontSize: "10px", color: SAO.color.text.label, letterSpacing: "0.1em", whiteSpace: "nowrap" }}>
-          {filter ? `${visible.length} / ${rows.length}` : `${rows.length} rows`}
-        </span>
+        )}
       </div>
 
+      {/* Table */}
       <div
-        className="overflow-hidden rounded-sm"
-        style={{
-          ...PANEL_STYLE,
-          background: `linear-gradient(180deg, ${SAO.color.bg.panel}, ${SAO.color.bg.panelAlt})`,
-        }}
+        className="overflow-hidden"
+        style={{ background: DK.tableBg, border: DK.tableBorder, borderRadius: "2px" }}
       >
-        <div style={GRID_OVERLAY_STYLE} />
-
+        {/* Header */}
         <div
-          className="relative grid px-4 py-2.5"
-          style={{
-            gridTemplateColumns: gridTemplate,
-            background: "linear-gradient(180deg, #e8eaed, #d8dce2)",
-            borderBottom: `1px solid ${SAO.color.border.panel}`,
-          }}
+          className="grid px-4 py-2.5"
+          style={{ gridTemplateColumns: gridTemplate, background: DK.headerBg, borderBottom: DK.headerBorder }}
         >
           {columns.map((col) => (
             <span
               key={col.key}
-              className="uppercase"
-              style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label, fontWeight: 600 }}
+              className="uppercase truncate"
+              style={{ fontSize: "9px", letterSpacing: "0.26em", color: DK.headerText, fontWeight: 700 }}
             >
               {col.label}
             </span>
@@ -232,32 +267,64 @@ function AdminTable({
           {actions?.length ? (
             <span
               className="uppercase"
-              style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label, fontWeight: 600 }}
+              style={{ fontSize: "9px", letterSpacing: "0.26em", color: DK.headerText, fontWeight: 700 }}
             >
               Actions
             </span>
           ) : null}
         </div>
 
+        {/* Filter row */}
+        <div
+          className="grid gap-1 px-4 py-2"
+          style={{ gridTemplateColumns: gridTemplate, background: DK.filterBg, borderBottom: DK.filterBorder }}
+        >
+          {columns.map((col) => (
+            <input
+              key={col.key}
+              type="text"
+              value={colFilters[col.key] ?? ""}
+              onChange={(e) => setColFilters((prev) => ({ ...prev, [col.key]: e.target.value }))}
+              onFocus={() => setFocusedCol(col.key)}
+              onBlur={() => setFocusedCol(null)}
+              placeholder={col.label}
+              style={{
+                ...INPUT_BASE,
+                border: focusedCol === col.key ? DK.inputFocus : DK.inputBorder,
+              }}
+            />
+          ))}
+          {actions?.length ? <div /> : null}
+        </div>
+
+        {/* Rows */}
         {visible.length === 0 ? (
-          <div className="relative px-4 py-6 text-center" style={{ fontSize: "0.875rem", color: SAO.color.text.label }}>
-            {filter ? "No matches" : "No data"}
+          <div className="px-4 py-8 text-center" style={{ fontSize: "12px", color: DK.emptyText, letterSpacing: "0.08em" }}>
+            {activeFilters.length > 0 ? "No matches" : "No data"}
           </div>
         ) : (
           visible.map((row, i) => (
             <div
               key={i}
-              className="relative grid items-center px-4 py-2.5 transition-colors hover:bg-white/20"
+              className="grid items-center px-4 py-2.5"
               style={{
                 gridTemplateColumns: gridTemplate,
-                borderTop: i > 0 ? `1px solid rgba(20,23,28,0.1)` : undefined,
+                borderTop: i > 0 ? `1px solid ${DK.rowDivider}` : undefined,
+                background: hoveredRow === i
+                  ? DK.rowHover
+                  : i % 2 === 1
+                  ? DK.rowAlt
+                  : "transparent",
+                transition: "background 0.08s",
               }}
+              onMouseEnter={() => setHoveredRow(i)}
+              onMouseLeave={() => setHoveredRow(null)}
             >
               {columns.map((col) => (
                 <span
                   key={col.key}
-                  className="truncate text-xs"
-                  style={{ letterSpacing: "0.06em", color: SAO.color.text.primary }}
+                  className="truncate"
+                  style={{ fontSize: "11px", letterSpacing: "0.06em", color: DK.rowText }}
                 >
                   {String(row[col.key] ?? "—")}
                 </span>
@@ -265,14 +332,24 @@ function AdminTable({
               {actions?.length ? (
                 <div className="flex flex-wrap gap-1.5">
                   {actions.map((action) => {
-                    const colors = ACTION_COLORS[action.style ?? "blue"];
+                    const c = ACTION_COLORS[action.style ?? "blue"];
                     return (
                       <button
                         key={action.label}
                         type="button"
                         onClick={() => action.onClick(row)}
-                        className="rounded-sm px-2 py-1 text-[10px] font-semibold tracking-[0.1em] uppercase transition-opacity hover:opacity-80 whitespace-nowrap"
-                        style={{ background: colors.bg, color: colors.text, borderRadius: SAO.radius.panel }}
+                        className="whitespace-nowrap transition-opacity hover:opacity-80"
+                        style={{
+                          background: c.bg,
+                          color: c.text,
+                          fontSize: "10px",
+                          fontWeight: 600,
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          padding: "3px 8px",
+                          borderRadius: "2px",
+                          border: `1px solid ${c.text}22`,
+                        }}
                       >
                         {action.label}
                       </button>
@@ -308,8 +385,13 @@ function AdminPanel({
       transition={MOTION.panelReset.transition}
       className="flex h-full flex-col"
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-bold tracking-[0.18em] text-zinc-700 uppercase">{title}</h2>
+      <div className="mb-5 flex items-center justify-between">
+        <h2
+          className="text-sm font-bold uppercase"
+          style={{ letterSpacing: "0.22em", color: DK.titleText }}
+        >
+          {title}
+        </h2>
         {onAdd ? (
           <button
             type="button"
@@ -345,18 +427,23 @@ function AdminSubPanel({
       transition={MOTION.panelSwap.transition}
       className="flex h-full flex-col"
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="text-xs tracking-[0.12em] uppercase transition-opacity hover:opacity-70"
-            style={{ color: SAO.color.text.label }}
+            className="text-xs uppercase tracking-[0.12em] transition-opacity hover:opacity-70"
+            style={{ color: DK.crumbText }}
           >
             ← {parentTitle}
           </button>
-          <span style={{ color: SAO.color.text.label, fontSize: "11px" }}>/</span>
-          <h2 className="text-base font-bold tracking-[0.18em] text-zinc-700 uppercase">{title}</h2>
+          <span style={{ color: DK.crumbSep, fontSize: "11px" }}>/</span>
+          <h2
+            className="text-sm font-bold uppercase"
+            style={{ letterSpacing: "0.22em", color: DK.titleText }}
+          >
+            {title}
+          </h2>
         </div>
         {onAdd ? (
           <button
@@ -447,9 +534,9 @@ const USER_STATUS_OPTIONS = [
 ];
 
 const HOBBY_STATUS_OPTIONS = [
-  { value: "ACTIVE",    label: "Active" },
-  { value: "ON_HOLD",   label: "On Hold" },
-  { value: "DROPPED",   label: "Dropped" },
+  { value: "ACTIVE",   label: "Active" },
+  { value: "ON_HOLD",  label: "On Hold" },
+  { value: "DROPPED",  label: "Dropped" },
 ];
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
@@ -552,6 +639,39 @@ export default function AdminPage() {
 
   const handleLogout = () => { logout(); router.replace("/login"); };
 
+  // ─── Reusable item quantity action builder ────────────────────────────────
+
+  const makeSetQtyAction = (
+    updateTarget: "data" | "drilldown",
+    instanceIdKey = "instanceId",
+    labelKey = "itemName",
+  ): TableAction => ({
+    label: "Set Qty",
+    style: "blue",
+    onClick: (row) =>
+      openForm(
+        `Set Quantity — ${row[labelKey] as string}`,
+        [{ key: "quantity", label: "New Quantity", type: "number", required: true }],
+        async (v) => {
+          const newQty = Number(v.quantity);
+          await adminSetItemQuantityApi(row[instanceIdKey] as number, newQty);
+          if (updateTarget === "data") {
+            setData((prev) =>
+              prev.map((r) => r[instanceIdKey] === row[instanceIdKey] ? { ...r, quantity: newQty } : r),
+            );
+          } else {
+            setDrillDown((prev) =>
+              prev
+                ? { ...prev, rows: prev.rows.map((r) => r[instanceIdKey] === row[instanceIdKey] ? { ...r, quantity: newQty } : r) }
+                : prev,
+            );
+          }
+        },
+        "Overwrite item quantity?",
+        { quantity: String(row.quantity ?? "1") },
+      ),
+  });
+
   // ─── Per-menu config ──────────────────────────────────────────────────────
 
   const menuConfig: Record<AdminMenu, {
@@ -573,35 +693,43 @@ export default function AdminPage() {
       ],
       actions: [
         {
-          label: "Rename",
-          style: "blue",
-          onClick: (row) =>
-            openForm(
-              "Edit Nickname",
-              [{ key: "nickname", label: "New Nickname", type: "text", required: true }],
-              async (v) => { await adminUpdatePlayerNicknameApi(row.id as number, v.nickname); },
-              "Change player nickname?",
-              { nickname: row.nickname as string },
-            ),
-        },
-        {
-          label: "EXP",
-          style: "green",
-          onClick: (row) =>
-            openForm(
-              `Grant EXP — ${row.nickname as string}`,
-              [{ key: "expDelta", label: "EXP Amount (±)", type: "number", required: true, placeholder: "e.g. 500" }],
-              async (v) => { await adminGrantExpApi(row.id as number, Number(v.expDelta)); },
-              "Grant this EXP amount?",
-            ),
-        },
-        {
           label: "Stats",
+          style: "green",
+          onClick: (row) => {
+            const playerId = row.id as number;
+            void openDrillDown(
+              `${row.nickname as string} — Stats`,
+              "Player Management",
+              async () => {
+                const s = await adminGetPlayerStatsApi(playerId);
+                return [
+                  { stat: "Level",     value: String(s.level) },
+                  { stat: "EXP",       value: `${s.exp.toLocaleString()} / ${s.expToNext.toLocaleString()}` },
+                  { stat: "HP",        value: `${s.hp.toLocaleString()} / ${s.maxHp.toLocaleString()}` },
+                  { stat: "MP",        value: `${s.mp.toLocaleString()} / ${s.maxMp.toLocaleString()}` },
+                  { stat: "STR",       value: String(s.str) },
+                  { stat: "AGI",       value: String(s.agi) },
+                  { stat: "DEX",       value: String(s.dex) },
+                  { stat: "INT",       value: String(s.intel) },
+                  { stat: "VIT",       value: String(s.vit) },
+                  { stat: "LUC",       value: String(s.luc) },
+                ] as Record<string, unknown>[];
+              },
+              [
+                { key: "stat",  label: "Stat",  width: "130px" },
+                { key: "value", label: "Value", width: "1fr" },
+              ],
+            );
+          },
+        },
+        {
+          label: "Edit Stats",
           style: "green",
           onClick: (row) =>
             openForm(
               `Adjust Stats — ${row.nickname as string}`,
               [
+                { key: "expDelta",   label: "EXP Delta",      type: "number", placeholder: "0" },
                 { key: "strDelta",   label: "STR Delta",      type: "number", placeholder: "0" },
                 { key: "agiDelta",   label: "AGI Delta",      type: "number", placeholder: "0" },
                 { key: "dexDelta",   label: "DEX Delta",      type: "number", placeholder: "0" },
@@ -613,15 +741,27 @@ export default function AdminPage() {
               ],
               async (v) => {
                 const playerId = row.id as number;
-                const toNum = (k: string) => v[k] ? Number(v[k]) : undefined;
+                const n = (k: string) => v[k] ? Number(v[k]) : undefined;
+                if (v.expDelta) await adminGrantExpApi(playerId, Number(v.expDelta));
                 await adminGrantCoreStatsApi(playerId, {
-                  strDelta: toNum("strDelta"), agiDelta: toNum("agiDelta"),
-                  dexDelta: toNum("dexDelta"), intelDelta: toNum("intelDelta"),
-                  vitDelta: toNum("vitDelta"), lucDelta: toNum("lucDelta"),
+                  strDelta: n("strDelta"), agiDelta: n("agiDelta"), dexDelta: n("dexDelta"),
+                  intelDelta: n("intelDelta"), vitDelta: n("vitDelta"), lucDelta: n("lucDelta"),
                 });
-                await adminAdjustVitalsApi(playerId, { hpDelta: toNum("hpDelta"), mpDelta: toNum("mpDelta") });
+                await adminAdjustVitalsApi(playerId, { hpDelta: n("hpDelta"), mpDelta: n("mpDelta") });
               },
               "Apply stat adjustments?",
+            ),
+        },
+        {
+          label: "Rename",
+          style: "blue",
+          onClick: (row) =>
+            openForm(
+              "Edit Nickname",
+              [{ key: "nickname", label: "New Nickname", type: "text", required: true }],
+              async (v) => { await adminUpdatePlayerNicknameApi(row.id as number, v.nickname); },
+              "Change player nickname?",
+              { nickname: row.nickname as string },
             ),
         },
         {
@@ -638,10 +778,11 @@ export default function AdminPage() {
                 { key: "itemName",   label: "Item",     width: "1fr" },
                 { key: "category",   label: "Category", width: "90px" },
                 { key: "rarity",     label: "Rarity",   width: "90px" },
-                { key: "quantity",   label: "Qty",      width: "45px" },
+                { key: "quantity",   label: "Qty",      width: "50px" },
                 { key: "bound",      label: "Bound",    width: "55px" },
               ],
               [
+                makeSetQtyAction("drilldown"),
                 {
                   label: "Confiscate",
                   style: "red",
@@ -689,16 +830,16 @@ export default function AdminPage() {
             openForm(
               `Adjust Wallet — ${row.nickname as string}`,
               [
-                { key: "amount",   label: "Amount",          type: "number", required: true },
-                { key: "currency", label: "Currency",        type: "select", required: true, options: [
+                { key: "amount",   label: "Amount",   type: "number", required: true },
+                { key: "currency", label: "Currency", type: "select", required: true, options: [
                   { value: "col", label: "Col" },
                   { value: "gem", label: "Gem" },
                 ]},
-                { key: "debit",  label: "Type",             type: "select", required: true, options: [
+                { key: "debit",  label: "Type",     type: "select", required: true, options: [
                   { value: "false", label: "Credit (add)" },
                   { value: "true",  label: "Debit (remove)" },
                 ]},
-                { key: "reason", label: "Reason", type: "text", required: true, placeholder: "Admin adjustment" },
+                { key: "reason", label: "Reason",   type: "text",   required: true, placeholder: "Admin adjustment" },
               ],
               async (v) => {
                 await adminAdjustWalletApi(row.id as number, {
@@ -941,7 +1082,7 @@ export default function AdminPage() {
                 await adminUpdateCertificationApi(row.certificationId as number, { name: v.name, issuer: v.issuer, category: v.category });
                 setData((prev) => prev.map((r) => r.certificationId === row.certificationId ? { ...r, ...v } : r));
               },
-              "Save certification changes?",
+              "Save changes?",
               { name: row.name as string, issuer: row.issuer as string, category: row.category as string },
             ),
         },
@@ -1048,7 +1189,7 @@ export default function AdminPage() {
                 await adminUpdateHobbyApi(row.hobbyId as number, { name: v.name, category: v.category });
                 setData((prev) => prev.map((r) => r.hobbyId === row.hobbyId ? { ...r, ...v } : r));
               },
-              "Save hobby changes?",
+              "Save changes?",
               { name: row.name as string, category: row.category as string },
             ),
         },
@@ -1064,7 +1205,7 @@ export default function AdminPage() {
               [
                 { key: "playerId",    label: "PID",         width: "55px" },
                 { key: "nickname",    label: "Nickname",    width: "1fr" },
-                { key: "proficiency", label: "Proficiency", width: "90px" },
+                { key: "proficiency", label: "Prof.",       width: "55px" },
                 { key: "status",      label: "Status",      width: "80px" },
                 { key: "startedOn",   label: "Started",     width: "100px" },
               ],
@@ -1075,7 +1216,7 @@ export default function AdminPage() {
                   onClick: (holderRow) =>
                     openAlert(
                       "Revoke Hobby",
-                      `Remove hobby "${row.name}" from ${holderRow.nickname}?`,
+                      `Remove "${row.name}" from ${holderRow.nickname}?`,
                       async () => {
                         await adminRevokeHobbyApi(holderRow.playerId as number, hobbyId);
                         setDrillDown((prev) =>
@@ -1089,10 +1230,10 @@ export default function AdminPage() {
                 openForm(
                   `Grant "${row.name as string}"`,
                   [
-                    { key: "playerId",    label: "Player ID",   type: "number", required: true },
+                    { key: "playerId",    label: "Player ID",        type: "number", required: true },
                     { key: "proficiency", label: "Proficiency (1-5)", type: "number", required: true, placeholder: "1" },
-                    { key: "status",      label: "Status",      type: "select", required: true, options: HOBBY_STATUS_OPTIONS },
-                    { key: "startedOn",   label: "Started On",  type: "date",   required: true },
+                    { key: "status",      label: "Status",           type: "select", required: true, options: HOBBY_STATUS_OPTIONS },
+                    { key: "startedOn",   label: "Started On",       type: "date",   required: true },
                   ],
                   async (v) => {
                     await adminGrantHobbyApi(Number(v.playerId), hobbyId, {
@@ -1101,7 +1242,7 @@ export default function AdminPage() {
                       startedOn: v.startedOn,
                     });
                   },
-                  `Grant hobby "${row.name}" to player?`,
+                  `Grant "${row.name}" to player?`,
                 ),
               "Grant",
             );
@@ -1182,6 +1323,7 @@ export default function AdminPage() {
                 { key: "bound",          label: "Bound",   width: "60px" },
               ],
               [
+                makeSetQtyAction("drilldown"),
                 {
                   label: "Confiscate",
                   style: "red",
@@ -1212,11 +1354,12 @@ export default function AdminPage() {
         { key: "itemName",       label: "Item",     width: "1fr" },
         { key: "category",       label: "Category", width: "90px" },
         { key: "rarity",         label: "Rarity",   width: "90px" },
-        { key: "quantity",       label: "Qty",      width: "45px" },
+        { key: "quantity",       label: "Qty",      width: "50px" },
         { key: "playerNickname", label: "Holder",   width: "110px" },
         { key: "bound",          label: "Bound",    width: "55px" },
       ],
       actions: [
+        makeSetQtyAction("data"),
         {
           label: "Confiscate",
           style: "red",
@@ -1237,12 +1380,12 @@ export default function AdminPage() {
     "quest-defs": {
       title: "Quest Definitions",
       columns: [
-        { key: "id",          label: "ID",       width: "50px" },
-        { key: "code",        label: "Code",     width: "175px" },
-        { key: "title",       label: "Title",    width: "1fr" },
-        { key: "category",    label: "Category", width: "70px" },
-        { key: "repeatRule",  label: "Repeat",   width: "75px" },
-        { key: "rewardExp",   label: "EXP",      width: "65px" },
+        { key: "id",         label: "ID",       width: "50px" },
+        { key: "code",       label: "Code",     width: "175px" },
+        { key: "title",      label: "Title",    width: "1fr" },
+        { key: "category",   label: "Cat.",     width: "70px" },
+        { key: "repeatRule", label: "Repeat",   width: "75px" },
+        { key: "rewardExp",  label: "EXP",      width: "65px" },
       ],
       actions: [
         {
@@ -1288,11 +1431,11 @@ export default function AdminPage() {
               "Quest Definitions",
               () => adminGetQuestAcceptancesByCodeApi(questCode) as Promise<Record<string, unknown>[]>,
               [
-                { key: "id",             label: "ID",      width: "55px" },
-                { key: "playerNickname", label: "Player",  width: "100px" },
-                { key: "progress",       label: "Prog",    width: "50px" },
-                { key: "targetValue",    label: "Target",  width: "55px" },
-                { key: "status",         label: "Status",  width: "105px" },
+                { key: "id",             label: "ID",     width: "55px" },
+                { key: "playerNickname", label: "Player", width: "100px" },
+                { key: "progress",       label: "Prog",   width: "50px" },
+                { key: "targetValue",    label: "Target", width: "55px" },
+                { key: "status",         label: "Status", width: "105px" },
               ],
               [
                 {
@@ -1334,9 +1477,7 @@ export default function AdminPage() {
                       async (v) => {
                         await adminChangeQuestStatusApi(acceptRow.id as number, { status: v.status, reason: v.reason || undefined });
                         setDrillDown((prev) =>
-                          prev ? { ...prev, rows: prev.rows.map((r) =>
-                            r.id === acceptRow.id ? { ...r, status: v.status } : r
-                          )} : prev,
+                          prev ? { ...prev, rows: prev.rows.map((r) => r.id === acceptRow.id ? { ...r, status: v.status } : r) } : prev,
                         );
                       },
                       "Change quest status?",
@@ -1353,7 +1494,7 @@ export default function AdminPage() {
           onClick: (row) =>
             openAlert(
               "Delete Quest",
-              `Delete quest definition "${row.title}"? All acceptances will be removed.`,
+              `Delete quest definition "${row.title}"?`,
               async () => {
                 await adminDeleteQuestApi(row.code as string);
                 setData((prev) => prev.filter((r) => r.code !== row.code));
@@ -1380,7 +1521,7 @@ export default function AdminPage() {
               repeatRule: v.repeatRule, rewardExp: Number(v.rewardExp),
             });
           },
-          "Create this quest definition?",
+          "Create quest definition?",
         ),
       addLabel: "Add Quest",
     },
@@ -1389,13 +1530,13 @@ export default function AdminPage() {
     "quest-acceptances": {
       title: "Quest Acceptances — All Players",
       columns: [
-        { key: "id",             label: "ID",      width: "55px" },
-        { key: "playerNickname", label: "Player",  width: "90px" },
-        { key: "code",           label: "Code",    width: "155px" },
-        { key: "category",       label: "Cat.",    width: "65px" },
-        { key: "progress",       label: "Prog",    width: "50px" },
-        { key: "targetValue",    label: "Target",  width: "55px" },
-        { key: "status",         label: "Status",  width: "105px" },
+        { key: "id",             label: "ID",     width: "55px" },
+        { key: "playerNickname", label: "Player", width: "90px" },
+        { key: "code",           label: "Code",   width: "155px" },
+        { key: "category",       label: "Cat.",   width: "65px" },
+        { key: "progress",       label: "Prog",   width: "50px" },
+        { key: "targetValue",    label: "Target", width: "55px" },
+        { key: "status",         label: "Status", width: "105px" },
       ],
       actions: [
         {
@@ -1447,12 +1588,12 @@ export default function AdminPage() {
     "economy-shop": {
       title: "Shop Items",
       columns: [
-        { key: "id",             label: "ID",       width: "50px" },
-        { key: "itemName",       label: "Item",     width: "1fr" },
-        { key: "price",          label: "Price",    width: "75px" },
-        { key: "currency",       label: "Curr.",    width: "55px" },
-        { key: "available",      label: "Active",   width: "60px" },
-        { key: "perPlayerLimit", label: "Limit/P",  width: "65px" },
+        { key: "id",             label: "ID",      width: "50px" },
+        { key: "itemName",       label: "Item",    width: "1fr" },
+        { key: "price",          label: "Price",   width: "75px" },
+        { key: "currency",       label: "Curr.",   width: "55px" },
+        { key: "available",      label: "Active",  width: "60px" },
+        { key: "perPlayerLimit", label: "Lim/P",   width: "55px" },
       ],
       actions: [
         {
@@ -1462,10 +1603,10 @@ export default function AdminPage() {
             openForm(
               `Edit Shop Item — ${row.itemName as string}`,
               [
-                { key: "price",                label: "Price",                  type: "number", required: true },
-                { key: "globalLimit",          label: "Global Stock Limit",     type: "number", placeholder: "Leave blank for unlimited" },
-                { key: "perPlayerLimit",       label: "Per Player Limit",       type: "number", placeholder: "Leave blank for unlimited" },
-                { key: "reservationTtlSeconds", label: "Reservation TTL (sec)", type: "number", placeholder: "e.g. 300" },
+                { key: "price",                 label: "Price",               type: "number", required: true },
+                { key: "globalLimit",           label: "Global Stock Limit",  type: "number", placeholder: "Unlimited" },
+                { key: "perPlayerLimit",        label: "Per Player Limit",    type: "number", placeholder: "Unlimited" },
+                { key: "reservationTtlSeconds", label: "Reservation TTL (s)", type: "number", placeholder: "300" },
               ],
               async (v) => {
                 await adminUpdateShopItemApi(row.id as number, {
@@ -1477,10 +1618,7 @@ export default function AdminPage() {
                 setData((prev) => prev.map((r) => r.id === row.id ? { ...r, price: Number(v.price) } : r));
               },
               "Save shop item changes?",
-              {
-                price: String(row.price ?? ""),
-                perPlayerLimit: String(row.perPlayerLimit ?? ""),
-              },
+              { price: String(row.price ?? ""), perPlayerLimit: String(row.perPlayerLimit ?? "") },
             ),
         },
         {
@@ -1502,21 +1640,19 @@ export default function AdminPage() {
         openForm(
           "Add Shop Item",
           [
-            { key: "itemId",               label: "Item ID",               type: "number", required: true },
-            { key: "price",                label: "Price",                  type: "number", required: true },
-            { key: "currency",             label: "Currency",               type: "select", required: true, options: [
+            { key: "itemId",               label: "Item ID",             type: "number", required: true },
+            { key: "price",                label: "Price",               type: "number", required: true },
+            { key: "currency",             label: "Currency",            type: "select", required: true, options: [
               { value: "col", label: "Col" },
               { value: "gem", label: "Gem" },
             ]},
-            { key: "globalLimit",          label: "Global Stock Limit",     type: "number", placeholder: "Leave blank for unlimited" },
-            { key: "perPlayerLimit",       label: "Per Player Limit",       type: "number", placeholder: "Leave blank for unlimited" },
-            { key: "reservationTtlSeconds", label: "Reservation TTL (sec)", type: "number", placeholder: "300" },
+            { key: "globalLimit",          label: "Global Stock Limit",  type: "number", placeholder: "Unlimited" },
+            { key: "perPlayerLimit",       label: "Per Player Limit",    type: "number", placeholder: "Unlimited" },
+            { key: "reservationTtlSeconds", label: "Reservation TTL (s)", type: "number", placeholder: "300" },
           ],
           async (v) => {
             await adminCreateShopItemApi({
-              itemId: Number(v.itemId),
-              price: Number(v.price),
-              currency: v.currency,
+              itemId: Number(v.itemId), price: Number(v.price), currency: v.currency,
               globalLimit: v.globalLimit ? Number(v.globalLimit) : undefined,
               perPlayerLimit: v.perPlayerLimit ? Number(v.perPlayerLimit) : undefined,
               reservationTtlSeconds: v.reservationTtlSeconds ? Number(v.reservationTtlSeconds) : undefined,
@@ -1531,12 +1667,12 @@ export default function AdminPage() {
     "economy-listings": {
       title: "Economy — Listings",
       columns: [
-        { key: "id",       label: "ID",          width: "50px" },
-        { key: "itemId",   label: "Item ID",     width: "70px" },
-        { key: "sellerId", label: "Seller",      width: "70px" },
-        { key: "price",    label: "Price (col)", width: "100px" },
-        { key: "status",   label: "Status",      width: "90px" },
-        { key: "currency", label: "Currency",    width: "80px" },
+        { key: "id",       label: "ID",       width: "50px" },
+        { key: "itemId",   label: "Item ID",  width: "70px" },
+        { key: "sellerId", label: "Seller",   width: "70px" },
+        { key: "price",    label: "Price",    width: "100px" },
+        { key: "status",   label: "Status",   width: "90px" },
+        { key: "currency", label: "Currency", width: "80px" },
       ],
       actions: [
         {
@@ -1546,8 +1682,8 @@ export default function AdminPage() {
             openForm(
               "Edit Listing",
               [
-                { key: "price",  label: "Price (col)", type: "number", required: true },
-                { key: "status", label: "Status",      type: "select", required: true, options: [
+                { key: "price",  label: "Price",  type: "number", required: true },
+                { key: "status", label: "Status", type: "select", required: true, options: [
                   { value: "ACTIVE",    label: "Active" },
                   { value: "RESERVED",  label: "Reserved" },
                   { value: "SOLD",      label: "Sold" },
@@ -1660,7 +1796,7 @@ export default function AdminPage() {
           onClick: (row) =>
             openAlert(
               "Dissolve Party",
-              `Dissolve party "${row.name}"? All members will be removed.`,
+              `Dissolve party "${row.name}"?`,
               async () => {
                 await adminDissolvePartyApi(row.id as number);
                 setData((prev) => prev.filter((r) => r.id !== row.id));
@@ -1825,27 +1961,27 @@ export default function AdminPage() {
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <aside
         className="flex shrink-0 flex-col overflow-hidden"
-        style={{ width: 220, borderRight: "1px solid rgba(255,255,255,0.08)", background: "rgba(10,12,17,0.95)" }}
+        style={{ width: 220, borderRight: "1px solid rgba(255,255,255,0.07)", background: "rgba(8,10,16,0.97)" }}
       >
         <div
           className="relative px-5 py-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
         >
           <div style={GRID_OVERLAY_STYLE} />
-          <p className="relative uppercase" style={{ fontSize: "10px", letterSpacing: "0.28em", color: SAO.color.text.goldDim }}>
+          <p className="relative uppercase" style={{ fontSize: "9px", letterSpacing: "0.32em", color: SAO.color.text.goldDim }}>
             Admin Panel
           </p>
-          <p className="relative mt-0.5 text-sm font-semibold" style={{ letterSpacing: "0.06em", color: SAO.color.text.onDark }}>
+          <p className="relative mt-1 text-sm font-semibold" style={{ letterSpacing: "0.06em", color: "rgba(220,230,250,0.88)" }}>
             {currentUser.nickname}
           </p>
         </div>
 
-        <nav className="flex flex-col gap-0.5 overflow-y-auto p-3 flex-1">
+        <nav className="flex flex-col gap-0.5 overflow-y-auto p-2.5 flex-1">
           {ADMIN_MENUS.map((entry, i) => {
             if (entry.kind === "sep") {
               return (
-                <div key={`sep-${i}`} className="px-2 pb-1 pt-3">
-                  <span style={{ fontSize: "9px", letterSpacing: "0.22em", color: SAO.color.text.goldDim, textTransform: "uppercase" }}>
+                <div key={`sep-${i}`} className="px-2 pb-1 pt-3.5">
+                  <span style={{ fontSize: "9px", letterSpacing: "0.24em", color: "rgba(248,197,78,0.45)", textTransform: "uppercase" }}>
                     {entry.label}
                   </span>
                 </div>
@@ -1857,29 +1993,34 @@ export default function AdminPage() {
                 key={entry.id}
                 type="button"
                 onClick={() => setSelectedMenu(entry.id)}
-                className="relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-left transition-colors hover:bg-white/5"
-                style={{ background: isActive ? "rgba(248,197,78,0.08)" : "transparent" }}
+                className="relative flex items-center gap-2.5 rounded-sm px-2.5 py-2 text-left transition-colors"
+                style={{
+                  background: isActive ? "rgba(248,197,78,0.09)" : "transparent",
+                  color: isActive ? "#fbbf24" : "rgba(200,215,240,0.65)",
+                }}
+                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
               >
                 {isActive ? (
                   <span
                     className="absolute inset-y-0 left-0 rounded-l-sm"
-                    style={{ width: "3px", background: SAO.color.action.gold }}
+                    style={{ width: "2px", background: "#fbbf24" }}
                   />
                 ) : null}
                 <span
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm text-[10px] font-bold"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center text-[9px] font-bold"
                   style={{
-                    background: isActive ? "rgba(248,197,78,0.15)" : "rgba(255,255,255,0.06)",
-                    color: isActive ? SAO.color.action.gold : SAO.color.text.onDark,
+                    background: isActive ? "rgba(248,197,78,0.18)" : "rgba(255,255,255,0.06)",
+                    color: isActive ? "#fbbf24" : "rgba(200,215,240,0.5)",
+                    borderRadius: "2px",
                   }}
                 >
                   {entry.slotLabel}
                 </span>
                 <span
-                  className="text-sm"
+                  className="text-xs"
                   style={{
-                    letterSpacing: "0.06em",
-                    color: isActive ? SAO.color.text.gold : SAO.color.text.onDark,
+                    letterSpacing: "0.05em",
                     fontWeight: isActive ? 600 : 400,
                   }}
                 >
@@ -1890,12 +2031,12 @@ export default function AdminPage() {
           })}
         </nav>
 
-        <div className="p-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <div className="p-2.5" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
           <button
             type="button"
             onClick={() => setLogoutAlertOpen(true)}
-            className="w-full rounded-sm px-3 py-2 text-sm tracking-[0.08em] transition-colors hover:bg-white/5"
-            style={{ color: SAO.color.text.onDark }}
+            className="w-full rounded-sm px-3 py-2 text-xs tracking-[0.08em] transition-colors hover:bg-white/5"
+            style={{ color: "rgba(200,215,240,0.45)" }}
           >
             Logout
           </button>
@@ -1905,10 +2046,10 @@ export default function AdminPage() {
       {/* ── Main content ─────────────────────────────────────────────────── */}
       <main className="flex flex-1 flex-col overflow-hidden">
         <div
-          className="relative shrink-0 px-7 py-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(7,9,13,0.8)" }}
+          className="relative shrink-0 px-7 py-3.5"
+          style={{ borderBottom: "1px solid rgba(248,197,78,0.08)", background: "rgba(7,9,13,0.9)" }}
         >
-          <p className="uppercase" style={{ fontSize: "11px", letterSpacing: "0.28em", color: SAO.color.text.onDark }}>
+          <p className="uppercase" style={{ fontSize: "9px", letterSpacing: "0.32em", color: "rgba(248,197,78,0.45)" }}>
             Life As Game — Admin
           </p>
         </div>
@@ -1928,7 +2069,9 @@ export default function AdminPage() {
               ) : (
                 <AdminPanel title={config.title} onAdd={config.onAdd} addLabel={config.addLabel}>
                   {isDataLoading ? (
-                    <div className="py-10 text-center text-sm tracking-[0.1em] text-zinc-500">Loading…</div>
+                    <div className="py-12 text-center text-xs tracking-[0.14em]" style={{ color: "rgba(200,215,240,0.3)" }}>
+                      Loading…
+                    </div>
                   ) : (
                     <AdminTable rows={data} columns={config.columns} actions={config.actions} />
                   )}

@@ -679,3 +679,36 @@ export async function adminChangeUserStatusApi(userId: number, status: string, r
   if (USE_MOCK) return;
   await apiPut(`/api/v1/admin/users/${userId}/status`, { toStatus: status, reason });
 }
+
+// ===== Admin Player Stats (read) =====
+type PlayerStatsSnapshot = {
+  level: number; exp: number; expToNext: number;
+  hp: number; maxHp: number; mp: number; maxMp: number;
+  str: number; agi: number; dex: number; intel: number; vit: number; luc: number;
+};
+
+const MOCK_PLAYER_STATS_MAP: Record<number, PlayerStatsSnapshot> = {
+  6:  { level: 78, exp: 82400,  expToNext: 95000,  hp: 9200,  maxHp: 9200,  mp: 2400, maxMp: 3000, str: 890,  agi: 760, dex: 420, intel: 310, vit: 580, luc: 240 },
+  12: { level: 75, exp: 71200,  expToNext: 85000,  hp: 7800,  maxHp: 7800,  mp: 3400, maxMp: 3400, str: 640,  agi: 820, dex: 910, intel: 450, vit: 490, luc: 310 },
+  15: { level: 62, exp: 44800,  expToNext: 55000,  hp: 6500,  maxHp: 6500,  mp: 1800, maxMp: 2200, str: 720,  agi: 680, dex: 390, intel: 280, vit: 540, luc: 195 },
+  18: { level: 55, exp: 32100,  expToNext: 40000,  hp: 5400,  maxHp: 5400,  mp: 2100, maxMp: 2500, str: 510,  agi: 590, dex: 840, intel: 380, vit: 440, luc: 270 },
+  20: { level: 68, exp: 58700,  expToNext: 72000,  hp: 8100,  maxHp: 8100,  mp: 2000, maxMp: 2000, str: 810,  agi: 710, dex: 380, intel: 270, vit: 630, luc: 210 },
+  22: { level: 48, exp: 22500,  expToNext: 30000,  hp: 4600,  maxHp: 4600,  mp: 2800, maxMp: 3000, str: 320,  agi: 550, dex: 760, intel: 520, vit: 390, luc: 340 },
+  24: { level: 70, exp: 62900,  expToNext: 78000,  hp: 8400,  maxHp: 8400,  mp: 1900, maxMp: 2200, str: 830,  agi: 740, dex: 400, intel: 290, vit: 600, luc: 225 },
+  30: { level: 85, exp: 95000,  expToNext: 110000, hp: 12000, maxHp: 12000, mp: 5000, maxMp: 5000, str: 1200, agi: 900, dex: 680, intel: 950, vit: 780, luc: 400 },
+};
+
+export async function adminGetPlayerStatsApi(playerId: number): Promise<PlayerStatsSnapshot> {
+  if (USE_MOCK) return MOCK_PLAYER_STATS_MAP[playerId] ?? {
+    level: 1, exp: 0, expToNext: 1000,
+    hp: 1000, maxHp: 1000, mp: 500, maxMp: 500,
+    str: 100, agi: 100, dex: 100, intel: 100, vit: 100, luc: 100,
+  };
+  return apiGet(`/api/v1/admin/players/${playerId}/stats`);
+}
+
+// ===== Admin Item Instance Quantity =====
+export async function adminSetItemQuantityApi(instanceId: number, quantity: number): Promise<void> {
+  if (USE_MOCK) return;
+  await apiPut(`/api/v1/admin/items/instances/${instanceId}/quantity`, { quantity });
+}
