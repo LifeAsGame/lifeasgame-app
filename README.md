@@ -1,3 +1,5 @@
+<img width="1305" height="870" alt="Image" src="https://github.com/user-attachments/assets/9b521e6d-93be-42ee-9310-7fbdb08ce379" />
+
 # Life As Game — Frontend
 
 SAO(Sword Art Online) 게임 UI에서 영감을 받은 **인생 관리 대시보드** 프론트엔드입니다.
