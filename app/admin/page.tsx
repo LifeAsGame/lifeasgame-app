@@ -84,6 +84,7 @@ import {
   adminUpdateTitleApi,
 } from "@/lib/api/endpoints/admin.api";
 import { MOTION } from "@/shared/lib/motion";
+import { ApiError } from "@/lib/api/client";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -553,12 +554,12 @@ export default function AdminPage() {
   const [formFields, setFormFields] = useState<FieldConfig[]>([]);
   const [formConfirmMessage, setFormConfirmMessage] = useState<string | undefined>();
   const [formInitialValues, setFormInitialValues] = useState<Record<string, string>>({});
-  const [formOnSubmit, setFormOnSubmit] = useState<(v: Record<string, string>) => void>(() => () => {});
+  const [formOnSubmit, setFormOnSubmit] = useState<(v: Record<string, string>) => Promise<void>>(() => async () => {});
 
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
-  const [alertOnConfirm, setAlertOnConfirm] = useState<() => void>(() => () => {});
+  const [alertOnConfirm, setAlertOnConfirm] = useState<() => Promise<void>>(() => async () => {});
 
   const [drillDown, setDrillDown] = useState<DrillDownState | null>(null);
   const [logoutAlertOpen, setLogoutAlertOpen] = useState(false);
@@ -594,7 +595,11 @@ export default function AdminPage() {
 
     loaders[selectedMenu]()
       .then((rows) => { if (!cancelled) setData(rows as Record<string, unknown>[]); })
-      .catch(console.error)
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 401) router.replace("/login");
+        else console.error(err);
+      })
       .finally(() => { if (!cancelled) setIsDataLoading(false); });
 
     return () => { cancelled = true; };
@@ -602,23 +607,31 @@ export default function AdminPage() {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  const openAlert = (title: string, message: string, onConfirm: () => void) => {
+  const showApiError = (err: unknown) => {
+    const msg = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "An unexpected error occurred.";
+    setAlertTitle("Error");
+    setAlertMessage(msg);
+    setAlertOnConfirm(() => async () => {});
+    setAlertOpen(true);
+  };
+
+  const openAlert = (title: string, message: string, onConfirm: () => Promise<void> | void) => {
     setAlertTitle(title);
     setAlertMessage(message);
-    setAlertOnConfirm(() => onConfirm);
+    setAlertOnConfirm(() => async () => { await onConfirm(); });
     setAlertOpen(true);
   };
 
   const openForm = (
     title: string,
     fields: FieldConfig[],
-    onSubmit: (v: Record<string, string>) => void,
+    onSubmit: (v: Record<string, string>) => Promise<void> | void,
     confirmMsg?: string,
     initVals?: Record<string, string>,
   ) => {
     setFormTitle(title);
     setFormFields(fields);
-    setFormOnSubmit(() => onSubmit);
+    setFormOnSubmit(() => async (v: Record<string, string>) => { await onSubmit(v); });
     setFormConfirmMessage(confirmMsg);
     setFormInitialValues(initVals ?? {});
     setFormOpen(true);
@@ -2087,7 +2100,11 @@ export default function AdminPage() {
         isOpen={alertOpen}
         title={alertTitle}
         message={alertMessage}
-        onConfirm={() => { setAlertOpen(false); alertOnConfirm(); }}
+        onConfirm={async () => {
+          setAlertOpen(false);
+          try { await alertOnConfirm(); }
+          catch (err) { showApiError(err); }
+        }}
         onCancel={() => setAlertOpen(false)}
       />
 

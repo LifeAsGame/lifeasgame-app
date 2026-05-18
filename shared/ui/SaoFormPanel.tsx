@@ -19,7 +19,7 @@ export type SaoFormPanelProps = {
   isOpen: boolean;
   title: string;
   fields: FieldConfig[];
-  onSubmit: (values: Record<string, string>) => void;
+  onSubmit: (values: Record<string, string>) => Promise<void> | void;
   onClose: () => void;
   submitLabel?: string;
   confirmMessage?: string;
@@ -40,12 +40,18 @@ export default function SaoFormPanel({
     Object.fromEntries(fields.map((f) => [f.key, initialValues?.[f.key] ?? ""]));
 
   const [values, setValues] = useState<Record<string, string>>(buildInitial);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Reset to fresh initialValues each time the panel opens
   useEffect(() => {
-    if (isOpen) setValues(buildInitial());
+    if (isOpen) {
+      setValues(buildInitial());
+      setSubmitError(null);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
+
   const [showConfirm, setShowConfirm] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
@@ -53,22 +59,38 @@ export default function SaoFormPanel({
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmitClick = (e: React.FormEvent) => {
+  const handleSubmitClick = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
     if (confirmMessage) {
       setShowConfirm(true);
     } else {
-      onSubmit(values);
-      setValues(buildInitial());
-      onClose();
+      setIsSubmitting(true);
+      try {
+        await onSubmit(values);
+        setValues(buildInitial());
+        onClose();
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : "An error occurred.");
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setShowConfirm(false);
-    onSubmit(values);
-    setValues(buildInitial());
-    onClose();
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await onSubmit(values);
+      setValues(buildInitial());
+      onClose();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "An error occurred.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getInputStyle = (key: string) => ({
@@ -139,7 +161,8 @@ export default function SaoFormPanel({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex items-center gap-1.5 mb-2 transition-colors hover:opacity-70"
+                  disabled={isSubmitting}
+                  className="flex items-center gap-1.5 mb-2 transition-colors hover:opacity-70 disabled:opacity-40"
                   style={{ color: SAO.color.text.label, fontSize: "10px", letterSpacing: "0.24em", textTransform: "uppercase" }}
                 >
                   <span>←</span>
@@ -170,6 +193,7 @@ export default function SaoFormPanel({
                           onBlur={() => setFocusedField(null)}
                           placeholder={field.placeholder}
                           required={field.required}
+                          disabled={isSubmitting}
                           rows={3}
                           style={{
                             ...getInputStyle(field.key),
@@ -184,6 +208,7 @@ export default function SaoFormPanel({
                           onFocus={() => setFocusedField(field.key)}
                           onBlur={() => setFocusedField(null)}
                           required={field.required}
+                          disabled={isSubmitting}
                           style={getInputStyle(field.key)}
                         >
                           <option value="">Select…</option>
@@ -202,6 +227,7 @@ export default function SaoFormPanel({
                           onBlur={() => setFocusedField(null)}
                           placeholder={field.placeholder}
                           required={field.required}
+                          disabled={isSubmitting}
                           style={getInputStyle(field.key)}
                         />
                       )}
@@ -209,10 +235,27 @@ export default function SaoFormPanel({
                   ))}
                 </div>
 
-                <div className="mt-8 flex gap-3">
+                {/* Inline error */}
+                {submitError ? (
+                  <div
+                    className="mt-4 px-3 py-2 rounded-sm text-xs"
+                    style={{
+                      background: "rgba(220,38,38,0.12)",
+                      border: "1px solid rgba(220,38,38,0.3)",
+                      color: "#f87171",
+                      letterSpacing: "0.04em",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {submitError}
+                  </div>
+                ) : null}
+
+                <div className="mt-6 flex gap-3">
                   <button
                     type="submit"
-                    className="flex-1 transition-opacity active:scale-[0.98]"
+                    disabled={isSubmitting}
+                    className="flex-1 transition-opacity active:scale-[0.98] disabled:opacity-50"
                     style={{
                       ...GOLD_BTN_STYLE,
                       padding: "10px 0",
@@ -220,12 +263,13 @@ export default function SaoFormPanel({
                       width: "100%",
                     }}
                   >
-                    {submitLabel}
+                    {isSubmitting ? "…" : submitLabel}
                   </button>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="rounded-sm px-5 text-sm font-medium tracking-[0.12em] uppercase transition-colors hover:bg-zinc-500/10"
+                    disabled={isSubmitting}
+                    className="rounded-sm px-5 text-sm font-medium tracking-[0.12em] uppercase transition-colors hover:bg-zinc-500/10 disabled:opacity-40"
                     style={{
                       background: "rgba(160,170,185,0.2)",
                       border: `1px solid rgba(140,155,175,0.4)`,
