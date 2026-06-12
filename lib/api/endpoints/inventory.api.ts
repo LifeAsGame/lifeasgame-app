@@ -1,4 +1,4 @@
-import { USE_MOCK, apiGet } from "../client";
+import { USE_MOCK, apiGet, apiPost, apiDelete } from "../client";
 import {
   MOCK_GEAR_ACCESSORIES,
   MOCK_GEAR_ARMOR,
@@ -42,5 +42,25 @@ export async function getMailboxApi(): Promise<{
   entries: MailEntry[];
 }> {
   if (USE_MOCK) return { meta: MOCK_MAIL_META, entries: MOCK_MAIL_ITEMS };
-  return apiGet("/api/v1/mailbox/me/view");
+  return apiGet("/api/v1/mailbox");
+}
+
+export async function claimMailApi(slotIndex: number, quantity: number): Promise<void> {
+  if (USE_MOCK) return;
+  await apiPost("/api/v1/mailbox/claim", { slotIndex, quantity });
+}
+
+export async function claimAllMailApi(claims: Array<{ slotIndex: number; quantity: number }>): Promise<void> {
+  if (USE_MOCK) return;
+  await apiPost("/api/v1/mailbox/claim/all", { claims });
+}
+
+export async function deleteMailApi(slotIndex: number): Promise<void> {
+  if (USE_MOCK) return;
+  await apiDelete(`/api/v1/mailbox?slotIndex=${slotIndex}`);
+}
+
+export async function removeInventoryItemApi(slotIndex: number, quantity: number): Promise<void> {
+  if (USE_MOCK) return;
+  await apiDelete(`/api/v1/inventory/remove?slotIndex=${slotIndex}&quantity=${quantity}`);
 }

@@ -51,7 +51,7 @@ import {
 } from "@/features/social/model";
 import { LISTING_FORM_FIELDS } from "@/features/market/model";
 import {
-  INVENTORY_GEAR_LISTS,
+  makeGearLists,
   INVENTORY_INBOX_LIST,
   INVENTORY_ITEMS_LIST,
 } from "@/features/inventory/model";
@@ -63,9 +63,22 @@ import {
 } from "@/features/market/model";
 import { QUEST_LISTS } from "@/features/quests/model";
 import { SKILLS_LISTS } from "@/features/skills/model";
-import { SYSTEM_PANEL_ROWS } from "@/features/system/model";
+import { SYSTEM_PANEL_ROWS, SYSTEM_OPTIONS_FORM_FIELDS } from "@/features/system/model";
+import { getSettingsApi, updateSettingsApi } from "@/lib/api/endpoints/settings.api";
+import type { GameSettings } from "@/shared/api/types";
 import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
+import { useToast } from "@/context/ToastContext";
+import { NotificationBell } from "@/shared/ui/NotificationBell";
+import { getEquippedGearApi, equipGearApi, unequipGearApi } from "@/lib/api/endpoints/equipment.api";
+import { claimMailApi, deleteMailApi } from "@/lib/api/endpoints/inventory.api";
+import { acceptQuestApi, cancelQuestApi, claimQuestRewardApi } from "@/lib/api/endpoints/quest.api";
+import { requestJoinPartyApi, requestJoinGuildApi, unfollowApi } from "@/lib/api/endpoints/social.api";
+import { reserveShopItemApi, confirmShopPurchaseApi, cancelListingApi, createListingApi } from "@/lib/api/endpoints/market.api";
+import { MOCK_SHOP_ITEMS } from "@/lib/api/mock/market.mock";
+import { MOCK_INVENTORY_ITEMS, MOCK_MAIL_ITEMS } from "@/lib/api/mock/inventory.mock";
+import { getEquipSlotId } from "@/features/inventory/model";
+import type { EquipmentSlotInfo } from "@/shared/api/types";
 
 type SurfaceFocusState = {
   counter: number;
@@ -133,6 +146,7 @@ function buildPanels(
   selectedLifelogCategoryBySub: Record<LifelogSubId, string | null>,
   editingItemId: string | null,
   hasActiveForm: boolean,
+  equippedGear: EquipmentSlotInfo[],
 ): { panelStack: PanelStackItem[]; socialContext: SocialContextData | null } {
   const mainItems = SUBMENUS_BY_MAIN[selectedMain];
   const selectedMainSub = selectedSubForMain(selectedMain, selectedSubByMain);
@@ -267,7 +281,8 @@ function buildPanels(
         return { panelStack, socialContext: null };
       }
 
-      const gearList = INVENTORY_GEAR_LISTS[selectedPart as keyof typeof INVENTORY_GEAR_LISTS] ?? [];
+      const dynamicGearLists = makeGearLists(equippedGear);
+      const gearList = dynamicGearLists[selectedPart as keyof typeof dynamicGearLists] ?? [];
       const selectedItem = findById(gearList, selectedDetailByKey.inventoryGear);
 
       panelStack.push({
@@ -565,6 +580,20 @@ function buildPanels(
   }
 
   const systemPanel = SYSTEM_PANEL_ROWS[selectedMainSub as keyof typeof SYSTEM_PANEL_ROWS];
+
+  if (selectedMainSub === "options") {
+    if (hasActiveForm) return { panelStack, socialContext: null };
+    panelStack.push({
+      id: "system-options-placeholder",
+      kind: "placeholder",
+      title: "Options",
+      description: systemPanel?.description ?? "Game settings and preferences.",
+      rows: systemPanel?.rows ?? [],
+      primaryActionLabel: "설정 편집",
+    });
+    return { panelStack, socialContext: null };
+  }
+
   panelStack.push({
     id: `system-${selectedMainSub}`,
     kind: "placeholder",
@@ -584,6 +613,12 @@ export default function Home() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const formOpenCountRef = useRef(0);
   usePanScroll(viewportRef);
+
+  const { showToast } = useToast();
+  const [equippedGear, setEquippedGear] = useState<EquipmentSlotInfo[]>([]);
+  useEffect(() => {
+    getEquippedGearApi().then(setEquippedGear);
+  }, []);
 
   const [logoutAlertOpen, setLogoutAlertOpen] = useState(false);
 
@@ -685,6 +720,7 @@ export default function Home() {
         selectedLifelogCategoryBySub,
         editingItemId,
         Boolean(activeFormPanel),
+        equippedGear,
       ),
     [
       selectedMain,
@@ -696,6 +732,7 @@ export default function Home() {
       selectedLifelogCategoryBySub,
       editingItemId,
       activeFormPanel,
+      equippedGear,
     ],
   );
 
@@ -868,10 +905,39 @@ export default function Home() {
     }
   };
 
-  // Called when list's actionLabel button is clicked ("Log", "Add", "Create", "Sell")
+  // Called when list's actionLabel OR placeholder's primaryActionLabel button is clicked
   const handlePanelActionClick = (panelIndex: number) => {
     const panel = basePanelStack[panelIndex];
-    if (!panel || panel.kind !== "list") return;
+    if (!panel) return;
+
+    // Placeholder primary action — system options edit button
+    if (panel.kind === "placeholder" && panel.id === "system-options-placeholder") {
+      getSettingsApi().then((settings) => {
+        const p = settings.parsed;
+        openForm(
+          "system-options",
+          "System Options",
+          SYSTEM_OPTIONS_FORM_FIELDS,
+          "설정 저장",
+          {
+            volume: String(p.volume ?? 78),
+            graphicsQuality: p.graphicsQuality ?? "HIGH",
+            voiceChat: p.voiceChat ?? "TEAM_ONLY",
+            uiScale: String(p.uiScale ?? 100),
+            inputPreset: p.inputPreset ?? "STANDARD",
+            showDamageNumbers: String(p.showDamageNumbers ?? true),
+            showParticles: String(p.showParticles ?? true),
+            showOnlineStatus: String(p.showOnlineStatus ?? true),
+            notifications: String(p.notifications ?? true),
+            emailAlerts: String(p.emailAlerts ?? false),
+            language: p.language ?? "ko",
+          },
+        );
+      });
+      return;
+    }
+
+    if (panel.kind !== "list") return;
     const route = panel.context.route;
     const sub = selectedSubByMain[panel.context.main];
 
@@ -892,15 +958,15 @@ export default function Home() {
 
   // Called from long press action buttons
   const handlePanelItemAction = (_panelIndex: number, itemId: string, actionType: string) => {
+    const sub = selectedSubByMain[selectedMain];
+
     if (actionType === "edit") {
-      // Find item across all lists to get prefill data
       const allLists = [
         ...LIFELOG_LISTS.exercise,
         ...LIFELOG_LISTS.collection,
         ...LIFELOG_LISTS.media,
       ];
       const item = allLists.find((i) => i.id === itemId);
-      const sub = selectedSubByMain[selectedMain];
 
       if (selectedMain === "lifelog" && sub === "exercise") {
         openForm("exercise-edit", "Edit Exercise", EXERCISE_FORM_FIELDS, "수정하기",
@@ -910,34 +976,271 @@ export default function Home() {
       } else if (selectedMain === "lifelog" && sub === "media") {
         openForm("media-edit", "Edit Media", MEDIA_FORM_FIELDS, "수정하기");
       }
+
     } else if (actionType === "equip") {
-      const sub = selectedSubByMain[selectedMain];
       const isQuestAccept = selectedMain === "quests" && (sub === "suggested" || sub === "daily");
+      if (isQuestAccept) {
+        setPendingAction({
+          title: "퀘스트 수락",
+          message: "이 퀘스트를 수락하시겠습니까?",
+          onConfirm: () => {},
+        });
+        return;
+      }
+      // Gear equip flow
+      const itemInstanceId = Number(itemId);
+      const mockItem = MOCK_INVENTORY_ITEMS.find((i) => i.itemInstanceId === itemInstanceId);
+      if (!mockItem) return;
+      const slotId = getEquipSlotId(itemInstanceId, equippedGear);
+      const targetSlot = equippedGear.find((s) => s.slotId === slotId);
+      const slotName = targetSlot?.slotName ?? "슬롯";
+      const occupiedBy = targetSlot?.itemName;
+
       setPendingAction({
-        title: isQuestAccept ? "퀘스트 수락" : "아이템 장착",
-        message: isQuestAccept ? "이 퀘스트를 수락하시겠습니까?" : "아이템을 장착하시겠습니까?",
-        onConfirm: () => setPendingAction(null),
+        title: "아이템 장착",
+        message: occupiedBy
+          ? `${mockItem.itemName}을(를) ${slotName}에 장착합니다.\n기존 장착: ${occupiedBy}`
+          : `${mockItem.itemName}을(를) ${slotName}에 장착하시겠습니까?`,
+        onConfirm: async () => {
+          try {
+            await equipGearApi(slotId, itemInstanceId);
+            const updated = await getEquippedGearApi();
+            setEquippedGear(updated);
+            showToast({ variant: "success", title: "장착 완료", body: `${mockItem.itemName} → ${slotName}` });
+          } catch {
+            showToast({ variant: "error", title: "장착 실패", body: "다시 시도해주세요." });
+          }
+        },
       });
+
     } else if (actionType === "unequip") {
+      const itemInstanceId = Number(itemId);
+      const slot = equippedGear.find((s) => s.itemInstanceId === itemInstanceId);
+      if (!slot) return;
+
       setPendingAction({
-        title: "아이템 해제",
-        message: "아이템 장착을 해제하시겠습니까?",
-        onConfirm: () => setPendingAction(null),
+        title: "장착 해제",
+        message: `${slot.itemName ?? "아이템"}을(를) ${slot.slotName}에서 해제하시겠습니까?`,
+        onConfirm: async () => {
+          try {
+            await unequipGearApi(slot.slotId);
+            const updated = await getEquippedGearApi();
+            setEquippedGear(updated);
+            showToast({ variant: "info", title: "장착 해제", body: `${slot.itemName ?? "아이템"}이(가) 해제되었습니다.` });
+          } catch {
+            showToast({ variant: "error", title: "해제 실패", body: "다시 시도해주세요." });
+          }
+        },
       });
+
+    } else if (actionType === "start") {
+      if (selectedMain === "social" && sub === "party") {
+        const partyId = parseInt(itemId.split("-").pop() ?? "0", 10);
+        const partyName = SOCIAL_LISTS.party.find((p) => p.id === itemId)?.label ?? "파티";
+        setPendingAction({
+          title: "파티 가입 신청",
+          message: `${partyName}에 가입 신청하시겠습니까?`,
+          onConfirm: async () => {
+            try {
+              await requestJoinPartyApi(partyId);
+              showToast({ variant: "info", title: "가입 신청 완료", body: partyName });
+            } catch {
+              showToast({ variant: "error", title: "신청 실패", body: "다시 시도해주세요." });
+            }
+          },
+        });
+      } else if (selectedMain === "social" && sub === "guild") {
+        const guildId = parseInt(itemId.split("-").pop() ?? "0", 10);
+        const guildName = SOCIAL_LISTS.guild.find((g) => g.id === itemId)?.label ?? "길드";
+        setPendingAction({
+          title: "길드 가입 신청",
+          message: `${guildName}에 가입 신청하시겠습니까?`,
+          onConfirm: async () => {
+            try {
+              await requestJoinGuildApi(guildId);
+              showToast({ variant: "info", title: "가입 신청 완료", body: guildName });
+            } catch {
+              showToast({ variant: "error", title: "신청 실패", body: "다시 시도해주세요." });
+            }
+          },
+        });
+      } else if (selectedMain === "market") {
+        // Shop purchase: reserve → confirm flow
+        const shopItemId = Number(itemId);
+        const shopItem = MOCK_SHOP_ITEMS.find((s) => s.id === shopItemId);
+        const catalogItem = MARKET_SHOP_CATALOG_LIST.find((c) => c.id === itemId);
+        const itemName = catalogItem?.label ?? `Item #${shopItemId}`;
+        const price = shopItem?.price ?? 0;
+
+        setPendingAction({
+          title: "구매 예약",
+          message: `${itemName}\n${price.toLocaleString()} col — 5분간 예약합니다.`,
+          onConfirm: async () => {
+            try {
+              const { reservationToken, expiresAt } = await reserveShopItemApi(shopItemId);
+              const expiryStr = new Date(expiresAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+              setPendingAction({
+                title: "구매 확정",
+                message: `${itemName}\n${price.toLocaleString()} col\n예약 만료: ${expiryStr}`,
+                onConfirm: async () => {
+                  try {
+                    await confirmShopPurchaseApi(reservationToken);
+                    showToast({ variant: "success", title: "구매 완료", body: `${itemName} — ${price.toLocaleString()} col` });
+                  } catch {
+                    showToast({ variant: "error", title: "구매 실패", body: "다시 시도해주세요." });
+                  }
+                },
+              });
+            } catch {
+              showToast({ variant: "error", title: "예약 실패", body: "다시 시도해주세요." });
+            }
+          },
+        });
+      } else {
+        // Quest accept (blueprints in suggested/daily)
+        const questCode = itemId;
+        setPendingAction({
+          title: "퀘스트 수락",
+          message: "이 퀘스트를 수락하시겠습니까?",
+          onConfirm: async () => {
+            try {
+              await acceptQuestApi(questCode);
+              showToast({ variant: "quest", title: "퀘스트 수락됨", body: questCode });
+            } catch {
+              showToast({ variant: "error", title: "수락 실패", body: "다시 시도해주세요." });
+            }
+          },
+        });
+      }
+
+    } else if (actionType === "claim") {
+      if (selectedMain === "quests") {
+        // Quest reward claim
+        const questCode = itemId;
+        setPendingAction({
+          title: "보상 수령",
+          message: "퀘스트 보상을 수령하시겠습니까?",
+          onConfirm: async () => {
+            try {
+              const result = await claimQuestRewardApi(questCode);
+              showToast({ variant: "quest", title: "보상 수령 완료", body: `EXP +${result.rewardExp}` });
+            } catch {
+              showToast({ variant: "error", title: "보상 수령 실패", body: "다시 시도해주세요." });
+            }
+          },
+        });
+      } else {
+        // Mailbox claim
+        const mailId = Number(itemId);
+        const mail = MOCK_MAIL_ITEMS.find((m) => m.mailId === mailId);
+        if (!mail) return;
+        setPendingAction({
+          title: "아이템 수령",
+          message: `${mail.itemName} x${mail.quantity}을(를) 수령하시겠습니까?`,
+          onConfirm: async () => {
+            try {
+              await claimMailApi(mail.slotIndex, mail.quantity);
+              showToast({ variant: "success", title: "수령 완료", body: `${mail.itemName} x${mail.quantity}` });
+            } catch {
+              showToast({ variant: "error", title: "수령 실패", body: "다시 시도해주세요." });
+            }
+          },
+        });
+      }
+
     } else if (actionType === "cancel") {
-      const sub = selectedSubByMain[selectedMain];
-      const isQuest = selectedMain === "quests";
-      setPendingAction({
-        title: isQuest ? "퀘스트 취소" : "취소",
-        message: isQuest ? "진행 중인 퀘스트를 취소하시겠습니까?" : "이 항목을 취소하시겠습니까?",
-        onConfirm: () => setPendingAction(null),
-      });
+      if (selectedMain === "market") {
+        const listingId = Number(itemId);
+        const listingItem = MARKET_SHOP_MY_LISTINGS.find((l) => l.id === itemId);
+        setPendingAction({
+          title: "리스팅 취소",
+          message: `${listingItem?.label ?? `리스팅 #${listingId}`} 판매를 취소하시겠습니까?`,
+          onConfirm: async () => {
+            try {
+              await cancelListingApi(listingId);
+              showToast({ variant: "info", title: "리스팅 취소됨", body: listingItem?.label ?? `#${listingId}` });
+            } catch {
+              showToast({ variant: "error", title: "취소 실패", body: "다시 시도해주세요." });
+            }
+          },
+        });
+      } else {
+        const isQuest = selectedMain === "quests";
+        const questCode = isQuest ? itemId : null;
+        setPendingAction({
+          title: isQuest ? "퀘스트 취소" : "취소",
+          message: isQuest ? "진행 중인 퀘스트를 취소하시겠습니까?" : "이 항목을 취소하시겠습니까?",
+          onConfirm: async () => {
+            if (questCode) {
+              try {
+                await cancelQuestApi(questCode);
+                showToast({ variant: "warning", title: "퀘스트 취소됨", body: questCode });
+              } catch {
+                showToast({ variant: "error", title: "취소 실패", body: "다시 시도해주세요." });
+              }
+            }
+          },
+        });
+      }
+
     } else if (actionType === "delete") {
-      setPendingAction({
-        title: "삭제",
-        message: "이 항목을 삭제하시겠습니까?",
-        onConfirm: () => setPendingAction(null),
-      });
+      if (selectedMain === "social" && sub === "friend") {
+        const followId = parseInt(itemId.split("-").pop() ?? "0", 10);
+        const friendName = SOCIAL_LISTS.friend.find((f) => f.id === itemId)?.label ?? "플레이어";
+        setPendingAction({
+          title: "언팔로우",
+          message: `${friendName}을(를) 언팔로우하시겠습니까?`,
+          onConfirm: async () => {
+            try {
+              await unfollowApi(followId);
+              updateDetailSelections({ social: null });
+              showToast({ variant: "info", title: "언팔로우됨", body: friendName });
+            } catch {
+              showToast({ variant: "error", title: "실패", body: "다시 시도해주세요." });
+            }
+          },
+        });
+      } else {
+        const isMailbox = selectedMain === "inventory" && sub === "inbox";
+        const mailId = Number(itemId);
+        const mail = isMailbox ? MOCK_MAIL_ITEMS.find((m) => m.mailId === mailId) : null;
+        setPendingAction({
+          title: "삭제",
+          message: mail ? `${mail.itemName} 메일을 삭제하시겠습니까?` : "이 항목을 삭제하시겠습니까?",
+          onConfirm: async () => {
+            if (mail) {
+              try {
+                await deleteMailApi(mail.slotIndex);
+                showToast({ variant: "info", title: "메일 삭제됨", body: mail.itemName });
+              } catch {
+                showToast({ variant: "error", title: "삭제 실패", body: "다시 시도해주세요." });
+              }
+            }
+          },
+        });
+      }
+
+    } else if (actionType === "sell") {
+      const itemInstanceId = Number(itemId);
+      const invItem = MOCK_INVENTORY_ITEMS.find((i) => i.itemInstanceId === itemInstanceId);
+      if (!invItem) return;
+      setSelectedSubByMain((prev) => ({ ...prev, market: "shop" }));
+      setSelectedMarketShopSectionId("my-listings");
+      setSelectedMain("market");
+      openForm(
+        "listing-create",
+        "New Listing",
+        LISTING_FORM_FIELDS,
+        "등록하기",
+        {
+          itemName: invItem.itemName,
+          price: "",
+          quantity: String(invItem.quantity),
+          _itemInstanceId: String(invItem.itemInstanceId),
+          _itemId: String(invItem.itemId),
+        },
+      );
+
     } else if (actionType === "gift") {
       // Friend gift action from long press — push gift panel
       const friendItem = SOCIAL_LISTS.friend.find((f) => f.id === itemId);
@@ -956,7 +1259,48 @@ export default function Home() {
   };
 
   // Called when form panel submit is confirmed
-  const handlePanelFormSubmit = (_formKey: string, _values: Record<string, string>) => {
+  const handlePanelFormSubmit = (formKey: string, values: Record<string, string>) => {
+    if (formKey === "system-options") {
+      const settings: Partial<GameSettings> = {
+        volume: Number(values.volume),
+        graphicsQuality: values.graphicsQuality as GameSettings["graphicsQuality"],
+        voiceChat: values.voiceChat as GameSettings["voiceChat"],
+        uiScale: Number(values.uiScale) as GameSettings["uiScale"],
+        inputPreset: values.inputPreset as GameSettings["inputPreset"],
+        showDamageNumbers: values.showDamageNumbers === "true",
+        showParticles: values.showParticles === "true",
+        showOnlineStatus: values.showOnlineStatus === "true",
+        notifications: values.notifications === "true",
+        emailAlerts: values.emailAlerts === "true",
+        language: values.language,
+      };
+      updateSettingsApi(settings).then(() => {
+        showToast({ variant: "success", title: "설정 저장됨", body: "System options updated." });
+      }).catch(() => {
+        showToast({ variant: "error", title: "저장 실패", body: "다시 시도해주세요." });
+      });
+      setActiveFormPanel(null);
+      return;
+    }
+
+    if (formKey === "listing-create") {
+      const itemInstanceId = Number(values._itemInstanceId);
+      const itemId = Number(values._itemId);
+      const price = Number(values.price);
+      const itemName = values.itemName ?? `Item #${itemInstanceId}`;
+      if (!itemInstanceId || !price) {
+        showToast({ variant: "error", title: "입력 오류", body: "가격을 입력해주세요." });
+        return;
+      }
+      createListingApi({ itemInstanceId, itemId, price }).then(() => {
+        showToast({ variant: "success", title: "리스팅 등록됨", body: `${itemName} — ${price.toLocaleString()} col` });
+        setActiveFormPanel(null);
+      }).catch(() => {
+        showToast({ variant: "error", title: "등록 실패", body: "다시 시도해주세요." });
+      });
+      return;
+    }
+
     const wasEditing = editingItemId !== null;
     setActiveFormPanel(null);
     setEditingItemId(null);
@@ -1143,7 +1487,10 @@ export default function Home() {
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
 
-        <div className="shrink-0" style={{ width: UI_CONSTS.layout.centerWidth }}>
+        <div className="shrink-0" style={{ width: UI_CONSTS.layout.centerWidth, position: "relative" }}>
+          <div style={{ position: "absolute", top: 0, right: -14, zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
+            <NotificationBell />
+          </div>
           <OrbNav
             items={orderedNavItems}
             selectedId={selectedMain}

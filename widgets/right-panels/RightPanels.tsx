@@ -219,6 +219,7 @@ function PanelContent({
               type="button"
               className="transition-opacity hover:opacity-85"
               style={actionBtnStyle}
+              onClick={() => onPanelActionClick?.(panelIndex)}
             >
               {panel.primaryActionLabel}
             </button>
