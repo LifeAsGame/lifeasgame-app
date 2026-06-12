@@ -116,10 +116,8 @@ export function NotificationBell() {
   }, [open]);
 
   const handleOpen = () => {
-    setOpen((prev) => {
-      if (!prev) markAllRead();
-      return !prev;
-    });
+    if (!open) markAllRead();
+    setOpen((prev) => !prev);
   };
 
   const recent = notifications.slice(0, 10);
