@@ -10,7 +10,7 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
   { id: "skills",    label: "Skills",    slotLabel: "SK" },
   { id: "inventory", label: "Inventory", slotLabel: "IN" },
   { id: "quests",    label: "Quests",    slotLabel: "QU" },
-  { id: "social",    label: "Social",    slotLabel: "SO" },
+  { id: "role",      label: "Role",      slotLabel: "RL" },
   { id: "lifelog",   label: "Lifelog",   slotLabel: "LI" },
   { id: "market",    label: "Market",    slotLabel: "MK" },
   { id: "system",    label: "System",    slotLabel: "SY" },
@@ -18,7 +18,7 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
 
 export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {
   player: "Player", skills: "Skills", inventory: "Inventory", quests: "Quests",
-  social: "Social", lifelog: "Lifelog", market: "Market", system: "System",
+  role: "Role", social: "Social", lifelog: "Lifelog", market: "Market", system: "System",
 };
 
 export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
@@ -44,6 +44,11 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
     { id: "party",     label: "Party",     slotLabel: "PT" },
     { id: "guild",     label: "Guild",     slotLabel: "GD" },
   ],
+  role: [
+    { id: "overview",  label: "Overview",  slotLabel: "OV" },
+    { id: "relations", label: "Relations", slotLabel: "RE" },
+    { id: "events",    label: "Events",    slotLabel: "EV" },
+  ],
   social: [
     { id: "party",  label: "Party",  slotLabel: "PT" },
     { id: "guild",  label: "Guild",  slotLabel: "GD" },
@@ -68,7 +73,7 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
 
 export const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string | null> = {
   player: null, skills: null, inventory: null, quests: null,
-  social: null, lifelog: null, market: null,  system: null,
+  role: null, social: null, lifelog: null, market: null,  system: null,
 };
 
 export const INVENTORY_GEAR_PARTS: PanelMenuItem[] = [

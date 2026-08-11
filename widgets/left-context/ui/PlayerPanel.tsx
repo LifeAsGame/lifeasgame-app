@@ -3,9 +3,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
-import type { EquipmentView, PlayerInfo } from "@/shared/api/types";
+import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
 import { MOCK_EQUIPPED_ITEMS } from "@/features/player/mock";
 import { SAO } from "@/shared/design/tokens";
+import { RoleBadges } from "./RoleContextPanel";
 
 function StatBar({
   label,
@@ -49,10 +50,16 @@ export function PlayerPanel({
   playerInfo,
   equipments,
   guildName,
+  roles = [],
+  selectedRoleId,
+  onRoleSelect,
 }: {
   playerInfo?: PlayerInfo;
   equipments?: EquipmentView[];
   guildName?: string;
+  roles?: RoleDetail[];
+  selectedRoleId?: number | null;
+  onRoleSelect?: (roleId: number) => void;
 }) {
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
 
@@ -108,6 +115,13 @@ export function PlayerPanel({
             style={{ width: "88%", height: "1px", background: `linear-gradient(90deg, transparent, ${SAO.color.border.panel}, transparent)` }}
           />
         </div>
+
+        {roles.length > 0 ? (
+          <div className="mt-4 px-1">
+            <p className="mb-2 text-center uppercase" style={{ fontSize: 10, letterSpacing: "0.2em", color: SAO.color.text.label }}>Roles</p>
+            <RoleBadges roles={roles} selectedRoleId={selectedRoleId} onSelect={onRoleSelect} />
+          </div>
+        ) : null}
 
         {/* EXP bar */}
         <div className="mt-4 px-1">

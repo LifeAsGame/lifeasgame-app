@@ -11,6 +11,8 @@ import OrbNav from "@/widgets/orb-nav/OrbNav";
 import RightPanels from "@/widgets/right-panels/RightPanels";
 import SaoAlert from "@/shared/ui/SaoAlert";
 import { useAuth } from "@/features/auth/AuthContext";
+import RoleShell from "@/features/role/RoleShell";
+import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
 import {
@@ -609,6 +611,7 @@ export default function Home() {
   const router = useRouter();
   const { isAuthenticated, playerId, isLoading, logout } = useAuth();
   const playerInfo = MOCK_CHARACTER_SHEET.player;
+  const roleState = useRoles(Boolean(playerId));
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const formOpenCountRef = useRef(0);
@@ -629,6 +632,7 @@ export default function Home() {
   }, [isAuthenticated, isLoading, playerId, router]);
 
   const [selectedMain, setSelectedMain] = useState<MainNavId>("player");
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
     ...DEFAULT_SUB_SELECTIONS,
   });
@@ -778,6 +782,11 @@ export default function Home() {
     setActiveFormPanel(null);
     setActiveSpecialPanel(null);
     setEditingItemId(null);
+  };
+
+  const handleRoleSelect = (roleId: number) => {
+    if (selectedMain !== "role") handleMainSelect("role");
+    setSelectedRoleId(roleId);
   };
 
   const handlePanelItemSelect = (panelIndex: number, itemId: string) => {
@@ -1428,7 +1437,7 @@ export default function Home() {
   };
 
   const leftContextMode =
-    selectedMain === "player" ? "player" : selectedMain === "social" ? "social" : "hidden";
+    selectedMain === "player" ? "player" : selectedMain === "role" ? "role" : selectedMain === "social" ? "social" : "hidden";
 
   // Auto-scroll viewport right when panel stack grows (new panel added)
   const prevPanelLengthRef = useRef(0);
@@ -1481,12 +1490,18 @@ export default function Home() {
           playerInfo={playerInfo}
           equipments={MOCK_CHARACTER_SHEET.equipments}
           guildName={MOCK_CHARACTER_SHEET.representativeGuildName}
+          roles={roleState.roles}
+          rolesLoading={roleState.isLoading}
+          rolesError={roleState.error}
+          selectedRoleId={selectedRoleId}
           socialContext={socialContext}
           selectedFriendId={selectedDetailByKey.social}
           isFriendMode={selectedMain === "social" && selectedSubByMain.social === "friend"}
           friendMemoByFollowId={friendMemos}
           onFriendMemoUpdate={handleFriendMemoUpdate}
           onFriendAction={handleFriendAction}
+          onFriendSelect={(followId) => updateDetailSelections({ social: followId })}
+          onRoleSelect={handleRoleSelect}
           onFocus={() => bringSurfaceToFront("left-context")}
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
@@ -1505,22 +1520,44 @@ export default function Home() {
         </div>
 
         <div className="scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
-          <RightPanels
-            selectedMain={selectedMain}
-            panelStack={panelStack}
-            panelStackKey={selectedMain}
-            onPanelFocus={(panelIndex) => bringSurfaceToFront(`panel-slot-${panelIndex}`)}
-            getPanelZIndex={(panelIndex) =>
-              getSurfaceZIndex(`panel-slot-${panelIndex}`, SURFACE_GROUP_BASE_Z.panels, panelIndex * 10)
-            }
-            onPanelItemSelect={handlePanelItemSelect}
-            onPanelItemAction={handlePanelItemAction}
-            onPanelItemDoubleClick={handlePanelItemDoubleClick}
-            onPanelFormSubmit={handlePanelFormSubmit}
-            onPanelFormFieldChange={handlePanelFormFieldChange}
-            onPanelBack={handlePanelBack}
-            onPanelActionClick={handlePanelActionClick}
-          />
+          {selectedMain === "role" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RoleShell
+                roles={roleState.roles}
+                selectedRoleId={selectedRoleId}
+                isLoading={roleState.isLoading}
+                error={roleState.error}
+                onSelectRole={setSelectedRoleId}
+                onRefresh={roleState.refresh}
+              />
+              {activeSpecialPanel ? (
+                <RightPanels
+                  selectedMain="role"
+                  panelStack={[activeSpecialPanel]}
+                  panelStackKey="role-social-special"
+                  onPanelItemSelect={() => {}}
+                  onPanelBack={() => setActiveSpecialPanel(null)}
+                />
+              ) : null}
+            </div>
+          ) : (
+            <RightPanels
+              selectedMain={selectedMain}
+              panelStack={panelStack}
+              panelStackKey={selectedMain}
+              onPanelFocus={(panelIndex) => bringSurfaceToFront(`panel-slot-${panelIndex}`)}
+              getPanelZIndex={(panelIndex) =>
+                getSurfaceZIndex(`panel-slot-${panelIndex}`, SURFACE_GROUP_BASE_Z.panels, panelIndex * 10)
+              }
+              onPanelItemSelect={handlePanelItemSelect}
+              onPanelItemAction={handlePanelItemAction}
+              onPanelItemDoubleClick={handlePanelItemDoubleClick}
+              onPanelFormSubmit={handlePanelFormSubmit}
+              onPanelFormFieldChange={handlePanelFormFieldChange}
+              onPanelBack={handlePanelBack}
+              onPanelActionClick={handlePanelActionClick}
+            />
+          )}
         </div>
       </main>
 

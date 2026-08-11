@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 
-import type { EquipmentView, PlayerInfo } from "@/shared/api/types";
+import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
 import { PANEL_STYLE, GRID_OVERLAY_STYLE } from "@/shared/design/tokens";
 import { MOTION } from "@/shared/lib/motion";
 import type { SocialContextData } from "@/entities/nav";
@@ -10,23 +10,30 @@ import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
 import { PlayerPanel } from "./ui/PlayerPanel";
 import { SocialPanel } from "./ui/SocialPanel";
+import { RoleContextPanel } from "./ui/RoleContextPanel";
 import { type FriendMemoData } from "./ui/FriendDetailPanel";
 
 export type { FriendMemoData };
 
-type LeftContextMode = "hidden" | "player" | "social";
+type LeftContextMode = "hidden" | "player" | "role" | "social";
 
 type LeftContextProps = {
   mode: LeftContextMode;
   playerInfo?: PlayerInfo;
   equipments?: EquipmentView[];
   guildName?: string;
+  roles?: RoleDetail[];
+  rolesLoading?: boolean;
+  rolesError?: string | null;
+  selectedRoleId?: number | null;
   socialContext: SocialContextData | null;
   selectedFriendId?: string | null;
   isFriendMode?: boolean;
   friendMemoByFollowId?: Record<string, FriendMemoData>;
   onFriendMemoUpdate?: (followId: string, memo: FriendMemoData) => void;
   onFriendAction?: (action: "message" | "gift" | "unfollow", followId: string) => void;
+  onFriendSelect?: (followId: string) => void;
+  onRoleSelect?: (roleId: number) => void;
   zIndex?: number;
   onFocus?: () => void;
 };
@@ -36,12 +43,18 @@ export default function LeftContext({
   playerInfo,
   equipments,
   guildName,
+  roles = [],
+  rolesLoading,
+  rolesError,
+  selectedRoleId,
   socialContext,
   selectedFriendId,
   isFriendMode,
   friendMemoByFollowId,
   onFriendMemoUpdate,
   onFriendAction,
+  onFriendSelect,
+  onRoleSelect,
   zIndex,
   onFocus,
 }: LeftContextProps) {
@@ -89,7 +102,18 @@ export default function LeftContext({
             }}
           />
           {mode === "player" ? (
-            <PlayerPanel playerInfo={playerInfo} equipments={equipments} guildName={guildName} />
+            <PlayerPanel playerInfo={playerInfo} equipments={equipments} guildName={guildName} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} />
+          ) : mode === "role" ? (
+            <RoleContextPanel
+              roles={roles}
+              selectedRoleId={selectedRoleId ?? null}
+              isLoading={rolesLoading}
+              error={rolesError}
+              selectedFriendId={selectedFriendId}
+              onRoleSelect={onRoleSelect}
+              onFriendSelect={onFriendSelect}
+              onFriendAction={onFriendAction}
+            />
           ) : (
             <SocialPanel
               socialContext={socialContext}

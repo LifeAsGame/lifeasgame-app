@@ -4,7 +4,13 @@ import { registerApi } from "@/features/auth/api";
 import { registerPlayerApi } from "@/features/player/api";
 import { createRoleApi } from "@/features/role/api";
 
-const clientMocks = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
+const clientMocks = vi.hoisted(() => ({
+  apiDelete: vi.fn(),
+  apiGet: vi.fn(),
+  apiPatch: vi.fn(),
+  apiPost: vi.fn(),
+  apiPut: vi.fn(),
+}));
 
 vi.mock("@/shared/api/client", () => ({ USE_MOCK: false, ...clientMocks }));
 
