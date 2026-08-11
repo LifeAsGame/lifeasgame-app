@@ -607,7 +607,7 @@ function buildPanels(
 
 export default function Home() {
   const router = useRouter();
-  const { currentUser, isLoading, logout } = useAuth();
+  const { isAuthenticated, playerId, isLoading, logout } = useAuth();
   const playerInfo = MOCK_CHARACTER_SHEET.player;
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -617,14 +617,16 @@ export default function Home() {
   const { showToast } = useToast();
   const [equippedGear, setEquippedGear] = useState<EquipmentSlotInfo[]>([]);
   useEffect(() => {
-    getEquippedGearApi().then(setEquippedGear);
-  }, []);
+    if (playerId) getEquippedGearApi().then(setEquippedGear);
+  }, [playerId]);
 
   const [logoutAlertOpen, setLogoutAlertOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !currentUser) router.push("/login");
-  }, [currentUser, isLoading, router]);
+    if (isLoading) return;
+    if (!isAuthenticated) router.replace("/login");
+    else if (!playerId) router.replace("/linkstart");
+  }, [isAuthenticated, isLoading, playerId, router]);
 
   const [selectedMain, setSelectedMain] = useState<MainNavId>("player");
   const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
@@ -1438,6 +1440,8 @@ export default function Home() {
     }
     prevPanelLengthRef.current = panelStack.length;
   }, [panelStack.length]);
+
+  if (isLoading || !isAuthenticated || !playerId) return null;
 
   return (
     <div

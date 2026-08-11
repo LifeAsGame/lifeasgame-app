@@ -59,7 +59,7 @@ export default function SaoFormPanel({
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmitClick = async (e: React.FormEvent) => {
+  const handleSubmitClick = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitError(null);
     if (confirmMessage) {

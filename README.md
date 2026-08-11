@@ -112,7 +112,7 @@ npm run dev
 
 ## API 연동
 
-`shared/api/client.ts`의 `USE_MOCK = true` (기본값)로 Mock 데이터 사용.
-실제 백엔드 연동 시 `USE_MOCK = false`로 변경하면 `features/*/api.ts`가 실제 API 호출.
+환경 변수가 없거나 `NEXT_PUBLIC_USE_MOCK=true`이면 Mock 데이터를 사용합니다.
+실제 백엔드 연동 시 `.env.local`에 `NEXT_PUBLIC_USE_MOCK=false`와 `NEXT_PUBLIC_API_URL`을 설정합니다.
 
 백엔드 도메인: `character`, `inventory`, `quest`, `social`, `lifelog`, `economy`, `user`
