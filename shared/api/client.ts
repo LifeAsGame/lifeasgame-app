@@ -17,6 +17,7 @@ export class ApiError extends Error {
 
 type RequestOptions = {
   auth?: boolean;
+  rawResponse?: boolean;
   retry?: boolean;
   token?: string;
 };
@@ -28,30 +29,36 @@ function authExpired(): void {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
 }
 
-async function parseResponse<T>(response: Response, method: string, path: string): Promise<T> {
+async function parseResponse<T>(response: Response, method: string, path: string, rawResponse = false): Promise<T> {
   if (response.status === 204 || response.headers.get("content-length") === "0") {
     return undefined as T;
   }
 
-  let body: Partial<ApiEnvelope<T>> | null = null;
+  let body: Partial<ApiEnvelope<T>> | T | null = null;
   try {
-    body = (await response.json()) as Partial<ApiEnvelope<T>>;
+    body = (await response.json()) as Partial<ApiEnvelope<T>> | T;
   } catch {
     if (response.ok) return undefined as T;
   }
 
-  if (!response.ok || body?.isSuccess === false) {
+  const envelope = body && typeof body === "object"
+    ? body as Partial<ApiEnvelope<T>>
+    : null;
+
+  if (!response.ok || envelope?.isSuccess === false) {
     throw new ApiError(
       response.status,
-      body?.code ?? `HTTP_${response.status}`,
-      body?.message ?? `${method} ${path} failed: ${response.status} ${response.statusText}`,
+      envelope?.code ?? `HTTP_${response.status}`,
+      envelope?.message ?? `${method} ${path} failed: ${response.status} ${response.statusText}`,
     );
   }
 
-  if (!body || body.isSuccess !== true || !("result" in body)) {
+  if (rawResponse) return body as T;
+
+  if (!envelope || envelope.isSuccess !== true || !("result" in envelope)) {
     throw new ApiError(response.status, "INVALID_RESPONSE", `${method} ${path} returned an invalid API envelope.`);
   }
-  return body.result as T;
+  return envelope.result as T;
 }
 
 async function refreshSession(): Promise<TokenPair> {
@@ -102,11 +109,15 @@ async function apiRequest<T>(
     await refreshSession();
     return apiRequest<T>(path, method, body, { ...options, retry: false, token: undefined });
   }
-  return parseResponse<T>(response, method, path);
+  return parseResponse<T>(response, method, path, options.rawResponse);
 }
 
 export function apiGet<T>(path: string, options?: RequestOptions): Promise<T> {
   return apiRequest<T>(path, "GET", undefined, options);
+}
+
+export function apiGetRaw<T>(path: string, options?: RequestOptions): Promise<T> {
+  return apiRequest<T>(path, "GET", undefined, { ...options, rawResponse: true });
 }
 
 export function apiPost<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {
@@ -121,6 +132,6 @@ export function apiPatch<T>(path: string, body: unknown, options?: RequestOption
   return apiRequest<T>(path, "PATCH", body, options);
 }
 
-export function apiDelete<T>(path: string, options?: RequestOptions): Promise<T> {
-  return apiRequest<T>(path, "DELETE", undefined, options);
+export function apiDelete<T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> {
+  return apiRequest<T>(path, "DELETE", body, options);
 }

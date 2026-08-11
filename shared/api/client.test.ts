@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, apiGet, apiPost } from "./client";
+import { ApiError, apiDelete, apiGet, apiGetRaw, apiPost } from "./client";
 import { tokenStorage } from "./tokenStorage";
 import type { ApiEnvelope, TokenPair } from "./types";
 
@@ -46,6 +46,25 @@ describe("backend API에 요청할 때", () => {
       const error = await apiPost("/login", {}, { auth: false }).catch((caught) => caught);
       expect(error).toBeInstanceOf(ApiError);
       expect(error).toMatchObject({ status: 400, code: "AUTH4001", message: "Bad credentials" });
+    });
+
+    it("raw 응답 endpoint는 result를 가정하지 않고 실제 body를 반환한다", async () => {
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ blueprints: [{ code: "Q_ONE" }] }), { status: 200 }));
+
+      await expect(apiGetRaw("/api/v1/quests/catalog")).resolves.toEqual({ blueprints: [{ code: "Q_ONE" }] });
+    });
+  });
+
+  describe("method별 request body를 전송하면", () => {
+    it("DELETE body도 backend 계약 그대로 직렬화한다", async () => {
+      fetchMock.mockResolvedValueOnce(response({ questCode: "Q_ONE" }));
+
+      await apiDelete("/api/v1/players/quests/Q_ONE", { reason: "Changed direction" });
+
+      expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({
+        method: "DELETE",
+        body: JSON.stringify({ reason: "Changed direction" }),
+      }));
     });
   });
 

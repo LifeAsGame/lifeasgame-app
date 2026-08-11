@@ -2,7 +2,6 @@ import { USE_MOCK, apiDelete, apiGet, apiPost, apiPut } from "../client";
 import { MOCK_ADMIN_USERS } from "../mock/user.mock";
 import { MOCK_ACHIEVEMENTS } from "../mock/player.mock";
 import { MOCK_INVENTORY_ITEMS } from "../mock/inventory.mock";
-import { MOCK_DAILY_BLUEPRINTS, MOCK_SUGGESTED_BLUEPRINTS, MOCK_STORY_ACCEPTANCES } from "../mock/quest.mock";
 import { MOCK_PARTIES, MOCK_GUILDS } from "../mock/social.mock";
 
 // ===== Admin Player =====
@@ -89,7 +88,7 @@ export async function adminCreateItemApi(data: {
 
 // ===== Admin Quests =====
 export async function adminGetQuestsApi() {
-  if (USE_MOCK) return [...MOCK_DAILY_BLUEPRINTS, ...MOCK_SUGGESTED_BLUEPRINTS];
+  if (USE_MOCK) return MOCK_QUEST_DEFINITIONS;
   return apiGet("/api/v1/admin/quests");
 }
 
@@ -596,7 +595,7 @@ type QuestAcceptanceRow = {
 const MOCK_QUEST_ACCEPTANCES: QuestAcceptanceRow[] = [
   { id: 1001, questId: 1, playerId: 6,  playerNickname: "Kirito", code: "DAILY_RUN_3KM",    title: "3km 달리기",       category: "Daily",  targetType: "DISTANCE_KM",  targetValue: 3,   progress: 2, status: "IN_PROGRESS", repeatRule: "DAILY"  },
   { id: 1002, questId: 1, playerId: 12, playerNickname: "Asuna",  code: "DAILY_RUN_3KM",    title: "3km 달리기",       category: "Daily",  targetType: "DISTANCE_KM",  targetValue: 3,   progress: 3, status: "COMPLETED",   repeatRule: "DAILY"  },
-  { id: 1003, questId: 2, playerId: 6,  playerNickname: "Kirito", code: "DAILY_RUN_5KM",    title: "5km 달리기",       category: "Daily",  targetType: "DISTANCE_KM",  targetValue: 5,   progress: 0, status: "FAILED",      repeatRule: "DAILY"  },
+  { id: 1003, questId: 2, playerId: 6,  playerNickname: "Kirito", code: "DAILY_RUN_5KM",    title: "5km 달리기",       category: "Daily",  targetType: "DISTANCE_KM",  targetValue: 5,   progress: 0, status: "CANCELED",    repeatRule: "DAILY"  },
   { id: 1004, questId: 4, playerId: 30, playerNickname: "Heathcliff", code: "STORY_FLOOR_25", title: "25층 클리어",    category: "Story",  targetType: "FLOOR_CLEAR",  targetValue: 25,  progress: 25,status: "COMPLETED",   repeatRule: "NONE"   },
   { id: 1005, questId: 5, playerId: 15, playerNickname: "Klein",  code: "DAILY_STUDY_1H",   title: "공부 1시간",       category: "Daily",  targetType: "DURATION_MIN", targetValue: 60,  progress: 30,status: "IN_PROGRESS", repeatRule: "DAILY"  },
 ];

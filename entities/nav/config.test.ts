@@ -3,6 +3,14 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SUB_SELECTIONS, MAIN_NAV_ITEMS, SUBMENUS_BY_MAIN } from "./config";
 
 describe("primary Orb navigation을 구성할 때", () => {
+  describe("Journey 정책을 적용하면", () => {
+    it("Quest Orb를 Current/Catalog/Routes로 구성하고 Party/Guild Quest를 노출하지 않는다", () => {
+      expect(MAIN_NAV_ITEMS.find(({ id }) => id === "quests")).toEqual({ id: "quests", label: "Journey", slotLabel: "QU" });
+      expect(SUBMENUS_BY_MAIN.quests.map(({ id }) => id)).toEqual(["current", "catalog", "routes"]);
+      expect(SUBMENUS_BY_MAIN.quests.map(({ id }) => id)).not.toEqual(expect.arrayContaining(["party", "guild"]));
+    });
+  });
+
   describe("현재 Role 정책을 적용하면", () => {
     it("Social 자리에 Role/RL을 노출하고 Role surface를 세 개로 제한한다", () => {
       const role = MAIN_NAV_ITEMS.find(({ id }) => id === "role");
