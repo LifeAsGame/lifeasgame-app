@@ -1,9 +1,6 @@
-export interface UserSummary {
-  id: number;
-  email: string;
-  nickname: string;
-  status: string;
-}
+import type { AuthUser } from "./auth";
+
+export type UserSummary = AuthUser;
 
 export interface UserInfo {
   user: UserSummary;

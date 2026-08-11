@@ -1,16 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
+import { USE_MOCK } from "@/shared/api/client";
 import { MOTION } from "@/shared/lib/motion";
 import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, INPUT_STYLE, GOLD_BTN_STYLE } from "@/shared/design/tokens";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, currentUser, isLoading } = useAuth();
+  const { login, currentUser, playerId, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -21,16 +23,19 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!isLoading && currentUser) {
-      router.replace(currentUser.role === "admin" ? "/admin" : "/");
+      router.replace(currentUser.role === "admin" ? "/admin" : playerId ? "/" : "/linkstart");
     }
-  }, [currentUser, isLoading, router]);
+  }, [currentUser, isLoading, playerId, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setIsPending(true);
     try {
-      await login(email, password);
+      const { userInfo } = await login(email, password);
+      router.replace(
+        userInfo.user.role === "admin" ? "/admin" : userInfo.player.exists ? "/" : "/linkstart",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
       setShakeKey((k) => k + 1);
@@ -45,6 +50,8 @@ export default function LoginPage() {
       ? { border: `1px solid ${SAO.color.border.gold}` }
       : {}),
   });
+
+  if (isLoading || currentUser) return null;
 
   return (
     <div
@@ -112,12 +119,14 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
+                htmlFor="login-email"
                 className="mb-1.5 block uppercase"
                 style={{ fontSize: "10px", letterSpacing: "0.24em", color: SAO.color.text.label }}
               >
                 Email
               </label>
               <input
+                id="login-email"
                 type="email"
                 required
                 autoComplete="email"
@@ -132,12 +141,14 @@ export default function LoginPage() {
 
             <div>
               <label
+                htmlFor="login-password"
                 className="mb-1.5 block uppercase"
                 style={{ fontSize: "10px", letterSpacing: "0.24em", color: SAO.color.text.label }}
               >
                 Password
               </label>
               <input
+                id="login-password"
                 type="password"
                 required
                 autoComplete="current-password"
@@ -181,8 +192,16 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <Link
+            href="/register"
+            className="mt-5 block text-center text-xs uppercase"
+            style={{ color: SAO.color.text.gold, letterSpacing: "0.18em" }}
+          >
+            Create Account
+          </Link>
+
           {/* Hint */}
-          <div className="mt-7 text-center">
+          {USE_MOCK ? <div className="mt-7 text-center">
             <div
               className="rounded-sm px-4 py-2.5"
               style={{
@@ -197,7 +216,7 @@ export default function LoginPage() {
                 Admin: admin@lag.io / admin123
               </p>
             </div>
-          </div>
+          </div> : null}
         </div>
       </motion.div>
     </div>

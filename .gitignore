@@ -10,6 +10,8 @@
 !.yarn/releases
 !.yarn/versions
 
+.idea/
+
 # testing
 /coverage
 
@@ -32,6 +34,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -46,7 +49,7 @@ lifeasgame-backend-develop (1).zip
 extract_admin.py
 BACKEND_REQUIREMENTS.md
 KakaoTalk_20260226_174224358.jpg
-SAO_UI_v1.100_\[sample]-2_Kirito.png
+SAO_UI_v1.100_\[sample\]-2_Kirito.png
 lifeasgame-backend-extracted/
 public/icons/
 KakaoTalk_20260226_174224358.png
