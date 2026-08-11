@@ -168,7 +168,9 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: "Cancel Event" }));
 
       await waitFor(() => expect(api.cancelRoleEventApi).toHaveBeenCalledWith(1, 11));
-      expect(api.createRoleEventApi).not.toHaveBeenCalledWith(expect.objectContaining({ lifeLog: expect.anything() }));
+      expect(api.createRoleEventApi).not.toHaveBeenCalled();
+      expect(api.updateRoleEventApi).not.toHaveBeenCalled();
+      expect(api.completeRoleEventApi).not.toHaveBeenCalled();
     });
   });
 });
