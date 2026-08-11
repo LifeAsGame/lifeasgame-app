@@ -3,6 +3,7 @@ export type MainNavId =
   | "skills"
   | "inventory"
   | "quests"
+  | "role"
   | "social"
   | "lifelog"
   | "market"
@@ -13,6 +14,7 @@ export type SkillsSubId = "passive" | "active";
 export type InventorySubId = "items" | "gear" | "inbox";
 export type InventoryGearPartId = "weapon" | "armor" | "accessory" | "boots";
 export type QuestsSubId = "story" | "suggested" | "daily" | "party" | "guild";
+export type RoleSubId = "overview" | "relations" | "events";
 export type SocialSubId = "party" | "guild" | "friend";
 export type LifelogSubId = "collection" | "media" | "exercise";
 export type MarketSubId = "wallet" | "shop" | "trade";

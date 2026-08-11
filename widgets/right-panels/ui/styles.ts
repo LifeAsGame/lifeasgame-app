@@ -45,6 +45,7 @@ export const NAV_ICONS: Partial<Record<MainNavId, string>> = {
   skills:    SAO_ICON.skills,
   inventory: SAO_ICON.items,
   quests:    SAO_ICON.quest,
+  role:      SAO_ICON.social,
   social:    SAO_ICON.social,
   lifelog:   SAO_ICON.lifelog,
   market:    SAO_ICON.market,

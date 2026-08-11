@@ -15,5 +15,6 @@ const localStorageStub: Storage = {
 
 Object.defineProperty(window, "localStorage", { configurable: true, value: localStorageStub });
 Object.defineProperty(globalThis, "localStorage", { configurable: true, value: localStorageStub });
+Object.defineProperty(HTMLElement.prototype, "scrollTo", { configurable: true, value: () => {} });
 
 afterEach(cleanup);
