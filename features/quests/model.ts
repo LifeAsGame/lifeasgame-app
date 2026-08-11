@@ -1,4 +1,4 @@
-import type { QuestAcceptance } from "@/shared/api/types";
+import type { QuestAcceptance, QuestBlueprint } from "@/shared/api/types";
 
 export const QUEST_STATUS_LABEL: Record<QuestAcceptance["status"], string> = {
   IN_PROGRESS: "In Progress",
@@ -29,7 +29,10 @@ export function latestAcceptance(acceptances: QuestAcceptance[], code: string): 
     .sort((left, right) => right.acceptedAt.localeCompare(left.acceptedAt) || right.id - left.id)[0] ?? null;
 }
 
-export function canAcceptQuest(acceptance: QuestAcceptance | null): boolean {
-  // ponytail: hide completed periodic re-accept until the backend exposes player-timezone eligibility.
-  return !acceptance || acceptance.status === "CANCELED";
+export type QuestAcceptAction = "accept" | "accept-again" | null;
+
+export function questAcceptAction(blueprint: QuestBlueprint, acceptance: QuestAcceptance | null): QuestAcceptAction {
+  if (!acceptance || acceptance.status === "CANCELED") return "accept";
+  if (acceptance.status !== "COMPLETED") return null;
+  return ["DAILY", "WEEKLY", "MONTHLY"].includes(blueprint.repeatRule) ? "accept-again" : null;
 }

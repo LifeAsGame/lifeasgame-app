@@ -166,6 +166,64 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     });
   });
 
+  describe("Catalog에서 반복 Quest를 다시 수락할 때", () => {
+    it("next period accept 성공 후 reload된 새 IN_PROGRESS acceptance만 반영한다", async () => {
+      const completed = { ...current.find((quest) => quest.code === "Q_GROWTH_ONE_FOCUS")!, status: "COMPLETED" as const, completedAt: "2026-08-10T02:01:00Z" };
+      const before = current.map((quest) => quest.code === completed.code ? completed : quest);
+      const nextAcceptance: QuestAcceptance = {
+        ...completed,
+        id: 88,
+        progressValue: 0,
+        status: "IN_PROGRESS",
+        acceptedAt: "2026-08-11T01:00:00Z",
+        periodStart: "2026-08-11",
+        periodEnd: "2026-08-11",
+        goalReachedAt: null,
+        completedAt: null,
+      };
+      api.listPlayerQuestsApi.mockResolvedValueOnce(before).mockResolvedValue([...before, nextAcceptance]);
+      api.getPlayerQuestApi
+        .mockResolvedValueOnce(detail(completed.code, completed))
+        .mockResolvedValue(detail(completed.code, nextAcceptance));
+      api.acceptQuestApi.mockResolvedValue(completed);
+      render(<JourneyShell />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Catalog/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /한 가지에 25분 집중하기/ }));
+      expect(await screen.findByText("Acceptance: Completed")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Accept Again" }));
+
+      await waitFor(() => expect(api.acceptQuestApi).toHaveBeenCalledWith("Q_GROWTH_ONE_FOCUS"));
+      expect(api.acceptQuestApi).toHaveBeenCalledTimes(1);
+      expect(api.listPlayerQuestsApi).toHaveBeenCalledTimes(2);
+      expect(api.listQuestCatalogApi).toHaveBeenCalledTimes(2);
+      expect(await screen.findByText("Acceptance: In Progress")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Accept Again" })).not.toBeInTheDocument();
+      expect(api.advanceQuestRouteApi).not.toHaveBeenCalled();
+    });
+
+    it("same period backend rejection 시 한 번만 요청하고 reload한 COMPLETED context와 error를 보존한다", async () => {
+      const completed = { ...current.find((quest) => quest.code === "Q_GROWTH_ONE_FOCUS")!, status: "COMPLETED" as const, completedAt: "2026-08-10T02:01:00Z" };
+      const before = current.map((quest) => quest.code === completed.code ? completed : quest);
+      api.listPlayerQuestsApi.mockResolvedValue(before);
+      api.getPlayerQuestApi.mockResolvedValue(detail(completed.code, completed));
+      api.acceptQuestApi.mockRejectedValue(new Error("Quest acceptance already exists"));
+      render(<JourneyShell />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Catalog/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /한 가지에 25분 집중하기/ }));
+      fireEvent.click(await screen.findByRole("button", { name: "Accept Again" }));
+
+      await waitFor(() => expect(api.acceptQuestApi).toHaveBeenCalledTimes(1));
+      expect(api.listPlayerQuestsApi).toHaveBeenCalledTimes(2);
+      expect(api.listQuestCatalogApi).toHaveBeenCalledTimes(2);
+      expect(await screen.findByText(/Request outcome was not confirmed/)).toBeInTheDocument();
+      expect(screen.getByText("Acceptance: Completed")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Accept Again" })).toBeInTheDocument();
+      expect(api.advanceQuestRouteApi).not.toHaveBeenCalled();
+    });
+  });
+
   describe("QuestRoute를 명시적으로 선택하고 진행하면", () => {
     it("unselected Route를 확인·select한 뒤 READY_TO_ADVANCE currentStepId로 정확히 한 Step만 advance한다", async () => {
       api.listQuestRoutesApi

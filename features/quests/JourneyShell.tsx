@@ -22,10 +22,10 @@ import {
   selectQuestRouteApi,
 } from "./api";
 import {
-  canAcceptQuest,
   canCancelQuest,
   canManualCheckQuest,
   latestAcceptance,
+  questAcceptAction,
   questProgressPercent,
   QUEST_STATUS_LABEL,
 } from "./model";
@@ -268,6 +268,8 @@ export default function JourneyShell() {
     const detail = questDetailFor(selectedBlueprint.code);
     const acceptance = latestAcceptance(queries.current.data, selectedBlueprint.code);
     const acceptanceKnown = !queries.current.loading && !queries.current.error;
+    const acceptAction = acceptanceKnown ? questAcceptAction(selectedBlueprint, acceptance) : null;
+    const acceptLabel = acceptAction === "accept-again" ? "Accept Again" : "Accept Quest";
     if (detail?.loading && !detail.data) return <InfoCard>Loading Quest detail...</InfoCard>;
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedBlueprint.code)} />;
     return (
@@ -280,10 +282,10 @@ export default function JourneyShell() {
         <GoldRow>Reward profile: {selectedBlueprint.rewardProfileCode ?? "None"}</GoldRow>
         {acceptance ? <GoldRow>Acceptance: {QUEST_STATUS_LABEL[acceptance.status]}</GoldRow> : null}
         {!acceptanceKnown ? <InfoCard>Acceptance state unavailable. Accept is disabled until Current reloads.</InfoCard> : null}
-        {acceptanceKnown && canAcceptQuest(acceptance) ? (
+        {acceptAction ? (
           <button type="button" disabled={Boolean(pending)} style={actionBtnStyle} onClick={() => {
-            if (window.confirm(`Accept Quest ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), () => recoverQuest(selectedBlueprint.code));
-          }}>Accept Quest</button>
+            if (window.confirm(`${acceptLabel} ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), () => recoverQuest(selectedBlueprint.code));
+          }}>{acceptLabel}</button>
         ) : null}
       </div>
     );

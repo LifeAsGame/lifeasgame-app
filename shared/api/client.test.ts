@@ -56,6 +56,17 @@ describe("backend API에 요청할 때", () => {
   });
 
   describe("method별 request body를 전송하면", () => {
+    it("path-only DELETE는 body 없이 기존 동작을 유지한다", async () => {
+      fetchMock.mockResolvedValueOnce(response(null));
+
+      await apiDelete("/api/v1/roles/7");
+
+      expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({
+        method: "DELETE",
+        body: undefined,
+      }));
+    });
+
     it("DELETE body도 backend 계약 그대로 직렬화한다", async () => {
       fetchMock.mockResolvedValueOnce(response({ questCode: "Q_ONE" }));
 
