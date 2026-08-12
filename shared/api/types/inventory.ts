@@ -1,9 +1,3 @@
-export interface InventoryMeta {
-  capacitySlots: number;
-  usedSlots: number;
-  freeSlots: number;
-}
-
 export interface InventoryEntry {
   itemInstanceId: number;
   slotIndex: number;
@@ -20,8 +14,7 @@ export interface InventoryEntry {
   instanceAttrs: Record<string, unknown>;
 }
 
-export interface InventoryView {
-  meta: InventoryMeta;
+export interface InventoryEntriesResponse {
   entries: InventoryEntry[];
 }
 
@@ -39,4 +32,18 @@ export interface MailEntry {
   bound: boolean;
   durability: number | null;
   instanceAttrs: Record<string, unknown>;
+}
+
+export interface MailboxEntriesResponse {
+  entries: MailEntry[];
+}
+
+export interface MailboxClaimRequest {
+  slotIndex: number;
+  quantity: number;
+}
+
+export interface MailboxDeleteRequest {
+  slotIndex: number;
+  idempotencyKey?: string;
 }
