@@ -16,6 +16,7 @@ import RoleShell from "@/features/role/RoleShell";
 import JournalShell from "@/features/lifelog/JournalShell";
 import InventoryShell from "@/features/inventory/InventoryShell";
 import GearShell from "@/features/inventory/GearShell";
+import HomeShell from "@/features/home/HomeShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -34,6 +35,7 @@ import type {
   PanelDataItem,
   PlayerSubId,
   PanelStackItem,
+  QuestsSubId,
   SocialContextData,
 } from "@/entities/nav";
 import {
@@ -478,7 +480,6 @@ export default function Home() {
   const router = useRouter();
   const { isAuthenticated, playerId, isLoading, logout } = useAuth();
   const playerInfo = MOCK_CHARACTER_SHEET.player;
-  const roleState = useRoles(Boolean(playerId));
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const formOpenCountRef = useRef(0);
@@ -493,7 +494,8 @@ export default function Home() {
     else if (!playerId) router.replace("/linkstart");
   }, [isAuthenticated, isLoading, playerId, router]);
 
-  const [selectedMain, setSelectedMain] = useState<MainNavId>("player");
+  const [selectedMain, setSelectedMain] = useState<MainNavId | null>(null);
+  const roleState = useRoles(Boolean(playerId && (selectedMain === "player" || selectedMain === "role" || selectedMain === "lifelog")));
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
     ...DEFAULT_SUB_SELECTIONS,
@@ -574,8 +576,8 @@ export default function Home() {
   };
 
   const { panelStack: basePanelStack, socialContext } = useMemo(
-    () =>
-      buildPanels(
+    () => selectedMain
+      ? buildPanels(
         selectedMain,
         selectedSubByMain,
         selectedMarketShopSectionId,
@@ -584,7 +586,8 @@ export default function Home() {
         selectedLifelogCategoryBySub,
         editingItemId,
         Boolean(activeFormPanel),
-      ),
+      )
+      : { panelStack: [], socialContext: null },
     [
       selectedMain,
       selectedSubByMain,
@@ -622,12 +625,7 @@ export default function Home() {
   const getSurfaceZIndex = (surfaceId: string, groupBaseZ: number, layerBaseZ = 0) =>
     groupBaseZ + layerBaseZ + (surfaceFocusState.lastFocusBySurface[surfaceId] ?? 0);
 
-  const handleMainSelect = (nextMain: MainNavId) => {
-    if (nextMain === selectedMain) {
-      return;
-    }
-
-    setSelectedMain(nextMain);
+  const clearFeatureState = () => {
     setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS });
     setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
@@ -636,6 +634,18 @@ export default function Home() {
     setActiveFormPanel(null);
     setActiveSpecialPanel(null);
     setEditingItemId(null);
+  };
+
+  const handleMainSelect = (nextMain: MainNavId) => {
+    if (nextMain === selectedMain) {
+      setSelectedMain(null);
+      clearFeatureState();
+      setPendingAction(null);
+      return;
+    }
+
+    setSelectedMain(nextMain);
+    clearFeatureState();
   };
 
   const handleRoleSelect = (roleId: number) => {
@@ -734,6 +744,7 @@ export default function Home() {
     submitLabel?: string,
     prefillValues?: Record<string, string>,
   ) => {
+    if (!selectedMain) return;
     setActiveFormPanel({
       id: `form-${formKey}-${++formOpenCountRef.current}`,
       kind: "form",
@@ -812,6 +823,7 @@ export default function Home() {
 
   // Called from long press action buttons
   const handlePanelItemAction = (_panelIndex: number, itemId: string, actionType: string) => {
+    if (!selectedMain) return;
     const sub = selectedSubByMain[selectedMain];
 
     if (actionType === "edit") {
@@ -1023,6 +1035,7 @@ export default function Home() {
   // Double-click/tap on a category menu item → open create form (clears category so list hides)
   // Double-click/tap on a list item → open edit form
   const handlePanelItemDoubleClick = (panelIndex: number, itemId: string) => {
+    if (!selectedMain) return;
     const panel = panelStack[panelIndex];
 
     // Category panel double-click → create form
@@ -1207,7 +1220,27 @@ export default function Home() {
         </div>
 
         <div className="scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
-          {selectedMain === "role" ? (
+          {selectedMain === null ? (
+            <HomeShell
+              onOpenJournal={() => {
+                handleMainSelect("lifelog");
+                setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS, lifelog: "journal" });
+              }}
+              onOpenAchievements={() => {
+                handleMainSelect("player");
+                setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS, player: "achievement" });
+              }}
+              onOpenCurrentQuests={() => {
+                handleMainSelect("quests");
+                setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS, quests: "current" });
+              }}
+              onOpenRoutes={() => {
+                handleMainSelect("quests");
+                setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS, quests: "routes" });
+              }}
+              onOpenRole={handleRoleSelect}
+            />
+          ) : selectedMain === "role" ? (
             <div className="flex w-fit items-center gap-3">
               <RoleShell
                 roles={roleState.roles}
@@ -1228,7 +1261,7 @@ export default function Home() {
               ) : null}
             </div>
           ) : selectedMain === "quests" ? (
-            <JourneyShell />
+            <JourneyShell initialSurface={(selectedSubByMain.quests as QuestsSubId | null) ?? "current"} />
           ) : selectedMain === "inventory" && selectedSubByMain.inventory ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels

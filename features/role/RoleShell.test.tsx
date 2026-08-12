@@ -110,6 +110,16 @@ describe("실제 Role shell을 사용할 때", () => {
     });
   });
 
+  describe("다른 surface에서 Role identity를 preselect하면", () => {
+    it("Role 목록이 loading되는 동안 선택 ID를 지우지 않는다", () => {
+      const onSelectRole = vi.fn();
+
+      render(<RoleShell roles={[]} selectedRoleId={2} isLoading error={null} onSelectRole={onSelectRole} onRefresh={vi.fn()} />);
+
+      expect(onSelectRole).not.toHaveBeenCalledWith(null);
+    });
+  });
+
   describe("Relations surface에서 Person과 관계를 관리하면", () => {
     it("Person을 별도 identity로 생성·선택하고 Relation을 create/update/archive한다", async () => {
       render(<Harness />);

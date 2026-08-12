@@ -17,7 +17,7 @@ type OrbItem = {
 
 type OrbNavProps = {
   items: OrbItem[];
-  selectedId: MainNavId;
+  selectedId: MainNavId | null;
   onSelect: (id: MainNavId) => void;
   zIndex?: number;
   onFocus?: () => void;

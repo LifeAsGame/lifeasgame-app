@@ -445,7 +445,6 @@ export default function RoleShell({
 
   useEffect(() => {
     if (roles.length > 0 && !selectedRole) onSelectRole(roles[0].id);
-    if (roles.length === 0 && selectedRoleId !== null) onSelectRole(null);
   }, [onSelectRole, roles, selectedRole, selectedRoleId]);
 
   useEffect(() => {

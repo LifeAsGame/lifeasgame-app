@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SUB_SELECTIONS, MAIN_NAV_ITEMS, SUBMENUS_BY_MAIN } from "./config";
 
 describe("primary Orb navigation을 구성할 때", () => {
+  describe("Home을 default world surface로 사용하면", () => {
+    it("Home Orb를 추가하지 않는다", () => {
+      expect(MAIN_NAV_ITEMS.some(({ id }) => (id as string) === "home")).toBe(false);
+    });
+  });
+
   describe("Journey 정책을 적용하면", () => {
     it("Quest Orb를 Current/Catalog/Routes로 구성하고 Party/Guild Quest를 노출하지 않는다", () => {
       expect(MAIN_NAV_ITEMS.find(({ id }) => id === "quests")).toEqual({ id: "quests", label: "Journey", slotLabel: "QU" });
