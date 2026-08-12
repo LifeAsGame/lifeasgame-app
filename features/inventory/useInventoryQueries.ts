@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { InventoryEntriesResponse, MailboxEntriesResponse, MailEntry } from "@/shared/api/types";
 import { claimMailApi, deleteMailApi, getInventoryApi, getMailboxApi } from "@/lib/api/endpoints/inventory.api";
 
-type QueryState<T> = {
+export type QueryState<T> = {
   data: T;
   loading: boolean;
   error: string | null;
@@ -16,7 +16,7 @@ function message(caught: unknown, fallback: string): string {
   return caught instanceof Error ? caught.message : fallback;
 }
 
-function useLatestQuery<T>(initial: T, load: () => Promise<T>, fallback: string): QueryState<T> {
+export function useLatestQuery<T>(initial: T, load: () => Promise<T>, fallback: string): QueryState<T> {
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,9 +45,17 @@ function useLatestQuery<T>(initial: T, load: () => Promise<T>, fallback: string)
 const loadInventory = () => getInventoryApi();
 const loadMailbox = () => getMailboxApi();
 
+export function useInventoryEntries() {
+  return useLatestQuery<InventoryEntriesResponse>({ entries: [] }, loadInventory, "Unable to load Items.");
+}
+
+function useMailboxEntries() {
+  return useLatestQuery<MailboxEntriesResponse>({ entries: [] }, loadMailbox, "Unable to load Inbox.");
+}
+
 export function useInventoryQueries() {
-  const inventory = useLatestQuery<InventoryEntriesResponse>({ entries: [] }, loadInventory, "Unable to load Items.");
-  const mailbox = useLatestQuery<MailboxEntriesResponse>({ entries: [] }, loadMailbox, "Unable to load Inbox.");
+  const inventory = useInventoryEntries();
+  const mailbox = useMailboxEntries();
   const mutationLocked = useRef(false);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);

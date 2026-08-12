@@ -15,12 +15,12 @@ import JourneyShell from "@/features/quests/JourneyShell";
 import RoleShell from "@/features/role/RoleShell";
 import JournalShell from "@/features/lifelog/JournalShell";
 import InventoryShell from "@/features/inventory/InventoryShell";
+import GearShell from "@/features/inventory/GearShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
 import {
   DEFAULT_SUB_SELECTIONS,
-  INVENTORY_GEAR_PARTS,
   MAIN_NAV_ITEMS,
   MAIN_PANEL_TITLES,
   MARKET_SHOP_SECTIONS,
@@ -55,7 +55,6 @@ import {
   SOCIAL_LISTS,
 } from "@/features/social/model";
 import { LISTING_FORM_FIELDS } from "@/features/market/model";
-import { makeGearLists } from "@/features/inventory/model";
 import {
   MARKET_SHOP_CATALOG_LIST,
   MARKET_SHOP_MY_LISTINGS,
@@ -70,13 +69,9 @@ import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { useToast } from "@/context/ToastContext";
 import { NotificationBell } from "@/shared/ui/NotificationBell";
-import { getEquippedGearApi, equipGearApi, unequipGearApi } from "@/lib/api/endpoints/equipment.api";
 import { requestJoinPartyApi, requestJoinGuildApi, unfollowApi } from "@/lib/api/endpoints/social.api";
 import { reserveShopItemApi, confirmShopPurchaseApi, cancelListingApi, createListingApi } from "@/lib/api/endpoints/market.api";
 import { MOCK_SHOP_ITEMS } from "@/lib/api/mock/market.mock";
-import { MOCK_INVENTORY_ITEMS } from "@/lib/api/mock/inventory.mock";
-import { getEquipSlotId } from "@/features/inventory/model";
-import type { EquipmentSlotInfo } from "@/shared/api/types";
 
 type SurfaceFocusState = {
   counter: number;
@@ -86,7 +81,6 @@ type SurfaceFocusState = {
 type DetailSelectionKey =
   | "player"
   | "skills"
-  | "inventoryGear"
   | "social"
   | "lifelog"
   | "marketWallet"
@@ -105,7 +99,6 @@ function createDefaultDetailSelections(): Record<DetailSelectionKey, string | nu
   return {
     player: null,
     skills: null,
-    inventoryGear: null,
     social: null,
     lifelog: null,
     marketWallet: null,
@@ -131,14 +124,12 @@ function selectedSubForMain(selectedMain: MainNavId, selectedSubByMain: Record<M
 function buildPanels(
   selectedMain: MainNavId,
   selectedSubByMain: Record<MainNavId, string | null>,
-  selectedInventoryGearPartId: string | null,
   selectedMarketShopSectionId: string | null,
   selectedDetailByKey: Record<DetailSelectionKey, string | null>,
   selectedPlayerCategoryBySub: Record<PlayerSubId, string | null>,
   selectedLifelogCategoryBySub: Record<LifelogSubId, string | null>,
   editingItemId: string | null,
   hasActiveForm: boolean,
-  equippedGear: EquipmentSlotInfo[],
 ): { panelStack: PanelStackItem[]; socialContext: SocialContextData | null } {
   const mainItems = SUBMENUS_BY_MAIN[selectedMain];
   const selectedMainSub = selectedSubForMain(selectedMain, selectedSubByMain);
@@ -231,51 +222,6 @@ function buildPanels(
   }
 
   if (selectedMain === "inventory") {
-    if (selectedMainSub === "items" || selectedMainSub === "inbox") return { panelStack, socialContext: null };
-
-    if (selectedMainSub === "gear") {
-      const selectedPart =
-        INVENTORY_GEAR_PARTS.find((item) => item.id === selectedInventoryGearPartId)?.id ?? null;
-
-      panelStack.push({
-        id: "inventory-gear-part-menu",
-        kind: "menu",
-        title: "Gear Parts",
-        items: INVENTORY_GEAR_PARTS,
-        selectedId: selectedPart ?? undefined,
-        context: { main: "inventory", route: "inventory-gear-menu" },
-      });
-
-      if (!selectedPart) {
-        return { panelStack, socialContext: null };
-      }
-
-      const dynamicGearLists = makeGearLists(equippedGear);
-      const gearList = dynamicGearLists[selectedPart as keyof typeof dynamicGearLists] ?? [];
-      const selectedItem = findById(gearList, selectedDetailByKey.inventoryGear);
-
-      panelStack.push({
-        id: `inventory-gear-list-${selectedPart}`,
-        kind: "list",
-        title: "Owned List",
-        items: gearList,
-        selectedId: selectedDetailByKey.inventoryGear ?? undefined,
-        context: { main: "inventory", route: "inventory-gear-list" },
-      });
-
-      if (selectedItem) {
-        panelStack.push({
-          id: `inventory-gear-detail-${selectedItem.id}`,
-          kind: "placeholder",
-          title: selectedItem.detailTitle ?? "Gear Detail",
-          description: selectedItem.detailDescription,
-          rows: selectedItem.detailRows,
-        });
-      }
-
-      return { panelStack, socialContext: null };
-    }
-
     return { panelStack, socialContext: null };
   }
 
@@ -539,11 +485,6 @@ export default function Home() {
   usePanScroll(viewportRef);
 
   const { showToast } = useToast();
-  const [equippedGear, setEquippedGear] = useState<EquipmentSlotInfo[]>([]);
-  useEffect(() => {
-    if (playerId) getEquippedGearApi().then(setEquippedGear);
-  }, [playerId]);
-
   const [logoutAlertOpen, setLogoutAlertOpen] = useState(false);
 
   useEffect(() => {
@@ -557,7 +498,6 @@ export default function Home() {
   const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
     ...DEFAULT_SUB_SELECTIONS,
   });
-  const [selectedInventoryGearPartId, setSelectedInventoryGearPartId] = useState<string | null>(null);
   const [selectedMarketShopSectionId, setSelectedMarketShopSectionId] = useState<string | null>(null);
   const [selectedPlayerCategoryBySub, setSelectedPlayerCategoryBySub] = useState<Record<PlayerSubId, string | null>>({
     achievement: null, credentials: null, title: null, interests: null,
@@ -611,7 +551,6 @@ export default function Home() {
       });
     }
     if (main === "skills") updateDetailSelections({ skills: null });
-    if (main === "inventory") updateDetailSelections({ inventoryGear: null });
     if (main === "social") updateDetailSelections({ social: null });
     if (main === "lifelog") {
       updateDetailSelections({ lifelog: null });
@@ -639,26 +578,22 @@ export default function Home() {
       buildPanels(
         selectedMain,
         selectedSubByMain,
-        selectedInventoryGearPartId,
         selectedMarketShopSectionId,
         selectedDetailByKey,
         selectedPlayerCategoryBySub,
         selectedLifelogCategoryBySub,
         editingItemId,
         Boolean(activeFormPanel),
-        equippedGear,
       ),
     [
       selectedMain,
       selectedSubByMain,
-      selectedInventoryGearPartId,
       selectedMarketShopSectionId,
       selectedDetailByKey,
       selectedPlayerCategoryBySub,
       selectedLifelogCategoryBySub,
       editingItemId,
       activeFormPanel,
-      equippedGear,
     ],
   );
 
@@ -694,7 +629,6 @@ export default function Home() {
 
     setSelectedMain(nextMain);
     setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS });
-    setSelectedInventoryGearPartId(null);
     setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
     setSelectedPlayerCategoryBySub({ achievement: null, credentials: null, title: null, interests: null });
@@ -727,7 +661,6 @@ export default function Home() {
         const next = tog(current);
         setSelectedSubByMain((prev) => ({ ...prev, [panel.context.main]: next }));
         clearDetailSelectionsForMain(panel.context.main, next ?? undefined);
-        if (panel.context.main === "inventory") setSelectedInventoryGearPartId(null);
         if (panel.context.main === "market") setSelectedMarketShopSectionId(null);
         setActiveFormPanel(null);
         setEditingItemId(null);
@@ -754,12 +687,6 @@ export default function Home() {
         return;
       }
 
-      if (panel.context.route === "inventory-gear-menu") {
-        setSelectedInventoryGearPartId(tog(selectedInventoryGearPartId));
-        updateDetailSelections({ inventoryGear: null });
-        return;
-      }
-
       if (panel.context.route === "market-shop-menu") {
         setSelectedMarketShopSectionId(tog(selectedMarketShopSectionId));
         updateDetailSelections({ marketCatalog: null, marketMyListings: null });
@@ -773,7 +700,7 @@ export default function Home() {
     }
 
     if (panel.kind === "list") {
-      const { player, skills, inventoryGear, social,
+      const { player, skills, social,
               lifelog, marketWallet, marketCatalog, marketMyListings, marketTradeFriend } = selectedDetailByKey;
 
       if (panel.context.route === "player-list") {
@@ -781,7 +708,6 @@ export default function Home() {
         updateDetailSelections({ player: tog(player) });
       }
       if (panel.context.route === "skills-list") updateDetailSelections({ skills: tog(skills) });
-      if (panel.context.route === "inventory-gear-list") updateDetailSelections({ inventoryGear: tog(inventoryGear) });
       if (panel.context.route === "social-list") updateDetailSelections({ social: tog(social) });
       if (panel.context.route === "lifelog-list") {
         setActiveFormPanel(null); setEditingItemId(null);
@@ -904,53 +830,6 @@ export default function Home() {
       } else if (selectedMain === "lifelog" && sub === "media") {
         openForm("media-edit", "Edit Media", MEDIA_FORM_FIELDS, "수정하기");
       }
-
-    } else if (actionType === "equip") {
-      // Gear equip flow
-      const itemInstanceId = Number(itemId);
-      const mockItem = MOCK_INVENTORY_ITEMS.find((i) => i.itemInstanceId === itemInstanceId);
-      if (!mockItem) return;
-      const slotId = getEquipSlotId(itemInstanceId, equippedGear);
-      const targetSlot = equippedGear.find((s) => s.slotId === slotId);
-      const slotName = targetSlot?.slotName ?? "슬롯";
-      const occupiedBy = targetSlot?.itemName;
-
-      setPendingAction({
-        title: "아이템 장착",
-        message: occupiedBy
-          ? `${mockItem.itemName}을(를) ${slotName}에 장착합니다.\n기존 장착: ${occupiedBy}`
-          : `${mockItem.itemName}을(를) ${slotName}에 장착하시겠습니까?`,
-        onConfirm: async () => {
-          try {
-            await equipGearApi(slotId, itemInstanceId);
-            const updated = await getEquippedGearApi();
-            setEquippedGear(updated);
-            showToast({ variant: "success", title: "장착 완료", body: `${mockItem.itemName} → ${slotName}` });
-          } catch {
-            showToast({ variant: "error", title: "장착 실패", body: "다시 시도해주세요." });
-          }
-        },
-      });
-
-    } else if (actionType === "unequip") {
-      const itemInstanceId = Number(itemId);
-      const slot = equippedGear.find((s) => s.itemInstanceId === itemInstanceId);
-      if (!slot) return;
-
-      setPendingAction({
-        title: "장착 해제",
-        message: `${slot.itemName ?? "아이템"}을(를) ${slot.slotName}에서 해제하시겠습니까?`,
-        onConfirm: async () => {
-          try {
-            await unequipGearApi(slot.slotId);
-            const updated = await getEquippedGearApi();
-            setEquippedGear(updated);
-            showToast({ variant: "info", title: "장착 해제", body: `${slot.itemName ?? "아이템"}이(가) 해제되었습니다.` });
-          } catch {
-            showToast({ variant: "error", title: "해제 실패", body: "다시 시도해주세요." });
-          }
-        },
-      });
 
     } else if (actionType === "start") {
       if (selectedMain === "social" && sub === "party") {
@@ -1350,7 +1229,7 @@ export default function Home() {
             </div>
           ) : selectedMain === "quests" ? (
             <JourneyShell />
-          ) : selectedMain === "inventory" && (selectedSubByMain.inventory === "items" || selectedSubByMain.inventory === "inbox") ? (
+          ) : selectedMain === "inventory" && selectedSubByMain.inventory ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
                 selectedMain="inventory"
@@ -1358,7 +1237,9 @@ export default function Home() {
                 panelStackKey="inventory-real-menu"
                 onPanelItemSelect={handlePanelItemSelect}
               />
-              <InventoryShell surface={selectedSubByMain.inventory === "items" ? "items" : "inbox"} />
+              {selectedSubByMain.inventory === "gear"
+                ? <GearShell />
+                : <InventoryShell surface={selectedSubByMain.inventory === "items" ? "items" : "inbox"} />}
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
             <div className="flex w-fit items-center gap-3">

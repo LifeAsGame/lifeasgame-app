@@ -16,7 +16,6 @@ vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth.state }));
 vi.mock("@/features/role/useRoles", () => ({ useRoles: () => ({ roles, isLoading: false, error: null, refresh: vi.fn() }) }));
 vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock("@/shared/hooks/usePanScroll", () => ({ usePanScroll: vi.fn() }));
-vi.mock("@/lib/api/endpoints/equipment.api", () => ({ getEquippedGearApi: vi.fn().mockResolvedValue([]), equipGearApi: vi.fn(), unequipGearApi: vi.fn() }));
 vi.mock("@/widgets/left-context/LeftContext", () => ({ default: () => null }));
 vi.mock("@/widgets/orb-nav/OrbNav", () => ({
   default: ({ items, onSelect }: { items: Array<{ id: MainNavId; label: string }>; onSelect: (id: MainNavId) => void }) => (
@@ -34,6 +33,7 @@ vi.mock("@/widgets/right-panels/RightPanels", () => ({
 }));
 vi.mock("@/features/lifelog/JournalShell", () => ({ default: ({ roles: roleOptions }: { roles: RoleDetail[] }) => <div data-testid="journal-shell">Journal · {roleOptions.map(({ name }) => name).join(", ")}</div> }));
 vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
+vi.mock("@/features/inventory/GearShell", () => ({ default: () => <div data-testid="gear-shell">Gear Shell</div> }));
 vi.mock("@/features/role/RoleShell", () => ({ default: () => <div data-testid="role-shell">Role Shell</div> }));
 vi.mock("@/features/quests/JourneyShell", () => ({ default: () => <div data-testid="journey-shell">Journey Shell</div> }));
 vi.mock("@/shared/ui/ParticleBackground", () => ({ default: () => null }));
@@ -88,7 +88,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Gear" }));
       expect(screen.queryByTestId("inventory-shell")).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Weapon" })).toBeInTheDocument();
+      expect(screen.getByTestId("gear-shell")).toBeInTheDocument();
     });
   });
 
