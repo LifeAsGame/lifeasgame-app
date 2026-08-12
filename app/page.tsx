@@ -11,6 +11,7 @@ import OrbNav from "@/widgets/orb-nav/OrbNav";
 import RightPanels from "@/widgets/right-panels/RightPanels";
 import SaoAlert from "@/shared/ui/SaoAlert";
 import { useAuth } from "@/features/auth/AuthContext";
+import JourneyShell from "@/features/quests/JourneyShell";
 import RoleShell from "@/features/role/RoleShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
@@ -63,7 +64,6 @@ import {
   MARKET_TRADE_FRIENDS,
   MARKET_WALLET_SUMMARY_LIST,
 } from "@/features/market/model";
-import { QUEST_LISTS } from "@/features/quests/model";
 import { SKILLS_LISTS } from "@/features/skills/model";
 import { SYSTEM_PANEL_ROWS, SYSTEM_OPTIONS_FORM_FIELDS } from "@/features/system/model";
 import { getSettingsApi, updateSettingsApi } from "@/lib/api/endpoints/settings.api";
@@ -74,7 +74,6 @@ import { useToast } from "@/context/ToastContext";
 import { NotificationBell } from "@/shared/ui/NotificationBell";
 import { getEquippedGearApi, equipGearApi, unequipGearApi } from "@/lib/api/endpoints/equipment.api";
 import { claimMailApi, deleteMailApi } from "@/lib/api/endpoints/inventory.api";
-import { acceptQuestApi, cancelQuestApi, claimQuestRewardApi } from "@/lib/api/endpoints/quest.api";
 import { requestJoinPartyApi, requestJoinGuildApi, unfollowApi } from "@/lib/api/endpoints/social.api";
 import { reserveShopItemApi, confirmShopPurchaseApi, cancelListingApi, createListingApi } from "@/lib/api/endpoints/market.api";
 import { MOCK_SHOP_ITEMS } from "@/lib/api/mock/market.mock";
@@ -93,7 +92,6 @@ type DetailSelectionKey =
   | "inventoryItems"
   | "inventoryGear"
   | "inventoryInbox"
-  | "quests"
   | "social"
   | "lifelog"
   | "marketWallet"
@@ -115,7 +113,6 @@ function createDefaultDetailSelections(): Record<DetailSelectionKey, string | nu
     inventoryItems: null,
     inventoryGear: null,
     inventoryInbox: null,
-    quests: null,
     social: null,
     lifelog: null,
     marketWallet: null,
@@ -325,32 +322,6 @@ function buildPanels(
         id: `inventory-inbox-detail-${selectedItem.id}`,
         kind: "placeholder",
         title: "Mail Detail",
-        description: selectedItem.detailDescription,
-        rows: selectedItem.detailRows,
-      });
-    }
-
-    return { panelStack, socialContext: null };
-  }
-
-  if (selectedMain === "quests") {
-    const list = QUEST_LISTS[selectedMainSub as keyof typeof QUEST_LISTS] ?? [];
-    const selectedItem = findById(list, selectedDetailByKey.quests);
-
-    panelStack.push({
-      id: `quests-list-${selectedMainSub}`,
-      kind: "list",
-      title: `${mainItems.find((item) => item.id === selectedMainSub)?.label ?? "Quest"} List`,
-      items: list,
-      selectedId: selectedDetailByKey.quests ?? undefined,
-      context: { main: "quests", route: "quests-list" },
-    });
-
-    if (selectedItem) {
-      panelStack.push({
-        id: `quests-detail-${selectedItem.id}`,
-        kind: "placeholder",
-        title: selectedItem.detailTitle ?? "Quest Detail",
         description: selectedItem.detailDescription,
         rows: selectedItem.detailRows,
       });
@@ -691,7 +662,6 @@ export default function Home() {
     }
     if (main === "skills") updateDetailSelections({ skills: null });
     if (main === "inventory") updateDetailSelections({ inventoryItems: null, inventoryGear: null, inventoryInbox: null });
-    if (main === "quests") updateDetailSelections({ quests: null });
     if (main === "social") updateDetailSelections({ social: null });
     if (main === "lifelog") {
       updateDetailSelections({ lifelog: null });
@@ -853,7 +823,7 @@ export default function Home() {
     }
 
     if (panel.kind === "list") {
-      const { player, skills, inventoryItems, inventoryGear, inventoryInbox, quests, social,
+      const { player, skills, inventoryItems, inventoryGear, inventoryInbox, social,
               lifelog, marketWallet, marketCatalog, marketMyListings, marketTradeFriend } = selectedDetailByKey;
 
       if (panel.context.route === "player-list") {
@@ -864,7 +834,6 @@ export default function Home() {
       if (panel.context.route === "inventory-items-list") updateDetailSelections({ inventoryItems: tog(inventoryItems) });
       if (panel.context.route === "inventory-gear-list") updateDetailSelections({ inventoryGear: tog(inventoryGear) });
       if (panel.context.route === "inventory-inbox-list") updateDetailSelections({ inventoryInbox: tog(inventoryInbox) });
-      if (panel.context.route === "quests-list") updateDetailSelections({ quests: tog(quests) });
       if (panel.context.route === "social-list") updateDetailSelections({ social: tog(social) });
       if (panel.context.route === "lifelog-list") {
         setActiveFormPanel(null); setEditingItemId(null);
@@ -989,15 +958,6 @@ export default function Home() {
       }
 
     } else if (actionType === "equip") {
-      const isQuestAccept = selectedMain === "quests" && (sub === "suggested" || sub === "daily");
-      if (isQuestAccept) {
-        setPendingAction({
-          title: "퀘스트 수락",
-          message: "이 퀘스트를 수락하시겠습니까?",
-          onConfirm: () => {},
-        });
-        return;
-      }
       // Gear equip flow
       const itemInstanceId = Number(itemId);
       const mockItem = MOCK_INVENTORY_ITEMS.find((i) => i.itemInstanceId === itemInstanceId);
@@ -1107,57 +1067,24 @@ export default function Home() {
             }
           },
         });
-      } else {
-        // Quest accept (blueprints in suggested/daily)
-        const questCode = itemId;
-        setPendingAction({
-          title: "퀘스트 수락",
-          message: "이 퀘스트를 수락하시겠습니까?",
-          onConfirm: async () => {
-            try {
-              await acceptQuestApi(questCode);
-              showToast({ variant: "quest", title: "퀘스트 수락됨", body: questCode });
-            } catch {
-              showToast({ variant: "error", title: "수락 실패", body: "다시 시도해주세요." });
-            }
-          },
-        });
       }
 
     } else if (actionType === "claim") {
-      if (selectedMain === "quests") {
-        // Quest reward claim
-        const questCode = itemId;
-        setPendingAction({
-          title: "보상 수령",
-          message: "퀘스트 보상을 수령하시겠습니까?",
-          onConfirm: async () => {
-            try {
-              const result = await claimQuestRewardApi(questCode);
-              showToast({ variant: "quest", title: "보상 수령 완료", body: `EXP +${result.rewardExp}` });
-            } catch {
-              showToast({ variant: "error", title: "보상 수령 실패", body: "다시 시도해주세요." });
-            }
-          },
-        });
-      } else {
-        // Mailbox claim
-        const mailId = Number(itemId);
-        const mail = MOCK_MAIL_ITEMS.find((m) => m.mailId === mailId);
-        if (!mail) return;
-        setPendingAction({
-          title: "아이템 수령",
-          message: `${mail.itemName} x${mail.quantity}을(를) 수령하시겠습니까?`,
-          onConfirm: async () => {
-            try {
-              await claimMailApi(mail.slotIndex, mail.quantity);
-              showToast({ variant: "success", title: "수령 완료", body: `${mail.itemName} x${mail.quantity}` });
-            } catch {
-              showToast({ variant: "error", title: "수령 실패", body: "다시 시도해주세요." });
-            }
-          },
-        });
-      }
+      const mailId = Number(itemId);
+      const mail = MOCK_MAIL_ITEMS.find((m) => m.mailId === mailId);
+      if (!mail) return;
+      setPendingAction({
+        title: "아이템 수령",
+        message: `${mail.itemName} x${mail.quantity}을(를) 수령하시겠습니까?`,
+        onConfirm: async () => {
+          try {
+            await claimMailApi(mail.slotIndex, mail.quantity);
+            showToast({ variant: "success", title: "수령 완료", body: `${mail.itemName} x${mail.quantity}` });
+          } catch {
+            showToast({ variant: "error", title: "수령 실패", body: "다시 시도해주세요." });
+          }
+        },
+      });
 
     } else if (actionType === "cancel") {
       if (selectedMain === "market") {
@@ -1172,23 +1099,6 @@ export default function Home() {
               showToast({ variant: "info", title: "리스팅 취소됨", body: listingItem?.label ?? `#${listingId}` });
             } catch {
               showToast({ variant: "error", title: "취소 실패", body: "다시 시도해주세요." });
-            }
-          },
-        });
-      } else {
-        const isQuest = selectedMain === "quests";
-        const questCode = isQuest ? itemId : null;
-        setPendingAction({
-          title: isQuest ? "퀘스트 취소" : "취소",
-          message: isQuest ? "진행 중인 퀘스트를 취소하시겠습니까?" : "이 항목을 취소하시겠습니까?",
-          onConfirm: async () => {
-            if (questCode) {
-              try {
-                await cancelQuestApi(questCode);
-                showToast({ variant: "warning", title: "퀘스트 취소됨", body: questCode });
-              } catch {
-                showToast({ variant: "error", title: "취소 실패", body: "다시 시도해주세요." });
-              }
             }
           },
         });
@@ -1540,6 +1450,8 @@ export default function Home() {
                 />
               ) : null}
             </div>
+          ) : selectedMain === "quests" ? (
+            <JourneyShell />
           ) : (
             <RightPanels
               selectedMain={selectedMain}

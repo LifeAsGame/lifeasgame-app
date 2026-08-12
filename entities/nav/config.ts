@@ -9,7 +9,7 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
   { id: "player",    label: "Player",    slotLabel: "PL" },
   { id: "skills",    label: "Skills",    slotLabel: "SK" },
   { id: "inventory", label: "Inventory", slotLabel: "IN" },
-  { id: "quests",    label: "Quests",    slotLabel: "QU" },
+  { id: "quests",    label: "Journey",   slotLabel: "QU" },
   { id: "role",      label: "Role",      slotLabel: "RL" },
   { id: "lifelog",   label: "Lifelog",   slotLabel: "LI" },
   { id: "market",    label: "Market",    slotLabel: "MK" },
@@ -17,7 +17,7 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
 ];
 
 export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {
-  player: "Player", skills: "Skills", inventory: "Inventory", quests: "Quests",
+  player: "Player", skills: "Skills", inventory: "Inventory", quests: "Journey",
   role: "Role", social: "Social", lifelog: "Lifelog", market: "Market", system: "System",
 };
 
@@ -38,11 +38,9 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
     { id: "inbox", label: "Inbox", slotLabel: "MB" },
   ],
   quests: [
-    { id: "story",     label: "Story",     slotLabel: "ST" },
-    { id: "suggested", label: "Suggested", slotLabel: "SG" },
-    { id: "daily",     label: "Daily",     slotLabel: "DY" },
-    { id: "party",     label: "Party",     slotLabel: "PT" },
-    { id: "guild",     label: "Guild",     slotLabel: "GD" },
+    { id: "current", label: "Current", slotLabel: "CU" },
+    { id: "catalog", label: "Catalog", slotLabel: "CA" },
+    { id: "routes",  label: "Routes",  slotLabel: "RT" },
   ],
   role: [
     { id: "overview",  label: "Overview",  slotLabel: "OV" },

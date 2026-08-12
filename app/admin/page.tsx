@@ -523,9 +523,9 @@ const JOIN_POLICY_OPTIONS = [
 
 const QUEST_STATUS_OPTIONS = [
   { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "GOAL_REACHED", label: "Goal Reached" },
   { value: "COMPLETED",   label: "Completed" },
-  { value: "FAILED",      label: "Failed" },
-  { value: "CANCELLED",   label: "Cancelled" },
+  { value: "CANCELED",    label: "Canceled" },
 ];
 
 const USER_STATUS_OPTIONS = [

@@ -4,6 +4,7 @@ export * from "./auth";
 export * from "./character";
 export * from "./inventory";
 export * from "./quest";
+export * from "./quest-route";
 export * from "./role";
 export * from "./social";
 export * from "./lifelog";
