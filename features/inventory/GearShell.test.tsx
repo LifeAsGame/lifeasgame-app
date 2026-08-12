@@ -31,10 +31,12 @@ const currentBlade: InventoryEntry = {
 };
 const newBlade: InventoryEntry = { ...currentBlade, itemInstanceId: 502, slotIndex: 2, itemId: 102, itemName: "New Blade", rarity: "EPIC" };
 const armor: InventoryEntry = { ...currentBlade, itemInstanceId: 601, slotIndex: 3, itemId: 201, itemName: "Chest Armor", category: "ARMOR", type: "CHEST" };
+const boots: InventoryEntry = { ...armor, itemInstanceId: 602, itemName: "Windrunner Boots", type: "ETC" };
 const equipment: EquipmentSlotInfo[] = [
   { slotId: 21, slotCode: "MAIN_HAND", slotName: "Main Hand", slotCategory: "WEAPON", slotRole: "MAIN", itemInstanceId: null },
   { slotId: 22, slotCode: "OFF_HAND", slotName: "Off Hand", slotCategory: "WEAPON", slotRole: "OFFHAND", itemInstanceId: 501 },
   { slotId: 31, slotCode: "CHEST", slotName: "Chest", slotCategory: "CHEST", slotRole: "SINGLE", itemInstanceId: 999 },
+  { slotId: 41, slotCode: "FEET", slotName: "Feet", slotCategory: "FEET", slotRole: "SINGLE", itemInstanceId: 602 },
 ];
 
 function makeState(slotData = equipment, entries = [currentBlade, newBlade, armor]) {
@@ -97,6 +99,24 @@ describe("Gear surface를 사용할 때", () => {
 
       expect(window.confirm).toHaveBeenCalledWith("Unequip itemInstanceId 999 from Chest?");
       expect(hook.current.unequip).toHaveBeenCalledWith(31);
+    });
+  });
+
+  describe("선택한 pair의 호환성을 현재 계약으로 증명할 수 없으면", () => {
+    it("설명을 표시하고 Equip을 막지만 occupied slot의 Unequip은 허용한다", () => {
+      hook.current = makeState(equipment, [currentBlade, newBlade, armor, boots]);
+      render(<GearShell />);
+      fireEvent.click(screen.getByRole("button", { name: /Boots/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Feet/ }));
+      fireEvent.click(screen.getByRole("button", { name: /^Windrunner Boots · x1/ }));
+
+      expect(screen.getByRole("alert")).toHaveTextContent("Compatibility is not available for this slot in the current item contract.");
+      expect(screen.getByRole("button", { name: "Equip" })).toBeDisabled();
+      fireEvent.click(screen.getByRole("button", { name: "Equip" }));
+      expect(hook.current.equip).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole("button", { name: "Unequip" }));
+      expect(hook.current.unequip).toHaveBeenCalledWith(41);
     });
   });
 

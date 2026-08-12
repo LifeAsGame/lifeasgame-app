@@ -9,7 +9,7 @@ import PanelCard from "@/shared/ui/PanelCard";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
-import { candidatesForGearPart, slotsForGearPart } from "./model";
+import { candidatesForGearPart, getEquipCompatibility, slotsForGearPart } from "./model";
 import { useEquipmentQueries } from "./useEquipmentQueries";
 
 const secondaryButton = {
@@ -43,6 +43,9 @@ export default function GearShell() {
   );
   const selectedSlot = slots.find(({ slot }) => slot.slotId === selectedSlotId) ?? null;
   const selectedCandidate = candidates.find(({ itemInstanceId }) => itemInstanceId === selectedItemInstanceId) ?? null;
+  const compatibility = selectedSlot && selectedCandidate
+    ? getEquipCompatibility(selectedSlot.slot, selectedCandidate)
+    : null;
   const pending = queries.pendingKey !== null;
 
   useEffect(() => {
@@ -136,14 +139,15 @@ export default function GearShell() {
             {selectedSlot.item ? <GoldRow>Equipped: {selectedSlot.item.itemName} · {selectedSlot.item.rarity}</GoldRow> : null}
             {selectedSlot.enrichmentMissing ? <GoldRow>Equipped: Item details unavailable · itemInstanceId {selectedSlot.slot.itemInstanceId}</GoldRow> : null}
             {selectedCandidate ? <GoldRow>Candidate: {selectedCandidate.itemName} · itemInstanceId {selectedCandidate.itemInstanceId}</GoldRow> : <InfoCard>Select an Inventory candidate to equip.</InfoCard>}
+            {compatibility && compatibility.status !== "VERIFIED" ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{compatibility.reason}</p> : null}
             {queries.mutationError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{queries.mutationError}</p> : null}
             <div className="flex gap-2 pt-2">
               <button
                 type="button"
-                disabled={pending || !selectedCandidate || selectedSlot.slot.itemInstanceId === selectedCandidate?.itemInstanceId}
+                disabled={pending || compatibility?.status !== "VERIFIED" || selectedSlot.slot.itemInstanceId === selectedCandidate?.itemInstanceId}
                 style={{ ...actionBtnStyle, flex: 1 }}
                 onClick={() => {
-                  if (!selectedCandidate) return;
+                  if (!selectedCandidate || compatibility?.status !== "VERIFIED") return;
                   const current = selectedSlot.item?.itemName
                     ?? (selectedSlot.slot.itemInstanceId === null ? null : `itemInstanceId ${selectedSlot.slot.itemInstanceId}`);
                   const prompt = current

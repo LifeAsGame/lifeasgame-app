@@ -76,7 +76,7 @@ describe("Gear server query state를 관리할 때", () => {
       const request = deferred<{ slotId: number; itemInstanceId: number }>();
       equipmentApi.equipGearApi.mockReturnValue(request.promise);
       const { result } = renderHook(() => useEquipmentQueries());
-      await waitFor(() => expect(result.current.slots).toHaveLength(1));
+      await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
 
       let mutation!: Promise<void>;
       act(() => {
@@ -100,11 +100,37 @@ describe("Gear server query state를 관리할 때", () => {
     });
   });
 
+  describe("직접 Equip action을 호출한 pair가 검증되지 않으면", () => {
+    it.each([
+      ["CHEST", "ARMOR", "HELMET", "incompatible"],
+      ["HEAD", "ARMOR", "CHEST", "incompatible"],
+      ["FEET", "ARMOR", "ETC", "not available"],
+      ["LEGS", "ARMOR", "ETC", "not available"],
+      ["HANDS", "ARMOR", "ETC", "not available"],
+      ["NECK", "ACCESSORY", "ETC", "not available"],
+      ["TRINKET", "ACCESSORY", "ETC", "not available"],
+    ])("%s slot과 %s/%s item은 API 호출로 우회되지 않는다", async (slotCategory, category, type, reason) => {
+      equipmentApi.getEquippedGearApi.mockResolvedValue([{ ...slots[0], slotCategory }]);
+      inventoryApi.getInventoryApi.mockResolvedValue({ entries: [{ ...item, category, type }] });
+      const { result, unmount } = renderHook(() => useEquipmentQueries());
+      await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
+
+      await act(async () => { await result.current.equip(21, 501); });
+
+      expect(equipmentApi.equipGearApi).not.toHaveBeenCalled();
+      expect(result.current.mutationError).toContain(reason);
+      expect(equipmentApi.getEquippedGearApi).toHaveBeenCalledTimes(1);
+      expect(inventoryApi.getInventoryApi).toHaveBeenCalledTimes(1);
+      unmount();
+    });
+  });
+
   describe("Unequip을 요청하면", () => {
-    it("duplicate submit을 막고 ambiguous failure 후에도 두 authoritative query를 reload한다", async () => {
-      const occupied = [{ ...slots[0], itemInstanceId: 501 }];
+    it("UNVERIFIABLE occupied slot도 해제하며 duplicate submit과 ambiguous failure를 복구한다", async () => {
+      const occupied = [{ ...slots[0], slotCategory: "FEET", itemInstanceId: 501 }];
       const request = deferred<{ slotId: number }>();
       equipmentApi.getEquippedGearApi.mockResolvedValue(occupied);
+      inventoryApi.getInventoryApi.mockResolvedValue({ entries: [{ ...item, category: "ARMOR", type: "ETC" }] });
       equipmentApi.unequipGearApi.mockReturnValue(request.promise);
       const { result } = renderHook(() => useEquipmentQueries());
       await waitFor(() => expect(result.current.slots[0]?.slot.itemInstanceId).toBe(501));
@@ -132,7 +158,7 @@ describe("Gear server query state를 관리할 때", () => {
     it("server message를 표시하고 authoritative reload state를 유지한다", async () => {
       equipmentApi.equipGearApi.mockRejectedValue(new ApiError(409, "PEQ-409", "Item is already equipped"));
       const { result } = renderHook(() => useEquipmentQueries());
-      await waitFor(() => expect(result.current.slots).toHaveLength(1));
+      await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
 
       await act(async () => { await result.current.equip(21, 501); });
 
@@ -146,9 +172,10 @@ describe("Gear server query state를 관리할 때", () => {
     it("stale success가 recovery state를 덮어쓰지 않는다", async () => {
       const stale = deferred<EquipmentSlotInfo[]>();
       const recovered = [{ ...slots[0], itemInstanceId: 501 }];
-      equipmentApi.getEquippedGearApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
       const { result } = renderHook(() => useEquipmentQueries());
-      await waitFor(() => expect(equipmentApi.getEquippedGearApi).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
+      equipmentApi.getEquippedGearApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
+      act(() => { void result.current.equipment.reload(); });
 
       await act(async () => { await result.current.equip(21, 501); });
       expect(result.current.equipment.data).toEqual(recovered);
@@ -164,9 +191,10 @@ describe("Gear server query state를 관리할 때", () => {
     it("stale error가 recovery state와 loading/error를 바꾸지 않는다", async () => {
       const stale = deferred<EquipmentSlotInfo[]>();
       const recovered = [{ ...slots[0], itemInstanceId: 501 }];
-      equipmentApi.getEquippedGearApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
       const { result } = renderHook(() => useEquipmentQueries());
-      await waitFor(() => expect(equipmentApi.getEquippedGearApi).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
+      equipmentApi.getEquippedGearApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
+      act(() => { void result.current.equipment.reload(); });
 
       await act(async () => { await result.current.equip(21, 501); });
       await act(async () => {
@@ -184,9 +212,10 @@ describe("Gear server query state를 관리할 때", () => {
     it("stale success가 recovered Inventory enrichment를 덮어쓰지 않는다", async () => {
       const stale = deferred<InventoryEntriesResponse>();
       const recovered = { entries: [{ ...item, itemName: "Recovered Sword" }] };
-      inventoryApi.getInventoryApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
       const { result } = renderHook(() => useEquipmentQueries());
-      await waitFor(() => expect(inventoryApi.getInventoryApi).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
+      inventoryApi.getInventoryApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
+      act(() => { void result.current.inventory.reload(); });
 
       await act(async () => { await result.current.equip(21, 501); });
       expect(result.current.inventory.data).toEqual(recovered);
@@ -202,9 +231,10 @@ describe("Gear server query state를 관리할 때", () => {
     it("stale error가 recovered Inventory data/loading/error를 바꾸지 않는다", async () => {
       const stale = deferred<InventoryEntriesResponse>();
       const recovered = { entries: [{ ...item, itemName: "Recovered Sword" }] };
-      inventoryApi.getInventoryApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
       const { result } = renderHook(() => useEquipmentQueries());
-      await waitFor(() => expect(inventoryApi.getInventoryApi).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
+      inventoryApi.getInventoryApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
+      act(() => { void result.current.inventory.reload(); });
 
       await act(async () => { await result.current.equip(21, 501); });
       await act(async () => {
