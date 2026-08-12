@@ -16,6 +16,7 @@ import {
   selectQuestRouteApi,
 } from "./api";
 import { journeyMock, resetJourneyMock } from "./mock";
+import type { QuestStatus } from "@/shared/api/types";
 
 const client = vi.hoisted(() => ({
   apiDelete: vi.fn(),
@@ -33,31 +34,31 @@ describe("Journey API를 실제 backend에 연결할 때", () => {
   });
 
   describe("Quest query 계약을 사용하면", () => {
-    it("catalog/list/detail의 raw response path와 status query를 그대로 사용한다", async () => {
+    it("catalog/list/detail의 raw response path에서 status와 questCode를 encode한다", async () => {
       client.apiGetRaw
         .mockResolvedValueOnce({ blueprints: [] })
         .mockResolvedValueOnce({ acceptances: [] })
-        .mockResolvedValueOnce({ code: "Q_ONE", acceptance: null });
+        .mockResolvedValueOnce({ code: "Q/ONE ?", acceptance: null });
 
       await listQuestCatalogApi();
-      await listPlayerQuestsApi("GOAL_REACHED");
-      await getPlayerQuestApi("Q_ONE");
+      await listPlayerQuestsApi("GOAL/REACHED" as QuestStatus);
+      await getPlayerQuestApi("Q/ONE ?");
 
       expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/quests/catalog");
-      expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/quests?status=GOAL_REACHED");
-      expect(client.apiGetRaw).toHaveBeenNthCalledWith(3, "/api/v1/players/quests/Q_ONE");
+      expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/quests?status=GOAL%2FREACHED");
+      expect(client.apiGetRaw).toHaveBeenNthCalledWith(3, "/api/v1/players/quests/Q%2FONE%20%3F");
     });
   });
 
   describe("Quest mutation 계약을 사용하면", () => {
-    it("accept/manual-check/DELETE cancel의 path와 body만 전송하고 reward endpoint를 만들지 않는다", async () => {
-      await acceptQuestApi("Q_ONE");
-      await manualCheckQuestApi("Q_ONE");
-      await cancelQuestApi("Q_ONE", "Changed direction");
+    it("encoded questCode path와 typed body만 전송하고 reward endpoint를 만들지 않는다", async () => {
+      await acceptQuestApi("Q/ONE ?");
+      await manualCheckQuestApi("Q/ONE ?");
+      await cancelQuestApi("Q/ONE ?", "Changed direction");
 
-      expect(client.apiPost).toHaveBeenNthCalledWith(1, "/api/v1/players/quests/Q_ONE", { partyId: null, guildId: null });
-      expect(client.apiPost).toHaveBeenNthCalledWith(2, "/api/v1/players/quests/Q_ONE/manual-check", {});
-      expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/quests/Q_ONE", { reason: "Changed direction" });
+      expect(client.apiPost).toHaveBeenNthCalledWith(1, "/api/v1/players/quests/Q%2FONE%20%3F", { partyId: null, guildId: null });
+      expect(client.apiPost).toHaveBeenNthCalledWith(2, "/api/v1/players/quests/Q%2FONE%20%3F/manual-check", {});
+      expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/quests/Q%2FONE%20%3F", { reason: "Changed direction" });
       expect([...client.apiPost.mock.calls, ...client.apiDelete.mock.calls].some(([path]) => String(path).includes("reward"))).toBe(false);
     });
   });
@@ -96,16 +97,50 @@ describe("Journey API를 실제 backend에 연결할 때", () => {
   });
 
   describe("mock mode 계약을 구성하면", () => {
+    beforeEach(resetJourneyMock);
+
     it("현재 P0 DTO와 단일 active Route만 제공하고 legacy 상태를 노출하지 않는다", () => {
-      resetJourneyMock();
       const quests = journeyMock.acceptances();
       const routes = journeyMock.routes();
+      const statuses = quests.map(({ status }) => status as string);
 
-      expect(quests.map(({ status }) => status)).toEqual(expect.arrayContaining(["IN_PROGRESS", "GOAL_REACHED", "COMPLETED", "CANCELED"]));
-      expect(quests.map(({ status }) => status)).not.toEqual(expect.arrayContaining(["PENDING", "CANCELLED", "EXPIRED"]));
+      expect(statuses).toEqual(expect.arrayContaining(["IN_PROGRESS", "GOAL_REACHED", "COMPLETED", "CANCELED"]));
+      expect(statuses).not.toContain("PENDING");
+      expect(statuses).not.toContain("CANCELLED");
+      expect(statuses).not.toContain("EXPIRED");
       expect(quests[0]).toEqual(expect.objectContaining({ progressValue: expect.any(Number), completionPolicy: expect.any(String) }));
       expect(routes).toHaveLength(1);
       expect(routes[0].code).toBe("ROUTE_RECORD_START");
+    });
+
+    it("IN_PROGRESS와 GOAL_REACHED manual-check를 COMPLETED로 전환한다", () => {
+      const inProgress = journeyMock.accept("Q_RECOVERY_REST_TEN");
+
+      expect(inProgress.status).toBe("IN_PROGRESS");
+      expect(journeyMock.manualCheck(inProgress.code).status).toBe("COMPLETED");
+      expect(journeyMock.manualCheck("Q_GROWTH_ONE_FOCUS").status).toBe("COMPLETED");
+    });
+
+    it("COMPLETED manual-check를 idempotent no-op으로 처리해 timestamps를 보존한다", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime("2026-08-11T01:00:00Z");
+      const completed = journeyMock.manualCheck("Q_GROWTH_ONE_FOCUS");
+      vi.setSystemTime("2026-08-12T01:00:00Z");
+      const repeated = journeyMock.manualCheck("Q_GROWTH_ONE_FOCUS");
+      vi.useRealTimers();
+
+      expect(repeated.goalReachedAt).toBe(completed.goalReachedAt);
+      expect(repeated.completedAt).toBe(completed.completedAt);
+    });
+
+    it("CANCELED cancel은 no-op이고 COMPLETED cancel은 거절한다", () => {
+      const canceledBefore = journeyMock.acceptances().find(({ code }) => code === "Q_RECORD_WEEKLY_LOOKBACK")!;
+
+      journeyMock.cancel(canceledBefore.code);
+      journeyMock.cancel(canceledBefore.code);
+
+      expect(journeyMock.acceptances().find(({ id }) => id === canceledBefore.id)).toEqual(canceledBefore);
+      expect(() => journeyMock.cancel("Q_RECORD_FIRST_TRACE")).toThrow("Quest cannot be canceled.");
     });
   });
 });

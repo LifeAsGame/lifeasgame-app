@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { QuestAcceptance, QuestBlueprint, QuestRoute } from "@/shared/api/types";
 import { listMyQuestRoutesApi, listPlayerQuestsApi, listQuestCatalogApi, listQuestRoutesApi } from "./api";
@@ -20,19 +20,21 @@ function useQuery<T>(enabled: boolean, initial: T, load: () => Promise<T>, fallb
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
 
   const reload = useCallback(async () => {
+    const currentRequestId = ++requestId.current;
     setLoading(true);
     setError(null);
     try {
       const next = await load();
-      setData(next);
+      if (currentRequestId === requestId.current) setData(next);
       return next;
     } catch (caught) {
-      setError(errorMessage(caught, fallback));
+      if (currentRequestId === requestId.current) setError(errorMessage(caught, fallback));
       return undefined;
     } finally {
-      setLoading(false);
+      if (currentRequestId === requestId.current) setLoading(false);
     }
   }, [fallback, load]);
 

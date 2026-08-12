@@ -143,7 +143,9 @@ export const journeyMock = {
   manualCheck: (code: string): QuestAcceptance => {
     const current = latest(code);
     if (!current || current.progressSource !== "MANUAL_CHECK" || current.completionPolicy !== "USER_CONFIRM" || current.status === "CANCELED") throw new Error("Manual check not allowed.");
-    Object.assign(current, { progressValue: current.targetValue, status: "COMPLETED", goalReachedAt: current.goalReachedAt ?? new Date().toISOString(), completedAt: new Date().toISOString() });
+    if (current.status === "COMPLETED") return copy(current);
+    const completedAt = new Date().toISOString();
+    Object.assign(current, { progressValue: current.targetValue, status: "COMPLETED", goalReachedAt: current.goalReachedAt ?? completedAt, completedAt });
     return copy(current);
   },
   cancel: (code: string) => {

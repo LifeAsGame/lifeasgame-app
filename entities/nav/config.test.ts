@@ -7,7 +7,6 @@ describe("primary Orb navigation을 구성할 때", () => {
     it("Quest Orb를 Current/Catalog/Routes로 구성하고 Party/Guild Quest를 노출하지 않는다", () => {
       expect(MAIN_NAV_ITEMS.find(({ id }) => id === "quests")).toEqual({ id: "quests", label: "Journey", slotLabel: "QU" });
       expect(SUBMENUS_BY_MAIN.quests.map(({ id }) => id)).toEqual(["current", "catalog", "routes"]);
-      expect(SUBMENUS_BY_MAIN.quests.map(({ id }) => id)).not.toEqual(expect.arrayContaining(["party", "guild"]));
     });
   });
 

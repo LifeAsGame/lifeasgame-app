@@ -1,5 +1,7 @@
 import { USE_MOCK, apiDelete, apiGet, apiGetRaw, apiPost } from "@/shared/api/client";
 import type {
+  AcceptQuestRequest,
+  CancelQuestRequest,
   CanceledQuest,
   PlayerQuestDetail,
   QuestAcceptance,
@@ -13,6 +15,8 @@ import type {
 } from "@/shared/api/types";
 import { journeyMock } from "./mock";
 
+const playerQuestPath = (questCode: string) => `/api/v1/players/quests/${encodeURIComponent(questCode)}`;
+
 export async function listQuestCatalogApi(): Promise<QuestBlueprint[]> {
   if (USE_MOCK) return journeyMock.catalog();
   return (await apiGetRaw<QuestCatalogResponse>("/api/v1/quests/catalog")).blueprints;
@@ -20,31 +24,32 @@ export async function listQuestCatalogApi(): Promise<QuestBlueprint[]> {
 
 export async function listPlayerQuestsApi(status?: QuestStatus): Promise<QuestAcceptance[]> {
   if (USE_MOCK) return journeyMock.acceptances(status);
-  const query = status ? `?status=${status}` : "";
+  const query = status ? `?status=${encodeURIComponent(status)}` : "";
   return (await apiGetRaw<QuestAcceptancesResponse>(`/api/v1/players/quests${query}`)).acceptances;
 }
 
 export function getPlayerQuestApi(questCode: string): Promise<PlayerQuestDetail> {
-  return USE_MOCK ? Promise.resolve(journeyMock.quest(questCode)) : apiGetRaw<PlayerQuestDetail>(`/api/v1/players/quests/${questCode}`);
+  return USE_MOCK ? Promise.resolve(journeyMock.quest(questCode)) : apiGetRaw<PlayerQuestDetail>(playerQuestPath(questCode));
 }
 
 export function acceptQuestApi(questCode: string): Promise<QuestAcceptance> {
+  const body: AcceptQuestRequest = { partyId: null, guildId: null };
   return USE_MOCK
     ? Promise.resolve(journeyMock.accept(questCode))
-    : apiPost<QuestAcceptance>(`/api/v1/players/quests/${questCode}`, { partyId: null, guildId: null });
+    : apiPost<QuestAcceptance>(playerQuestPath(questCode), body);
 }
 
 export function manualCheckQuestApi(questCode: string): Promise<QuestAcceptance> {
   return USE_MOCK
     ? Promise.resolve(journeyMock.manualCheck(questCode))
-    : apiPost<QuestAcceptance>(`/api/v1/players/quests/${questCode}/manual-check`, {});
+    : apiPost<QuestAcceptance>(`${playerQuestPath(questCode)}/manual-check`, {});
 }
 
 export function cancelQuestApi(questCode: string, reason?: string): Promise<CanceledQuest> {
-  const body = reason ? { reason } : {};
+  const body: CancelQuestRequest = reason ? { reason } : {};
   return USE_MOCK
     ? Promise.resolve(journeyMock.cancel(questCode))
-    : apiDelete<CanceledQuest>(`/api/v1/players/quests/${questCode}`, body);
+    : apiDelete<CanceledQuest>(playerQuestPath(questCode), body);
 }
 
 export async function listQuestRoutesApi(): Promise<QuestRoute[]> {

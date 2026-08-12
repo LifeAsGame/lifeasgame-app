@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PlayerQuestDetail, QuestAcceptance, QuestRoute, QuestRouteStepDetail } from "@/shared/api/types";
@@ -66,6 +66,27 @@ function routeStep(route: QuestRoute): QuestRouteStepDetail {
   return { routeId: route.id, routeCode: route.code, playerProgress: route.playerProgress!, step };
 }
 
+function routeVariant(id: number, title: string, stepTitle: string): QuestRoute {
+  const variant = structuredClone(selectedRoute);
+  variant.id = id;
+  variant.code = `ROUTE_${id}`;
+  variant.title = title;
+  variant.description = `${title} description`;
+  variant.playerProgress = { ...variant.playerProgress!, id };
+  variant.steps = variant.steps.map((step) => step.id === variant.playerProgress!.currentStepId ? { ...step, title: stepTitle } : step);
+  return variant;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, reject, resolve };
+}
+
 describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -127,6 +148,52 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       await waitFor(() => expect(api.cancelQuestApi).toHaveBeenCalledWith("Q_RECORD_THREE_TRACES"));
       await waitFor(() => expect(screen.getByText("Status: Canceled")).toBeInTheDocument());
       expect(api.listPlayerQuestsApi).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("Quest detail 선택을 빠르게 바꾸면", () => {
+    it("stale success가 최신 Quest detail을 덮어쓰지 않는다", async () => {
+      const stale = deferred<PlayerQuestDetail>();
+      const latest = deferred<PlayerQuestDetail>();
+      api.getPlayerQuestApi.mockImplementation((code: string) => code === "Q_RECORD_THREE_TRACES" ? stale.promise : latest.promise);
+      render(<JourneyShell />);
+
+      fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
+      fireEvent.click(screen.getByRole("button", { name: /한 가지에 25분 집중하기/ }));
+      await act(async () => {
+        latest.resolve({ ...detail("Q_GROWTH_ONE_FOCUS"), descriptionMd: "Latest Quest detail" });
+        await latest.promise;
+      });
+      expect(screen.getByText("Latest Quest detail")).toBeInTheDocument();
+
+      await act(async () => {
+        stale.resolve({ ...detail("Q_RECORD_THREE_TRACES"), descriptionMd: "Stale Quest detail" });
+        await stale.promise;
+      });
+      expect(screen.getByText("Latest Quest detail")).toBeInTheDocument();
+      expect(screen.queryByText("Stale Quest detail")).not.toBeInTheDocument();
+    });
+
+    it("stale error가 최신 Quest의 loading과 detail을 바꾸지 않는다", async () => {
+      const stale = deferred<PlayerQuestDetail>();
+      const latest = deferred<PlayerQuestDetail>();
+      api.getPlayerQuestApi.mockImplementation((code: string) => code === "Q_RECORD_THREE_TRACES" ? stale.promise : latest.promise);
+      render(<JourneyShell />);
+
+      fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
+      fireEvent.click(screen.getByRole("button", { name: /한 가지에 25분 집중하기/ }));
+      await act(async () => {
+        stale.reject(new Error("stale Quest failure"));
+        await stale.promise.catch(() => undefined);
+      });
+      expect(screen.getByText("Loading Quest detail...")).toBeInTheDocument();
+      expect(screen.queryByText("stale Quest failure")).not.toBeInTheDocument();
+
+      await act(async () => {
+        latest.resolve({ ...detail("Q_GROWTH_ONE_FOCUS"), descriptionMd: "Latest Quest after stale error" });
+        await latest.promise;
+      });
+      expect(screen.getByText("Latest Quest after stale error")).toBeInTheDocument();
     });
   });
 
@@ -225,6 +292,19 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
   });
 
   describe("QuestRoute를 명시적으로 선택하고 진행하면", () => {
+    it("catalog에 없는 My Route도 보존하고 My Route detail과 step을 표시한다", async () => {
+      api.listQuestRoutesApi.mockResolvedValue([]);
+      api.listMyQuestRoutesApi.mockResolvedValue([selectedRoute]);
+      render(<JourneyShell />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
+
+      expect(await screen.findByText("Current Step Detail: 첫 흔적 남기기 · READY_TO_ADVANCE")).toBeInTheDocument();
+      expect(api.getMyQuestRouteApi).toHaveBeenCalledWith(selectedRoute.id);
+      expect(api.getQuestRouteApi).not.toHaveBeenCalled();
+    });
+
     it("unselected Route를 확인·select한 뒤 READY_TO_ADVANCE currentStepId로 정확히 한 Step만 advance한다", async () => {
       api.listQuestRoutesApi
         .mockResolvedValueOnce([unselectedRoute])
@@ -253,6 +333,65 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       expect(await screen.findByText("Current Step ID: 12")).toBeInTheDocument();
       expect(screen.getByText("Current Step Detail: 흔적 연결하기 · CURRENT")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Advance Current Step" })).not.toBeInTheDocument();
+    });
+
+    it("stale Route response가 최신 Route detail을 덮어쓰거나 step을 요청하지 않는다", async () => {
+      const staleRoute = routeVariant(21, "Stale Route", "Stale Route Step");
+      const latestRoute = routeVariant(22, "Latest Route", "Latest Route Step");
+      const stale = deferred<QuestRoute>();
+      const latest = deferred<QuestRoute>();
+      api.listQuestRoutesApi.mockResolvedValue([]);
+      api.listMyQuestRoutesApi.mockResolvedValue([staleRoute, latestRoute]);
+      api.getMyQuestRouteApi.mockImplementation((routeId: number) => routeId === staleRoute.id ? stale.promise : latest.promise);
+      api.getMyQuestRouteStepApi.mockImplementation(async (routeId: number) => routeStep(routeId === staleRoute.id ? staleRoute : latestRoute));
+      render(<JourneyShell />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /Stale Route/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Latest Route/ }));
+      await act(async () => {
+        latest.resolve(latestRoute);
+        await latest.promise;
+      });
+      expect(await screen.findByText("Current Step Detail: Latest Route Step · READY_TO_ADVANCE")).toBeInTheDocument();
+
+      await act(async () => {
+        stale.resolve(staleRoute);
+        await stale.promise;
+      });
+      expect(screen.getByText("Current Step Detail: Latest Route Step · READY_TO_ADVANCE")).toBeInTheDocument();
+      expect(screen.queryByText(/Current Step Detail: Stale Route Step/)).not.toBeInTheDocument();
+      expect(api.getMyQuestRouteStepApi).toHaveBeenCalledTimes(1);
+      expect(api.getMyQuestRouteStepApi).toHaveBeenCalledWith(latestRoute.id, latestRoute.playerProgress!.currentStepId);
+    });
+
+    it("stale current-step response가 최신 Route의 loading과 detail을 바꾸지 않는다", async () => {
+      const staleRoute = routeVariant(31, "Route With Stale Step", "Stale Step");
+      const latestRoute = routeVariant(32, "Route With Latest Step", "Latest Step");
+      const staleStep = deferred<QuestRouteStepDetail>();
+      const latest = deferred<QuestRoute>();
+      api.listQuestRoutesApi.mockResolvedValue([]);
+      api.listMyQuestRoutesApi.mockResolvedValue([staleRoute, latestRoute]);
+      api.getMyQuestRouteApi.mockImplementation((routeId: number) => routeId === staleRoute.id ? Promise.resolve(staleRoute) : latest.promise);
+      api.getMyQuestRouteStepApi.mockImplementation((routeId: number) => routeId === staleRoute.id ? staleStep.promise : Promise.resolve(routeStep(latestRoute)));
+      render(<JourneyShell />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /Route With Stale Step/ }));
+      await waitFor(() => expect(api.getMyQuestRouteStepApi).toHaveBeenCalledWith(staleRoute.id, staleRoute.playerProgress!.currentStepId));
+      fireEvent.click(screen.getByRole("button", { name: /Route With Latest Step/ }));
+      await act(async () => {
+        staleStep.resolve(routeStep(staleRoute));
+        await staleStep.promise;
+      });
+      expect(screen.getByText("Loading Route detail...")).toBeInTheDocument();
+
+      await act(async () => {
+        latest.resolve(latestRoute);
+        await latest.promise;
+      });
+      expect(await screen.findByText("Current Step Detail: Latest Step · READY_TO_ADVANCE")).toBeInTheDocument();
+      expect(screen.queryByText(/Current Step Detail: Stale Step/)).not.toBeInTheDocument();
     });
 
     it("stale advance 실패 시 retry 없이 My Route를 reload하고 현재 context를 보존한다", async () => {

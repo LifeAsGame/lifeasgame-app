@@ -80,15 +80,21 @@ export default function JourneyShell() {
   const [pending, setPending] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const mutationLocked = useRef(false);
+  const questDetailRequestId = useRef(0);
+  const routeDetailRequestId = useRef(0);
 
-  const routes = queries.routes.data.catalog.map((route) =>
-    queries.routes.data.mine.find((mine) => mine.id === route.id) ?? route
-  );
+  const mineById = new Map(queries.routes.data.mine.map((route) => [route.id, route]));
+  const catalogIds = new Set(queries.routes.data.catalog.map((route) => route.id));
+  const routes = [
+    ...queries.routes.data.catalog.map((route) => mineById.get(route.id) ?? route),
+    ...queries.routes.data.mine.filter((route) => !catalogIds.has(route.id)),
+  ];
   const selectedAcceptance = queries.current.data.find((item) => item.id === selectedAcceptanceId) ?? null;
   const selectedBlueprint = queries.catalog.data.find((item) => item.code === selectedCatalogCode) ?? null;
   const selectedRoute = routes.find((item) => item.id === selectedRouteId) ?? null;
 
   const loadQuestDetail = async (code: string, preserve = false) => {
+    const requestId = ++questDetailRequestId.current;
     setQuestDetail((previous) => ({
       code,
       data: preserve && previous.code === code ? previous.data : null,
@@ -97,13 +103,16 @@ export default function JourneyShell() {
     }));
     try {
       const data = await getPlayerQuestApi(code);
-      setQuestDetail({ code, data, loading: false, error: null });
+      if (requestId === questDetailRequestId.current) setQuestDetail({ code, data, loading: false, error: null });
     } catch (caught) {
-      setQuestDetail((previous) => ({ ...previous, code, loading: false, error: message(caught, "Unable to load Quest detail.") }));
+      if (requestId === questDetailRequestId.current) {
+        setQuestDetail((previous) => ({ ...previous, code, loading: false, error: message(caught, "Unable to load Quest detail.") }));
+      }
     }
   };
 
   const loadRouteDetail = async (routeId: number, mine: boolean, preserve = false) => {
+    const requestId = ++routeDetailRequestId.current;
     setRouteDetail((previous) => ({
       routeId,
       data: preserve && previous.routeId === routeId ? previous.data : null,
@@ -113,12 +122,15 @@ export default function JourneyShell() {
     }));
     try {
       const data = mine ? await getMyQuestRouteApi(routeId) : await getQuestRouteApi(routeId);
+      if (requestId !== routeDetailRequestId.current) return;
       setRouteDetail((previous) => ({ ...previous, routeId, data }));
       const currentStepId = data.playerProgress?.currentStepId;
       const step = currentStepId ? await getMyQuestRouteStepApi(routeId, currentStepId) : null;
-      setRouteDetail({ routeId, data, step, loading: false, error: null });
+      if (requestId === routeDetailRequestId.current) setRouteDetail({ routeId, data, step, loading: false, error: null });
     } catch (caught) {
-      setRouteDetail((previous) => ({ ...previous, routeId, loading: false, error: message(caught, "Unable to load Route detail.") }));
+      if (requestId === routeDetailRequestId.current) {
+        setRouteDetail((previous) => ({ ...previous, routeId, loading: false, error: message(caught, "Unable to load Route detail.") }));
+      }
     }
   };
 
