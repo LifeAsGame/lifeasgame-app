@@ -58,6 +58,31 @@ describe("LifeLog Journal surface를 사용할 때", () => {
       expect(entries[1]).toHaveTextContent("QUICK");
       expect(entries[2]).toHaveTextContent("MEDIA");
     });
+
+    it("nullable Exercise metric은 생략하고 실제 zero/non-null 값은 보존한다", async () => {
+      api.listJournalApi.mockResolvedValue({
+        content: [{
+          ...MOCK_JOURNAL_ENTRIES[1],
+          preview: {
+            ...MOCK_JOURNAL_ENTRIES[1].preview,
+            durationMinutes: 0,
+            distanceKm: null,
+            calories: 240,
+          },
+        }],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+      } satisfies JournalPage);
+      render(<JournalShell roles={roles} />);
+
+      const entry = await screen.findByTestId("journal-entry");
+      expect(entry).toHaveTextContent("EXERCISE · RUNNING · 0 min · 240 kcal · ACTIVITY · QUICK");
+      expect(entry).not.toHaveTextContent("— min");
+      expect(entry).not.toHaveTextContent("— km");
+      expect(entry).not.toHaveTextContent("— kcal");
+    });
   });
 
   describe("Role/subtype filter와 server page를 변경하면", () => {
@@ -126,6 +151,18 @@ describe("LifeLog Journal surface를 사용할 때", () => {
       expect(await screen.findByText("Rewatch count: 0")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /edit|delete|complete event/i })).not.toBeInTheDocument();
       expect(screen.queryByText(/Created by this RoleEvent|Completed event record/)).not.toBeInTheDocument();
+    });
+
+    it("legacy Collection nullable detail을 Not recorded로 표시한다", async () => {
+      render(<JournalShell roles={roles} />);
+      fireEvent.click((await screen.findAllByTestId("journal-entry"))[3]);
+
+      expect(await screen.findByText("Original title: Not recorded")).toBeInTheDocument();
+      expect(screen.getByText("Quantity: Not recorded")).toBeInTheDocument();
+      expect(screen.getByText("Condition: Not recorded")).toBeInTheDocument();
+      expect(screen.getByText("Acquired from: Not recorded")).toBeInTheDocument();
+      expect(screen.getByText("Tags: Not recorded")).toBeInTheDocument();
+      expect(screen.queryByText(/—/)).not.toBeInTheDocument();
     });
 
     it("detail loading/error를 표시하고 같은 lifeLogId로 retry한다", async () => {

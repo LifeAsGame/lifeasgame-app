@@ -40,9 +40,23 @@ function ErrorState({ text, retry }: { text: string; retry: () => void }) {
 function entryPresentation(entry: JournalEntry) {
   switch (entry.sourceType) {
     case "COLLECTION":
-      return { title: entry.preview.title, summary: `${entry.preview.category} · Quantity ${entry.preview.quantity ?? "—"}` };
+      return {
+        title: entry.preview.title,
+        summary: [
+          entry.preview.category,
+          entry.preview.quantity !== null ? `Quantity ${entry.preview.quantity}` : null,
+        ].filter((value): value is string => value !== null).join(" · "),
+      };
     case "EXERCISE":
-      return { title: `${entry.preview.category} · ${entry.preview.exercisedOn}`, summary: `${entry.preview.durationMinutes ?? "—"} min · ${entry.preview.distanceKm ?? "—"} km · ${entry.preview.calories ?? "—"} kcal` };
+      return {
+        title: `${entry.preview.category} · ${entry.preview.exercisedOn}`,
+        summary: [
+          entry.preview.category,
+          entry.preview.durationMinutes !== null ? `${entry.preview.durationMinutes} min` : null,
+          entry.preview.distanceKm !== null ? `${entry.preview.distanceKm} km` : null,
+          entry.preview.calories !== null ? `${entry.preview.calories} kcal` : null,
+        ].filter((value): value is string => value !== null).join(" · "),
+      };
     case "MEDIA":
       return { title: entry.preview.title, summary: `${entry.preview.category} · ${entry.preview.status} · ${entry.preview.currentEpisode}/${entry.preview.totalEpisode}` };
   }
@@ -60,11 +74,11 @@ function SourceDetail({ detail }: { detail: JournalDetail }) {
         <div className="space-y-1.5">
           <GoldRow>Category: {detail.source.category}</GoldRow>
           <GoldRow>Title: {detail.source.title}</GoldRow>
-          <GoldRow>Original title: {detail.source.originalTitle ?? "—"}</GoldRow>
-          <GoldRow>Quantity: {detail.source.quantity ?? "—"}</GoldRow>
-          <GoldRow>Condition: {detail.source.conditionNote ?? "—"}</GoldRow>
-          <GoldRow>Acquired from: {detail.source.acquiredFrom ?? "—"}</GoldRow>
-          <GoldRow>Tags: {detail.source.tags.join(", ") || "—"}</GoldRow>
+          <GoldRow>Original title: {detail.source.originalTitle ?? "Not recorded"}</GoldRow>
+          <GoldRow>Quantity: {detail.source.quantity ?? "Not recorded"}</GoldRow>
+          <GoldRow>Condition: {detail.source.conditionNote ?? "Not recorded"}</GoldRow>
+          <GoldRow>Acquired from: {detail.source.acquiredFrom ?? "Not recorded"}</GoldRow>
+          <GoldRow>Tags: {detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "Not recorded"}</GoldRow>
           <GoldRow>Created: {detail.source.createdAt}</GoldRow>
           <GoldRow>Updated: {detail.source.updatedAt}</GoldRow>
         </div>
@@ -73,11 +87,11 @@ function SourceDetail({ detail }: { detail: JournalDetail }) {
       return (
         <div className="space-y-1.5">
           <GoldRow>Category: {detail.source.category}</GoldRow>
-          <GoldRow>Duration: {detail.source.durationMinutes ?? "—"} min</GoldRow>
-          <GoldRow>Distance: {detail.source.distanceKm ?? "—"} km</GoldRow>
-          <GoldRow>Calories: {detail.source.calories ?? "—"} kcal</GoldRow>
+          <GoldRow>Duration: {detail.source.durationMinutes === null ? "Not recorded" : `${detail.source.durationMinutes} min`}</GoldRow>
+          <GoldRow>Distance: {detail.source.distanceKm === null ? "Not recorded" : `${detail.source.distanceKm} km`}</GoldRow>
+          <GoldRow>Calories: {detail.source.calories === null ? "Not recorded" : `${detail.source.calories} kcal`}</GoldRow>
           <GoldRow>Exercised on: {detail.source.exercisedOn}</GoldRow>
-          <GoldRow>Memo: {detail.source.memo ?? "—"}</GoldRow>
+          <GoldRow>Memo: {detail.source.memo ?? "Not recorded"}</GoldRow>
           <GoldRow>Created: {detail.source.createdAt}</GoldRow>
           <GoldRow>Updated: {detail.source.updatedAt}</GoldRow>
         </div>
@@ -87,14 +101,14 @@ function SourceDetail({ detail }: { detail: JournalDetail }) {
         <div className="space-y-1.5">
           <GoldRow>Category: {detail.source.category}</GoldRow>
           <GoldRow>Title: {detail.source.title}</GoldRow>
-          <GoldRow>Original title: {detail.source.originalTitle ?? "—"}</GoldRow>
+          <GoldRow>Original title: {detail.source.originalTitle ?? "Not recorded"}</GoldRow>
           <GoldRow>Progress: {detail.source.currentEpisode}/{detail.source.totalEpisode}</GoldRow>
           <GoldRow>Status: {detail.source.status}</GoldRow>
-          <GoldRow>Rating: {detail.source.rating ?? "—"}</GoldRow>
-          <GoldRow>Tags: {detail.source.tags.join(", ") || "—"}</GoldRow>
+          <GoldRow>Rating: {detail.source.rating ?? "Not recorded"}</GoldRow>
+          <GoldRow>Tags: {detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "Not recorded"}</GoldRow>
           <GoldRow>Rewatch count: {detail.source.rewatchCount}</GoldRow>
-          <GoldRow>Started: {detail.source.startedOn ?? "—"}</GoldRow>
-          <GoldRow>Finished: {detail.source.finishedOn ?? "—"}</GoldRow>
+          <GoldRow>Started: {detail.source.startedOn ?? "Not recorded"}</GoldRow>
+          <GoldRow>Finished: {detail.source.finishedOn ?? "Not recorded"}</GoldRow>
           <GoldRow>Created: {detail.source.createdAt}</GoldRow>
           <GoldRow>Updated: {detail.source.updatedAt}</GoldRow>
         </div>
