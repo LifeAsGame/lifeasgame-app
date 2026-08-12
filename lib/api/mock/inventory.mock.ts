@@ -1,10 +1,4 @@
-import type { InventoryEntry, InventoryMeta, MailEntry } from "../types";
-
-export const MOCK_INVENTORY_META: InventoryMeta = {
-  capacitySlots: 120,
-  usedSlots: 68,
-  freeSlots: 52,
-};
+import type { InventoryEntry, MailboxClaimRequest, MailboxDeleteRequest, MailEntry } from "../types";
 
 export const MOCK_INVENTORY_ITEMS: InventoryEntry[] = [
   { itemInstanceId: 1, slotIndex: 0, itemId: 1001, itemName: "Elucidator", category: "Weapon", type: "Sword", rarity: "Legendary", stackable: false, maxStack: 1, quantity: 1, bound: true, durability: 98, instanceAttrs: { atk: 850, crit: 18 } },
@@ -45,12 +39,6 @@ export const MOCK_GEAR_BOOTS: InventoryEntry[] = MOCK_INVENTORY_ITEMS.filter(
   (item) => item.category === "Boots",
 );
 
-export const MOCK_MAIL_META: InventoryMeta = {
-  capacitySlots: 30,
-  usedSlots: 8,
-  freeSlots: 22,
-};
-
 export const MOCK_MAIL_ITEMS: MailEntry[] = [
   { mailId: 1, slotIndex: 0, itemId: 8001, itemName: "HP Potion (L)", category: "Consumable", type: "Potion", rarity: "Uncommon", stackable: true, maxStack: 99, quantity: 10, bound: false, durability: null, instanceAttrs: { from: "System", message: "Daily login reward!" } },
   { mailId: 2, slotIndex: 1, itemId: 5002, itemName: "Mithril Ingot", category: "Material", type: "Ingot", rarity: "Rare", stackable: true, maxStack: 100, quantity: 3, bound: false, durability: null, instanceAttrs: { from: "AsunaMail", message: "I saved these for you :)" } },
@@ -61,3 +49,48 @@ export const MOCK_MAIL_ITEMS: MailEntry[] = [
   { mailId: 7, slotIndex: 6, itemId: 6002, itemName: "Crafting Blueprint", category: "Misc", type: "Blueprint", rarity: "Rare", stackable: false, maxStack: 1, quantity: 1, bound: false, durability: null, instanceAttrs: { from: "Lisbeth", message: "Special sword blueprint I found!" } },
   { mailId: 8, slotIndex: 7, itemId: 3004, itemName: "Revive Crystal", category: "Consumable", type: "Crystal", rarity: "Epic", stackable: true, maxStack: 3, quantity: 1, bound: false, durability: null, instanceAttrs: { from: "Asuna", message: "Keep this safe, okay?" } },
 ];
+
+const copy = <T,>(value: T): T => structuredClone(value);
+let inventoryEntries = copy(MOCK_INVENTORY_ITEMS);
+let mailboxEntries = copy(MOCK_MAIL_ITEMS);
+
+export const inventoryMock = {
+  inventory: () => ({ entries: copy(inventoryEntries) }),
+  mailbox: () => ({ entries: copy(mailboxEntries) }),
+  claim: ({ slotIndex, quantity }: MailboxClaimRequest) => {
+    const mail = mailboxEntries.find((entry) => entry.slotIndex === slotIndex);
+    if (!mail || quantity < 1 || quantity > mail.quantity) throw new Error("Mailbox entry not found or quantity is invalid.");
+    const stack = mail.stackable
+      ? inventoryEntries.find((entry) => entry.itemId === mail.itemId && entry.quantity + quantity <= entry.maxStack)
+      : undefined;
+    if (stack) {
+      inventoryEntries = inventoryEntries.map((entry) => entry.itemInstanceId === stack.itemInstanceId
+        ? { ...entry, quantity: entry.quantity + quantity }
+        : entry);
+    } else {
+      const usedSlots = new Set(inventoryEntries.map(({ slotIndex: current }) => current));
+      let inventorySlot = 0;
+      while (usedSlots.has(inventorySlot)) inventorySlot += 1;
+      const { mailId: _mailId, slotIndex: _slotIndex, ...item } = mail;
+      void _mailId;
+      void _slotIndex;
+      inventoryEntries = [...inventoryEntries, {
+        ...item,
+        itemInstanceId: Math.max(0, ...inventoryEntries.map(({ itemInstanceId }) => itemInstanceId)) + 1,
+        slotIndex: inventorySlot,
+        quantity,
+      }];
+    }
+    mailboxEntries = quantity === mail.quantity
+      ? mailboxEntries.filter((entry) => entry.mailId !== mail.mailId)
+      : mailboxEntries.map((entry) => entry.mailId === mail.mailId ? { ...entry, quantity: entry.quantity - quantity } : entry);
+  },
+  deleteMail: ({ slotIndex }: MailboxDeleteRequest) => {
+    if (!mailboxEntries.some((entry) => entry.slotIndex === slotIndex)) throw new Error("Mailbox entry not found.");
+    mailboxEntries = mailboxEntries.filter((entry) => entry.slotIndex !== slotIndex);
+  },
+  reset: () => {
+    inventoryEntries = copy(MOCK_INVENTORY_ITEMS);
+    mailboxEntries = copy(MOCK_MAIL_ITEMS);
+  },
+};

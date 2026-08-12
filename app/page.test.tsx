@@ -33,6 +33,7 @@ vi.mock("@/widgets/right-panels/RightPanels", () => ({
   ),
 }));
 vi.mock("@/features/lifelog/JournalShell", () => ({ default: ({ roles: roleOptions }: { roles: RoleDetail[] }) => <div data-testid="journal-shell">Journal · {roleOptions.map(({ name }) => name).join(", ")}</div> }));
+vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
 vi.mock("@/features/role/RoleShell", () => ({ default: () => <div data-testid="role-shell">Role Shell</div> }));
 vi.mock("@/features/quests/JourneyShell", () => ({ default: () => <div data-testid="journey-shell">Journey Shell</div> }));
 vi.mock("@/shared/ui/ParticleBackground", () => ({ default: () => null }));
@@ -40,7 +41,7 @@ vi.mock("@/shared/ui/AmbientOverlay", () => ({ default: () => null }));
 vi.mock("@/shared/ui/SaoAlert", () => ({ default: () => null }));
 vi.mock("@/shared/ui/NotificationBell", () => ({ NotificationBell: () => null }));
 
-describe("Home shell에서 LifeLog surface를 routing할 때", () => {
+describe("Home shell에서 feature surface를 routing할 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.state = { isAuthenticated: true, playerId: 7, isLoading: false, logout: vi.fn() };
@@ -71,6 +72,23 @@ describe("Home shell에서 LifeLog surface를 routing할 때", () => {
       expect(screen.getByTestId("role-shell")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Journey" }));
       expect(screen.getByTestId("journey-shell")).toBeInTheDocument();
+    });
+  });
+
+  describe("인증된 player가 Inventory를 선택하면", () => {
+    it("Items와 Inbox는 feature-owned shell에 연결하고 기존 Gear route는 유지한다", () => {
+      render(<Home />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Inventory" }));
+      fireEvent.click(screen.getByRole("button", { name: "Items" }));
+      expect(screen.getByTestId("inventory-shell")).toHaveTextContent("Inventory · items");
+
+      fireEvent.click(screen.getByRole("button", { name: "Inbox" }));
+      expect(screen.getByTestId("inventory-shell")).toHaveTextContent("Inventory · inbox");
+
+      fireEvent.click(screen.getByRole("button", { name: "Gear" }));
+      expect(screen.queryByTestId("inventory-shell")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Weapon" })).toBeInTheDocument();
     });
   });
 

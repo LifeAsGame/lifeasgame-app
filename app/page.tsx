@@ -14,6 +14,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import JourneyShell from "@/features/quests/JourneyShell";
 import RoleShell from "@/features/role/RoleShell";
 import JournalShell from "@/features/lifelog/JournalShell";
+import InventoryShell from "@/features/inventory/InventoryShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -54,11 +55,7 @@ import {
   SOCIAL_LISTS,
 } from "@/features/social/model";
 import { LISTING_FORM_FIELDS } from "@/features/market/model";
-import {
-  makeGearLists,
-  INVENTORY_INBOX_LIST,
-  INVENTORY_ITEMS_LIST,
-} from "@/features/inventory/model";
+import { makeGearLists } from "@/features/inventory/model";
 import {
   MARKET_SHOP_CATALOG_LIST,
   MARKET_SHOP_MY_LISTINGS,
@@ -74,11 +71,10 @@ import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { useToast } from "@/context/ToastContext";
 import { NotificationBell } from "@/shared/ui/NotificationBell";
 import { getEquippedGearApi, equipGearApi, unequipGearApi } from "@/lib/api/endpoints/equipment.api";
-import { claimMailApi, deleteMailApi } from "@/lib/api/endpoints/inventory.api";
 import { requestJoinPartyApi, requestJoinGuildApi, unfollowApi } from "@/lib/api/endpoints/social.api";
 import { reserveShopItemApi, confirmShopPurchaseApi, cancelListingApi, createListingApi } from "@/lib/api/endpoints/market.api";
 import { MOCK_SHOP_ITEMS } from "@/lib/api/mock/market.mock";
-import { MOCK_INVENTORY_ITEMS, MOCK_MAIL_ITEMS } from "@/lib/api/mock/inventory.mock";
+import { MOCK_INVENTORY_ITEMS } from "@/lib/api/mock/inventory.mock";
 import { getEquipSlotId } from "@/features/inventory/model";
 import type { EquipmentSlotInfo } from "@/shared/api/types";
 
@@ -90,9 +86,7 @@ type SurfaceFocusState = {
 type DetailSelectionKey =
   | "player"
   | "skills"
-  | "inventoryItems"
   | "inventoryGear"
-  | "inventoryInbox"
   | "social"
   | "lifelog"
   | "marketWallet"
@@ -111,9 +105,7 @@ function createDefaultDetailSelections(): Record<DetailSelectionKey, string | nu
   return {
     player: null,
     skills: null,
-    inventoryItems: null,
     inventoryGear: null,
-    inventoryInbox: null,
     social: null,
     lifelog: null,
     marketWallet: null,
@@ -239,30 +231,7 @@ function buildPanels(
   }
 
   if (selectedMain === "inventory") {
-    if (selectedMainSub === "items") {
-      const selectedItem = findById(INVENTORY_ITEMS_LIST, selectedDetailByKey.inventoryItems);
-
-      panelStack.push({
-        id: "inventory-items-list",
-        kind: "list",
-        title: "Items List",
-        items: INVENTORY_ITEMS_LIST,
-        selectedId: selectedDetailByKey.inventoryItems ?? undefined,
-        context: { main: "inventory", route: "inventory-items-list" },
-      });
-
-      if (selectedItem) {
-        panelStack.push({
-          id: `inventory-items-detail-${selectedItem.id}`,
-          kind: "placeholder",
-          title: selectedItem.detailTitle ?? "Item Detail",
-          description: selectedItem.detailDescription,
-          rows: selectedItem.detailRows,
-        });
-      }
-
-      return { panelStack, socialContext: null };
-    }
+    if (selectedMainSub === "items" || selectedMainSub === "inbox") return { panelStack, socialContext: null };
 
     if (selectedMainSub === "gear") {
       const selectedPart =
@@ -305,27 +274,6 @@ function buildPanels(
       }
 
       return { panelStack, socialContext: null };
-    }
-
-    const selectedItem = findById(INVENTORY_INBOX_LIST, selectedDetailByKey.inventoryInbox);
-
-    panelStack.push({
-      id: "inventory-inbox-list",
-      kind: "list",
-      title: "Mail List",
-      items: INVENTORY_INBOX_LIST,
-      selectedId: selectedDetailByKey.inventoryInbox ?? undefined,
-      context: { main: "inventory", route: "inventory-inbox-list" },
-    });
-
-    if (selectedItem) {
-      panelStack.push({
-        id: `inventory-inbox-detail-${selectedItem.id}`,
-        kind: "placeholder",
-        title: "Mail Detail",
-        description: selectedItem.detailDescription,
-        rows: selectedItem.detailRows,
-      });
     }
 
     return { panelStack, socialContext: null };
@@ -663,7 +611,7 @@ export default function Home() {
       });
     }
     if (main === "skills") updateDetailSelections({ skills: null });
-    if (main === "inventory") updateDetailSelections({ inventoryItems: null, inventoryGear: null, inventoryInbox: null });
+    if (main === "inventory") updateDetailSelections({ inventoryGear: null });
     if (main === "social") updateDetailSelections({ social: null });
     if (main === "lifelog") {
       updateDetailSelections({ lifelog: null });
@@ -825,7 +773,7 @@ export default function Home() {
     }
 
     if (panel.kind === "list") {
-      const { player, skills, inventoryItems, inventoryGear, inventoryInbox, social,
+      const { player, skills, inventoryGear, social,
               lifelog, marketWallet, marketCatalog, marketMyListings, marketTradeFriend } = selectedDetailByKey;
 
       if (panel.context.route === "player-list") {
@@ -833,9 +781,7 @@ export default function Home() {
         updateDetailSelections({ player: tog(player) });
       }
       if (panel.context.route === "skills-list") updateDetailSelections({ skills: tog(skills) });
-      if (panel.context.route === "inventory-items-list") updateDetailSelections({ inventoryItems: tog(inventoryItems) });
       if (panel.context.route === "inventory-gear-list") updateDetailSelections({ inventoryGear: tog(inventoryGear) });
-      if (panel.context.route === "inventory-inbox-list") updateDetailSelections({ inventoryInbox: tog(inventoryInbox) });
       if (panel.context.route === "social-list") updateDetailSelections({ social: tog(social) });
       if (panel.context.route === "lifelog-list") {
         setActiveFormPanel(null); setEditingItemId(null);
@@ -1071,23 +1017,6 @@ export default function Home() {
         });
       }
 
-    } else if (actionType === "claim") {
-      const mailId = Number(itemId);
-      const mail = MOCK_MAIL_ITEMS.find((m) => m.mailId === mailId);
-      if (!mail) return;
-      setPendingAction({
-        title: "아이템 수령",
-        message: `${mail.itemName} x${mail.quantity}을(를) 수령하시겠습니까?`,
-        onConfirm: async () => {
-          try {
-            await claimMailApi(mail.slotIndex, mail.quantity);
-            showToast({ variant: "success", title: "수령 완료", body: `${mail.itemName} x${mail.quantity}` });
-          } catch {
-            showToast({ variant: "error", title: "수령 실패", body: "다시 시도해주세요." });
-          }
-        },
-      });
-
     } else if (actionType === "cancel") {
       if (selectedMain === "market") {
         const listingId = Number(itemId);
@@ -1124,45 +1053,12 @@ export default function Home() {
           },
         });
       } else {
-        const isMailbox = selectedMain === "inventory" && sub === "inbox";
-        const mailId = Number(itemId);
-        const mail = isMailbox ? MOCK_MAIL_ITEMS.find((m) => m.mailId === mailId) : null;
         setPendingAction({
           title: "삭제",
-          message: mail ? `${mail.itemName} 메일을 삭제하시겠습니까?` : "이 항목을 삭제하시겠습니까?",
-          onConfirm: async () => {
-            if (mail) {
-              try {
-                await deleteMailApi(mail.slotIndex);
-                showToast({ variant: "info", title: "메일 삭제됨", body: mail.itemName });
-              } catch {
-                showToast({ variant: "error", title: "삭제 실패", body: "다시 시도해주세요." });
-              }
-            }
-          },
+          message: "이 항목을 삭제하시겠습니까?",
+          onConfirm: async () => {},
         });
       }
-
-    } else if (actionType === "sell") {
-      const itemInstanceId = Number(itemId);
-      const invItem = MOCK_INVENTORY_ITEMS.find((i) => i.itemInstanceId === itemInstanceId);
-      if (!invItem) return;
-      setSelectedSubByMain((prev) => ({ ...prev, market: "shop" }));
-      setSelectedMarketShopSectionId("my-listings");
-      setSelectedMain("market");
-      openForm(
-        "listing-create",
-        "New Listing",
-        LISTING_FORM_FIELDS,
-        "등록하기",
-        {
-          itemName: invItem.itemName,
-          price: "",
-          quantity: String(invItem.quantity),
-          _itemInstanceId: String(invItem.itemInstanceId),
-          _itemId: String(invItem.itemId),
-        },
-      );
 
     } else if (actionType === "gift") {
       // Friend gift action from long press — push gift panel
@@ -1454,6 +1350,16 @@ export default function Home() {
             </div>
           ) : selectedMain === "quests" ? (
             <JourneyShell />
+          ) : selectedMain === "inventory" && (selectedSubByMain.inventory === "items" || selectedSubByMain.inventory === "inbox") ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="inventory"
+                panelStack={panelStack.slice(0, 1)}
+                panelStackKey="inventory-real-menu"
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <InventoryShell surface={selectedSubByMain.inventory === "items" ? "items" : "inbox"} />
+            </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
