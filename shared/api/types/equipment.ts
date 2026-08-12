@@ -5,9 +5,10 @@ export interface EquipmentSlotInfo {
   slotCategory: string;
   slotRole: string;
   itemInstanceId: number | null;
-  itemName?: string;
-  itemRarity?: string;
-  itemAttrs?: Record<string, unknown>;
+}
+
+export interface EquipmentInfosResponse {
+  infos: EquipmentSlotInfo[];
 }
 
 export interface EquippedResponse {
