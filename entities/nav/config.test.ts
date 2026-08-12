@@ -26,4 +26,10 @@ describe("primary Orb navigation을 구성할 때", () => {
       expect(SUBMENUS_BY_MAIN.social.map(({ id }) => id)).toContain("friend");
     });
   });
+
+  describe("LifeLog에 unified Journal을 추가하면", () => {
+    it("Journal을 먼저 노출하고 기존 source-specific surface를 모두 유지한다", () => {
+      expect(SUBMENUS_BY_MAIN.lifelog.map(({ id }) => id)).toEqual(["journal", "collection", "media", "exercise"]);
+    });
+  });
 });

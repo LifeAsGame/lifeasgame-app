@@ -4,7 +4,9 @@ import { COLLECTION_DATA, MEDIA_DATA, EXERCISE_DATA } from "./data";
 
 export * from "./forms";
 
-export const LIFELOG_LISTS: Record<LifelogSubId, PanelDataItem[]> = {
+type SourceLifelogSubId = Exclude<LifelogSubId, "journal">;
+
+export const LIFELOG_LISTS: Record<SourceLifelogSubId, PanelDataItem[]> = {
   collection: COLLECTION_DATA.map((c, i) => ({
     id: `lifelog-collection-${pad(i + 1, 3)}`,
     label: c.title,
@@ -55,7 +57,7 @@ export const LIFELOG_LISTS: Record<LifelogSubId, PanelDataItem[]> = {
   })),
 };
 
-export const LIFELOG_CATEGORY_ITEMS: Record<LifelogSubId, PanelMenuItem[]> = {
+export const LIFELOG_CATEGORY_ITEMS: Record<SourceLifelogSubId, PanelMenuItem[]> = {
   collection: catMenuItems(uniqueOrderedCats(COLLECTION_DATA)),
   media:      catMenuItems(uniqueOrderedCats(MEDIA_DATA)),
   exercise:   catMenuItems(uniqueOrderedCats(EXERCISE_DATA)),

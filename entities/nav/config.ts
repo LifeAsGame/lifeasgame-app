@@ -53,6 +53,7 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
     { id: "friend", label: "Friend", slotLabel: "FR" },
   ],
   lifelog: [
+    { id: "journal",    label: "Journal",    slotLabel: "JR" },
     { id: "collection", label: "Collection", slotLabel: "CL" },
     { id: "media",      label: "Media",      slotLabel: "MD" },
     { id: "exercise",   label: "Exercise",   slotLabel: "EX" },

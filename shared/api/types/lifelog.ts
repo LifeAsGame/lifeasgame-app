@@ -42,3 +42,72 @@ export interface CollectionInfo {
   createdAt: string;
   updatedAt: string;
 }
+
+export type JournalSourceType = "COLLECTION" | "EXERCISE" | "MEDIA";
+export type JournalEntryMode = "FULL" | "QUICK";
+export type JournalSubtype =
+  | "QUICK_NOTE"
+  | "ACTIVITY"
+  | "STUDY"
+  | "PROJECT"
+  | "MEMORY"
+  | "REFLECTION"
+  | "MOOD"
+  | "HEALTH_NOTE";
+export type JournalReflectionScope = "WEEKLY_LOOKBACK";
+
+export type JournalMetadata = {
+  lifeLogId: number;
+  sourceId: number;
+  subtype: JournalSubtype | null;
+  entryMode: JournalEntryMode | null;
+  reflectionScope: JournalReflectionScope | null;
+  periodKey: string | null;
+  primaryRoleId: number | null;
+  roleEventId: number | null;
+  recordedAt: string;
+};
+
+export type JournalEntryBase<T extends JournalSourceType, P> = JournalMetadata & {
+  sourceType: T;
+  preview: P;
+};
+
+export type CollectionJournalEntry = JournalEntryBase<
+  "COLLECTION",
+  Pick<CollectionInfo, "category" | "title" | "quantity">
+>;
+export type ExerciseJournalEntry = JournalEntryBase<
+  "EXERCISE",
+  Pick<ExerciseInfo, "category" | "durationMinutes" | "distanceKm" | "calories" | "exercisedOn" | "memo">
+>;
+export type MediaJournalEntry = JournalEntryBase<
+  "MEDIA",
+  Pick<MediaLogInfo, "category" | "title" | "currentEpisode" | "totalEpisode" | "status" | "rating">
+>;
+export type JournalEntry = CollectionJournalEntry | ExerciseJournalEntry | MediaJournalEntry;
+
+export type JournalDetailBase<T extends JournalSourceType, S> = JournalMetadata & {
+  sourceType: T;
+  source: S;
+};
+
+export type CollectionJournalDetail = JournalDetailBase<"COLLECTION", Omit<CollectionInfo, "id" | "playerId">>;
+export type ExerciseJournalDetail = JournalDetailBase<"EXERCISE", Omit<ExerciseInfo, "id" | "playerId">>;
+export type MediaJournalDetail = JournalDetailBase<"MEDIA", Omit<MediaLogInfo, "id" | "playerId">>;
+export type JournalDetail = CollectionJournalDetail | ExerciseJournalDetail | MediaJournalDetail;
+
+export interface JournalPage {
+  content: JournalEntry[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface JournalListParams {
+  primaryRoleId?: number;
+  subtype?: JournalSubtype;
+  page: number;
+  size: number;
+}
