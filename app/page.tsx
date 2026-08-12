@@ -13,6 +13,7 @@ import SaoAlert from "@/shared/ui/SaoAlert";
 import { useAuth } from "@/features/auth/AuthContext";
 import JourneyShell from "@/features/quests/JourneyShell";
 import RoleShell from "@/features/role/RoleShell";
+import JournalShell from "@/features/lifelog/JournalShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -361,6 +362,7 @@ function buildPanels(
 
   if (selectedMain === "lifelog") {
     const sub = selectedMainSub as LifelogSubId;
+    if (sub === "journal") return { panelStack, socialContext: null };
     const subLabel = mainItems.find((item) => item.id === sub)?.label ?? "Lifelog";
     const categoryItems = LIFELOG_CATEGORY_ITEMS[sub] ?? [];
     const selectedCategory = selectedLifelogCategoryBySub[sub] ?? null;
@@ -613,7 +615,7 @@ export default function Home() {
     achievement: null, credentials: null, title: null, interests: null,
   });
   const [selectedLifelogCategoryBySub, setSelectedLifelogCategoryBySub] = useState<Record<LifelogSubId, string | null>>({
-    collection: null, media: null, exercise: null,
+    journal: null, collection: null, media: null, exercise: null,
   });
   const [selectedDetailByKey, setSelectedDetailByKey] = useState<
     Record<DetailSelectionKey, string | null>
@@ -667,7 +669,7 @@ export default function Home() {
       updateDetailSelections({ lifelog: null });
       setSelectedLifelogCategoryBySub((prev) => {
         const sub = nextSub as LifelogSubId | undefined;
-        if (!sub) return { collection: null, media: null, exercise: null };
+        if (!sub) return { journal: null, collection: null, media: null, exercise: null };
         const currentSub = Object.keys(prev).find((k) => prev[k as LifelogSubId] !== null) as LifelogSubId | undefined;
         if (!currentSub || currentSub === sub) return prev;
         return { ...prev, [currentSub]: null };
@@ -748,7 +750,7 @@ export default function Home() {
     setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
     setSelectedPlayerCategoryBySub({ achievement: null, credentials: null, title: null, interests: null });
-    setSelectedLifelogCategoryBySub({ collection: null, media: null, exercise: null });
+    setSelectedLifelogCategoryBySub({ journal: null, collection: null, media: null, exercise: null });
     setActiveFormPanel(null);
     setActiveSpecialPanel(null);
     setEditingItemId(null);
@@ -1452,6 +1454,16 @@ export default function Home() {
             </div>
           ) : selectedMain === "quests" ? (
             <JourneyShell />
+          ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="lifelog"
+                panelStack={panelStack.slice(0, 1)}
+                panelStackKey="lifelog-journal-menu"
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <JournalShell roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} />
+            </div>
           ) : (
             <RightPanels
               selectedMain={selectedMain}
