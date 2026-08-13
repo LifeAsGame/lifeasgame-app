@@ -29,19 +29,48 @@ export interface MediaLogInfo {
   updatedAt: string;
 }
 
+export const COLLECTION_CATEGORIES = ["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "OTHER"] as const;
+export type CollectionCategory = typeof COLLECTION_CATEGORIES[number];
+
 export interface CollectionInfo {
   id: number;
   playerId: number;
-  category: string;
+  category: CollectionCategory;
   title: string;
   originalTitle: string | null;
-  quantity: number | null;
+  quantity: number;
   conditionNote: string | null;
   acquiredFrom: string | null;
   tags: string[];
   createdAt: string;
   updatedAt: string;
 }
+
+export type CollectionSearchParams = {
+  category?: CollectionCategory;
+  titleLike?: string;
+  page: number;
+  size: number;
+};
+
+export type CollectionCreateRequest = {
+  category: CollectionCategory;
+  title: string;
+  originalTitle?: string;
+  quantity: number;
+  conditionNote?: string;
+  acquiredFrom?: string;
+  tags?: string[];
+};
+
+export type CollectionUpdateRequest = {
+  quantity?: number;
+  conditionNote?: string;
+  acquiredFrom?: string;
+};
+
+export type CollectionCreated = { id: number };
+export type CollectionDeleted = { id: number };
 
 export type JournalSourceType = "COLLECTION" | "EXERCISE" | "MEDIA";
 export type JournalEntryMode = "FULL" | "QUICK";
@@ -75,7 +104,7 @@ export type JournalEntryBase<T extends JournalSourceType, P> = JournalMetadata &
 
 export type CollectionJournalEntry = JournalEntryBase<
   "COLLECTION",
-  Pick<CollectionInfo, "category" | "title" | "quantity">
+  Pick<CollectionInfo, "category" | "title"> & { quantity: number | null }
 >;
 export type ExerciseJournalEntry = JournalEntryBase<
   "EXERCISE",
@@ -92,7 +121,10 @@ export type JournalDetailBase<T extends JournalSourceType, S> = JournalMetadata 
   source: S;
 };
 
-export type CollectionJournalDetail = JournalDetailBase<"COLLECTION", Omit<CollectionInfo, "id" | "playerId">>;
+export type CollectionJournalDetail = JournalDetailBase<
+  "COLLECTION",
+  Omit<CollectionInfo, "id" | "playerId" | "quantity"> & { quantity: number | null }
+>;
 export type ExerciseJournalDetail = JournalDetailBase<"EXERCISE", Omit<ExerciseInfo, "id" | "playerId">>;
 export type MediaJournalDetail = JournalDetailBase<"MEDIA", Omit<MediaLogInfo, "id" | "playerId">>;
 export type JournalDetail = CollectionJournalDetail | ExerciseJournalDetail | MediaJournalDetail;
@@ -113,7 +145,7 @@ export interface JournalListParams {
 }
 
 export type QuickRecordType = JournalSourceType;
-export type QuickRecordCollectionCategory = "FIGURE" | "CARD" | "BOOK" | "GAME" | "STAMP" | "COIN" | "OTHER";
+export type QuickRecordCollectionCategory = CollectionCategory;
 export type QuickRecordExerciseCategory = "RUNNING" | "WALKING" | "CYCLING" | "SWIMMING" | "GYM" | "YOGA" | "OTHER";
 export type QuickRecordMediaCategory = "ANIME" | "MOVIE" | "SERIES" | "BOOK" | "WEBTOON" | "GAME" | "MUSIC";
 export type QuickRecordMediaStatus = "PLANNED" | "WATCHING" | "COMPLETED" | "DROPPED" | "ON_HOLD";

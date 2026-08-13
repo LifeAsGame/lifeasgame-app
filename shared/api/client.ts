@@ -127,6 +127,10 @@ export function apiPost<T>(path: string, body: unknown, options?: RequestOptions
   return apiRequest<T>(path, "POST", body, options);
 }
 
+export function apiPostRaw<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {
+  return apiRequest<T>(path, "POST", body, { ...options, rawResponse: true });
+}
+
 export function apiPut<T>(path: string, body: unknown, options?: RequestOptions): Promise<T> {
   return apiRequest<T>(path, "PUT", body, options);
 }

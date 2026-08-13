@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import { COLLECTION_CATEGORIES } from "@/shared/api/types";
 import type {
   JournalDetail,
   JournalEntry,
@@ -42,7 +43,6 @@ const secondaryButton = {
   letterSpacing: "0.08em",
 } as const;
 
-const COLLECTION_CATEGORIES = ["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "OTHER"] as const;
 const EXERCISE_CATEGORIES = ["RUNNING", "WALKING", "CYCLING", "SWIMMING", "GYM", "YOGA", "OTHER"] as const;
 const MEDIA_CATEGORIES = ["ANIME", "MOVIE", "SERIES", "BOOK", "WEBTOON", "GAME", "MUSIC"] as const;
 const MEDIA_STATUSES = ["PLANNED", "WATCHING", "COMPLETED", "DROPPED", "ON_HOLD"] as const;

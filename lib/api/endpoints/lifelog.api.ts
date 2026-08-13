@@ -1,10 +1,9 @@
 import { USE_MOCK, apiDelete, apiGet, apiPost } from "../client";
 import {
-  MOCK_COLLECTIONS,
   MOCK_EXERCISES,
   MOCK_MEDIA_LOGS,
 } from "../mock/lifelog.mock";
-import type { CollectionInfo, ExerciseInfo, MediaLogInfo } from "../types";
+import type { ExerciseInfo, MediaLogInfo } from "../types";
 
 export async function getExercisesApi(): Promise<ExerciseInfo[]> {
   if (USE_MOCK) return MOCK_EXERCISES;
@@ -68,37 +67,4 @@ export async function createMediaLogApi(data: {
     return newEntry;
   }
   return apiPost<MediaLogInfo>("/api/v1/lifelogs/me/media", data);
-}
-
-export async function getCollectionsApi(): Promise<CollectionInfo[]> {
-  if (USE_MOCK) return MOCK_COLLECTIONS;
-  const res = await apiGet<{ items: CollectionInfo[] }>("/api/v1/lifelogs/me/collections");
-  return res.items;
-}
-
-export async function createCollectionApi(data: {
-  category: string;
-  title: string;
-  originalTitle: string | null;
-  quantity: number | null;
-  conditionNote: string | null;
-  acquiredFrom: string | null;
-  tags: string[];
-}): Promise<CollectionInfo> {
-  if (USE_MOCK) {
-    const newEntry: CollectionInfo = {
-      id: Date.now(),
-      playerId: 6,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    return newEntry;
-  }
-  return apiPost<CollectionInfo>("/api/v1/lifelogs/me/collections", data);
-}
-
-export async function deleteCollectionApi(id: number): Promise<void> {
-  if (USE_MOCK) return;
-  await apiDelete(`/api/v1/lifelogs/me/collections/${id}`);
 }

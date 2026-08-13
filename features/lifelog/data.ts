@@ -1,14 +1,3 @@
-export const COLLECTION_DATA = [
-  { title: "Kirito 1/7 Scale Figure",         cat: "Figure",       qty: 1,  cond: "Mint in box",  from: "Good Smile" },
-  { title: "Asuna ALO Ver. Figure",            cat: "Figure",       qty: 1,  cond: "Mint",         from: "Kotobukiya" },
-  { title: "SAO Progressive Manga",            cat: "Manga",        qty: 8,  cond: "Like new",     from: "Kyobo" },
-  { title: "SAO Light Novel JP Complete",      cat: "Light Novel",  qty: 27, cond: "JP edition",   from: "Amazon JP" },
-  { title: "SAO Artbook Vol. 1",               cat: "Artbook",      qty: 1,  cond: "Like new",     from: "Comiket" },
-  { title: "Elucidator Replica Sword",         cat: "Merchandise",  qty: 1,  cond: "Display",      from: "Animax Shop" },
-  { title: "SAO Complete Series Bluray",       cat: "Bluray",       qty: 1,  cond: "Sealed",       from: "Aniplex" },
-  { title: "SAO Enamel Pin Set",               cat: "Merchandise",  qty: 12, cond: "Complete set", from: "CR Shop" },
-];
-
 export const MEDIA_DATA = [
   { title: "Sword Art Online",                  cat: "Anime",  cur: 25,  total: 25,  status: "COMPLETED",    rating: 9.5 },
   { title: "Attack on Titan",                   cat: "Anime",  cur: 87,  total: 87,  status: "COMPLETED",    rating: 9.8 },
