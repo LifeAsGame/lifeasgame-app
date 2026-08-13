@@ -1,5 +1,5 @@
-import { USE_MOCK, apiGet } from "@/shared/api/client";
-import type { JournalDetail, JournalListParams, JournalPage } from "@/shared/api/types";
+import { USE_MOCK, apiGet, apiPost } from "@/shared/api/client";
+import type { JournalDetail, JournalListParams, JournalPage, QuickRecordRequest, QuickRecordResult } from "@/shared/api/types";
 import { journalMock } from "./mock";
 
 export function listJournalApi(params: JournalListParams): Promise<JournalPage> {
@@ -16,4 +16,12 @@ export function getJournalDetailApi(lifeLogId: number): Promise<JournalDetail> {
   return USE_MOCK
     ? Promise.resolve(journalMock.detail(lifeLogId))
     : apiGet<JournalDetail>(`/api/v1/lifelogs/${lifeLogId}`);
+}
+
+export function quickRecordApi(body: QuickRecordRequest, idempotencyKey: string): Promise<QuickRecordResult> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => journalMock.quickRecord(body, idempotencyKey))
+    : apiPost<QuickRecordResult>("/api/v1/lifelogs/quick-record", body, {
+        headers: { "Idempotency-Key": idempotencyKey },
+      });
 }

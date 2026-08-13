@@ -111,3 +111,53 @@ export interface JournalListParams {
   page: number;
   size: number;
 }
+
+export type QuickRecordType = JournalSourceType;
+export type QuickRecordCollectionCategory = "FIGURE" | "CARD" | "BOOK" | "GAME" | "STAMP" | "COIN" | "OTHER";
+export type QuickRecordExerciseCategory = "RUNNING" | "WALKING" | "CYCLING" | "SWIMMING" | "GYM" | "YOGA" | "OTHER";
+export type QuickRecordMediaCategory = "ANIME" | "MOVIE" | "SERIES" | "BOOK" | "WEBTOON" | "GAME" | "MUSIC";
+export type QuickRecordMediaStatus = "PLANNED" | "WATCHING" | "COMPLETED" | "DROPPED" | "ON_HOLD";
+
+type QuickRecordMetadata = {
+  lifeLogSubtype?: JournalSubtype;
+  primaryRoleId?: number;
+};
+
+export type QuickRecordRequest = QuickRecordMetadata & (
+  | {
+      type: "COLLECTION";
+      collection: {
+        category: QuickRecordCollectionCategory;
+        title: string;
+        quantity: number;
+      };
+    }
+  | {
+      type: "EXERCISE";
+      exercise: {
+        category: QuickRecordExerciseCategory;
+        durationMinutes: number;
+        exercisedOn: string;
+        distanceKm?: number;
+        calories?: number;
+        memo?: string;
+      };
+    }
+  | {
+      type: "MEDIA";
+      media: {
+        category: QuickRecordMediaCategory;
+        title: string;
+        status: QuickRecordMediaStatus;
+        currentEpisode?: number;
+        totalEpisode?: number;
+      };
+    }
+);
+
+export type QuickRecordResult = {
+  sourceType: QuickRecordType;
+  sourceId: number;
+  recordedAt: string;
+  replay: boolean;
+};
