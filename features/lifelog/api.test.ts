@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { JournalPage, JournalSubtype } from "@/shared/api/types";
-import { getJournalDetailApi, listJournalApi } from "./api";
-import { journalMock, MOCK_JOURNAL_ENTRIES } from "./mock";
+import type { JournalPage, JournalSubtype, QuickRecordRequest } from "@/shared/api/types";
+import { getJournalDetailApi, listJournalApi, quickRecordApi } from "./api";
+import { journalMock, MOCK_JOURNAL_ENTRIES, resetJournalMock } from "./mock";
 
-const client = vi.hoisted(() => ({ apiGet: vi.fn() }));
+const client = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
 
 vi.mock("@/shared/api/client", () => ({ USE_MOCK: false, ...client }));
 
@@ -13,7 +13,9 @@ const emptyPage: JournalPage = { content: [], page: 0, size: 20, totalElements: 
 describe("Journal을 실제 backend에서 읽을 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetJournalMock();
     client.apiGet.mockResolvedValue(emptyPage);
+    client.apiPost.mockResolvedValue({ sourceType: "COLLECTION", sourceId: 31, recordedAt: "2026-08-14T00:00:00Z", replay: false });
   });
 
   describe("목록 filter와 server page를 요청하면", () => {
@@ -42,6 +44,45 @@ describe("Journal을 실제 backend에서 읽을 때", () => {
     });
   });
 
+  describe("Quick Record를 저장하면", () => {
+    it("self endpoint에 exact payload와 Idempotency-Key만 전달한다", async () => {
+      const body: QuickRecordRequest = {
+        type: "COLLECTION",
+        lifeLogSubtype: "MEMORY",
+        primaryRoleId: 31,
+        collection: { category: "BOOK", title: "Private title", quantity: 1 },
+      };
+
+      await quickRecordApi(body, "quick-key-31");
+
+      expect(client.apiPost).toHaveBeenCalledWith("/api/v1/lifelogs/quick-record", body, {
+        headers: { "Idempotency-Key": "quick-key-31" },
+      });
+      expect(body).not.toHaveProperty("playerId");
+      expect(body).not.toHaveProperty("userId");
+      expect(body.collection).not.toHaveProperty("lifeLogSubtype");
+      expect(body.collection).not.toHaveProperty("primaryRoleId");
+      expect(body.collection).not.toHaveProperty("roleEventId");
+      expect(body).not.toHaveProperty("reflectionScope");
+      expect(body).not.toHaveProperty("roleEventId");
+    });
+
+    it("Media progress를 생략한 request를 invent하지 않고 그대로 전달한다", async () => {
+      const body: QuickRecordRequest = {
+        type: "MEDIA",
+        media: { category: "ANIME", title: "Frieren", status: "WATCHING" },
+      };
+
+      await quickRecordApi(body, "media-key");
+
+      expect(client.apiPost).toHaveBeenCalledWith("/api/v1/lifelogs/quick-record", body, {
+        headers: { "Idempotency-Key": "media-key" },
+      });
+      expect(body.media).not.toHaveProperty("currentEpisode");
+      expect(body.media).not.toHaveProperty("totalEpisode");
+    });
+  });
+
   describe("mock mode contract를 사용하면", () => {
     it("세 physical source와 QUICK entryMode, nullable legacy metadata만 제공한다", () => {
       const sourceTypes = MOCK_JOURNAL_ENTRIES.map(({ sourceType }) => sourceType as string);
@@ -62,6 +103,76 @@ describe("Journal을 실제 backend에서 읽을 때", () => {
       expect(firstPage).toEqual(expect.objectContaining({ page: 0, size: 2, totalElements: 4, totalPages: 2 }));
       expect(rolePage.content.map(({ lifeLogId }) => lifeLogId)).toEqual([102]);
       expect(journalMock.detail(103)).toEqual(expect.objectContaining({ lifeLogId: 103, sourceType: "EXERCISE", entryMode: "QUICK" }));
+    });
+
+    it("같은 key/payload는 같은 Source를 replay하고 Journal authority에 한 번만 기록한다", () => {
+      const body: QuickRecordRequest = {
+        type: "EXERCISE",
+        lifeLogSubtype: "ACTIVITY",
+        exercise: { category: "RUNNING", durationMinutes: 1, exercisedOn: "2026-08-14", distanceKm: 0, calories: 0 },
+      };
+
+      const first = journalMock.quickRecord(body, "same-key");
+      const replay = journalMock.quickRecord(body, "same-key");
+      const page = journalMock.page({ page: 0, size: 20 });
+      const matches = page.content.filter((entry) => entry.sourceType === first.sourceType && entry.sourceId === first.sourceId);
+
+      expect(first.replay).toBe(false);
+      expect(replay).toEqual({ ...first, replay: true });
+      expect(matches).toHaveLength(1);
+      expect(matches[0].entryMode).toBe("QUICK");
+      expect(matches[0].lifeLogId).not.toBe(first.sourceId);
+      expect(matches[0].preview).toEqual(expect.objectContaining({ distanceKm: 0, calories: 0 }));
+      expect(journalMock.detail(matches[0].lifeLogId)).toEqual(expect.objectContaining({ sourceId: first.sourceId }));
+    });
+
+    describe("Media progress를 canonical Journal state로 materialize하면", () => {
+      it.each([
+        ["둘 다 생략", undefined, undefined, 0, 1],
+        ["current zero만 제공", 0, undefined, 0, 1],
+        ["current 5만 제공", 5, undefined, 5, 5],
+        ["total 12만 제공", undefined, 12, 0, 12],
+        ["둘 다 제공", 5, 12, 5, 12],
+      ])("%s이면 preview/detail에 normalized pair를 함께 사용한다", (_case, currentEpisode, totalEpisode, current, total) => {
+        const body: QuickRecordRequest = {
+          type: "MEDIA",
+          media: {
+            category: "ANIME",
+            title: "Progress case",
+            status: "WATCHING",
+            ...(currentEpisode === undefined ? {} : { currentEpisode }),
+            ...(totalEpisode === undefined ? {} : { totalEpisode }),
+          },
+        };
+
+        const result = journalMock.quickRecord(body, `progress-${_case}`);
+        const entry = journalMock.page({ page: 0, size: 20 }).content.find(({ sourceType, sourceId }) =>
+          sourceType === result.sourceType && sourceId === result.sourceId
+        );
+        if (!entry || entry.sourceType !== "MEDIA") throw new Error("Media Journal entry not found.");
+        const detail = journalMock.detail(entry.lifeLogId);
+        if (detail.sourceType !== "MEDIA") throw new Error("Media Journal detail not found.");
+
+        expect(entry.preview).toEqual(expect.objectContaining({ currentEpisode: current, totalEpisode: total }));
+        expect(detail.source).toEqual(expect.objectContaining({ currentEpisode: current, totalEpisode: total }));
+      });
+
+      it("same-key replay는 normalized row를 중복 생성하지 않는다", () => {
+        const body: QuickRecordRequest = {
+          type: "MEDIA",
+          media: { category: "ANIME", title: "Replay", status: "WATCHING", currentEpisode: 5 },
+        };
+
+        const first = journalMock.quickRecord(body, "media-replay");
+        const replay = journalMock.quickRecord(body, "media-replay");
+        const matches = journalMock.page({ page: 0, size: 20 }).content.filter(({ sourceType, sourceId }) =>
+          sourceType === first.sourceType && sourceId === first.sourceId
+        );
+
+        expect(replay).toEqual({ ...first, replay: true });
+        expect(matches).toHaveLength(1);
+        expect(matches[0].preview).toEqual(expect.objectContaining({ currentEpisode: 5, totalEpisode: 5 }));
+      });
     });
   });
 });

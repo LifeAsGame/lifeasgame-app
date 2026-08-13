@@ -99,6 +99,18 @@ describe("backend API에 요청할 때", () => {
       const headers = new Headers(fetchMock.mock.calls[0][1]?.headers);
       expect(headers.has("Authorization")).toBe(false);
     });
+
+    it("caller header를 추가하되 Authorization은 client authority로 유지한다", async () => {
+      tokenStorage.write(oldSession);
+      fetchMock.mockResolvedValueOnce(response("ok"));
+
+      await apiPost("/protected", {}, { headers: { "Idempotency-Key": "quick-key", Authorization: "Bearer caller" } });
+
+      const headers = new Headers(fetchMock.mock.calls[0][1]?.headers);
+      expect(headers.get("Idempotency-Key")).toBe("quick-key");
+      expect(headers.get("Authorization")).toBe("Bearer old-access");
+      expect(headers.get("Content-Type")).toBe("application/json");
+    });
   });
 
   describe("인증 요청이 401이면", () => {
@@ -114,6 +126,22 @@ describe("backend API에 요청할 때", () => {
       expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(fetchMock.mock.calls[1][0]).toContain("/api/v1/auth/refresh");
       expect(new Headers(fetchMock.mock.calls[2][1]?.headers).get("Authorization")).toBe("Bearer new-access");
+    });
+
+    it("refresh retry에도 caller Idempotency-Key를 그대로 보존한다", async () => {
+      tokenStorage.write(oldSession);
+      fetchMock
+        .mockResolvedValueOnce(response(null, 401, { isSuccess: false }))
+        .mockResolvedValueOnce(response(newSession))
+        .mockResolvedValueOnce(response({ sourceId: 31 }));
+
+      await apiPost("/api/v1/lifelogs/quick-record", { type: "COLLECTION" }, { headers: { "Idempotency-Key": "stable-key" } });
+
+      const first = new Headers(fetchMock.mock.calls[0][1]?.headers);
+      const retried = new Headers(fetchMock.mock.calls[2][1]?.headers);
+      expect(first.get("Idempotency-Key")).toBe("stable-key");
+      expect(retried.get("Idempotency-Key")).toBe("stable-key");
+      expect(retried.get("Authorization")).toBe("Bearer new-access");
     });
 
     it("재시도도 401이면 refresh를 반복하지 않는다", async () => {

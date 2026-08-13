@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { JournalDetail, JournalListParams, JournalPage, JournalSubtype } from "@/shared/api/types";
-import { getJournalDetailApi, listJournalApi } from "./api";
+import type { JournalDetail, JournalListParams, JournalPage, JournalSubtype, QuickRecordRequest, QuickRecordResult } from "@/shared/api/types";
+import { getJournalDetailApi, listJournalApi, quickRecordApi } from "./api";
 
 const INITIAL_PARAMS: JournalListParams = { page: 0, size: 20 };
 const EMPTY_PAGE: JournalPage = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 };
@@ -12,6 +12,14 @@ type DetailState = {
   data: JournalDetail | null;
   loading: boolean;
   error: string | null;
+};
+
+type QuickRecordState = {
+  pending: boolean;
+  error: string | null;
+  result: QuickRecordResult | null;
+  refreshError: string | null;
+  canRetry: boolean;
 };
 
 function message(caught: unknown, fallback: string): string {
@@ -25,9 +33,19 @@ export function useJournalQueries() {
   const [listError, setListError] = useState<string | null>(null);
   const [selectedLifeLogId, setSelectedLifeLogId] = useState<number | null>(null);
   const [detail, setDetail] = useState<DetailState>({ data: null, loading: false, error: null });
+  const paramsRef = useRef<JournalListParams>(INITIAL_PARAMS);
   const listRequestId = useRef(0);
   const detailRequestId = useRef(0);
   const selectedLifeLogIdRef = useRef<number | null>(null);
+  const quickRecordLocked = useRef(false);
+  const failedQuickRecord = useRef<{ body: QuickRecordRequest; key: string } | null>(null);
+  const [quickRecord, setQuickRecord] = useState<QuickRecordState>({
+    pending: false,
+    error: null,
+    result: null,
+    refreshError: null,
+    canRetry: false,
+  });
 
   const clearSelection = useCallback(() => {
     selectedLifeLogIdRef.current = null;
@@ -41,8 +59,8 @@ export function useJournalQueries() {
     setListLoading(true);
     setListError(null);
     try {
-      const next = await listJournalApi(params);
-      if (requestId !== listRequestId.current) return next;
+      const next = await listJournalApi(paramsRef.current);
+      if (requestId !== listRequestId.current) return undefined;
       setPageData(next);
       const selectedId = selectedLifeLogIdRef.current;
       if (selectedId !== null && !next.content.some(({ lifeLogId }) => lifeLogId === selectedId)) clearSelection();
@@ -53,7 +71,7 @@ export function useJournalQueries() {
     } finally {
       if (requestId === listRequestId.current) setListLoading(false);
     }
-  }, [clearSelection, params]);
+  }, [clearSelection]);
 
   const loadDetail = useCallback(async (lifeLogId: number, preserve = false) => {
     const requestId = ++detailRequestId.current;
@@ -76,7 +94,7 @@ export function useJournalQueries() {
 
   useEffect(() => {
     void reloadList();
-  }, [reloadList]);
+  }, [params, reloadList]);
 
   const selectEntry = useCallback((lifeLogId: number) => {
     selectedLifeLogIdRef.current = lifeLogId;
@@ -84,19 +102,78 @@ export function useJournalQueries() {
     void loadDetail(lifeLogId);
   }, [loadDetail]);
 
+  const runQuickRecord = useCallback(async (body: QuickRecordRequest, key: string) => {
+    if (quickRecordLocked.current) return undefined;
+    quickRecordLocked.current = true;
+    setQuickRecord({ pending: true, error: null, result: null, refreshError: null, canRetry: false });
+    try {
+      const result = await quickRecordApi(body, key);
+      failedQuickRecord.current = null;
+      setQuickRecord({ pending: true, error: null, result, refreshError: null, canRetry: false });
+
+      const nextPage = await reloadList();
+      if (!nextPage) {
+        setQuickRecord((current) => ({
+          ...current,
+          refreshError: "Quick Record succeeded, but Journal refresh failed. Retry the Journal list.",
+        }));
+      } else {
+        const matching = nextPage.content.find((entry) =>
+          entry.sourceType === result.sourceType && entry.sourceId === result.sourceId
+        );
+        if (matching) selectEntry(matching.lifeLogId);
+      }
+      return result;
+    } catch (caught) {
+      failedQuickRecord.current = { body, key };
+      setQuickRecord({
+        pending: false,
+        error: message(caught, "Unable to save Quick Record."),
+        result: null,
+        refreshError: null,
+        canRetry: true,
+      });
+      return undefined;
+    } finally {
+      quickRecordLocked.current = false;
+      setQuickRecord((current) => ({ ...current, pending: false }));
+    }
+  }, [reloadList, selectEntry]);
+
+  const submitQuickRecord = useCallback((body: QuickRecordRequest) => {
+    const failed = failedQuickRecord.current;
+    return failed
+      ? runQuickRecord(failed.body, failed.key)
+      : runQuickRecord(structuredClone(body), globalThis.crypto.randomUUID());
+  }, [runQuickRecord]);
+
+  const retryQuickRecord = useCallback(() => {
+    const failed = failedQuickRecord.current;
+    return failed ? runQuickRecord(failed.body, failed.key) : Promise.resolve(undefined);
+  }, [runQuickRecord]);
+
+  const invalidateQuickRecordRetry = () => {
+    if (!failedQuickRecord.current) return;
+    failedQuickRecord.current = null;
+    setQuickRecord((current) => ({ ...current, error: null, canRetry: false }));
+  };
+
   const changeRoleFilter = (primaryRoleId?: number) => {
     listRequestId.current += 1;
-    setParams((current) => ({ ...current, primaryRoleId, page: 0 }));
+    paramsRef.current = { ...paramsRef.current, primaryRoleId, page: 0 };
+    setParams(paramsRef.current);
   };
 
   const changeSubtypeFilter = (subtype?: JournalSubtype) => {
     listRequestId.current += 1;
-    setParams((current) => ({ ...current, subtype, page: 0 }));
+    paramsRef.current = { ...paramsRef.current, subtype, page: 0 };
+    setParams(paramsRef.current);
   };
 
   const changePage = (page: number) => {
     listRequestId.current += 1;
-    setParams((current) => ({ ...current, page }));
+    paramsRef.current = { ...paramsRef.current, page };
+    setParams(paramsRef.current);
   };
 
   const retryDetail = () => {
@@ -107,6 +184,12 @@ export function useJournalQueries() {
     params,
     list: { data: pageData, loading: listLoading, error: listError, reload: reloadList },
     detail: { ...detail, retry: retryDetail },
+    quickRecord: {
+      ...quickRecord,
+      submit: submitQuickRecord,
+      retry: retryQuickRecord,
+      invalidateRetry: invalidateQuickRecordRetry,
+    },
     selectedLifeLogId,
     selectEntry,
     changeRoleFilter,

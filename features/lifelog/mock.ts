@@ -1,4 +1,11 @@
-import type { JournalDetail, JournalEntry, JournalListParams, JournalPage } from "@/shared/api/types";
+import type {
+  JournalDetail,
+  JournalEntry,
+  JournalListParams,
+  JournalPage,
+  QuickRecordRequest,
+  QuickRecordResult,
+} from "@/shared/api/types";
 
 export const MOCK_JOURNAL_ENTRIES = [
   {
@@ -122,13 +129,111 @@ export const MOCK_JOURNAL_DETAILS = [
   },
 ] satisfies JournalDetail[];
 
+let journalEntries: JournalEntry[] = structuredClone([...MOCK_JOURNAL_ENTRIES]);
+let journalDetails: JournalDetail[] = structuredClone(MOCK_JOURNAL_DETAILS);
+const quickRecordReceipts = new Map<string, { payload: string; result: QuickRecordResult }>();
+
 function copy<T>(value: T): T {
   return structuredClone(value);
 }
 
+function normalizeMediaProgress(currentEpisode?: number, totalEpisode?: number) {
+  const current = currentEpisode ?? 0;
+  return { currentEpisode: current, totalEpisode: totalEpisode ?? Math.max(1, current) };
+}
+
+export function resetJournalMock(): void {
+  journalEntries = structuredClone([...MOCK_JOURNAL_ENTRIES]);
+  journalDetails = structuredClone(MOCK_JOURNAL_DETAILS);
+  quickRecordReceipts.clear();
+}
+
+function recordQuick(body: QuickRecordRequest, idempotencyKey: string): QuickRecordResult {
+  const payload = JSON.stringify(body);
+  const receipt = quickRecordReceipts.get(idempotencyKey);
+  if (receipt) {
+    if (receipt.payload !== payload) throw new Error("Idempotency key payload conflict.");
+    return copy({ ...receipt.result, replay: true });
+  }
+
+  const lifeLogId = Math.max(0, ...journalEntries.map((entry) => entry.lifeLogId)) + 1;
+  const sourceId = Math.max(0, ...journalEntries.map((entry) => entry.sourceId)) + 1;
+  const recordedAt = new Date().toISOString();
+  const metadata = {
+    lifeLogId,
+    sourceId,
+    subtype: body.lifeLogSubtype ?? null,
+    entryMode: "QUICK" as const,
+    reflectionScope: null,
+    periodKey: null,
+    primaryRoleId: body.primaryRoleId ?? null,
+    roleEventId: null,
+    recordedAt,
+  };
+
+  let entry: JournalEntry;
+  let detail: JournalDetail;
+  if (body.type === "COLLECTION") {
+    entry = { ...metadata, sourceType: "COLLECTION", preview: { ...body.collection } };
+    detail = {
+      ...metadata,
+      sourceType: "COLLECTION",
+      source: {
+        ...body.collection,
+        originalTitle: null,
+        conditionNote: null,
+        acquiredFrom: null,
+        tags: [],
+        createdAt: recordedAt,
+        updatedAt: recordedAt,
+      },
+    };
+  } else if (body.type === "EXERCISE") {
+    const source = {
+      category: body.exercise.category,
+      durationMinutes: body.exercise.durationMinutes,
+      distanceKm: body.exercise.distanceKm ?? null,
+      calories: body.exercise.calories ?? null,
+      exercisedOn: body.exercise.exercisedOn,
+      memo: body.exercise.memo ?? null,
+    };
+    entry = { ...metadata, sourceType: "EXERCISE", preview: source };
+    detail = { ...metadata, sourceType: "EXERCISE", source: { ...source, createdAt: recordedAt, updatedAt: recordedAt } };
+  } else {
+    const source = {
+      category: body.media.category,
+      title: body.media.title,
+      originalTitle: null,
+      ...normalizeMediaProgress(body.media.currentEpisode, body.media.totalEpisode),
+      status: body.media.status,
+      tags: [],
+    };
+    entry = { ...metadata, sourceType: "MEDIA", preview: { ...source, rating: null } };
+    detail = {
+      ...metadata,
+      sourceType: "MEDIA",
+      source: {
+        ...source,
+        rating: null,
+        rewatchCount: 0,
+        startedOn: null,
+        finishedOn: null,
+        createdAt: recordedAt,
+        updatedAt: recordedAt,
+      },
+    };
+  }
+
+  journalEntries.unshift(entry);
+  journalDetails.unshift(detail);
+  const result = { sourceType: body.type, sourceId, recordedAt, replay: false } satisfies QuickRecordResult;
+  quickRecordReceipts.set(idempotencyKey, { payload, result });
+  return copy(result);
+}
+
 export const journalMock = {
   page: ({ primaryRoleId, subtype, page, size }: JournalListParams): JournalPage => {
-    const filtered = MOCK_JOURNAL_ENTRIES.filter((entry) =>
+    const filtered = journalEntries.filter((entry) =>
       (primaryRoleId === undefined || entry.primaryRoleId === primaryRoleId)
       && (subtype === undefined || entry.subtype === subtype)
     );
@@ -141,8 +246,9 @@ export const journalMock = {
     });
   },
   detail: (lifeLogId: number): JournalDetail => {
-    const detail = MOCK_JOURNAL_DETAILS.find((entry) => entry.lifeLogId === lifeLogId);
+    const detail = journalDetails.find((entry) => entry.lifeLogId === lifeLogId);
     if (!detail) throw new Error("Journal entry not found.");
     return copy(detail);
   },
+  quickRecord: recordQuick,
 };

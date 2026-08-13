@@ -17,6 +17,7 @@ export class ApiError extends Error {
 
 type RequestOptions = {
   auth?: boolean;
+  headers?: HeadersInit;
   rawResponse?: boolean;
   retry?: boolean;
   token?: string;
@@ -94,9 +95,11 @@ async function apiRequest<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const auth = options.auth !== false;
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+  headers.delete("Authorization");
   const accessToken = options.token ?? (auth ? tokenStorage.read()?.accessToken : undefined);
-  if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (auth && accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
 
   const response = await fetch(`${BASE_URL}${path}`, {
     method,

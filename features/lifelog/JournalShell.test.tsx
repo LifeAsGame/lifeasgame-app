@@ -1,13 +1,14 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { JournalPage, RoleDetail } from "@/shared/api/types";
+import type { JournalPage, QuickRecordResult, RoleDetail } from "@/shared/api/types";
 import JournalShell from "./JournalShell";
 import { journalMock, MOCK_JOURNAL_ENTRIES } from "./mock";
 
 const api = vi.hoisted(() => ({
   getJournalDetailApi: vi.fn(),
   listJournalApi: vi.fn(),
+  quickRecordApi: vi.fn(),
 }));
 
 vi.mock("./api", () => api);
@@ -22,6 +23,12 @@ const roles: RoleDetail[] = [
   { id: 2, roleType: "FAMILY", name: "Family Member", description: "Be present", status: "ACTIVE", createdAt: "2026-01-02T00:00:00Z", updatedAt: "2026-01-02T00:00:00Z", version: 0 },
 ];
 const mixedPage = journalMock.page({ page: 0, size: 20 });
+const quickResult: QuickRecordResult = {
+  sourceType: "COLLECTION",
+  sourceId: 999,
+  recordedAt: "2026-08-14T00:00:00Z",
+  replay: false,
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -38,6 +45,114 @@ describe("LifeLog Journal surface를 사용할 때", () => {
     vi.clearAllMocks();
     api.listJournalApi.mockResolvedValue(mixedPage);
     api.getJournalDetailApi.mockImplementation(async (lifeLogId: number) => journalMock.detail(lifeLogId));
+    api.quickRecordApi.mockResolvedValue(quickResult);
+  });
+
+  describe("Quick Record form을 제출하면", () => {
+    it("Collection payload 하나와 optional top-level metadata만 전송한다", async () => {
+      render(<JournalShell roles={roles} />);
+      fireEvent.click(screen.getByText("Quick Record"));
+
+      const type = screen.getByLabelText("Quick Record type") as HTMLSelectElement;
+      expect(Array.from(type.options, ({ value }) => value)).toEqual(["COLLECTION", "EXERCISE", "MEDIA"]);
+      expect(screen.queryByLabelText(/event/i)).not.toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText("Quick Record subtype"), { target: { value: "PROJECT" } });
+      fireEvent.change(screen.getByLabelText("Quick Record role"), { target: { value: "2" } });
+      fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
+      fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "The Pragmatic Programmer" } });
+      fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+
+      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+      expect(api.quickRecordApi).toHaveBeenCalledWith({
+        type: "COLLECTION",
+        lifeLogSubtype: "PROJECT",
+        primaryRoleId: 2,
+        collection: { category: "BOOK", title: "The Pragmatic Programmer", quantity: 1 },
+      }, expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
+      expect(screen.queryByLabelText(/rating|player|user/i)).not.toBeInTheDocument();
+    });
+
+    it("Exercise optional zero를 보존하고 비어 있는 optional field는 생략한다", async () => {
+      render(<JournalShell roles={roles} />);
+      fireEvent.click(screen.getByText("Quick Record"));
+      fireEvent.change(screen.getByLabelText("Quick Record type"), { target: { value: "EXERCISE" } });
+      fireEvent.change(screen.getByLabelText("Exercise category"), { target: { value: "RUNNING" } });
+      fireEvent.change(screen.getByLabelText("Duration minutes"), { target: { value: "30" } });
+      fireEvent.change(screen.getByLabelText("Exercised on"), { target: { value: "2026-08-14" } });
+      fireEvent.change(screen.getByLabelText("Distance km"), { target: { value: "0" } });
+      fireEvent.change(screen.getByLabelText("Calories"), { target: { value: "0" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+
+      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+      expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
+        type: "EXERCISE",
+        exercise: {
+          category: "RUNNING",
+          durationMinutes: 30,
+          exercisedOn: "2026-08-14",
+          distanceKm: 0,
+          calories: 0,
+        },
+      });
+    });
+
+    it("Media currentEpisode zero를 보존하고 partial episode payload를 허용한다", async () => {
+      render(<JournalShell roles={roles} />);
+      fireEvent.click(screen.getByText("Quick Record"));
+      fireEvent.change(screen.getByLabelText("Quick Record type"), { target: { value: "MEDIA" } });
+      fireEvent.change(screen.getByLabelText("Media category"), { target: { value: "ANIME" } });
+      fireEvent.change(screen.getByLabelText("Media title"), { target: { value: "Frieren" } });
+      fireEvent.change(screen.getByLabelText("Media status"), { target: { value: "WATCHING" } });
+      fireEvent.change(screen.getByLabelText("Current episode"), { target: { value: "0" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+
+      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+      expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
+        type: "MEDIA",
+        media: { category: "ANIME", title: "Frieren", status: "WATCHING", currentEpisode: 0 },
+      });
+    });
+
+    it("Media episode input을 비워 두면 request에서도 둘 다 생략한다", async () => {
+      render(<JournalShell roles={roles} />);
+      fireEvent.click(screen.getByText("Quick Record"));
+      fireEvent.change(screen.getByLabelText("Quick Record type"), { target: { value: "MEDIA" } });
+      fireEvent.change(screen.getByLabelText("Media category"), { target: { value: "ANIME" } });
+      fireEvent.change(screen.getByLabelText("Media title"), { target: { value: "Frieren" } });
+      fireEvent.change(screen.getByLabelText("Media status"), { target: { value: "WATCHING" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+
+      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+      expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
+        type: "MEDIA",
+        media: { category: "ANIME", title: "Frieren", status: "WATCHING" },
+      });
+    });
+
+    it("ambiguous failure 뒤 edit 전에는 Retry만 노출하고 edit 후 새 logical Submit을 만든다", async () => {
+      api.quickRecordApi.mockRejectedValueOnce(new Error("Outcome unknown")).mockResolvedValueOnce(quickResult);
+      render(<JournalShell roles={roles} />);
+      fireEvent.click(screen.getByText("Quick Record"));
+      fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
+      fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Retry me" } });
+      fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+
+      await screen.findByRole("button", { name: "Retry same record" });
+      expect(screen.queryByRole("button", { name: "Save Quick Record" })).not.toBeInTheDocument();
+      const firstCall = api.quickRecordApi.mock.calls[0];
+      fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Edited retry" } });
+
+      expect(screen.queryByRole("button", { name: "Retry same record" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledTimes(2));
+      expect(api.quickRecordApi.mock.calls[1][0]).toEqual({
+        type: "COLLECTION",
+        collection: { category: "BOOK", title: "Edited retry", quantity: 1 },
+      });
+      expect(api.quickRecordApi.mock.calls[1][1]).not.toBe(firstCall[1]);
+    });
   });
 
   describe("mixed physical source 목록을 읽으면", () => {
