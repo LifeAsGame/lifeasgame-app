@@ -114,6 +114,22 @@ describe("LifeLog Journal surface를 사용할 때", () => {
       });
     });
 
+    it("Media episode input을 비워 두면 request에서도 둘 다 생략한다", async () => {
+      render(<JournalShell roles={roles} />);
+      fireEvent.click(screen.getByText("Quick Record"));
+      fireEvent.change(screen.getByLabelText("Quick Record type"), { target: { value: "MEDIA" } });
+      fireEvent.change(screen.getByLabelText("Media category"), { target: { value: "ANIME" } });
+      fireEvent.change(screen.getByLabelText("Media title"), { target: { value: "Frieren" } });
+      fireEvent.change(screen.getByLabelText("Media status"), { target: { value: "WATCHING" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+
+      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+      expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
+        type: "MEDIA",
+        media: { category: "ANIME", title: "Frieren", status: "WATCHING" },
+      });
+    });
+
     it("ambiguous failure 뒤 edit 전에는 Retry만 노출하고 edit 후 새 logical Submit을 만든다", async () => {
       api.quickRecordApi.mockRejectedValueOnce(new Error("Outcome unknown")).mockResolvedValueOnce(quickResult);
       render(<JournalShell roles={roles} />);

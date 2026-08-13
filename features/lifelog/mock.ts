@@ -137,6 +137,11 @@ function copy<T>(value: T): T {
   return structuredClone(value);
 }
 
+function normalizeMediaProgress(currentEpisode?: number, totalEpisode?: number) {
+  const current = currentEpisode ?? 0;
+  return { currentEpisode: current, totalEpisode: totalEpisode ?? Math.max(1, current) };
+}
+
 export function resetJournalMock(): void {
   journalEntries = structuredClone([...MOCK_JOURNAL_ENTRIES]);
   journalDetails = structuredClone(MOCK_JOURNAL_DETAILS);
@@ -199,8 +204,7 @@ function recordQuick(body: QuickRecordRequest, idempotencyKey: string): QuickRec
       category: body.media.category,
       title: body.media.title,
       originalTitle: null,
-      currentEpisode: body.media.currentEpisode ?? 0,
-      totalEpisode: body.media.totalEpisode ?? 1,
+      ...normalizeMediaProgress(body.media.currentEpisode, body.media.totalEpisode),
       status: body.media.status,
       tags: [],
     };
