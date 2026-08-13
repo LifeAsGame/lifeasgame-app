@@ -30,6 +30,8 @@ describe("Home world summary를 표시할 때", () => {
       render(<HomeShell {...callbacks} />);
 
       expect(screen.getByText("Distributed Systems Notes").closest("button")).toHaveTextContent("COLLECTION · QUICK");
+      expect(screen.getByRole("button", { name: /RUNNING/ })).toHaveTextContent("2026-08-12");
+      expect(screen.getByRole("button", { name: /Designing Data-Intensive Applications/ })).toHaveTextContent("250/616");
       expect(screen.getByText("First World Trace")).toBeInTheDocument();
       expect(screen.getByText(/GOAL_REACHED · 25 \/ 25/)).toBeInTheDocument();
       expect(screen.getByText("Begin with Records")).toBeInTheDocument();
@@ -60,6 +62,101 @@ describe("Home world summary를 표시할 때", () => {
       expect(callbacks.onOpenCurrentQuests).toHaveBeenCalledOnce();
       expect(callbacks.onOpenRoutes).toHaveBeenCalledOnce();
       expect(callbacks.onOpenRole).toHaveBeenCalledWith(31);
+    });
+  });
+
+  describe("Journal preview의 optional field가 null이면", () => {
+    it("Exercise date를 생략하고 실제 metric zero는 표시한다", () => {
+      query.state.data = {
+        ...structuredClone(MOCK_HOME_SUMMARY),
+        recentJournal: [{
+          lifeLogId: 701,
+          sourceType: "EXERCISE",
+          subtype: null,
+          entryMode: "QUICK",
+          primaryRoleId: null,
+          roleEventId: null,
+          recordedAt: "2026-08-13T00:00:00Z",
+          preview: {
+            category: "STRETCHING",
+            durationMinutes: 0,
+            distanceKm: 0,
+            calories: 0,
+            exercisedOn: null,
+            memo: null,
+          },
+        }],
+      };
+      render(<HomeShell {...callbacks} />);
+
+      const exercise = screen.getByRole("button", { name: /STRETCHING/ });
+      expect(exercise).toHaveTextContent("0 min · 0 km · 0 kcal");
+      expect(exercise).not.toHaveTextContent(/null|undefined|not recorded/i);
+    });
+
+    it("Media optional metadata가 모두 null이면 title/category만 표시한다", () => {
+      query.state.data = {
+        ...structuredClone(MOCK_HOME_SUMMARY),
+        recentJournal: [{
+          lifeLogId: 702,
+          sourceType: "MEDIA",
+          subtype: null,
+          entryMode: null,
+          primaryRoleId: null,
+          roleEventId: null,
+          recordedAt: "2026-08-13T00:00:00Z",
+          preview: {
+            category: "BOOK",
+            title: "Sparse Media",
+            currentEpisode: null,
+            totalEpisode: null,
+            status: null,
+            rating: null,
+          },
+        }],
+      };
+      render(<HomeShell {...callbacks} />);
+
+      const media = screen.getByRole("button", { name: /Sparse Media/ });
+      expect(media).toHaveTextContent("Sparse Media");
+      expect(media).toHaveTextContent("BOOK");
+      expect(media).not.toHaveTextContent(/null|undefined|not recorded|\//i);
+    });
+
+    it("Media episode의 current 또는 total만 있으면 알려진 값만 표시하고 zero도 보존한다", () => {
+      query.state.data = {
+        ...structuredClone(MOCK_HOME_SUMMARY),
+        recentJournal: [
+          {
+            lifeLogId: 703,
+            sourceType: "MEDIA",
+            subtype: null,
+            entryMode: null,
+            primaryRoleId: null,
+            roleEventId: null,
+            recordedAt: "2026-08-13T00:00:00Z",
+            preview: { category: "ANIME", title: "Current Only", currentEpisode: 0, totalEpisode: null, status: null, rating: null },
+          },
+          {
+            lifeLogId: 704,
+            sourceType: "MEDIA",
+            subtype: null,
+            entryMode: null,
+            primaryRoleId: null,
+            roleEventId: null,
+            recordedAt: "2026-08-13T00:00:00Z",
+            preview: { category: "SERIES", title: "Total Only", currentEpisode: null, totalEpisode: 12, status: null, rating: null },
+          },
+        ],
+      };
+      render(<HomeShell {...callbacks} />);
+
+      const current = screen.getByRole("button", { name: /Current Only/ });
+      const total = screen.getByRole("button", { name: /Total Only/ });
+      expect(current).toHaveTextContent("Episode 0");
+      expect(total).toHaveTextContent("Total 12");
+      expect(current).not.toHaveTextContent("/");
+      expect(total).not.toHaveTextContent("/");
     });
   });
 

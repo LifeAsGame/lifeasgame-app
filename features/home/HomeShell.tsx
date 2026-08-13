@@ -62,8 +62,9 @@ function journalPreview(entry: HomeJournalEntry) {
       };
     case "EXERCISE":
       return {
-        title: `${entry.preview.category} · ${entry.preview.exercisedOn}`,
+        title: entry.preview.category,
         detail: [
+          entry.preview.exercisedOn,
           entry.preview.durationMinutes === null ? null : `${entry.preview.durationMinutes} min`,
           entry.preview.distanceKm === null ? null : `${entry.preview.distanceKm} km`,
           entry.preview.calories === null ? null : `${entry.preview.calories} kcal`,
@@ -71,12 +72,19 @@ function journalPreview(entry: HomeJournalEntry) {
         ],
       };
     case "MEDIA":
+      const episode = entry.preview.currentEpisode !== null && entry.preview.totalEpisode !== null
+        ? `${entry.preview.currentEpisode}/${entry.preview.totalEpisode}`
+        : entry.preview.currentEpisode !== null
+          ? `Episode ${entry.preview.currentEpisode}`
+          : entry.preview.totalEpisode !== null
+            ? `Total ${entry.preview.totalEpisode}`
+            : null;
       return {
         title: entry.preview.title,
         detail: [
           entry.preview.category,
           entry.preview.status,
-          `${entry.preview.currentEpisode}/${entry.preview.totalEpisode}`,
+          episode,
           entry.preview.rating === null ? null : `Rating ${entry.preview.rating}`,
         ],
       };

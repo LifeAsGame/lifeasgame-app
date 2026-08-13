@@ -28,15 +28,15 @@ export type HomeJournalEntry =
       durationMinutes: number | null;
       distanceKm: number | null;
       calories: number | null;
-      exercisedOn: string;
+      exercisedOn: string | null;
       memo: string | null;
     }>
   | HomeJournalBase<"MEDIA", {
       category: string;
       title: string;
-      currentEpisode: number;
-      totalEpisode: number;
-      status: string;
+      currentEpisode: number | null;
+      totalEpisode: number | null;
+      status: string | null;
       rating: number | null;
     }>;
 
