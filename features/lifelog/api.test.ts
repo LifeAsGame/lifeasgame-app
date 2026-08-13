@@ -1,14 +1,107 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { JournalPage, JournalSubtype, QuickRecordRequest } from "@/shared/api/types";
-import { getJournalDetailApi, listJournalApi, quickRecordApi } from "./api";
-import { journalMock, MOCK_JOURNAL_ENTRIES, resetJournalMock } from "./mock";
+import { COLLECTION_CATEGORIES } from "@/shared/api/types";
+import type { CollectionCreateRequest, CollectionInfo, CollectionUpdateRequest, JournalPage, JournalSubtype, QuickRecordRequest } from "@/shared/api/types";
+import {
+  createCollectionApi,
+  deleteCollectionApi,
+  getCollectionApi,
+  getJournalDetailApi,
+  listJournalApi,
+  quickRecordApi,
+  recentCollectionsApi,
+  searchCollectionsApi,
+  updateCollectionApi,
+} from "./api";
+import { collectionMock, journalMock, MOCK_JOURNAL_ENTRIES, resetJournalMock } from "./mock";
 
-const client = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
+const client = vi.hoisted(() => ({
+  apiDelete: vi.fn(),
+  apiGet: vi.fn(),
+  apiGetRaw: vi.fn(),
+  apiPost: vi.fn(),
+  apiPostRaw: vi.fn(),
+}));
 
 vi.mock("@/shared/api/client", () => ({ USE_MOCK: false, ...client }));
 
 const emptyPage: JournalPage = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 };
+const collection: CollectionInfo = {
+  id: 31,
+  playerId: 7,
+  category: "BOOK",
+  title: "Architecture Notes",
+  originalTitle: null,
+  quantity: 1,
+  conditionNote: "Annotated",
+  acquiredFrom: "Local bookstore",
+  tags: ["architecture"],
+  createdAt: "2026-08-12T09:00:00Z",
+  updatedAt: "2026-08-12T09:00:00Z",
+};
+
+describe("Collection source API를 호출할 때", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetJournalMock();
+  });
+
+  describe("backend의 mixed response contract를 따르면", () => {
+    it("recent/search/create/update는 raw, get/delete는 envelope client를 exact endpoint로 사용한다", async () => {
+      client.apiGetRaw.mockResolvedValue([collection]);
+      client.apiGet.mockResolvedValue(collection);
+      client.apiPostRaw.mockResolvedValueOnce({ id: 31 }).mockResolvedValueOnce(collection);
+      client.apiDelete.mockResolvedValue({ id: 31 });
+      const create: CollectionCreateRequest = { category: "BOOK", title: "Architecture Notes", quantity: 1 };
+      const update: CollectionUpdateRequest = { quantity: 2, conditionNote: "Used", acquiredFrom: "Gift" };
+
+      await recentCollectionsApi(12);
+      const search = await searchCollectionsApi({ category: "BOOK", titleLike: "A/B ?", page: 2, size: 20 });
+      await getCollectionApi(31);
+      await createCollectionApi(create);
+      await updateCollectionApi(31, update);
+      await deleteCollectionApi(31);
+
+      expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/collections/recent?limit=12");
+      expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/collections/search?category=BOOK&titleLike=A%2FB+%3F&page=2&size=20");
+      expect(client.apiGet).toHaveBeenCalledWith("/api/v1/players/collections/31");
+      expect(client.apiPostRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/collections", create);
+      expect(client.apiPostRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/collections/31", update);
+      expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/collections/31");
+      expect(search).toEqual([collection]);
+      expect(search).not.toHaveProperty("totalElements");
+      expect(search).not.toHaveProperty("totalPages");
+    });
+  });
+
+  describe("source request semantics를 유지하면", () => {
+    it("canonical categories와 exact create/update fields만 허용하고 caller identity를 보내지 않는다", () => {
+      const create: CollectionCreateRequest = { category: "CARD", title: "Rare card", quantity: 1 };
+      const update: CollectionUpdateRequest = { quantity: 2, conditionNote: "Sleeved", acquiredFrom: "Trade" };
+
+      expect(COLLECTION_CATEGORIES).toEqual(["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "OTHER"]);
+      expect(create).toEqual({ category: "CARD", title: "Rare card", quantity: 1 });
+      expect(update).toEqual({ quantity: 2, conditionNote: "Sleeved", acquiredFrom: "Trade" });
+      expect(create).not.toHaveProperty("playerId");
+      expect(create).not.toHaveProperty("userId");
+      for (const unsupported of ["title", "category", "originalTitle", "tags"]) expect(update).not.toHaveProperty(unsupported);
+    });
+
+    it("mock recent/search/get/create/update/delete가 한 source authority를 사용하고 Journal을 조작하지 않는다", () => {
+      const journalIds = journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId);
+      expect(collectionMock.recent(1).map(({ id }) => id)).toEqual([204]);
+      expect(collectionMock.search({ category: "BOOK", titleLike: "architecture", page: 0, size: 1 }).map(({ id }) => id)).toEqual([204]);
+
+      const created = collectionMock.create({ category: "CARD", title: "New card", quantity: 1 });
+      expect(collectionMock.get(created.id)).toEqual(expect.objectContaining({ title: "New card", category: "CARD", quantity: 1 }));
+      const updated = collectionMock.update(created.id, { quantity: 2, conditionNote: "Sleeved", acquiredFrom: "Trade" });
+      expect(updated).toEqual(expect.objectContaining({ title: "New card", category: "CARD", quantity: 2, conditionNote: "Sleeved", acquiredFrom: "Trade" }));
+      expect(collectionMock.delete(created.id)).toEqual({ id: created.id });
+      expect(() => collectionMock.get(created.id)).toThrow("Collection not found.");
+      expect(journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId)).toEqual(journalIds);
+    });
+  });
+});
 
 describe("Journal을 실제 backend에서 읽을 때", () => {
   beforeEach(() => {

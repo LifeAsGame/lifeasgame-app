@@ -1,4 +1,4 @@
-import type { CollectionInfo, ExerciseInfo, MediaLogInfo } from "../types";
+import type { ExerciseInfo, MediaLogInfo } from "../types";
 
 export const MOCK_EXERCISES: ExerciseInfo[] = [
   { id: 1, playerId: 6, category: "Running", durationMinutes: 32, distanceKm: 5.2, calories: 310, exercisedOn: "2026-03-02", memo: "Morning park run. PB for 5km!", createdAt: "2026-03-02T07:30:00Z", updatedAt: "2026-03-02T07:30:00Z" },
@@ -26,15 +26,4 @@ export const MOCK_MEDIA_LOGS: MediaLogInfo[] = [
   { id: 8, playerId: 6, category: "Anime", title: "Overlord", originalTitle: "オーバーロード", currentEpisode: 13, totalEpisode: 13, status: "PLAN_TO_WATCH", rating: null, tags: ["Isekai", "Dark", "Game"], rewatchCount: 0, startedOn: null, finishedOn: null, createdAt: "2026-01-05T10:00:00Z", updatedAt: "2026-01-05T10:00:00Z" },
   { id: 9, playerId: 6, category: "Book", title: "Designing Data-Intensive Applications", originalTitle: null, currentEpisode: 250, totalEpisode: 616, status: "READING", rating: null, tags: ["Database", "Architecture", "Tech"], rewatchCount: 0, startedOn: "2026-01-15", finishedOn: null, createdAt: "2026-01-15T10:00:00Z", updatedAt: "2026-03-01T10:00:00Z" },
   { id: 10, playerId: 6, category: "Movie", title: "Spirited Away", originalTitle: "千と千尋の神隠し", currentEpisode: 1, totalEpisode: 1, status: "COMPLETED", rating: 9.9, tags: ["Fantasy", "Adventure", "Miyazaki"], rewatchCount: 5, startedOn: "2020-01-01", finishedOn: "2020-01-01", createdAt: "2020-01-01T18:00:00Z", updatedAt: "2020-01-01T20:00:00Z" },
-];
-
-export const MOCK_COLLECTIONS: CollectionInfo[] = [
-  { id: 1, playerId: 6, category: "Figure", title: "Kirito 1/7 Scale Figure", originalTitle: null, quantity: 1, conditionNote: "Mint in box", acquiredFrom: "Good Smile Online", tags: ["SAO", "Kirito", "1/7"], createdAt: "2024-06-15T10:00:00Z", updatedAt: "2024-06-15T10:00:00Z" },
-  { id: 2, playerId: 6, category: "Figure", title: "Asuna ALO Ver. Figure", originalTitle: null, quantity: 1, conditionNote: "Mint", acquiredFrom: "Kotobukiya", tags: ["SAO", "Asuna", "ALO"], createdAt: "2024-08-20T10:00:00Z", updatedAt: "2024-08-20T10:00:00Z" },
-  { id: 3, playerId: 6, category: "Manga", title: "Sword Art Online Progressive", originalTitle: "ソードアート・オンライン プログレッシブ", quantity: 8, conditionNote: "All volumes, like new", acquiredFrom: "Kyobo Bookstore", tags: ["SAO", "Manga", "Kawahara"], createdAt: "2025-01-10T10:00:00Z", updatedAt: "2025-01-10T10:00:00Z" },
-  { id: 4, playerId: 6, category: "Light Novel", title: "SAO Original Light Novel Series", originalTitle: "ソードアート・オンライン", quantity: 27, conditionNote: "JP edition, complete", acquiredFrom: "Amazon Japan", tags: ["SAO", "Novel", "JP"], createdAt: "2023-12-01T10:00:00Z", updatedAt: "2025-02-15T10:00:00Z" },
-  { id: 5, playerId: 6, category: "Artbook", title: "SAO Artbook Vol. 1", originalTitle: "ソードアート・オンライン アートワークス", quantity: 1, conditionNote: "Like new", acquiredFrom: "Comiket", tags: ["SAO", "Art", "Illustrations"], createdAt: "2024-11-03T10:00:00Z", updatedAt: "2024-11-03T10:00:00Z" },
-  { id: 6, playerId: 6, category: "Merchandise", title: "Elucidator Replica Sword", originalTitle: null, quantity: 1, conditionNote: "Display condition", acquiredFrom: "Animax Shop", tags: ["SAO", "Replica", "Sword"], createdAt: "2025-06-20T10:00:00Z", updatedAt: "2025-06-20T10:00:00Z" },
-  { id: 7, playerId: 6, category: "Bluray", title: "SAO Complete Series Bluray Box", originalTitle: null, quantity: 1, conditionNote: "Sealed", acquiredFrom: "Aniplex Official", tags: ["SAO", "Bluray", "Complete"], createdAt: "2025-09-01T10:00:00Z", updatedAt: "2025-09-01T10:00:00Z" },
-  { id: 8, playerId: 6, category: "Merchandise", title: "SAO Enamel Pin Set", originalTitle: null, quantity: 12, conditionNote: "All pins complete", acquiredFrom: "CR Shop", tags: ["SAO", "Pins", "Collection"], createdAt: "2025-03-14T10:00:00Z", updatedAt: "2025-03-14T10:00:00Z" },
 ];

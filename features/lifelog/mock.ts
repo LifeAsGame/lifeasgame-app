@@ -1,4 +1,8 @@
 import type {
+  CollectionCreateRequest,
+  CollectionInfo,
+  CollectionSearchParams,
+  CollectionUpdateRequest,
   JournalDetail,
   JournalEntry,
   JournalListParams,
@@ -129,8 +133,38 @@ export const MOCK_JOURNAL_DETAILS = [
   },
 ] satisfies JournalDetail[];
 
+export const MOCK_COLLECTION_SOURCES = [
+  {
+    id: 204,
+    playerId: 6,
+    category: "BOOK",
+    title: "Architecture Notes",
+    originalTitle: null,
+    quantity: 1,
+    conditionNote: "Annotated",
+    acquiredFrom: "Local bookstore",
+    tags: ["architecture", "journal"],
+    createdAt: "2026-08-12T09:00:00Z",
+    updatedAt: "2026-08-12T09:00:00Z",
+  },
+  {
+    id: 201,
+    playerId: 6,
+    category: "FIGURE",
+    title: "Legacy Collection",
+    originalTitle: null,
+    quantity: 1,
+    conditionNote: null,
+    acquiredFrom: null,
+    tags: [],
+    createdAt: "2026-08-10T10:00:00Z",
+    updatedAt: "2026-08-10T10:00:00Z",
+  },
+] satisfies CollectionInfo[];
+
 let journalEntries: JournalEntry[] = structuredClone([...MOCK_JOURNAL_ENTRIES]);
 let journalDetails: JournalDetail[] = structuredClone(MOCK_JOURNAL_DETAILS);
+let collectionEntries: CollectionInfo[] = structuredClone(MOCK_COLLECTION_SOURCES);
 const quickRecordReceipts = new Map<string, { payload: string; result: QuickRecordResult }>();
 
 function copy<T>(value: T): T {
@@ -145,6 +179,7 @@ function normalizeMediaProgress(currentEpisode?: number, totalEpisode?: number) 
 export function resetJournalMock(): void {
   journalEntries = structuredClone([...MOCK_JOURNAL_ENTRIES]);
   journalDetails = structuredClone(MOCK_JOURNAL_DETAILS);
+  collectionEntries = structuredClone(MOCK_COLLECTION_SOURCES);
   quickRecordReceipts.clear();
 }
 
@@ -157,7 +192,11 @@ function recordQuick(body: QuickRecordRequest, idempotencyKey: string): QuickRec
   }
 
   const lifeLogId = Math.max(0, ...journalEntries.map((entry) => entry.lifeLogId)) + 1;
-  const sourceId = Math.max(0, ...journalEntries.map((entry) => entry.sourceId)) + 1;
+  const sourceId = Math.max(
+    0,
+    ...journalEntries.map((entry) => entry.sourceId),
+    ...collectionEntries.map((entry) => entry.id),
+  ) + 1;
   const recordedAt = new Date().toISOString();
   const metadata = {
     lifeLogId,
@@ -188,6 +227,17 @@ function recordQuick(body: QuickRecordRequest, idempotencyKey: string): QuickRec
         updatedAt: recordedAt,
       },
     };
+    collectionEntries.unshift({
+      id: sourceId,
+      playerId: 6,
+      ...body.collection,
+      originalTitle: null,
+      conditionNote: null,
+      acquiredFrom: null,
+      tags: [],
+      createdAt: recordedAt,
+      updatedAt: recordedAt,
+    });
   } else if (body.type === "EXERCISE") {
     const source = {
       category: body.exercise.category,
@@ -230,6 +280,61 @@ function recordQuick(body: QuickRecordRequest, idempotencyKey: string): QuickRec
   quickRecordReceipts.set(idempotencyKey, { payload, result });
   return copy(result);
 }
+
+function collection(id: number): CollectionInfo {
+  const found = collectionEntries.find((entry) => entry.id === id);
+  if (!found) throw new Error("Collection not found.");
+  return found;
+}
+
+const MOCK_MUTATION_TIME = "2026-08-14T00:00:00Z";
+
+export const collectionMock = {
+  recent: (limit: number): CollectionInfo[] => copy(collectionEntries.slice(0, limit)),
+  search: ({ category, titleLike, page, size }: CollectionSearchParams): CollectionInfo[] => {
+    const title = titleLike?.trim().toLowerCase();
+    const filtered = collectionEntries.filter((entry) =>
+      (!category || entry.category === category)
+      && (!title || entry.title.toLowerCase().includes(title))
+    );
+    return copy(filtered.slice(page * size, (page + 1) * size));
+  },
+  get: (id: number): CollectionInfo => copy(collection(id)),
+  create: (body: CollectionCreateRequest): { id: number } => {
+    const id = Math.max(0, ...collectionEntries.map((entry) => entry.id)) + 1;
+    collectionEntries.unshift({
+      id,
+      playerId: 6,
+      category: body.category,
+      title: body.title.trim(),
+      originalTitle: body.originalTitle?.trim() || null,
+      quantity: body.quantity,
+      conditionNote: body.conditionNote?.trim() || null,
+      acquiredFrom: body.acquiredFrom?.trim() || null,
+      tags: copy(body.tags ?? []),
+      createdAt: MOCK_MUTATION_TIME,
+      updatedAt: MOCK_MUTATION_TIME,
+    });
+    return { id };
+  },
+  update: (id: number, body: CollectionUpdateRequest): CollectionInfo => {
+    const current = collection(id);
+    const updated = {
+      ...current,
+      ...(body.quantity === undefined ? {} : { quantity: body.quantity }),
+      ...(body.conditionNote === undefined ? {} : { conditionNote: body.conditionNote.trim() || null }),
+      ...(body.acquiredFrom === undefined ? {} : { acquiredFrom: body.acquiredFrom.trim() || null }),
+      updatedAt: MOCK_MUTATION_TIME,
+    };
+    collectionEntries = collectionEntries.map((entry) => entry.id === id ? updated : entry);
+    return copy(updated);
+  },
+  delete: (id: number): { id: number } => {
+    collection(id);
+    collectionEntries = collectionEntries.filter((entry) => entry.id !== id);
+    return { id };
+  },
+};
 
 export const journalMock = {
   page: ({ primaryRoleId, subtype, page, size }: JournalListParams): JournalPage => {

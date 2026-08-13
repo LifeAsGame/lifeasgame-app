@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, apiDelete, apiGet, apiGetRaw, apiPost } from "./client";
+import { ApiError, apiDelete, apiGet, apiGetRaw, apiPost, apiPostRaw } from "./client";
 import { tokenStorage } from "./tokenStorage";
 import type { ApiEnvelope, TokenPair } from "./types";
 
@@ -52,6 +52,15 @@ describe("backend API에 요청할 때", () => {
       fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ blueprints: [{ code: "Q_ONE" }] }), { status: 200 }));
 
       await expect(apiGetRaw("/api/v1/quests/catalog")).resolves.toEqual({ blueprints: [{ code: "Q_ONE" }] });
+    });
+
+    it("raw POST만 envelope 없이 반환하고 기본 POST validation은 유지한다", async () => {
+      fetchMock
+        .mockResolvedValueOnce(new Response(JSON.stringify({ id: 31 }), { status: 200 }))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ id: 32 }), { status: 200 }));
+
+      await expect(apiPostRaw("/api/v1/players/collections", { title: "Book" })).resolves.toEqual({ id: 31 });
+      await expect(apiPost("/api/v1/players/collections", { title: "Book" })).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
     });
   });
 

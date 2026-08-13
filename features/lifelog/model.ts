@@ -1,28 +1,12 @@
 import type { LifelogSubId, PanelDataItem, PanelMenuItem } from "@/entities/nav";
 import { CRUD_ACTIONS, pad, uniqueOrderedCats, catMenuItems } from "@/entities/nav";
-import { COLLECTION_DATA, MEDIA_DATA, EXERCISE_DATA } from "./data";
+import { MEDIA_DATA, EXERCISE_DATA } from "./data";
 
 export * from "./forms";
 
-type SourceLifelogSubId = Exclude<LifelogSubId, "journal">;
+type SourceLifelogSubId = Exclude<LifelogSubId, "journal" | "collection">;
 
 export const LIFELOG_LISTS: Record<SourceLifelogSubId, PanelDataItem[]> = {
-  collection: COLLECTION_DATA.map((c, i) => ({
-    id: `lifelog-collection-${pad(i + 1, 3)}`,
-    label: c.title,
-    slotLabel: c.cat.slice(0, 2).toUpperCase(),
-    subtitle: `${c.cat} | Qty: ${c.qty} | ${c.cond}`,
-    category: c.cat,
-    detailTitle: "Collection Detail",
-    detailDescription: `${c.title} — ${c.cat}`,
-    detailRows: [
-      `Category: ${c.cat}`,
-      `Quantity: ${c.qty}`,
-      `Condition: ${c.cond}`,
-      `Source: ${c.from}`,
-    ],
-    actions: CRUD_ACTIONS,
-  })),
   media: MEDIA_DATA.map((m, i) => ({
     id: `lifelog-media-${pad(i + 1, 3)}`,
     label: m.title,
@@ -58,7 +42,6 @@ export const LIFELOG_LISTS: Record<SourceLifelogSubId, PanelDataItem[]> = {
 };
 
 export const LIFELOG_CATEGORY_ITEMS: Record<SourceLifelogSubId, PanelMenuItem[]> = {
-  collection: catMenuItems(uniqueOrderedCats(COLLECTION_DATA)),
   media:      catMenuItems(uniqueOrderedCats(MEDIA_DATA)),
   exercise:   catMenuItems(uniqueOrderedCats(EXERCISE_DATA)),
 };
