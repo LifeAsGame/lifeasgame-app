@@ -69,9 +69,9 @@ type RouteDetailState = {
   error: string | null;
 };
 
-export default function JourneyShell() {
+export default function JourneyShell({ initialSurface = "current" }: { initialSurface?: QuestsSubId }) {
   const queries = useJourneyQueries(true);
-  const [surface, setSurface] = useState<QuestsSubId>("current");
+  const [surface, setSurface] = useState<QuestsSubId>(initialSurface);
   const [selectedAcceptanceId, setSelectedAcceptanceId] = useState<number | null>(null);
   const [selectedCatalogCode, setSelectedCatalogCode] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);

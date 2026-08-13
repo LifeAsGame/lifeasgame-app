@@ -106,6 +106,16 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     api.advanceQuestRouteApi.mockResolvedValue(advancedRoute);
   });
 
+  describe("canonical Home callback이 initial surface를 지정하면", () => {
+    it("Routes에서 바로 시작한다", async () => {
+      render(<JourneyShell initialSurface="routes" />);
+
+      expect(await screen.findByText(unselectedRoute.title)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Routes/ })).toBeInTheDocument();
+      expect(screen.queryByText("No active Quest Routes.")).not.toBeInTheDocument();
+    });
+  });
+
   describe("Current Quest의 상태와 next action을 확인하면", () => {
     it("IN_PROGRESS/GOAL_REACHED/COMPLETED/CANCELED를 구분하고 Party/Guild surface나 reward claim을 노출하지 않는다", async () => {
       render(<JourneyShell />);

@@ -10,16 +10,17 @@ const auth = vi.hoisted(() => ({ state: { isAuthenticated: true, playerId: 7 as 
 const roles = vi.hoisted((): RoleDetail[] => [
   { id: 1, roleType: "PROFESSIONAL", name: "Backend Engineer", description: "Build systems", status: "ACTIVE", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 },
 ]);
+const roleHook = vi.hoisted(() => ({ useRoles: vi.fn(() => ({ roles, isLoading: false, error: null, refresh: vi.fn() })) }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth.state }));
-vi.mock("@/features/role/useRoles", () => ({ useRoles: () => ({ roles, isLoading: false, error: null, refresh: vi.fn() }) }));
+vi.mock("@/features/role/useRoles", () => roleHook);
 vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock("@/shared/hooks/usePanScroll", () => ({ usePanScroll: vi.fn() }));
 vi.mock("@/widgets/left-context/LeftContext", () => ({ default: () => null }));
 vi.mock("@/widgets/orb-nav/OrbNav", () => ({
-  default: ({ items, onSelect }: { items: Array<{ id: MainNavId; label: string }>; onSelect: (id: MainNavId) => void }) => (
-    <nav>{items.map((item) => <button key={item.id} type="button" onClick={() => onSelect(item.id)}>{item.label}</button>)}</nav>
+  default: ({ items, selectedId, onSelect }: { items: Array<{ id: MainNavId; label: string }>; selectedId: MainNavId | null; onSelect: (id: MainNavId) => void }) => (
+    <nav>{items.map((item) => <button key={item.id} type="button" aria-pressed={selectedId === item.id} onClick={() => onSelect(item.id)}>{item.label}</button>)}</nav>
   ),
 }));
 vi.mock("@/widgets/right-panels/RightPanels", () => ({
@@ -34,8 +35,25 @@ vi.mock("@/widgets/right-panels/RightPanels", () => ({
 vi.mock("@/features/lifelog/JournalShell", () => ({ default: ({ roles: roleOptions }: { roles: RoleDetail[] }) => <div data-testid="journal-shell">Journal · {roleOptions.map(({ name }) => name).join(", ")}</div> }));
 vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
 vi.mock("@/features/inventory/GearShell", () => ({ default: () => <div data-testid="gear-shell">Gear Shell</div> }));
-vi.mock("@/features/role/RoleShell", () => ({ default: () => <div data-testid="role-shell">Role Shell</div> }));
-vi.mock("@/features/quests/JourneyShell", () => ({ default: () => <div data-testid="journey-shell">Journey Shell</div> }));
+vi.mock("@/features/home/HomeShell", () => ({
+  default: ({ onOpenJournal, onOpenAchievements, onOpenCurrentQuests, onOpenRoutes, onOpenRole }: {
+    onOpenJournal: () => void;
+    onOpenAchievements: () => void;
+    onOpenCurrentQuests: () => void;
+    onOpenRoutes: () => void;
+    onOpenRole: (roleId: number) => void;
+  }) => (
+    <div data-testid="home-shell">
+      <button type="button" onClick={onOpenJournal}>Home Journal</button>
+      <button type="button" onClick={onOpenAchievements}>Home Achievement</button>
+      <button type="button" onClick={onOpenCurrentQuests}>Home Quest</button>
+      <button type="button" onClick={onOpenRoutes}>Home Route</button>
+      <button type="button" onClick={() => onOpenRole(1)}>Home Role</button>
+    </div>
+  ),
+}));
+vi.mock("@/features/role/RoleShell", () => ({ default: ({ selectedRoleId }: { selectedRoleId: number | null }) => <div data-testid="role-shell">Role Shell · {selectedRoleId}</div> }));
+vi.mock("@/features/quests/JourneyShell", () => ({ default: ({ initialSurface }: { initialSurface?: string }) => <div data-testid="journey-shell">Journey Shell · {initialSurface}</div> }));
 vi.mock("@/shared/ui/ParticleBackground", () => ({ default: () => null }));
 vi.mock("@/shared/ui/AmbientOverlay", () => ({ default: () => null }));
 vi.mock("@/shared/ui/SaoAlert", () => ({ default: () => null }));
@@ -46,6 +64,60 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     vi.clearAllMocks();
     auth.state = { isAuthenticated: true, playerId: 7, isLoading: false, logout: vi.fn() };
     vi.stubGlobal("requestAnimationFrame", () => 1);
+  });
+
+  describe("인증된 player가 처음 진입하면", () => {
+    it("Home을 표시하고 Home Orb나 active Orb를 만들지 않으며 Role API도 기다리게 한다", () => {
+      render(<Home />);
+
+      expect(screen.getByTestId("home-shell")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /^Home$/ })).not.toBeInTheDocument();
+      expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(8);
+      expect(roleHook.useRoles).toHaveBeenCalledWith(false);
+    });
+  });
+
+  describe("main Orb를 선택하면", () => {
+    it("feature를 열고 active Orb를 다시 누르면 Home으로 돌아간다", () => {
+      render(<Home />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      expect(screen.queryByTestId("home-shell")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Player" })).toHaveAttribute("aria-pressed", "true");
+
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      expect(screen.getByTestId("home-shell")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Player" })).toHaveAttribute("aria-pressed", "false");
+    });
+  });
+
+  describe("Home card에서 canonical surface를 열면", () => {
+    it("Journal, Quest, Route, Achievement, Role state만 orchestration한다", () => {
+      const { unmount } = render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Home Journal" }));
+      expect(screen.getByTestId("journal-shell")).toBeInTheDocument();
+      unmount();
+
+      const quest = render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Home Quest" }));
+      expect(screen.getByTestId("journey-shell")).toHaveTextContent("current");
+      quest.unmount();
+
+      const route = render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Home Route" }));
+      expect(screen.getByTestId("journey-shell")).toHaveTextContent("routes");
+      route.unmount();
+
+      const achievement = render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Home Achievement" }));
+      expect(screen.getByRole("button", { name: "Achievement" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Combat" })).toBeInTheDocument();
+      achievement.unmount();
+
+      render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Home Role" }));
+      expect(screen.getByTestId("role-shell")).toHaveTextContent("Role Shell · 1");
+    });
   });
 
   describe("인증된 player가 Journal을 선택하면", () => {
