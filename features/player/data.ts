@@ -1,18 +1,3 @@
-export const CERTIFICATION_DATA = [
-  { name: "AWS Solutions Architect",    issuer: "Amazon Web Services",       cat: "Cloud",       expires: "2028-06-15" },
-  { name: "Python Professional",        issuer: "Python Institute",           cat: "Programming", expires: null },
-  { name: "Kubernetes Administrator",   issuer: "CNCF",                       cat: "DevOps",      expires: "2027-09-10" },
-  { name: "TOEIC 935",                  issuer: "ETS Korea",                  cat: "Language",    expires: "2026-11-02" },
-  { name: "Google Cloud Professional",  issuer: "Google",                     cat: "Cloud",       expires: "2027-12-01" },
-  { name: "React Developer Certification", issuer: "Meta",                    cat: "Frontend",    expires: null },
-  { name: "Computer Science B.S.",      issuer: "Seoul National University",  cat: "Academic",    expires: null },
-  { name: "SQLD Database Developer",    issuer: "Korea Data Agency",          cat: "Database",    expires: null },
-  { name: "Security+ Certified",        issuer: "CompTIA",                    cat: "Security",    expires: "2028-10-05" },
-  { name: "TypeScript Advanced",        issuer: "Microsoft",                  cat: "Programming", expires: null },
-  { name: "Docker Certified Associate", issuer: "Docker Inc.",                cat: "DevOps",      expires: "2027-05-28" },
-  { name: "JLPT N3 Japanese",           issuer: "Japan Foundation",           cat: "Language",    expires: null },
-];
-
 export const TITLE_DATA = [
   { code: "BLACK_SWORDSMAN", name: "Black Swordsman", cat: "Achievement", desc: "The legendary solo player." },
   { code: "BEATER",          name: "Beater",           cat: "Special",     desc: "A beta tester with prior knowledge." },

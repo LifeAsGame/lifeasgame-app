@@ -1,10 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PlayerAchievementInfo } from "@/shared/api/types";
-import { getPlayerAchievementApi, getPlayerAchievementsApi } from "./api";
-import { achievementMock } from "./mock";
+import type { PlayerAchievementInfo, PlayerCertificationInfo } from "@/shared/api/types";
+import {
+  deletePlayerCertificationApi,
+  getCertificationCatalogApi,
+  getPlayerAchievementApi,
+  getPlayerAchievementsApi,
+  getPlayerCertificationsApi,
+  registerPlayerCertificationApi,
+  updatePlayerCertificationApi,
+} from "./api";
+import { achievementMock, certificationMock, resetCertificationMock } from "./mock";
 
-const client = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
+const client = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPatch: vi.fn(), apiPost: vi.fn() }));
 
 vi.mock("@/shared/api/client", () => ({ USE_MOCK: false, ...client }));
 
@@ -41,5 +49,46 @@ describe("Current Player Achievement API를 사용할 때", () => {
     expect(achievementMock.detail(first.achievementId)).toEqual(first);
     expect(achievementMock.list().map(({ achievementId }) => achievementId)).toEqual(list.map(({ achievementId }) => achievementId));
     expect(() => achievementMock.detail(999_999)).toThrow("Acquired Achievement not found.");
+  });
+});
+
+describe("Current Player Certification API를 사용할 때", () => {
+  const owned: PlayerCertificationInfo = { certificationId: 3, name: "Kubernetes Administrator", issuer: "CNCF", category: "DevOps", acquiredDate: null, expiresDate: null, grantedAt: "2026-08-14T00:00:00Z" };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetCertificationMock();
+  });
+
+  it("envelope-aware helpers로 exact five operations와 bodies만 전송한다", async () => {
+    client.apiGet.mockResolvedValueOnce({ infos: [{ certificationId: 3, name: owned.name, issuer: owned.issuer, category: owned.category }] }).mockResolvedValueOnce({ infos: [owned] });
+    client.apiPost.mockResolvedValue({ certificationId: 3, acquiredDate: null, expiresDate: null });
+    client.apiPatch.mockResolvedValue({ certificationId: 3, acquiredDate: "2026-08-01", expiresDate: null });
+    client.apiDelete.mockResolvedValue(3);
+
+    await getCertificationCatalogApi();
+    await getPlayerCertificationsApi();
+    await registerPlayerCertificationApi(3, {});
+    await updatePlayerCertificationApi(3, { acquiredDate: "2026-08-01" });
+    await deletePlayerCertificationApi(3);
+
+    expect(client.apiGet).toHaveBeenNthCalledWith(1, "/api/v1/certifications");
+    expect(client.apiGet).toHaveBeenNthCalledWith(2, "/api/v1/players/certifications");
+    expect(client.apiPost).toHaveBeenCalledWith("/api/v1/players/certifications/3", {});
+    expect(client.apiPatch).toHaveBeenCalledWith("/api/v1/players/certifications/3", { acquiredDate: "2026-08-01" });
+    expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/certifications/3");
+    expect(client.apiGet.mock.calls.flat().join(" ")).not.toMatch(/playerId|userId|\/players\/me\/certifications/);
+  });
+
+  it("mock는 catalog/owned를 분리하고 duplicate, preserve, date order, delete semantics를 지킨다", () => {
+    expect(certificationMock.catalog()).toHaveLength(4);
+    expect(certificationMock.owned()).toHaveLength(2);
+    expect(() => certificationMock.register(1, {})).toThrow("Certification already registered.");
+
+    certificationMock.register(3, { acquiredDate: "2026-08-01" });
+    expect(certificationMock.update(3, { expiresDate: null })).toEqual({ certificationId: 3, acquiredDate: "2026-08-01", expiresDate: null });
+    expect(() => certificationMock.update(3, { expiresDate: "2026-07-31" })).toThrow("Expiration date cannot be before acquired date.");
+    expect(certificationMock.delete(3)).toBe(3);
+    expect(certificationMock.owned().some(({ certificationId }) => certificationId === 3)).toBe(false);
   });
 });

@@ -1,23 +1,5 @@
 import type { FormFieldSpec } from "@/entities/nav";
 
-export const CERTIFICATION_FORM_FIELDS: FormFieldSpec[] = [
-  { key: "name",         label: "Name",          type: "text",   placeholder: "e.g. AWS Solutions Architect", required: true },
-  { key: "issuer",       label: "Issuer",         type: "text",   placeholder: "e.g. Amazon Web Services",    required: true },
-  { key: "category",     label: "Category",       type: "select", required: true, options: [
-    { value: "Cloud",       label: "Cloud" },
-    { value: "Programming", label: "Programming" },
-    { value: "DevOps",      label: "DevOps" },
-    { value: "Language",    label: "Language" },
-    { value: "Academic",    label: "Academic" },
-    { value: "Database",    label: "Database" },
-    { value: "Security",    label: "Security" },
-    { value: "Frontend",    label: "Frontend" },
-    { value: "Other",       label: "Other" },
-  ]},
-  { key: "acquiredDate", label: "Acquired Date", type: "date", required: true },
-  { key: "expiresDate",  label: "Expires Date",  type: "date" },
-];
-
 export const HOBBY_FORM_FIELDS: FormFieldSpec[] = [
   { key: "customName",  label: "Display Name", type: "text",   placeholder: "e.g. Full-Stack Dev", required: true },
   { key: "category",    label: "Category",     type: "select", required: true, options: [

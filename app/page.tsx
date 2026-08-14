@@ -20,6 +20,7 @@ import InventoryShell from "@/features/inventory/InventoryShell";
 import GearShell from "@/features/inventory/GearShell";
 import HomeShell from "@/features/home/HomeShell";
 import AchievementShell from "@/features/player/AchievementShell";
+import CertificationShell from "@/features/player/CertificationShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -42,7 +43,6 @@ import type {
   SocialContextData,
 } from "@/entities/nav";
 import {
-  CERTIFICATION_FORM_FIELDS,
   HOBBY_FORM_FIELDS,
   PLAYER_CATEGORY_ITEMS,
   PLAYER_LISTS,
@@ -153,7 +153,7 @@ function buildPanels(
 
   if (selectedMain === "player") {
     const sub = selectedMainSub as PlayerSubId;
-    if (sub === "achievement") return { panelStack, socialContext: null };
+    if (sub === "achievement" || sub === "credentials") return { panelStack, socialContext: null };
     const subLabel = mainItems.find((item) => item.id === sub)?.label ?? "Player";
     const categoryItems = PLAYER_CATEGORY_ITEMS[sub] ?? [];
     const selectedCategory = selectedPlayerCategoryBySub[sub] ?? null;
@@ -1009,7 +1009,7 @@ export default function Home() {
   // Called when any field in a form panel changes — syncs category panel selection
   const handlePanelFormFieldChange = (formKey: string, fieldKey: string, value: string) => {
     if (fieldKey !== "category") return;
-    if (formKey.startsWith("credential") || formKey.startsWith("hobby")) {
+    if (formKey.startsWith("hobby")) {
       const sub = selectedSubByMain.player as PlayerSubId;
       setSelectedPlayerCategoryBySub((prev) => ({ ...prev, [sub]: value || null }));
     } else if (formKey.startsWith("media")) {
@@ -1032,9 +1032,7 @@ export default function Home() {
       setSelectedPlayerCategoryBySub((prev) => ({ ...prev, [sub]: itemId }));
       updateDetailSelections({ player: null });
       setEditingItemId(null);
-      if (sub === "credentials") {
-        openForm("credential-create", "Add Credential", CERTIFICATION_FORM_FIELDS, "추가하기", { category: itemId });
-      } else if (sub === "interests") {
+      if (sub === "interests") {
         openForm("hobby-create", "Add Interest", HOBBY_FORM_FIELDS, "추가하기", { category: itemId });
       }
       return;
@@ -1056,11 +1054,7 @@ export default function Home() {
     if (selectedMain === "player") {
       updateDetailSelections({ player: itemId });
       setEditingItemId(itemId);
-      if (sub === "credentials") {
-        const item = PLAYER_LISTS.credentials.find((i) => i.id === itemId);
-        openForm("credential-edit", "Edit Credential", CERTIFICATION_FORM_FIELDS, "수정하기",
-          item ? { name: item.label, issuer: item.subtitle?.split(" | ")[0] ?? "", category: item.category ?? "", acquiredDate: item.detailRows[2]?.split(": ")[1] ?? "" } : undefined);
-      } else if (sub === "interests") {
+      if (sub === "interests") {
         const item = PLAYER_LISTS.interests.find((i) => i.id === itemId);
         openForm("hobby-edit", "Edit Interest", HOBBY_FORM_FIELDS, "수정하기",
           item ? { customName: item.label, category: item.category ?? "", proficiency: item.detailRows[2]?.split(": ")[1]?.replace("/100", "") ?? "", status: item.detailRows[1]?.split(": ")[1] ?? "" } : undefined);
@@ -1227,6 +1221,16 @@ export default function Home() {
                 onPanelItemSelect={handlePanelItemSelect}
               />
               <AchievementShell />
+            </div>
+          ) : selectedMain === "player" && selectedSubByMain.player === "credentials" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="player"
+                panelStack={panelStack.slice(0, 1)}
+                panelStackKey="player-certification-menu"
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <CertificationShell />
             </div>
           ) : selectedMain === "role" ? (
             <div className="flex w-fit items-center gap-3">

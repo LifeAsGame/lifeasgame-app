@@ -1,6 +1,12 @@
-import { USE_MOCK, apiGet, apiPost } from "@/shared/api/client";
-import type { PlayerAchievementInfo } from "@/shared/api/types";
-import { achievementMock } from "./mock";
+import { USE_MOCK, apiDelete, apiGet, apiPatch, apiPost } from "@/shared/api/client";
+import type {
+  CertificationCatalogInfo,
+  PlayerAchievementInfo,
+  PlayerCertificationDatesRequest,
+  PlayerCertificationInfo,
+  PlayerCertificationMutationResult,
+} from "@/shared/api/types";
+import { achievementMock, certificationMock } from "./mock";
 
 export type RegisterPlayerRequest = { name: string; gender: string };
 export type CreatedPlayerWithToken = {
@@ -27,4 +33,34 @@ export function getPlayerAchievementApi(achievementId: number): Promise<PlayerAc
   return USE_MOCK
     ? Promise.resolve().then(() => achievementMock.detail(achievementId))
     : apiGet<PlayerAchievementInfo>(`/api/v1/players/achievements/${achievementId}`);
+}
+
+export async function getCertificationCatalogApi(): Promise<CertificationCatalogInfo[]> {
+  if (USE_MOCK) return certificationMock.catalog();
+  const result = await apiGet<{ infos: CertificationCatalogInfo[] }>("/api/v1/certifications");
+  return result.infos;
+}
+
+export async function getPlayerCertificationsApi(): Promise<PlayerCertificationInfo[]> {
+  if (USE_MOCK) return certificationMock.owned();
+  const result = await apiGet<{ infos: PlayerCertificationInfo[] }>("/api/v1/players/certifications");
+  return result.infos;
+}
+
+export function registerPlayerCertificationApi(certificationId: number, body: PlayerCertificationDatesRequest): Promise<PlayerCertificationMutationResult> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => certificationMock.register(certificationId, body))
+    : apiPost<PlayerCertificationMutationResult>(`/api/v1/players/certifications/${certificationId}`, body);
+}
+
+export function updatePlayerCertificationApi(certificationId: number, body: PlayerCertificationDatesRequest): Promise<PlayerCertificationMutationResult> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => certificationMock.update(certificationId, body))
+    : apiPatch<PlayerCertificationMutationResult>(`/api/v1/players/certifications/${certificationId}`, body);
+}
+
+export function deletePlayerCertificationApi(certificationId: number): Promise<number> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => certificationMock.delete(certificationId))
+    : apiDelete<number>(`/api/v1/players/certifications/${certificationId}`);
 }

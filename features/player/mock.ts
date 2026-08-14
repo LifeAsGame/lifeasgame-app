@@ -1,7 +1,10 @@
 import type {
   CharacterSheet,
+  CertificationCatalogInfo,
   PlayerAchievementInfo,
+  PlayerCertificationDatesRequest,
   PlayerCertificationInfo,
+  PlayerCertificationMutationResult,
   PlayerHobbyInfo,
   PlayerTitleInfo,
 } from "@/shared/api/types";
@@ -127,20 +130,57 @@ export const achievementMock = {
   },
 };
 
-export const MOCK_CERTIFICATIONS: PlayerCertificationInfo[] = [
-  { certificationId: 1, name: "AWS Solutions Architect", issuer: "Amazon Web Services", category: "Cloud", acquiredDate: "2025-06-15", expiresDate: "2028-06-15", grantedAt: "2025-06-15T09:00:00Z" },
-  { certificationId: 2, name: "Python Professional", issuer: "Python Institute", category: "Programming", acquiredDate: "2025-03-20", expiresDate: null, grantedAt: "2025-03-20T10:00:00Z" },
-  { certificationId: 3, name: "Kubernetes Administrator", issuer: "CNCF", category: "DevOps", acquiredDate: "2025-09-10", expiresDate: "2027-09-10", grantedAt: "2025-09-10T11:00:00Z" },
-  { certificationId: 4, name: "TOEIC 935", issuer: "ETS Korea", category: "Language", acquiredDate: "2024-11-02", expiresDate: "2026-11-02", grantedAt: "2024-11-02T08:00:00Z" },
-  { certificationId: 5, name: "Google Cloud Professional", issuer: "Google", category: "Cloud", acquiredDate: "2025-12-01", expiresDate: "2027-12-01", grantedAt: "2025-12-01T14:00:00Z" },
-  { certificationId: 6, name: "React Developer", issuer: "Meta", category: "Frontend", acquiredDate: "2025-04-15", expiresDate: null, grantedAt: "2025-04-15T10:00:00Z" },
-  { certificationId: 7, name: "Computer Science Bachelor", issuer: "Seoul National University", category: "Academic", acquiredDate: "2024-02-28", expiresDate: null, grantedAt: "2024-02-28T09:00:00Z" },
-  { certificationId: 8, name: "SQLD Database Developer", issuer: "Korea Data Agency", category: "Database", acquiredDate: "2025-07-20", expiresDate: null, grantedAt: "2025-07-20T10:00:00Z" },
-  { certificationId: 9, name: "Security+ Certified", issuer: "CompTIA", category: "Security", acquiredDate: "2025-10-05", expiresDate: "2028-10-05", grantedAt: "2025-10-05T09:00:00Z" },
-  { certificationId: 10, name: "TypeScript Advanced", issuer: "Microsoft", category: "Programming", acquiredDate: "2025-08-12", expiresDate: null, grantedAt: "2025-08-12T11:00:00Z" },
-  { certificationId: 11, name: "Docker Certified Associate", issuer: "Docker Inc.", category: "DevOps", acquiredDate: "2025-05-28", expiresDate: "2027-05-28", grantedAt: "2025-05-28T10:00:00Z" },
-  { certificationId: 12, name: "JLPT N3 Japanese", issuer: "Japan Foundation", category: "Language", acquiredDate: "2025-01-10", expiresDate: null, grantedAt: "2025-01-10T08:00:00Z" },
-];
+export const MOCK_CERTIFICATION_CATALOG = [
+  { certificationId: 1, name: "AWS Solutions Architect", issuer: "Amazon Web Services", category: "Cloud" },
+  { certificationId: 2, name: "Python Professional", issuer: "Python Institute", category: "Programming" },
+  { certificationId: 3, name: "Kubernetes Administrator", issuer: "CNCF", category: "DevOps" },
+  { certificationId: 4, name: "TOEIC 935", issuer: "ETS Korea", category: "Language" },
+] satisfies CertificationCatalogInfo[];
+
+export const MOCK_PLAYER_CERTIFICATIONS = [
+  { ...MOCK_CERTIFICATION_CATALOG[0], acquiredDate: "2025-06-15", expiresDate: "2028-06-15", grantedAt: "2025-06-15T09:00:00Z" },
+  { ...MOCK_CERTIFICATION_CATALOG[1], acquiredDate: null, expiresDate: null, grantedAt: "2025-03-20T10:00:00Z" },
+] satisfies PlayerCertificationInfo[];
+
+let playerCertifications: PlayerCertificationInfo[] = copy(MOCK_PLAYER_CERTIFICATIONS);
+
+function validateDates(acquiredDate: string | null, expiresDate: string | null): void {
+  if (acquiredDate && expiresDate && expiresDate < acquiredDate) throw new Error("Expiration date cannot be before acquired date.");
+}
+
+export function resetCertificationMock(): void {
+  playerCertifications = copy(MOCK_PLAYER_CERTIFICATIONS);
+}
+
+export const certificationMock = {
+  catalog: (): CertificationCatalogInfo[] => copy(MOCK_CERTIFICATION_CATALOG),
+  owned: (): PlayerCertificationInfo[] => copy(playerCertifications),
+  register: (certificationId: number, body: PlayerCertificationDatesRequest): PlayerCertificationMutationResult => {
+    if (playerCertifications.some((item) => item.certificationId === certificationId)) throw new Error("Certification already registered.");
+    const catalog = MOCK_CERTIFICATION_CATALOG.find((item) => item.certificationId === certificationId);
+    if (!catalog) throw new Error("Certification not found.");
+    const acquiredDate = body.acquiredDate ?? null;
+    const expiresDate = body.expiresDate ?? null;
+    validateDates(acquiredDate, expiresDate);
+    playerCertifications.push({ ...catalog, acquiredDate, expiresDate, grantedAt: "2026-08-14T00:00:00Z" });
+    return { certificationId, acquiredDate, expiresDate };
+  },
+  update: (certificationId: number, body: PlayerCertificationDatesRequest): PlayerCertificationMutationResult => {
+    const current = playerCertifications.find((item) => item.certificationId === certificationId);
+    if (!current) throw new Error("Player Certification not found.");
+    const acquiredDate = body.acquiredDate ?? current.acquiredDate;
+    const expiresDate = body.expiresDate ?? current.expiresDate;
+    validateDates(acquiredDate, expiresDate);
+    const updated = { ...current, acquiredDate, expiresDate };
+    playerCertifications = playerCertifications.map((item) => item.certificationId === certificationId ? updated : item);
+    return { certificationId, acquiredDate, expiresDate };
+  },
+  delete: (certificationId: number): number => {
+    if (!playerCertifications.some((item) => item.certificationId === certificationId)) throw new Error("Player Certification not found.");
+    playerCertifications = playerCertifications.filter((item) => item.certificationId !== certificationId);
+    return certificationId;
+  },
+};
 
 export const MOCK_TITLES: PlayerTitleInfo[] = [
   { titleId: 1, code: "BLACK_SWORDSMAN", name: "Black Swordsman", category: "Achievement", descMd: "The legendary solo player known for his black equipment.", acquiredAt: "2026-02-08T20:30:00Z" },
