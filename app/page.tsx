@@ -19,6 +19,7 @@ import ExerciseShell from "@/features/lifelog/ExerciseShell";
 import InventoryShell from "@/features/inventory/InventoryShell";
 import GearShell from "@/features/inventory/GearShell";
 import HomeShell from "@/features/home/HomeShell";
+import AchievementShell from "@/features/player/AchievementShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -152,6 +153,7 @@ function buildPanels(
 
   if (selectedMain === "player") {
     const sub = selectedMainSub as PlayerSubId;
+    if (sub === "achievement") return { panelStack, socialContext: null };
     const subLabel = mainItems.find((item) => item.id === sub)?.label ?? "Player";
     const categoryItems = PLAYER_CATEGORY_ITEMS[sub] ?? [];
     const selectedCategory = selectedPlayerCategoryBySub[sub] ?? null;
@@ -1216,6 +1218,16 @@ export default function Home() {
               }}
               onOpenRole={handleRoleSelect}
             />
+          ) : selectedMain === "player" && selectedSubByMain.player === "achievement" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="player"
+                panelStack={panelStack.slice(0, 1)}
+                panelStackKey="player-achievement-menu"
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <AchievementShell />
+            </div>
           ) : selectedMain === "role" ? (
             <div className="flex w-fit items-center gap-3">
               <RoleShell

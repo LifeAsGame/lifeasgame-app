@@ -114,6 +114,19 @@ export const MOCK_ACHIEVEMENTS: PlayerAchievementInfo[] = [
   { achievementId: 18, code: "LEGENDARY_KILL", name: "Legend Slayer", category: "Combat", descMd: "Defeated a legendary-tier monster.", acquiredAt: "2026-03-01T21:00:00Z" },
 ];
 
+function copy<T>(value: T): T {
+  return structuredClone(value);
+}
+
+export const achievementMock = {
+  list: (): PlayerAchievementInfo[] => copy(MOCK_ACHIEVEMENTS),
+  detail: (achievementId: number): PlayerAchievementInfo => {
+    const found = MOCK_ACHIEVEMENTS.find((achievement) => achievement.achievementId === achievementId);
+    if (!found) throw new Error("Acquired Achievement not found.");
+    return copy(found);
+  },
+};
+
 export const MOCK_CERTIFICATIONS: PlayerCertificationInfo[] = [
   { certificationId: 1, name: "AWS Solutions Architect", issuer: "Amazon Web Services", category: "Cloud", acquiredDate: "2025-06-15", expiresDate: "2028-06-15", grantedAt: "2025-06-15T09:00:00Z" },
   { certificationId: 2, name: "Python Professional", issuer: "Python Institute", category: "Programming", acquiredDate: "2025-03-20", expiresDate: null, grantedAt: "2025-03-20T10:00:00Z" },
