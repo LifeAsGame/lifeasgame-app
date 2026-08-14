@@ -85,17 +85,32 @@ export type PlayerCertificationMutationResult = {
   expiresDate: string | null;
 };
 
-export interface PlayerHobbyInfo {
+export type HobbyStatus = "ACTIVE" | "PAUSED" | "DROPPED";
+
+export interface HobbyCatalogInfo {
   hobbyId: number;
   name: string;
   category: string;
+}
+
+export type PlayerHobbyMutationRequest = {
+  customName?: string;
+  detail?: string;
+  proficiency?: number;
+  status?: HobbyStatus;
+  startedOn?: string;
+};
+
+export interface PlayerHobbyInfo extends HobbyCatalogInfo {
   customName: string;
-  detail: string;
+  detail: string | null;
   proficiency: number;
-  status: string;
-  startedOn: string;
+  status: HobbyStatus;
+  startedOn: string | null;
   xp: number;
 }
+
+export type PlayerHobbyMutationResult = Omit<PlayerHobbyInfo, "name" | "category">;
 
 export interface PlayerTitleInfo {
   titleId: number;

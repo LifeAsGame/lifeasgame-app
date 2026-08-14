@@ -1,27 +1,5 @@
 import type { FormFieldSpec } from "@/entities/nav";
 
-export const HOBBY_FORM_FIELDS: FormFieldSpec[] = [
-  { key: "customName",  label: "Display Name", type: "text",   placeholder: "e.g. Full-Stack Dev", required: true },
-  { key: "category",    label: "Category",     type: "select", required: true, options: [
-    { value: "Tech",          label: "Tech" },
-    { value: "Learning",      label: "Learning" },
-    { value: "Entertainment", label: "Entertainment" },
-    { value: "Fitness",       label: "Fitness" },
-    { value: "Art",           label: "Art" },
-    { value: "Music",         label: "Music" },
-    { value: "Wellness",      label: "Wellness" },
-    { value: "Other",         label: "Other" },
-  ]},
-  { key: "detail",      label: "Detail",       type: "textarea", placeholder: "What exactly do you do?" },
-  { key: "proficiency", label: "Proficiency (0–100)", type: "number", placeholder: "50" },
-  { key: "status",      label: "Status",       type: "select", required: true, options: [
-    { value: "ACTIVE",   label: "Active" },
-    { value: "ON_HOLD",  label: "On Hold" },
-    { value: "INACTIVE", label: "Inactive" },
-  ]},
-  { key: "startedOn",   label: "Started Date", type: "date" },
-];
-
 export const FRIEND_MEMO_FORM_FIELDS: FormFieldSpec[] = [
   { key: "hobbies",   label: "취미",           type: "text",     placeholder: "예: 달리기, 독서, 게임" },
   { key: "favorites", label: "좋아하는 것",    type: "text",     placeholder: "예: 라멘, 애니, 고양이" },

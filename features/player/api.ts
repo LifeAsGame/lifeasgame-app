@@ -1,14 +1,18 @@
 import { USE_MOCK, apiDelete, apiGet, apiPatch, apiPost } from "@/shared/api/client";
 import type {
   CertificationCatalogInfo,
+  HobbyCatalogInfo,
   PlayerInfo,
+  PlayerHobbyInfo,
+  PlayerHobbyMutationRequest,
+  PlayerHobbyMutationResult,
   PlayerAchievementInfo,
   PlayerCertificationDatesRequest,
   PlayerCertificationInfo,
   PlayerCertificationMutationResult,
   PlayerTitleInfo,
 } from "@/shared/api/types";
-import { achievementMock, certificationMock, titleMock } from "./mock";
+import { achievementMock, certificationMock, hobbyMock, titleMock } from "./mock";
 
 export type RegisterPlayerRequest = { name: string; gender: string };
 export type CreatedPlayerWithToken = {
@@ -81,4 +85,34 @@ export function setRepresentativeTitleApi(titleId: number): Promise<{ titleId: n
   return USE_MOCK
     ? Promise.resolve().then(() => titleMock.setRepresentative(titleId))
     : apiPatch<{ titleId: number }>(`/api/v1/players/titles/${titleId}`, undefined);
+}
+
+export async function getHobbyCatalogApi(): Promise<HobbyCatalogInfo[]> {
+  if (USE_MOCK) return hobbyMock.catalog();
+  const result = await apiGet<{ infos: HobbyCatalogInfo[] }>("/api/v1/hobbies");
+  return result.infos;
+}
+
+export async function getPlayerHobbiesApi(): Promise<PlayerHobbyInfo[]> {
+  if (USE_MOCK) return hobbyMock.owned();
+  const result = await apiGet<{ infos: PlayerHobbyInfo[] }>("/api/v1/players/hobbies");
+  return result.infos;
+}
+
+export function registerPlayerHobbyApi(hobbyId: number, body: PlayerHobbyMutationRequest): Promise<PlayerHobbyMutationResult> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => hobbyMock.register(hobbyId, body))
+    : apiPost<PlayerHobbyMutationResult>(`/api/v1/players/hobbies/${hobbyId}`, body);
+}
+
+export function updatePlayerHobbyApi(hobbyId: number, body: PlayerHobbyMutationRequest): Promise<PlayerHobbyMutationResult> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => hobbyMock.update(hobbyId, body))
+    : apiPatch<PlayerHobbyMutationResult>(`/api/v1/players/hobbies/${hobbyId}`, body);
+}
+
+export function deletePlayerHobbyApi(hobbyId: number): Promise<number> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => hobbyMock.delete(hobbyId))
+    : apiDelete<number>(`/api/v1/players/hobbies/${hobbyId}`);
 }

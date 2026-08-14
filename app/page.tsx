@@ -22,6 +22,7 @@ import HomeShell from "@/features/home/HomeShell";
 import AchievementShell from "@/features/player/AchievementShell";
 import CertificationShell from "@/features/player/CertificationShell";
 import TitleShell from "@/features/player/TitleShell";
+import HobbyShell from "@/features/player/HobbyShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -38,16 +39,10 @@ import type {
   LifelogSubId,
   MainNavId,
   PanelDataItem,
-  PlayerSubId,
   PanelStackItem,
   QuestsSubId,
   SocialContextData,
 } from "@/entities/nav";
-import {
-  HOBBY_FORM_FIELDS,
-  PLAYER_CATEGORY_ITEMS,
-  PLAYER_LISTS,
-} from "@/features/player/model";
 import {
   LIFELOG_CATEGORY_ITEMS,
   LIFELOG_LISTS,
@@ -130,7 +125,6 @@ function buildPanels(
   selectedSubByMain: Record<MainNavId, string | null>,
   selectedMarketShopSectionId: string | null,
   selectedDetailByKey: Record<DetailSelectionKey, string | null>,
-  selectedPlayerCategoryBySub: Record<PlayerSubId, string | null>,
   selectedLifelogCategoryBySub: Record<LifelogSubId, string | null>,
   editingItemId: string | null,
   hasActiveForm: boolean,
@@ -153,50 +147,6 @@ function buildPanels(
   }
 
   if (selectedMain === "player") {
-    const sub = selectedMainSub as PlayerSubId;
-    if (sub === "achievement" || sub === "credentials" || sub === "title") return { panelStack, socialContext: null };
-    const subLabel = mainItems.find((item) => item.id === sub)?.label ?? "Player";
-    const categoryItems = PLAYER_CATEGORY_ITEMS[sub] ?? [];
-    const selectedCategory = selectedPlayerCategoryBySub[sub] ?? null;
-
-    panelStack.push({
-      id: `player-category-${sub}`,
-      kind: "menu",
-      title: `${subLabel} Category`,
-      items: categoryItems,
-      selectedId: selectedCategory ?? undefined,
-      context: { main: "player", route: "player-category" },
-    });
-
-    if (!selectedCategory) return { panelStack, socialContext: null };
-
-    // CREATE form (no item being edited): suppress list, form appears right of category panel
-    // EDIT form (editingItemId set): keep list, form appears right of list
-    if (hasActiveForm && !editingItemId) return { panelStack, socialContext: null };
-
-    const allItems = PLAYER_LISTS[sub] ?? [];
-    const filteredItems = allItems.filter((item) => item.category === selectedCategory);
-    const selectedItem = findById(filteredItems, selectedDetailByKey.player);
-
-    panelStack.push({
-      id: `player-list-${sub}-${selectedCategory}`,
-      kind: "list",
-      title: `${selectedCategory} List`,
-      items: filteredItems,
-      selectedId: selectedDetailByKey.player ?? undefined,
-      context: { main: "player", route: "player-list" },
-    });
-
-    if (selectedItem && selectedItem.id !== editingItemId) {
-      panelStack.push({
-        id: `player-detail-${selectedItem.id}`,
-        kind: "placeholder",
-        title: selectedItem.detailTitle ?? "Detail",
-        description: selectedItem.detailDescription,
-        rows: selectedItem.detailRows,
-      });
-    }
-
     return { panelStack, socialContext: null };
   }
 
@@ -504,9 +454,6 @@ export default function Home() {
     ...DEFAULT_SUB_SELECTIONS,
   });
   const [selectedMarketShopSectionId, setSelectedMarketShopSectionId] = useState<string | null>(null);
-  const [selectedPlayerCategoryBySub, setSelectedPlayerCategoryBySub] = useState<Record<PlayerSubId, string | null>>({
-    achievement: null, credentials: null, title: null, interests: null,
-  });
   const [selectedLifelogCategoryBySub, setSelectedLifelogCategoryBySub] = useState<Record<LifelogSubId, string | null>>({
     journal: null, collection: null, media: null, exercise: null,
   });
@@ -545,15 +492,6 @@ export default function Home() {
   const clearDetailSelectionsForMain = (main: MainNavId, nextSub?: string) => {
     if (main === "player") {
       updateDetailSelections({ player: null });
-      // Reset category for the sub we're leaving; the new sub keeps its own remembered category
-      setSelectedPlayerCategoryBySub((prev) => {
-        const sub = nextSub as PlayerSubId | undefined;
-        if (!sub) return { achievement: null, credentials: null, title: null, interests: null };
-        // Only the previously-selected sub gets reset; others retain their state
-        const currentSub = Object.keys(prev).find((k) => prev[k as PlayerSubId] !== null) as PlayerSubId | undefined;
-        if (!currentSub || currentSub === sub) return prev;
-        return { ...prev, [currentSub]: null };
-      });
     }
     if (main === "skills") updateDetailSelections({ skills: null });
     if (main === "social") updateDetailSelections({ social: null });
@@ -585,7 +523,6 @@ export default function Home() {
         selectedSubByMain,
         selectedMarketShopSectionId,
         selectedDetailByKey,
-        selectedPlayerCategoryBySub,
         selectedLifelogCategoryBySub,
         editingItemId,
         Boolean(activeFormPanel),
@@ -596,7 +533,6 @@ export default function Home() {
       selectedSubByMain,
       selectedMarketShopSectionId,
       selectedDetailByKey,
-      selectedPlayerCategoryBySub,
       selectedLifelogCategoryBySub,
       editingItemId,
       activeFormPanel,
@@ -632,7 +568,6 @@ export default function Home() {
     setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS });
     setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
-    setSelectedPlayerCategoryBySub({ achievement: null, credentials: null, title: null, interests: null });
     setSelectedLifelogCategoryBySub({ journal: null, collection: null, media: null, exercise: null });
     setActiveFormPanel(null);
     setActiveSpecialPanel(null);
@@ -675,16 +610,6 @@ export default function Home() {
         setSelectedSubByMain((prev) => ({ ...prev, [panel.context.main]: next }));
         clearDetailSelectionsForMain(panel.context.main, next ?? undefined);
         if (panel.context.main === "market") setSelectedMarketShopSectionId(null);
-        setActiveFormPanel(null);
-        setEditingItemId(null);
-        return;
-      }
-
-      if (panel.context.route === "player-category") {
-        const sub = selectedSubByMain.player as PlayerSubId;
-        const next = tog(selectedPlayerCategoryBySub[sub]);
-        setSelectedPlayerCategoryBySub((prev) => ({ ...prev, [sub]: next }));
-        updateDetailSelections({ player: null });
         setActiveFormPanel(null);
         setEditingItemId(null);
         return;
@@ -1010,10 +935,7 @@ export default function Home() {
   // Called when any field in a form panel changes — syncs category panel selection
   const handlePanelFormFieldChange = (formKey: string, fieldKey: string, value: string) => {
     if (fieldKey !== "category") return;
-    if (formKey.startsWith("hobby")) {
-      const sub = selectedSubByMain.player as PlayerSubId;
-      setSelectedPlayerCategoryBySub((prev) => ({ ...prev, [sub]: value || null }));
-    } else if (formKey.startsWith("media")) {
+    if (formKey.startsWith("media")) {
       const sub = selectedSubByMain.lifelog as LifelogSubId;
       setSelectedLifelogCategoryBySub((prev) => ({ ...prev, [sub]: value || null }));
     }
@@ -1028,17 +950,6 @@ export default function Home() {
     // Category panel double-click → create form
     // Keep category selected (SET not null) so category panel shows selection.
     // hasActiveForm=true will suppress the list panel, leaving [submenu, category(selected), form].
-    if (panel?.kind === "menu" && panel.context.route === "player-category") {
-      const sub = selectedSubByMain.player as PlayerSubId;
-      setSelectedPlayerCategoryBySub((prev) => ({ ...prev, [sub]: itemId }));
-      updateDetailSelections({ player: null });
-      setEditingItemId(null);
-      if (sub === "interests") {
-        openForm("hobby-create", "Add Interest", HOBBY_FORM_FIELDS, "추가하기", { category: itemId });
-      }
-      return;
-    }
-
     if (panel?.kind === "menu" && panel.context.route === "lifelog-category") {
       const sub = selectedSubByMain.lifelog as LifelogSubId;
       setSelectedLifelogCategoryBySub((prev) => ({ ...prev, [sub]: itemId }));
@@ -1052,15 +963,7 @@ export default function Home() {
 
     // List item double-click → edit form; keep item selected, suppress only the detail panel
     const sub = selectedSubByMain[selectedMain];
-    if (selectedMain === "player") {
-      updateDetailSelections({ player: itemId });
-      setEditingItemId(itemId);
-      if (sub === "interests") {
-        const item = PLAYER_LISTS.interests.find((i) => i.id === itemId);
-        openForm("hobby-edit", "Edit Interest", HOBBY_FORM_FIELDS, "수정하기",
-          item ? { customName: item.label, category: item.category ?? "", proficiency: item.detailRows[2]?.split(": ")[1]?.replace("/100", "") ?? "", status: item.detailRows[1]?.split(": ")[1] ?? "" } : undefined);
-      }
-    } else if (selectedMain === "lifelog") {
+    if (selectedMain === "lifelog") {
       updateDetailSelections({ lifelog: itemId });
       setEditingItemId(itemId);
       if (sub === "media") {
@@ -1242,6 +1145,16 @@ export default function Home() {
                 onPanelItemSelect={handlePanelItemSelect}
               />
               <TitleShell />
+            </div>
+          ) : selectedMain === "player" && selectedSubByMain.player === "interests" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="player"
+                panelStack={panelStack.slice(0, 1)}
+                panelStackKey="player-hobby-menu"
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <HobbyShell />
             </div>
           ) : selectedMain === "role" ? (
             <div className="flex w-fit items-center gap-3">

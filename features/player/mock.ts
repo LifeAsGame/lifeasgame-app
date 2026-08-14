@@ -1,11 +1,14 @@
 import type {
   CharacterSheet,
   CertificationCatalogInfo,
+  HobbyCatalogInfo,
   PlayerAchievementInfo,
   PlayerCertificationDatesRequest,
   PlayerCertificationInfo,
   PlayerCertificationMutationResult,
   PlayerHobbyInfo,
+  PlayerHobbyMutationRequest,
+  PlayerHobbyMutationResult,
   PlayerInfo,
   PlayerTitleInfo,
 } from "@/shared/api/types";
@@ -215,17 +218,56 @@ export const titleMock = {
   },
 };
 
-export const MOCK_HOBBIES: PlayerHobbyInfo[] = [
-  { hobbyId: 1, name: "Programming", category: "Tech", customName: "Full-Stack Dev", detail: "Next.js, TypeScript, Spring Boot", proficiency: 85, status: "ACTIVE", startedOn: "2020-03-01", xp: 42000 },
-  { hobbyId: 2, name: "Reading", category: "Learning", customName: "Tech & Fiction", detail: "Clean Code, SAO novels, sci-fi", proficiency: 72, status: "ACTIVE", startedOn: "2018-06-01", xp: 28500 },
-  { hobbyId: 3, name: "Gaming", category: "Entertainment", customName: "VR & JRPG", detail: "SAO, Final Fantasy, VR exploration", proficiency: 90, status: "ACTIVE", startedOn: "2016-01-01", xp: 65000 },
-  { hobbyId: 4, name: "Running", category: "Fitness", customName: "Morning Runs", detail: "5km daily, marathon prep", proficiency: 60, status: "ACTIVE", startedOn: "2023-01-15", xp: 12000 },
-  { hobbyId: 5, name: "Cooking", category: "Lifestyle", customName: "Japanese Cuisine", detail: "Ramen, sushi, teriyaki", proficiency: 55, status: "ACTIVE", startedOn: "2021-09-01", xp: 9800 },
-  { hobbyId: 6, name: "Drawing", category: "Art", customName: "Anime Sketching", detail: "Character design, perspective, SAO fanart", proficiency: 40, status: "ON_HOLD", startedOn: "2022-04-01", xp: 5200 },
-  { hobbyId: 7, name: "Guitar", category: "Music", customName: "Acoustic Guitar", detail: "Fingerpicking, anime OSTs", proficiency: 48, status: "ON_HOLD", startedOn: "2023-06-01", xp: 7400 },
-  { hobbyId: 8, name: "Photography", category: "Art", customName: "Street & Nature", detail: "Sony Alpha, landscape, portraits", proficiency: 63, status: "ACTIVE", startedOn: "2022-11-01", xp: 11200 },
-  { hobbyId: 9, name: "Language Learning", category: "Learning", customName: "Japanese", detail: "JLPT N3 passed, aiming for N2", proficiency: 65, status: "ACTIVE", startedOn: "2023-09-01", xp: 18600 },
-  { hobbyId: 10, name: "Cycling", category: "Fitness", customName: "Road Cycling", detail: "Weekend long rides, 80km avg", proficiency: 58, status: "ACTIVE", startedOn: "2024-04-01", xp: 8900 },
-  { hobbyId: 11, name: "Meditation", category: "Wellness", customName: "Mindfulness", detail: "20 min daily, breathwork", proficiency: 45, status: "ACTIVE", startedOn: "2025-01-01", xp: 4300 },
-  { hobbyId: 12, name: "Origami", category: "Art", customName: "Complex Origami", detail: "Modular, animals, geometric", proficiency: 35, status: "INACTIVE", startedOn: "2021-03-01", xp: 2100 },
-];
+export const MOCK_HOBBY_CATALOG = [
+  { hobbyId: 1, name: "Programming", category: "Tech" },
+  { hobbyId: 2, name: "Reading", category: "Learning" },
+  { hobbyId: 3, name: "Running", category: "Fitness" },
+  { hobbyId: 4, name: "Drawing", category: "Art" },
+] satisfies HobbyCatalogInfo[];
+
+export const MOCK_PLAYER_HOBBIES = [
+  { ...MOCK_HOBBY_CATALOG[0], customName: "Full-Stack Dev", detail: "Next.js and Spring Boot", proficiency: 85, status: "ACTIVE", startedOn: "2020-03-01", xp: 42000 },
+  { ...MOCK_HOBBY_CATALOG[1], customName: "Reading", detail: null, proficiency: 72, status: "PAUSED", startedOn: null, xp: 28500 },
+] satisfies PlayerHobbyInfo[];
+
+let playerHobbies: PlayerHobbyInfo[] = copy(MOCK_PLAYER_HOBBIES);
+
+function validateHobby(body: PlayerHobbyMutationRequest): void {
+  if (body.proficiency !== undefined && (!Number.isInteger(body.proficiency) || body.proficiency < 0 || body.proficiency > 100)) throw new Error("Proficiency must be between 0 and 100.");
+}
+
+function hobbyResult(item: PlayerHobbyInfo): PlayerHobbyMutationResult {
+  return { hobbyId: item.hobbyId, customName: item.customName, detail: item.detail, proficiency: item.proficiency, status: item.status, startedOn: item.startedOn, xp: item.xp };
+}
+
+export function resetHobbyMock(): void {
+  playerHobbies = copy(MOCK_PLAYER_HOBBIES);
+}
+
+export const hobbyMock = {
+  catalog: (): HobbyCatalogInfo[] => copy(MOCK_HOBBY_CATALOG),
+  owned: (): PlayerHobbyInfo[] => copy(playerHobbies),
+  register: (hobbyId: number, body: PlayerHobbyMutationRequest): PlayerHobbyMutationResult => {
+    if (playerHobbies.some((item) => item.hobbyId === hobbyId)) throw new Error("Hobby already registered.");
+    const catalog = MOCK_HOBBY_CATALOG.find((item) => item.hobbyId === hobbyId);
+    if (!catalog) throw new Error("Hobby not found.");
+    if (!body.customName || body.proficiency === undefined || !body.status) throw new Error("customName, proficiency, and status are required.");
+    validateHobby(body);
+    const created: PlayerHobbyInfo = { ...catalog, customName: body.customName, detail: body.detail ?? null, proficiency: body.proficiency, status: body.status, startedOn: body.startedOn ?? null, xp: 0 };
+    playerHobbies.push(created);
+    return hobbyResult(created);
+  },
+  update: (hobbyId: number, body: PlayerHobbyMutationRequest): PlayerHobbyMutationResult => {
+    const current = playerHobbies.find((item) => item.hobbyId === hobbyId);
+    if (!current) throw new Error("Player Hobby not found.");
+    validateHobby(body);
+    const updated = { ...current, ...Object.fromEntries(Object.entries(body).filter(([, value]) => value !== null && value !== undefined)) } as PlayerHobbyInfo;
+    playerHobbies = playerHobbies.map((item) => item.hobbyId === hobbyId ? updated : item);
+    return hobbyResult(updated);
+  },
+  delete: (hobbyId: number): number => {
+    if (!playerHobbies.some((item) => item.hobbyId === hobbyId)) throw new Error("Player Hobby not found.");
+    playerHobbies = playerHobbies.filter((item) => item.hobbyId !== hobbyId);
+    return hobbyId;
+  },
+};
