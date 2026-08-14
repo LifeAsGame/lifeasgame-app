@@ -61,6 +61,9 @@ describe("Media PATCH preserve/clear body를 만들 때", () => {
     expect(changedMediaFields(first, { originalTitle: "", tags: [] })).toEqual({ originalTitle: "", tags: [] });
     expect(changedMediaFields(first, { currentEpisode: 11, rating: 5 } as MediaUpdateRequest & { rating: number })).toEqual({ currentEpisode: 11 });
 
+    expect(() => mediaMock.update(202, { currentEpisode: 617 })).toThrow("Invalid Media episode progress.");
+    expect(mediaMock.search({ category: "BOOK", titleLike: "data", page: 0, size: 20 })[0]).toEqual(expect.objectContaining({ currentEpisode: 250, totalEpisode: 616 }));
+
     const result = mediaMock.update(202, { currentEpisode: 251, originalTitle: "", tags: [] });
     expect(result).toEqual(expect.objectContaining({ currentEpisode: 251, totalEpisode: 616, originalTitle: null, tags: [], rating: 4.8 }));
   });

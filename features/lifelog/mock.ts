@@ -281,22 +281,17 @@ function recordQuick(body: QuickRecordRequest, idempotencyKey: string): QuickRec
       originalTitle: null,
       ...normalizeMediaProgress(body.media.currentEpisode, body.media.totalEpisode),
       status: body.media.status,
+      rating: null,
       tags: [],
+      rewatchCount: 0,
+      startedOn: null,
+      finishedOn: null,
+      createdAt: recordedAt,
+      updatedAt: recordedAt,
     };
-    entry = { ...metadata, sourceType: "MEDIA", preview: { ...source, rating: null } };
-    detail = {
-      ...metadata,
-      sourceType: "MEDIA",
-      source: {
-        ...source,
-        rating: null,
-        rewatchCount: 0,
-        startedOn: null,
-        finishedOn: null,
-        createdAt: recordedAt,
-        updatedAt: recordedAt,
-      },
-    };
+    mediaEntries.unshift({ id: sourceId, playerId: 7, ...source });
+    entry = { ...metadata, sourceType: "MEDIA", preview: { category: source.category, title: source.title, currentEpisode: source.currentEpisode, totalEpisode: source.totalEpisode, status: source.status, rating: source.rating } };
+    detail = { ...metadata, sourceType: "MEDIA", source };
   }
 
   journalEntries.unshift(entry);
@@ -343,13 +338,16 @@ export const mediaMock = {
   },
   update: (id: number, body: MediaUpdateRequest): MediaInfo => {
     const current = media(id);
+    const effectiveCurrent = body.currentEpisode ?? current.currentEpisode;
+    const effectiveTotal = body.totalEpisode ?? current.totalEpisode;
+    if (effectiveCurrent < 0 || effectiveTotal < 1 || effectiveCurrent > effectiveTotal) throw new Error("Invalid Media episode progress.");
     const updated: MediaInfo = {
       ...current,
       ...(body.category == null ? {} : { category: body.category }),
       ...(body.title == null ? {} : { title: body.title.trim() }),
       ...(body.originalTitle == null ? {} : { originalTitle: body.originalTitle.trim() || null }),
-      ...(body.currentEpisode == null ? {} : { currentEpisode: body.currentEpisode }),
-      ...(body.totalEpisode == null ? {} : { totalEpisode: body.totalEpisode }),
+      currentEpisode: effectiveCurrent,
+      totalEpisode: effectiveTotal,
       ...(body.status == null ? {} : { status: body.status }),
       ...(body.tags == null ? {} : { tags: mediaTags(body.tags) }),
       updatedAt: MOCK_MUTATION_TIME,

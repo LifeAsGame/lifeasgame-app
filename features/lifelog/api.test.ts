@@ -216,6 +216,15 @@ describe("Media source API를 호출할 때", () => {
     expect(mediaMock.delete(created.id)).toEqual({ id: created.id });
     expect(journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId)).toEqual(journalIds);
   });
+
+  it("Quick Record MEDIA source를 normalized progress로 shared recent/search authority에 기록한다", () => {
+    const result = journalMock.quickRecord({ type: "MEDIA", media: { category: "ANIME", title: "Shared source", status: "WATCHING", currentEpisode: 5 } }, "shared-media");
+    const recent = mediaMock.recent(20).find(({ id }) => id === result.sourceId);
+    const searched = mediaMock.search({ category: "ANIME", status: "WATCHING", titleLike: "Shared", page: 0, size: 20 }).find(({ id }) => id === result.sourceId);
+
+    expect(recent).toEqual(expect.objectContaining({ id: result.sourceId, title: "Shared source", status: "WATCHING", currentEpisode: 5, totalEpisode: 5 }));
+    expect(searched).toEqual(recent);
+  });
 });
 
 describe("Journal을 실제 backend에서 읽을 때", () => {
