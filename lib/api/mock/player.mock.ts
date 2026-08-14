@@ -1,7 +1,6 @@
 import type {
   CharacterSheet,
   PlayerAchievementInfo,
-  PlayerHobbyInfo,
 } from "../types";
 
 export const MOCK_CHARACTER_SHEET: CharacterSheet = {
@@ -94,19 +93,4 @@ export const MOCK_ACHIEVEMENTS: PlayerAchievementInfo[] = [
   { achievementId: 16, code: "PARTY_LEADER", name: "Party Leader", category: "Social", descMd: "Led a party to clear a boss without casualties.", acquiredAt: "2026-03-02T12:00:00Z" },
   { achievementId: 17, code: "RARE_ITEM", name: "Rare Collector", category: "Collection", descMd: "Obtained 20 rare-tier or above items.", acquiredAt: "2026-02-15T16:30:00Z" },
   { achievementId: 18, code: "LEGENDARY_KILL", name: "Legend Slayer", category: "Combat", descMd: "Defeated a legendary-tier monster.", acquiredAt: "2026-03-01T21:00:00Z" },
-];
-
-export const MOCK_HOBBIES: PlayerHobbyInfo[] = [
-  { hobbyId: 1, name: "Programming", category: "Tech", customName: "Full-Stack Dev", detail: "Next.js, TypeScript, Spring Boot", proficiency: 85, status: "ACTIVE", startedOn: "2020-03-01", xp: 42000 },
-  { hobbyId: 2, name: "Reading", category: "Learning", customName: "Tech & Fiction", detail: "Clean Code, SAO novels, sci-fi", proficiency: 72, status: "ACTIVE", startedOn: "2018-06-01", xp: 28500 },
-  { hobbyId: 3, name: "Gaming", category: "Entertainment", customName: "VR & JRPG", detail: "SAO, Final Fantasy, VR exploration", proficiency: 90, status: "ACTIVE", startedOn: "2016-01-01", xp: 65000 },
-  { hobbyId: 4, name: "Running", category: "Fitness", customName: "Morning Runs", detail: "5km daily, marathon prep", proficiency: 60, status: "ACTIVE", startedOn: "2023-01-15", xp: 12000 },
-  { hobbyId: 5, name: "Cooking", category: "Lifestyle", customName: "Japanese Cuisine", detail: "Ramen, sushi, teriyaki", proficiency: 55, status: "ACTIVE", startedOn: "2021-09-01", xp: 9800 },
-  { hobbyId: 6, name: "Drawing", category: "Art", customName: "Anime Sketching", detail: "Character design, perspective, SAO fanart", proficiency: 40, status: "ON_HOLD", startedOn: "2022-04-01", xp: 5200 },
-  { hobbyId: 7, name: "Guitar", category: "Music", customName: "Acoustic Guitar", detail: "Fingerpicking, anime OSTs", proficiency: 48, status: "ON_HOLD", startedOn: "2023-06-01", xp: 7400 },
-  { hobbyId: 8, name: "Photography", category: "Art", customName: "Street & Nature", detail: "Sony Alpha, landscape, portraits", proficiency: 63, status: "ACTIVE", startedOn: "2022-11-01", xp: 11200 },
-  { hobbyId: 9, name: "Language Learning", category: "Learning", customName: "Japanese", detail: "JLPT N3 passed, aiming for N2", proficiency: 65, status: "ACTIVE", startedOn: "2023-09-01", xp: 18600 },
-  { hobbyId: 10, name: "Cycling", category: "Fitness", customName: "Road Cycling", detail: "Weekend long rides, 80km avg", proficiency: 58, status: "ACTIVE", startedOn: "2024-04-01", xp: 8900 },
-  { hobbyId: 11, name: "Meditation", category: "Wellness", customName: "Mindfulness", detail: "20 min daily, breathwork", proficiency: 45, status: "ACTIVE", startedOn: "2025-01-01", xp: 4300 },
-  { hobbyId: 12, name: "Origami", category: "Art", customName: "Complex Origami", detail: "Modular, animals, geometric", proficiency: 35, status: "INACTIVE", startedOn: "2021-03-01", xp: 2100 },
 ];

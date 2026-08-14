@@ -38,6 +38,7 @@ vi.mock("@/features/lifelog/ExerciseShell", () => ({ default: () => <div data-te
 vi.mock("@/features/player/AchievementShell", () => ({ default: () => <div data-testid="achievement-shell">Achievement Shell</div> }));
 vi.mock("@/features/player/CertificationShell", () => ({ default: () => <div data-testid="certification-shell">Certification Shell</div> }));
 vi.mock("@/features/player/TitleShell", () => ({ default: () => <div data-testid="title-shell">Title Shell</div> }));
+vi.mock("@/features/player/HobbyShell", () => ({ default: () => <div data-testid="hobby-shell">Hobby Shell</div> }));
 vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
 vi.mock("@/features/inventory/GearShell", () => ({ default: () => <div data-testid="gear-shell">Gear Shell</div> }));
 vi.mock("@/features/home/HomeShell", () => ({
@@ -177,6 +178,16 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
       expect(screen.getByTestId("title-shell")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Combat" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("인증된 player가 Interests를 선택하면", () => {
+    it("generic static panels 대신 feature-owned HobbyShell로 routing한다", () => {
+      render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      fireEvent.click(screen.getByRole("button", { name: "Interests" }));
+      expect(screen.getByTestId("hobby-shell")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Tech" })).not.toBeInTheDocument();
     });
   });
 

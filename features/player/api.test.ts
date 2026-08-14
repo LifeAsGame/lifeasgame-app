@@ -1,19 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PlayerAchievementInfo, PlayerCertificationInfo, PlayerInfo, PlayerTitleInfo } from "@/shared/api/types";
+import type { HobbyCatalogInfo, PlayerAchievementInfo, PlayerCertificationInfo, PlayerHobbyInfo, PlayerInfo, PlayerTitleInfo } from "@/shared/api/types";
 import {
   deletePlayerCertificationApi,
+  deletePlayerHobbyApi,
   getCertificationCatalogApi,
   getPlayerAchievementApi,
   getPlayerAchievementsApi,
   getPlayerCertificationsApi,
   getCurrentPlayerApi,
+  getHobbyCatalogApi,
+  getPlayerHobbiesApi,
   getPlayerTitlesApi,
   registerPlayerCertificationApi,
+  registerPlayerHobbyApi,
   updatePlayerCertificationApi,
   setRepresentativeTitleApi,
+  updatePlayerHobbyApi,
 } from "./api";
-import { achievementMock, certificationMock, resetCertificationMock, resetTitleMock, titleMock } from "./mock";
+import { achievementMock, certificationMock, hobbyMock, resetCertificationMock, resetHobbyMock, resetTitleMock, titleMock } from "./mock";
 
 const client = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPatch: vi.fn(), apiPost: vi.fn() }));
 
@@ -124,5 +129,45 @@ describe("Current Player Title API를 사용할 때", () => {
     expect(titleMock.setRepresentative(nextId)).toEqual({ titleId: nextId });
     expect(titleMock.player().representativeTitleId).toBe(nextId);
     expect(() => titleMock.setRepresentative(999_999)).toThrow("Acquired Title not found.");
+  });
+});
+
+describe("Current Player Hobby API를 사용할 때", () => {
+  const catalog: HobbyCatalogInfo = { hobbyId: 3, name: "Running", category: "Fitness" };
+  const owned: PlayerHobbyInfo = { ...catalog, customName: "Morning Run", detail: null, proficiency: 60, status: "PAUSED", startedOn: null, xp: 1200 };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetHobbyMock();
+  });
+
+  it("envelope-aware helpers로 exact five operations와 changed body만 전송한다", async () => {
+    client.apiGet.mockResolvedValueOnce({ infos: [catalog] }).mockResolvedValueOnce({ infos: [owned] });
+    client.apiPost.mockResolvedValue(owned);
+    client.apiPatch.mockResolvedValue({ ...owned, status: "ACTIVE" });
+    client.apiDelete.mockResolvedValue(3);
+
+    await getHobbyCatalogApi();
+    await getPlayerHobbiesApi();
+    await registerPlayerHobbyApi(3, { customName: "Morning Run", proficiency: 60, status: "PAUSED" });
+    await updatePlayerHobbyApi(3, { status: "ACTIVE" });
+    await deletePlayerHobbyApi(3);
+
+    expect(client.apiGet).toHaveBeenNthCalledWith(1, "/api/v1/hobbies");
+    expect(client.apiGet).toHaveBeenNthCalledWith(2, "/api/v1/players/hobbies");
+    expect(client.apiPost).toHaveBeenCalledWith("/api/v1/players/hobbies/3", { customName: "Morning Run", proficiency: 60, status: "PAUSED" });
+    expect(client.apiPatch).toHaveBeenCalledWith("/api/v1/players/hobbies/3", { status: "ACTIVE" });
+    expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/hobbies/3");
+    expect(client.apiGet.mock.calls.flat().join(" ")).not.toMatch(/playerId|userId|\/players\/me\/hobbies/);
+  });
+
+  it("mock는 catalog/owned 분리, exact status, bounds, partial preserve, duplicate와 delete를 지킨다", () => {
+    expect(hobbyMock.catalog()).toHaveLength(4);
+    expect(hobbyMock.owned()).toHaveLength(2);
+    expect(() => hobbyMock.register(1, { customName: "Duplicate", proficiency: 1, status: "ACTIVE" })).toThrow("Hobby already registered.");
+    hobbyMock.register(3, { customName: "Run", proficiency: 50, status: "DROPPED" });
+    expect(hobbyMock.update(3, { proficiency: 60 })).toMatchObject({ customName: "Run", proficiency: 60, status: "DROPPED", startedOn: null });
+    expect(() => hobbyMock.update(3, { proficiency: 101 })).toThrow("Proficiency must be between 0 and 100.");
+    expect(hobbyMock.delete(3)).toBe(3);
   });
 });

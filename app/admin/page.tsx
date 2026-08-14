@@ -536,7 +536,7 @@ const USER_STATUS_OPTIONS = [
 
 const HOBBY_STATUS_OPTIONS = [
   { value: "ACTIVE",   label: "Active" },
-  { value: "ON_HOLD",  label: "On Hold" },
+  { value: "PAUSED",   label: "Paused" },
   { value: "DROPPED",  label: "Dropped" },
 ];
 
