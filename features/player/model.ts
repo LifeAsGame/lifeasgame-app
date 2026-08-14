@@ -1,25 +1,12 @@
 import type { PlayerSubId, PanelDataItem, PanelMenuItem } from "@/entities/nav";
 import { CRUD_ACTIONS, pad, dateAt, uniqueOrderedCats, catMenuItems } from "@/entities/nav";
-import { ACHIEVEMENT_DATA, CERTIFICATION_DATA, TITLE_DATA, HOBBY_DATA } from "./data";
+import { CERTIFICATION_DATA, TITLE_DATA, HOBBY_DATA } from "./data";
 
 export * from "./forms";
 
-export const PLAYER_LISTS: Record<PlayerSubId, PanelDataItem[]> = {
-  achievement: ACHIEVEMENT_DATA.map((a, i) => ({
-    id: `achievement-${pad(i + 1, 3)}`,
-    label: a.name,
-    slotLabel: a.code.slice(0, 2),
-    subtitle: `${a.cat} | Acquired: ${dateAt(i)}`,
-    category: a.cat,
-    detailTitle: "Achievement Detail",
-    detailDescription: a.desc,
-    detailRows: [
-      `Code: ${a.code}`,
-      `Category: ${a.cat}`,
-      `Acquired: ${dateAt(i)}`,
-      `Status: Unlocked`,
-    ],
-  })),
+type LegacyPlayerSubId = Exclude<PlayerSubId, "achievement">;
+
+export const PLAYER_LISTS: Record<LegacyPlayerSubId, PanelDataItem[]> = {
   credentials: CERTIFICATION_DATA.map((c, i) => ({
     id: `credential-${pad(i + 1, 3)}`,
     label: c.name,
@@ -69,8 +56,7 @@ export const PLAYER_LISTS: Record<PlayerSubId, PanelDataItem[]> = {
   })),
 };
 
-export const PLAYER_CATEGORY_ITEMS: Record<PlayerSubId, PanelMenuItem[]> = {
-  achievement: catMenuItems(uniqueOrderedCats(ACHIEVEMENT_DATA)),
+export const PLAYER_CATEGORY_ITEMS: Record<LegacyPlayerSubId, PanelMenuItem[]> = {
   credentials: catMenuItems(uniqueOrderedCats(CERTIFICATION_DATA)),
   title:       catMenuItems(uniqueOrderedCats(TITLE_DATA)),
   interests:   catMenuItems(uniqueOrderedCats(HOBBY_DATA)),

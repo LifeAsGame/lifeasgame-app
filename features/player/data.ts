@@ -1,24 +1,3 @@
-export const ACHIEVEMENT_DATA = [
-  { code: "FIRST_BLOOD",   name: "First Blood",           cat: "Combat",      desc: "Defeated your first monster." },
-  { code: "FLOOR_BOSS",    name: "Floor Boss Slayer",      cat: "Combat",      desc: "Defeated a floor boss." },
-  { code: "SOLO_RUN",      name: "Solo Runner",            cat: "Exploration", desc: "Cleared a dungeon entirely solo." },
-  { code: "SPEED_RUN",     name: "Speedrunner",            cat: "Completion",  desc: "Cleared a floor in record time." },
-  { code: "BLACKSMITH_1",  name: "Blacksmith Apprentice",  cat: "Crafting",    desc: "Crafted your first item." },
-  { code: "DUAL_WIELD",    name: "Dual Wield Mastery",     cat: "Combat",      desc: "Unlocked the Dual Wield skill." },
-  { code: "PERFECT_GUARD", name: "Perfect Guard",          cat: "Defense",     desc: "Blocked 100 attacks with perfect timing." },
-  { code: "MONSTER_HUNT",  name: "Monster Hunter",         cat: "Combat",      desc: "Defeated 1000 monsters." },
-  { code: "TREASURE_HUNT", name: "Treasure Hunter",        cat: "Exploration", desc: "Found 50 hidden treasure rooms." },
-  { code: "BEATER",        name: "The Beater",             cat: "Special",     desc: "Recognized as a beta tester." },
-  { code: "GUILD_FOUND",   name: "Guild Founder",          cat: "Social",      desc: "Founded your first guild." },
-  { code: "MKT_MASTER",    name: "Market Master",          cat: "Economy",     desc: "Completed 100 market trades." },
-  { code: "LVL_50",        name: "Level 50 Milestone",     cat: "Growth",      desc: "Reached character level 50." },
-  { code: "ENCHANT",       name: "Enchantment Master",     cat: "Crafting",    desc: "Enchanted 50 items successfully." },
-  { code: "NIGHT_RUN",     name: "Night Runner",           cat: "Exploration", desc: "Explored 10 dungeons at night." },
-  { code: "PARTY_LEAD",    name: "Party Leader",           cat: "Social",      desc: "Led a party to a boss clear." },
-  { code: "RARE_ITEM",     name: "Rare Collector",         cat: "Collection",  desc: "Obtained 20 rare+ items." },
-  { code: "LEGEND_KILL",   name: "Legend Slayer",          cat: "Combat",      desc: "Defeated a legendary-tier monster." },
-];
-
 export const CERTIFICATION_DATA = [
   { name: "AWS Solutions Architect",    issuer: "Amazon Web Services",       cat: "Cloud",       expires: "2028-06-15" },
   { name: "Python Professional",        issuer: "Python Institute",           cat: "Programming", expires: null },

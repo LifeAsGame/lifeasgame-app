@@ -1,6 +1,5 @@
 import { USE_MOCK, apiGet, apiPut } from "../client";
 import {
-  MOCK_ACHIEVEMENTS,
   MOCK_CHARACTER_SHEET,
   MOCK_CERTIFICATIONS,
   MOCK_HOBBIES,
@@ -8,7 +7,6 @@ import {
 } from "../mock/player.mock";
 import type {
   CharacterSheet,
-  PlayerAchievementInfo,
   PlayerCertificationInfo,
   PlayerHobbyInfo,
   PlayerTitleInfo,
@@ -17,12 +15,6 @@ import type {
 export async function getCharacterSheetApi(): Promise<CharacterSheet> {
   if (USE_MOCK) return MOCK_CHARACTER_SHEET;
   return apiGet<CharacterSheet>("/api/v1/players/me/sheet");
-}
-
-export async function getAchievementsApi(): Promise<PlayerAchievementInfo[]> {
-  if (USE_MOCK) return MOCK_ACHIEVEMENTS;
-  const res = await apiGet<{ infos: PlayerAchievementInfo[] }>("/api/v1/players/me/achievements");
-  return res.infos;
 }
 
 export async function getCertificationsApi(): Promise<PlayerCertificationInfo[]> {

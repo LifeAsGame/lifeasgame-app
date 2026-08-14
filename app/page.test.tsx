@@ -35,6 +35,7 @@ vi.mock("@/widgets/right-panels/RightPanels", () => ({
 vi.mock("@/features/lifelog/JournalShell", () => ({ default: ({ roles: roleOptions }: { roles: RoleDetail[] }) => <div data-testid="journal-shell">Journal · {roleOptions.map(({ name }) => name).join(", ")}</div> }));
 vi.mock("@/features/lifelog/CollectionShell", () => ({ default: () => <div data-testid="collection-shell">Collection Shell</div> }));
 vi.mock("@/features/lifelog/ExerciseShell", () => ({ default: () => <div data-testid="exercise-shell">Exercise Shell</div> }));
+vi.mock("@/features/player/AchievementShell", () => ({ default: () => <div data-testid="achievement-shell">Achievement Shell</div> }));
 vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
 vi.mock("@/features/inventory/GearShell", () => ({ default: () => <div data-testid="gear-shell">Gear Shell</div> }));
 vi.mock("@/features/home/HomeShell", () => ({
@@ -113,7 +114,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       const achievement = render(<Home />);
       fireEvent.click(screen.getByRole("button", { name: "Home Achievement" }));
       expect(screen.getByRole("button", { name: "Achievement" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Combat" })).toBeInTheDocument();
+      expect(screen.getByTestId("achievement-shell")).toBeInTheDocument();
       achievement.unmount();
 
       render(<Home />);
