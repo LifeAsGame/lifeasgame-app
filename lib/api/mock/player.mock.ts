@@ -2,7 +2,6 @@ import type {
   CharacterSheet,
   PlayerAchievementInfo,
   PlayerHobbyInfo,
-  PlayerTitleInfo,
 } from "../types";
 
 export const MOCK_CHARACTER_SHEET: CharacterSheet = {
@@ -95,21 +94,6 @@ export const MOCK_ACHIEVEMENTS: PlayerAchievementInfo[] = [
   { achievementId: 16, code: "PARTY_LEADER", name: "Party Leader", category: "Social", descMd: "Led a party to clear a boss without casualties.", acquiredAt: "2026-03-02T12:00:00Z" },
   { achievementId: 17, code: "RARE_ITEM", name: "Rare Collector", category: "Collection", descMd: "Obtained 20 rare-tier or above items.", acquiredAt: "2026-02-15T16:30:00Z" },
   { achievementId: 18, code: "LEGENDARY_KILL", name: "Legend Slayer", category: "Combat", descMd: "Defeated a legendary-tier monster.", acquiredAt: "2026-03-01T21:00:00Z" },
-];
-
-export const MOCK_TITLES: PlayerTitleInfo[] = [
-  { titleId: 1, code: "BLACK_SWORDSMAN", name: "Black Swordsman", category: "Achievement", descMd: "The legendary solo player known for his black equipment.", acquiredAt: "2026-02-08T20:30:00Z" },
-  { titleId: 2, code: "BEATER", name: "Beater", category: "Special", descMd: "A beta tester who used prior knowledge to gain an advantage.", acquiredAt: "2026-01-10T07:00:00Z" },
-  { titleId: 3, code: "SOLO_KING", name: "Solo King", category: "Exploration", descMd: "Cleared 10 floors completely solo.", acquiredAt: "2026-02-18T15:00:00Z" },
-  { titleId: 4, code: "FLOOR_CLEARER", name: "Floor Clearer", category: "Combat", descMd: "Participated in clearing the frontline floors.", acquiredAt: "2026-01-25T16:00:00Z" },
-  { titleId: 5, code: "DUAL_WIELDER", name: "Dual Wielder", category: "Combat", descMd: "Holder of the unique Dual Wield skill.", acquiredAt: "2026-02-08T20:30:00Z" },
-  { titleId: 6, code: "MASTER_CRAFTER", name: "Master Crafter", category: "Crafting", descMd: "Crafted items rated as masterwork quality.", acquiredAt: "2026-02-20T14:00:00Z" },
-  { titleId: 7, code: "GUILD_CHIEF", name: "Guild Chief", category: "Social", descMd: "Leader of a recognized guild.", acquiredAt: "2026-02-25T19:00:00Z" },
-  { titleId: 8, code: "LEGEND_SLAYER", name: "Legend Slayer", category: "Combat", descMd: "Slayer of legendary-tier monsters.", acquiredAt: "2026-03-01T21:00:00Z" },
-  { titleId: 9, code: "MARKET_KING", name: "Market King", category: "Economy", descMd: "Completed 100 market trades with perfect ratings.", acquiredAt: "2026-03-01T10:30:00Z" },
-  { titleId: 10, code: "NIGHT_WALKER", name: "Night Walker", category: "Exploration", descMd: "Master of nocturnal dungeon exploration.", acquiredAt: "2026-02-28T23:00:00Z" },
-  { titleId: 11, code: "FRONTLINER", name: "Frontliner", category: "Rank", descMd: "Active member of the front-line clearing team.", acquiredAt: "2026-01-20T12:00:00Z" },
-  { titleId: 12, code: "RARE_HUNTER", name: "Rare Hunter", category: "Collection", descMd: "Collector of rare and legendary items.", acquiredAt: "2026-02-15T16:30:00Z" },
 ];
 
 export const MOCK_HOBBIES: PlayerHobbyInfo[] = [

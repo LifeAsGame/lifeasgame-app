@@ -1,18 +1,3 @@
-export const TITLE_DATA = [
-  { code: "BLACK_SWORDSMAN", name: "Black Swordsman", cat: "Achievement", desc: "The legendary solo player." },
-  { code: "BEATER",          name: "Beater",           cat: "Special",     desc: "A beta tester with prior knowledge." },
-  { code: "SOLO_KING",       name: "Solo King",        cat: "Exploration", desc: "Cleared 10 floors solo." },
-  { code: "FLOOR_CLEARER",   name: "Floor Clearer",    cat: "Combat",      desc: "Front-line floor clearing." },
-  { code: "DUAL_WIELDER",    name: "Dual Wielder",     cat: "Combat",      desc: "Holder of Dual Wield skill." },
-  { code: "MASTER_CRAFTER",  name: "Master Crafter",   cat: "Crafting",    desc: "Crafted masterwork items." },
-  { code: "GUILD_CHIEF",     name: "Guild Chief",      cat: "Social",      desc: "Leader of a recognized guild." },
-  { code: "LEGEND_SLAYER",   name: "Legend Slayer",    cat: "Combat",      desc: "Slayer of legendary monsters." },
-  { code: "MARKET_KING",     name: "Market King",      cat: "Economy",     desc: "100 trades, perfect ratings." },
-  { code: "NIGHT_WALKER",    name: "Night Walker",     cat: "Exploration", desc: "Nocturnal dungeon master." },
-  { code: "FRONTLINER",      name: "Frontliner",       cat: "Rank",        desc: "Active front-line team member." },
-  { code: "RARE_HUNTER",     name: "Rare Hunter",      cat: "Collection",  desc: "Collector of rare items." },
-];
-
 export const HOBBY_DATA = [
   { name: "Programming",      cat: "Tech",          custom: "Full-Stack Dev",    proficiency: 85, status: "ACTIVE",   xp: 42000 },
   { name: "Reading",          cat: "Learning",      custom: "Tech & Fiction",    proficiency: 72, status: "ACTIVE",   xp: 28500 },

@@ -1,0 +1,45 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { PlayerTitleInfo } from "@/shared/api/types";
+import { MOCK_CHARACTER_SHEET } from "./mock";
+import TitleShell from "./TitleShell";
+
+const api = vi.hoisted(() => ({
+  getCurrentPlayerApi: vi.fn(),
+  getPlayerTitlesApi: vi.fn(),
+  setRepresentativeTitleApi: vi.fn(),
+}));
+
+vi.mock("./api", () => api);
+vi.mock("@/shared/ui/PanelCard", () => ({
+  default: ({ label, subtitle, onClick }: { label: string; subtitle: string; onClick: () => void }) => <button type="button" data-testid="title-entry" onClick={onClick}>{label} · {subtitle}</button>,
+}));
+
+const title: PlayerTitleInfo = { titleId: 1, code: "BLACK_SWORDSMAN", name: "Black Swordsman", category: "Combat", descMd: "Canonical description.", acquiredAt: "2026-08-01T00:00:00Z" };
+
+describe("Title surface와 routing을 사용할 때", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.getCurrentPlayerApi.mockResolvedValue({ ...MOCK_CHARACTER_SHEET.player, representativeTitleId: 1 });
+    api.getPlayerTitlesApi.mockResolvedValue([title]);
+  });
+
+  it("acquired fields와 representative marker를 표시하고 fabricated state는 만들지 않는다", async () => {
+    const { unmount } = render(<TitleShell />);
+    const entry = await screen.findByTestId("title-entry");
+    expect(entry).toHaveTextContent("Combat · 2026-08-01T00:00:00Z · Representative Title");
+    fireEvent.click(entry);
+    expect(screen.getByText("Code: BLACK_SWORDSMAN")).toBeInTheDocument();
+    expect(screen.getByText("Canonical description.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Representative Title" })).toBeDisabled();
+    expect(screen.queryByText(/Status: Unlocked/)).not.toBeInTheDocument();
+    unmount();
+
+    api.getCurrentPlayerApi.mockResolvedValue({ ...MOCK_CHARACTER_SHEET.player, representativeTitleId: 99 });
+    api.getPlayerTitlesApi.mockResolvedValue([]);
+    render(<TitleShell />);
+    expect(await screen.findByText("No acquired Titles.")).toBeInTheDocument();
+    expect(screen.getByText("Representative Title #99 is unavailable in acquired Titles.")).toBeInTheDocument();
+  });
+});
