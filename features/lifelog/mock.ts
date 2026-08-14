@@ -193,7 +193,9 @@ function copy<T>(value: T): T {
 
 function normalizeMediaProgress(currentEpisode?: number, totalEpisode?: number) {
   const current = currentEpisode ?? 0;
-  return { currentEpisode: current, totalEpisode: totalEpisode ?? Math.max(1, current) };
+  const total = totalEpisode ?? Math.max(1, current);
+  if (current < 0 || total < 1 || current > total) throw new Error("Invalid Media episode progress.");
+  return { currentEpisode: current, totalEpisode: total };
 }
 
 export function resetJournalMock(): void {

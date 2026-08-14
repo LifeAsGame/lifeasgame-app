@@ -25,9 +25,16 @@ describe("Media query/mutation state를 관리할 때", () => {
     api.searchMediaApi.mockReset().mockResolvedValue([first]);
     const { result } = renderHook(() => useMediaQueries());
     await waitFor(() => expect(api.searchMediaApi).toHaveBeenCalledWith({ page: 0, size: 20 }));
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+    act(() => result.current.select(first.id));
     act(() => result.current.changePage(3));
+    expect(result.current.selectedId).toBeNull();
+    expect(result.current.detail).toBeNull();
     await waitFor(() => expect(api.searchMediaApi).toHaveBeenLastCalledWith({ page: 3, size: 20 }));
+    act(() => result.current.select(first.id));
     act(() => result.current.search("ANIME", "WATCHING", " Frieren "));
+    expect(result.current.selectedId).toBeNull();
+    expect(result.current.detail).toBeNull();
     await waitFor(() => expect(api.searchMediaApi).toHaveBeenLastCalledWith({ category: "ANIME", status: "WATCHING", titleLike: "Frieren", page: 0, size: 20 }));
     act(() => result.current.changePage(2));
     await waitFor(() => expect(api.searchMediaApi).toHaveBeenLastCalledWith({ category: "ANIME", status: "WATCHING", titleLike: "Frieren", page: 2, size: 20 }));

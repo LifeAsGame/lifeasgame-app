@@ -225,6 +225,21 @@ describe("Media source API를 호출할 때", () => {
     expect(recent).toEqual(expect.objectContaining({ id: result.sourceId, title: "Shared source", status: "WATCHING", currentEpisode: 5, totalEpisode: 5 }));
     expect(searched).toEqual(recent);
   });
+
+  it("invalid create/Quick Record progress는 authority write 전에 거부한다", () => {
+    const mediaBefore = mediaMock.recent(100);
+    const journalBefore = journalMock.page({ page: 0, size: 100 });
+
+    for (const progress of [{ currentEpisode: -1 }, { currentEpisode: 5, totalEpisode: 3 }, { totalEpisode: 0 }]) {
+      expect(() => mediaMock.create({ category: "ANIME", title: "Invalid", status: "WATCHING", ...progress })).toThrow("Invalid Media episode progress.");
+    }
+    expect(mediaMock.recent(100)).toEqual(mediaBefore);
+
+    expect(() => journalMock.quickRecord({ type: "MEDIA", media: { category: "ANIME", title: "Invalid quick", status: "WATCHING", currentEpisode: 5, totalEpisode: 3 } }, "invalid-media-progress")).toThrow("Invalid Media episode progress.");
+    expect(mediaMock.recent(100)).toEqual(mediaBefore);
+    expect(journalMock.page({ page: 0, size: 100 })).toEqual(journalBefore);
+    expect(() => journalMock.quickRecord({ type: "MEDIA", media: { category: "ANIME", title: "Valid retry", status: "WATCHING" } }, "invalid-media-progress")).not.toThrow();
+  });
 });
 
 describe("Journal을 실제 backend에서 읽을 때", () => {
