@@ -42,15 +42,20 @@ export type ExerciseUpdateRequest = {
 export type ExerciseCreated = { id: number };
 export type ExerciseDeleted = { id: number };
 
-export interface MediaLogInfo {
+export const MEDIA_CATEGORIES = ["ANIME", "MOVIE", "SERIES", "BOOK", "WEBTOON", "GAME", "MUSIC"] as const;
+export type MediaCategory = typeof MEDIA_CATEGORIES[number];
+export const MEDIA_STATUSES = ["PLANNED", "WATCHING", "COMPLETED", "DROPPED", "ON_HOLD"] as const;
+export type MediaStatus = typeof MEDIA_STATUSES[number];
+
+export interface MediaInfo {
   id: number;
   playerId: number;
-  category: string;
+  category: MediaCategory;
   title: string;
   originalTitle: string | null;
   currentEpisode: number;
   totalEpisode: number;
-  status: string;
+  status: MediaStatus;
   rating: number | null;
   tags: string[];
   rewatchCount: number;
@@ -59,6 +64,36 @@ export interface MediaLogInfo {
   createdAt: string;
   updatedAt: string;
 }
+
+export type MediaSearchParams = {
+  category?: MediaCategory;
+  status?: MediaStatus;
+  titleLike?: string;
+  page: number;
+  size: number;
+};
+
+export type MediaCreateRequest = {
+  category: MediaCategory;
+  title: string;
+  status: MediaStatus;
+  originalTitle?: string;
+  currentEpisode?: number;
+  totalEpisode?: number;
+  tags?: string[];
+};
+
+export type MediaUpdateRequest = {
+  category?: MediaCategory;
+  title?: string;
+  originalTitle?: string;
+  currentEpisode?: number;
+  totalEpisode?: number;
+  status?: MediaStatus;
+  tags?: string[];
+};
+export type MediaCreated = { id: number };
+export type MediaDeleted = { id: number };
 
 export const COLLECTION_CATEGORIES = ["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "OTHER"] as const;
 export type CollectionCategory = typeof COLLECTION_CATEGORIES[number];
@@ -143,7 +178,7 @@ export type ExerciseJournalEntry = JournalEntryBase<
 >;
 export type MediaJournalEntry = JournalEntryBase<
   "MEDIA",
-  Pick<MediaLogInfo, "category" | "title" | "currentEpisode" | "totalEpisode" | "status" | "rating">
+  Pick<MediaInfo, "category" | "title" | "currentEpisode" | "totalEpisode" | "status" | "rating">
 >;
 export type JournalEntry = CollectionJournalEntry | ExerciseJournalEntry | MediaJournalEntry;
 
@@ -157,7 +192,7 @@ export type CollectionJournalDetail = JournalDetailBase<
   Omit<CollectionInfo, "id" | "playerId" | "quantity"> & { quantity: number | null }
 >;
 export type ExerciseJournalDetail = JournalDetailBase<"EXERCISE", Omit<ExerciseInfo, "id" | "playerId">>;
-export type MediaJournalDetail = JournalDetailBase<"MEDIA", Omit<MediaLogInfo, "id" | "playerId">>;
+export type MediaJournalDetail = JournalDetailBase<"MEDIA", Omit<MediaInfo, "id" | "playerId">>;
 export type JournalDetail = CollectionJournalDetail | ExerciseJournalDetail | MediaJournalDetail;
 
 export interface JournalPage {
@@ -178,8 +213,8 @@ export interface JournalListParams {
 export type QuickRecordType = JournalSourceType;
 export type QuickRecordCollectionCategory = CollectionCategory;
 export type QuickRecordExerciseCategory = ExerciseCategory;
-export type QuickRecordMediaCategory = "ANIME" | "MOVIE" | "SERIES" | "BOOK" | "WEBTOON" | "GAME" | "MUSIC";
-export type QuickRecordMediaStatus = "PLANNED" | "WATCHING" | "COMPLETED" | "DROPPED" | "ON_HOLD";
+export type QuickRecordMediaCategory = MediaCategory;
+export type QuickRecordMediaStatus = MediaStatus;
 
 type QuickRecordMetadata = {
   lifeLogSubtype?: JournalSubtype;

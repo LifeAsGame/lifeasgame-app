@@ -11,6 +11,10 @@ import type {
   JournalEntry,
   JournalListParams,
   JournalPage,
+  MediaCreateRequest,
+  MediaInfo,
+  MediaSearchParams,
+  MediaUpdateRequest,
   QuickRecordRequest,
   QuickRecordResult,
 } from "@/shared/api/types";
@@ -53,7 +57,7 @@ export const MOCK_JOURNAL_ENTRIES = [
     primaryRoleId: 2,
     roleEventId: null,
     recordedAt: "2026-08-11T13:00:00Z",
-    preview: { category: "BOOK", title: "Designing Data-Intensive Applications", currentEpisode: 250, totalEpisode: 616, status: "READING", rating: 4.8 },
+    preview: { category: "BOOK", title: "Designing Data-Intensive Applications", currentEpisode: 250, totalEpisode: 616, status: "WATCHING", rating: 4.8 },
   },
   {
     lifeLogId: 101,
@@ -111,7 +115,7 @@ export const MOCK_JOURNAL_DETAILS = [
       originalTitle: null,
       currentEpisode: 250,
       totalEpisode: 616,
-      status: "READING",
+      status: "WATCHING",
       rating: 4.8,
       tags: ["systems"],
       rewatchCount: 0,
@@ -171,10 +175,16 @@ export const MOCK_EXERCISE_SOURCES = [
   { id: 200, playerId: 6, category: "YOGA", durationMinutes: 45, distanceKm: null, calories: 120, exercisedOn: "2026-08-09", memo: null, createdAt: "2026-08-09T07:00:00Z", updatedAt: "2026-08-09T07:00:00Z" },
 ] satisfies ExerciseInfo[];
 
+export const MOCK_MEDIA_SOURCES = [
+  { id: 202, playerId: 7, category: "BOOK", title: "Designing Data-Intensive Applications", originalTitle: null, currentEpisode: 250, totalEpisode: 616, status: "WATCHING", rating: 4.8, tags: ["systems"], rewatchCount: 0, startedOn: "2026-08-01", finishedOn: null, createdAt: "2026-08-11T13:00:00Z", updatedAt: "2026-08-11T13:00:00Z" },
+  { id: 199, playerId: 7, category: "ANIME", title: "Frieren", originalTitle: "葬送のフリーレン", currentEpisode: 28, totalEpisode: 28, status: "COMPLETED", rating: null, tags: [], rewatchCount: 0, startedOn: "2026-07-01", finishedOn: "2026-07-28", createdAt: "2026-07-01T10:00:00Z", updatedAt: "2026-07-28T10:00:00Z" },
+] satisfies MediaInfo[];
+
 let journalEntries: JournalEntry[] = structuredClone([...MOCK_JOURNAL_ENTRIES]);
 let journalDetails: JournalDetail[] = structuredClone(MOCK_JOURNAL_DETAILS);
 let collectionEntries: CollectionInfo[] = structuredClone(MOCK_COLLECTION_SOURCES);
 let exerciseEntries: ExerciseInfo[] = structuredClone(MOCK_EXERCISE_SOURCES);
+let mediaEntries: MediaInfo[] = structuredClone(MOCK_MEDIA_SOURCES);
 const quickRecordReceipts = new Map<string, { payload: string; result: QuickRecordResult }>();
 
 function copy<T>(value: T): T {
@@ -191,6 +201,7 @@ export function resetJournalMock(): void {
   journalDetails = structuredClone(MOCK_JOURNAL_DETAILS);
   collectionEntries = structuredClone(MOCK_COLLECTION_SOURCES);
   exerciseEntries = structuredClone(MOCK_EXERCISE_SOURCES);
+  mediaEntries = structuredClone(MOCK_MEDIA_SOURCES);
   quickRecordReceipts.clear();
 }
 
@@ -208,6 +219,7 @@ function recordQuick(body: QuickRecordRequest, idempotencyKey: string): QuickRec
     ...journalEntries.map((entry) => entry.sourceId),
     ...collectionEntries.map((entry) => entry.id),
     ...exerciseEntries.map((entry) => entry.id),
+    ...mediaEntries.map((entry) => entry.id),
   ) + 1;
   const recordedAt = new Date().toISOString();
   const metadata = {
@@ -301,6 +313,56 @@ function collection(id: number): CollectionInfo {
 }
 
 const MOCK_MUTATION_TIME = "2026-08-14T00:00:00Z";
+
+function media(id: number): MediaInfo {
+  const found = mediaEntries.find((entry) => entry.id === id);
+  if (!found) throw new Error("Media not found.");
+  return found;
+}
+
+function mediaTags(tags: string[]): string[] {
+  return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
+}
+
+export const mediaMock = {
+  recent: (limit: number): MediaInfo[] => copy(mediaEntries.slice(0, limit)),
+  search: ({ category, status, titleLike, page, size }: MediaSearchParams): MediaInfo[] => {
+    const title = titleLike?.trim().toLowerCase();
+    const filtered = mediaEntries.filter((entry) =>
+      (!category || entry.category === category)
+      && (!status || entry.status === status)
+      && (!title || entry.title.toLowerCase().includes(title))
+    );
+    return copy(filtered.slice(page * size, (page + 1) * size));
+  },
+  create: (body: MediaCreateRequest): { id: number } => {
+    const id = Math.max(0, ...mediaEntries.map((entry) => entry.id)) + 1;
+    const progress = normalizeMediaProgress(body.currentEpisode, body.totalEpisode);
+    mediaEntries.unshift({ id, playerId: 7, category: body.category, title: body.title.trim(), originalTitle: body.originalTitle?.trim() || null, ...progress, status: body.status, rating: null, tags: mediaTags(body.tags ?? []), rewatchCount: 0, startedOn: null, finishedOn: null, createdAt: MOCK_MUTATION_TIME, updatedAt: MOCK_MUTATION_TIME });
+    return { id };
+  },
+  update: (id: number, body: MediaUpdateRequest): MediaInfo => {
+    const current = media(id);
+    const updated: MediaInfo = {
+      ...current,
+      ...(body.category == null ? {} : { category: body.category }),
+      ...(body.title == null ? {} : { title: body.title.trim() }),
+      ...(body.originalTitle == null ? {} : { originalTitle: body.originalTitle.trim() || null }),
+      ...(body.currentEpisode == null ? {} : { currentEpisode: body.currentEpisode }),
+      ...(body.totalEpisode == null ? {} : { totalEpisode: body.totalEpisode }),
+      ...(body.status == null ? {} : { status: body.status }),
+      ...(body.tags == null ? {} : { tags: mediaTags(body.tags) }),
+      updatedAt: MOCK_MUTATION_TIME,
+    };
+    mediaEntries = mediaEntries.map((entry) => entry.id === id ? updated : entry);
+    return copy(updated);
+  },
+  delete: (id: number): { id: number } => {
+    media(id);
+    mediaEntries = mediaEntries.filter((entry) => entry.id !== id);
+    return { id };
+  },
+};
 
 function exercise(id: number): ExerciseInfo {
   const found = exerciseEntries.find((entry) => entry.id === id);

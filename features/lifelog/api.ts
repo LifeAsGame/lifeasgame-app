@@ -1,4 +1,4 @@
-import { USE_MOCK, apiDelete, apiGet, apiGetRaw, apiPost, apiPostRaw } from "@/shared/api/client";
+import { USE_MOCK, apiDelete, apiGet, apiGetRaw, apiPatch, apiPost, apiPostRaw } from "@/shared/api/client";
 import type {
   CollectionCreateRequest,
   CollectionCreated,
@@ -15,13 +15,46 @@ import type {
   JournalDetail,
   JournalListParams,
   JournalPage,
+  MediaCreateRequest,
+  MediaCreated,
+  MediaDeleted,
+  MediaInfo,
+  MediaSearchParams,
+  MediaUpdateRequest,
   QuickRecordRequest,
   QuickRecordResult,
 } from "@/shared/api/types";
-import { collectionMock, exerciseMock, journalMock } from "./mock";
+import { collectionMock, exerciseMock, journalMock, mediaMock } from "./mock";
 
 const COLLECTION_PATH = "/api/v1/players/collections";
 const EXERCISE_PATH = "/api/v1/players/exercises";
+const MEDIA_PATH = "/api/v1/players/media";
+
+export function recentMediaApi(limit: number): Promise<MediaInfo[]> {
+  return USE_MOCK ? Promise.resolve(mediaMock.recent(limit)) : apiGetRaw<MediaInfo[]>(`${MEDIA_PATH}/recent?limit=${limit}`);
+}
+
+export function searchMediaApi(params: MediaSearchParams): Promise<MediaInfo[]> {
+  const query = new URLSearchParams();
+  if (params.category) query.set("category", params.category);
+  if (params.status) query.set("status", params.status);
+  if (params.titleLike) query.set("titleLike", params.titleLike);
+  query.set("page", String(params.page));
+  query.set("size", String(params.size));
+  return USE_MOCK ? Promise.resolve(mediaMock.search(params)) : apiGetRaw<MediaInfo[]>(`${MEDIA_PATH}/search?${query}`);
+}
+
+export function createMediaApi(body: MediaCreateRequest): Promise<MediaCreated> {
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.create(body)) : apiPostRaw<MediaCreated>(MEDIA_PATH, body);
+}
+
+export function updateMediaApi(mediaId: number, body: MediaUpdateRequest): Promise<MediaInfo> {
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.update(mediaId, body)) : apiPatch<MediaInfo>(`${MEDIA_PATH}/${mediaId}`, body);
+}
+
+export function deleteMediaApi(mediaId: number): Promise<MediaDeleted> {
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.delete(mediaId)) : apiDelete<MediaDeleted>(`${MEDIA_PATH}/${mediaId}`);
+}
 
 export function recentExercisesApi(limit: number): Promise<ExerciseInfo[]> {
   return USE_MOCK
