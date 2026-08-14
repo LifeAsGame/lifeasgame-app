@@ -16,6 +16,7 @@ import RoleShell from "@/features/role/RoleShell";
 import JournalShell from "@/features/lifelog/JournalShell";
 import CollectionShell from "@/features/lifelog/CollectionShell";
 import ExerciseShell from "@/features/lifelog/ExerciseShell";
+import MediaShell from "@/features/lifelog/MediaShell";
 import InventoryShell from "@/features/inventory/InventoryShell";
 import GearShell from "@/features/inventory/GearShell";
 import HomeShell from "@/features/home/HomeShell";
@@ -36,18 +37,12 @@ import {
 } from "@/entities/nav";
 import type {
   FormFieldSpec,
-  LifelogSubId,
   MainNavId,
   PanelDataItem,
   PanelStackItem,
   QuestsSubId,
   SocialContextData,
 } from "@/entities/nav";
-import {
-  LIFELOG_CATEGORY_ITEMS,
-  LIFELOG_LISTS,
-  MEDIA_FORM_FIELDS,
-} from "@/features/lifelog/model";
 import {
   GUILD_FORM_FIELDS,
   PARTY_FORM_FIELDS,
@@ -125,7 +120,6 @@ function buildPanels(
   selectedSubByMain: Record<MainNavId, string | null>,
   selectedMarketShopSectionId: string | null,
   selectedDetailByKey: Record<DetailSelectionKey, string | null>,
-  selectedLifelogCategoryBySub: Record<LifelogSubId, string | null>,
   editingItemId: string | null,
   hasActiveForm: boolean,
 ): { panelStack: PanelStackItem[]; socialContext: SocialContextData | null } {
@@ -210,48 +204,6 @@ function buildPanels(
   }
 
   if (selectedMain === "lifelog") {
-    const sub = selectedMainSub as LifelogSubId;
-    if (sub === "journal" || sub === "collection" || sub === "exercise") return { panelStack, socialContext: null };
-    const subLabel = mainItems.find((item) => item.id === sub)?.label ?? "Lifelog";
-    const categoryItems = LIFELOG_CATEGORY_ITEMS[sub] ?? [];
-    const selectedCategory = selectedLifelogCategoryBySub[sub] ?? null;
-
-    panelStack.push({
-      id: `lifelog-category-${sub}`,
-      kind: "menu",
-      title: `${subLabel} Category`,
-      items: categoryItems,
-      selectedId: selectedCategory ?? undefined,
-      context: { main: "lifelog", route: "lifelog-category" },
-    });
-
-    if (!selectedCategory) return { panelStack, socialContext: null };
-
-    if (hasActiveForm && !editingItemId) return { panelStack, socialContext: null };
-
-    const allItems = LIFELOG_LISTS[sub] ?? [];
-    const filteredItems = allItems.filter((item) => item.category === selectedCategory);
-    const selectedItem = findById(filteredItems, selectedDetailByKey.lifelog);
-
-    panelStack.push({
-      id: `lifelog-list-${sub}-${selectedCategory}`,
-      kind: "list",
-      title: `${selectedCategory} List`,
-      items: filteredItems,
-      selectedId: selectedDetailByKey.lifelog ?? undefined,
-      context: { main: "lifelog", route: "lifelog-list" },
-    });
-
-    if (selectedItem && selectedItem.id !== editingItemId) {
-      panelStack.push({
-        id: `lifelog-detail-${selectedItem.id}`,
-        kind: "placeholder",
-        title: selectedItem.detailTitle ?? "Detail",
-        description: selectedItem.detailDescription,
-        rows: selectedItem.detailRows,
-      });
-    }
-
     return { panelStack, socialContext: null };
   }
 
@@ -454,9 +406,6 @@ export default function Home() {
     ...DEFAULT_SUB_SELECTIONS,
   });
   const [selectedMarketShopSectionId, setSelectedMarketShopSectionId] = useState<string | null>(null);
-  const [selectedLifelogCategoryBySub, setSelectedLifelogCategoryBySub] = useState<Record<LifelogSubId, string | null>>({
-    journal: null, collection: null, media: null, exercise: null,
-  });
   const [selectedDetailByKey, setSelectedDetailByKey] = useState<
     Record<DetailSelectionKey, string | null>
   >(() => createDefaultDetailSelections());
@@ -489,7 +438,7 @@ export default function Home() {
     setSelectedDetailByKey((prev) => ({ ...prev, ...updates }));
   };
 
-  const clearDetailSelectionsForMain = (main: MainNavId, nextSub?: string) => {
+  const clearDetailSelectionsForMain = (main: MainNavId) => {
     if (main === "player") {
       updateDetailSelections({ player: null });
     }
@@ -497,13 +446,6 @@ export default function Home() {
     if (main === "social") updateDetailSelections({ social: null });
     if (main === "lifelog") {
       updateDetailSelections({ lifelog: null });
-      setSelectedLifelogCategoryBySub((prev) => {
-        const sub = nextSub as LifelogSubId | undefined;
-        if (!sub) return { journal: null, collection: null, media: null, exercise: null };
-        const currentSub = Object.keys(prev).find((k) => prev[k as LifelogSubId] !== null) as LifelogSubId | undefined;
-        if (!currentSub || currentSub === sub) return prev;
-        return { ...prev, [currentSub]: null };
-      });
     }
     if (main === "market") {
       updateDetailSelections({
@@ -523,7 +465,6 @@ export default function Home() {
         selectedSubByMain,
         selectedMarketShopSectionId,
         selectedDetailByKey,
-        selectedLifelogCategoryBySub,
         editingItemId,
         Boolean(activeFormPanel),
       )
@@ -533,7 +474,6 @@ export default function Home() {
       selectedSubByMain,
       selectedMarketShopSectionId,
       selectedDetailByKey,
-      selectedLifelogCategoryBySub,
       editingItemId,
       activeFormPanel,
     ],
@@ -568,7 +508,6 @@ export default function Home() {
     setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS });
     setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
-    setSelectedLifelogCategoryBySub({ journal: null, collection: null, media: null, exercise: null });
     setActiveFormPanel(null);
     setActiveSpecialPanel(null);
     setEditingItemId(null);
@@ -608,18 +547,8 @@ export default function Home() {
         const current = selectedSubByMain[panel.context.main];
         const next = tog(current);
         setSelectedSubByMain((prev) => ({ ...prev, [panel.context.main]: next }));
-        clearDetailSelectionsForMain(panel.context.main, next ?? undefined);
+        clearDetailSelectionsForMain(panel.context.main);
         if (panel.context.main === "market") setSelectedMarketShopSectionId(null);
-        setActiveFormPanel(null);
-        setEditingItemId(null);
-        return;
-      }
-
-      if (panel.context.route === "lifelog-category") {
-        const sub = selectedSubByMain.lifelog as LifelogSubId;
-        const next = tog(selectedLifelogCategoryBySub[sub]);
-        setSelectedLifelogCategoryBySub((prev) => ({ ...prev, [sub]: next }));
-        updateDetailSelections({ lifelog: null });
         setActiveFormPanel(null);
         setEditingItemId(null);
         return;
@@ -638,8 +567,7 @@ export default function Home() {
     }
 
     if (panel.kind === "list") {
-      const { player, skills, social,
-              lifelog, marketWallet, marketCatalog, marketMyListings, marketTradeFriend } = selectedDetailByKey;
+      const { player, skills, social, marketWallet, marketCatalog, marketMyListings, marketTradeFriend } = selectedDetailByKey;
 
       if (panel.context.route === "player-list") {
         setActiveFormPanel(null); setEditingItemId(null);
@@ -647,10 +575,6 @@ export default function Home() {
       }
       if (panel.context.route === "skills-list") updateDetailSelections({ skills: tog(skills) });
       if (panel.context.route === "social-list") updateDetailSelections({ social: tog(social) });
-      if (panel.context.route === "lifelog-list") {
-        setActiveFormPanel(null); setEditingItemId(null);
-        updateDetailSelections({ lifelog: tog(lifelog) });
-      }
       if (panel.context.route === "market-wallet-summary") updateDetailSelections({ marketWallet: tog(marketWallet) });
       if (panel.context.route === "market-shop-catalog-list") updateDetailSelections({ marketCatalog: tog(marketCatalog) });
       if (panel.context.route === "market-shop-my-listings") updateDetailSelections({ marketMyListings: tog(marketMyListings) });
@@ -734,9 +658,7 @@ export default function Home() {
     const route = panel.context.route;
     const sub = selectedSubByMain[panel.context.main];
 
-    if (route === "lifelog-list" && sub === "media") {
-      openForm("media-create", "Log Media", MEDIA_FORM_FIELDS, "기록하기");
-    } else if (route === "social-list" && sub === "party") {
+    if (route === "social-list" && sub === "party") {
       openForm("party-create", "Create Party", PARTY_FORM_FIELDS, "파티 생성");
     } else if (route === "social-list" && sub === "guild") {
       openForm("guild-create", "Create Guild", GUILD_FORM_FIELDS, "길드 생성");
@@ -750,12 +672,7 @@ export default function Home() {
     if (!selectedMain) return;
     const sub = selectedSubByMain[selectedMain];
 
-    if (actionType === "edit") {
-      if (selectedMain === "lifelog" && sub === "media") {
-        openForm("media-edit", "Edit Media", MEDIA_FORM_FIELDS, "수정하기");
-      }
-
-    } else if (actionType === "start") {
+    if (actionType === "start") {
       if (selectedMain === "social" && sub === "party") {
         const partyId = parseInt(itemId.split("-").pop() ?? "0", 10);
         const partyName = SOCIAL_LISTS.party.find((p) => p.id === itemId)?.label ?? "파티";
@@ -929,46 +846,6 @@ export default function Home() {
     if (wasEditing) {
       if (selectedMain === "player") updateDetailSelections({ player: null });
       else if (selectedMain === "lifelog") updateDetailSelections({ lifelog: null });
-    }
-  };
-
-  // Called when any field in a form panel changes — syncs category panel selection
-  const handlePanelFormFieldChange = (formKey: string, fieldKey: string, value: string) => {
-    if (fieldKey !== "category") return;
-    if (formKey.startsWith("media")) {
-      const sub = selectedSubByMain.lifelog as LifelogSubId;
-      setSelectedLifelogCategoryBySub((prev) => ({ ...prev, [sub]: value || null }));
-    }
-  };
-
-  // Double-click/tap on a category menu item → open create form (clears category so list hides)
-  // Double-click/tap on a list item → open edit form
-  const handlePanelItemDoubleClick = (panelIndex: number, itemId: string) => {
-    if (!selectedMain) return;
-    const panel = panelStack[panelIndex];
-
-    // Category panel double-click → create form
-    // Keep category selected (SET not null) so category panel shows selection.
-    // hasActiveForm=true will suppress the list panel, leaving [submenu, category(selected), form].
-    if (panel?.kind === "menu" && panel.context.route === "lifelog-category") {
-      const sub = selectedSubByMain.lifelog as LifelogSubId;
-      setSelectedLifelogCategoryBySub((prev) => ({ ...prev, [sub]: itemId }));
-      updateDetailSelections({ lifelog: null });
-      setEditingItemId(null);
-      if (sub === "media") {
-        openForm("media-create", "Log Media", MEDIA_FORM_FIELDS, "기록하기", { type: itemId });
-      }
-      return;
-    }
-
-    // List item double-click → edit form; keep item selected, suppress only the detail panel
-    const sub = selectedSubByMain[selectedMain];
-    if (selectedMain === "lifelog") {
-      updateDetailSelections({ lifelog: itemId });
-      setEditingItemId(itemId);
-      if (sub === "media") {
-        openForm("media-edit", "Edit Media", MEDIA_FORM_FIELDS, "수정하기");
-      }
     }
   };
 
@@ -1220,6 +1097,11 @@ export default function Home() {
               />
               <ExerciseShell />
             </div>
+          ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "media" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} panelStackKey="lifelog-media-menu" onPanelItemSelect={handlePanelItemSelect} />
+              <MediaShell />
+            </div>
           ) : (
             <RightPanels
               selectedMain={selectedMain}
@@ -1231,9 +1113,7 @@ export default function Home() {
               }
               onPanelItemSelect={handlePanelItemSelect}
               onPanelItemAction={handlePanelItemAction}
-              onPanelItemDoubleClick={handlePanelItemDoubleClick}
               onPanelFormSubmit={handlePanelFormSubmit}
-              onPanelFormFieldChange={handlePanelFormFieldChange}
               onPanelBack={handlePanelBack}
               onPanelActionClick={handlePanelActionClick}
             />

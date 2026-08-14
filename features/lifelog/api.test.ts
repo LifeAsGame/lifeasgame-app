@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { COLLECTION_CATEGORIES, EXERCISE_CATEGORIES } from "@/shared/api/types";
-import type { CollectionCreateRequest, CollectionInfo, CollectionUpdateRequest, ExerciseCreateRequest, ExerciseInfo, ExerciseUpdateRequest, JournalPage, JournalSubtype, QuickRecordRequest } from "@/shared/api/types";
+import { COLLECTION_CATEGORIES, EXERCISE_CATEGORIES, MEDIA_CATEGORIES, MEDIA_STATUSES } from "@/shared/api/types";
+import type { CollectionCreateRequest, CollectionInfo, CollectionUpdateRequest, ExerciseCreateRequest, ExerciseInfo, ExerciseUpdateRequest, JournalPage, JournalSubtype, MediaInfo, QuickRecordRequest } from "@/shared/api/types";
 import {
   createCollectionApi,
   createExerciseApi,
+  createMediaApi,
   deleteCollectionApi,
   deleteExerciseApi,
+  deleteMediaApi,
   getCollectionApi,
   getExerciseApi,
   getJournalDetailApi,
@@ -14,12 +16,15 @@ import {
   quickRecordApi,
   recentCollectionsApi,
   recentExercisesApi,
+  recentMediaApi,
   searchCollectionsApi,
   searchExercisesApi,
+  searchMediaApi,
   updateCollectionApi,
   updateExerciseApi,
+  updateMediaApi,
 } from "./api";
-import { collectionMock, exerciseMock, journalMock, MOCK_JOURNAL_ENTRIES, resetJournalMock } from "./mock";
+import { collectionMock, exerciseMock, journalMock, mediaMock, MOCK_JOURNAL_ENTRIES, resetJournalMock } from "./mock";
 
 const client = vi.hoisted(() => ({
   apiDelete: vi.fn(),
@@ -27,6 +32,7 @@ const client = vi.hoisted(() => ({
   apiGetRaw: vi.fn(),
   apiPost: vi.fn(),
   apiPostRaw: vi.fn(),
+  apiPatch: vi.fn(),
 }));
 
 vi.mock("@/shared/api/client", () => ({ USE_MOCK: false, ...client }));
@@ -57,6 +63,7 @@ const exercise: ExerciseInfo = {
   createdAt: "2026-08-14T00:00:00Z",
   updatedAt: "2026-08-14T00:00:00Z",
 };
+const media: MediaInfo = { id: 51, playerId: 7, category: "ANIME", title: "Frieren", originalTitle: null, currentEpisode: 10, totalEpisode: 28, status: "WATCHING", rating: null, tags: ["fantasy"], rewatchCount: 0, startedOn: null, finishedOn: null, createdAt: "2026-08-14T00:00:00Z", updatedAt: "2026-08-14T00:00:00Z" };
 
 describe("Exercise source API를 호출할 때", () => {
   beforeEach(() => {
@@ -164,6 +171,74 @@ describe("Collection source API를 호출할 때", () => {
       expect(() => collectionMock.get(created.id)).toThrow("Collection not found.");
       expect(journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId)).toEqual(journalIds);
     });
+  });
+});
+
+describe("Media source API를 호출할 때", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetJournalMock();
+  });
+
+  it("recent/search/create는 raw, update/delete는 envelope helpers의 exact paths를 사용한다", async () => {
+    client.apiGetRaw.mockResolvedValue([media]);
+    client.apiPostRaw.mockResolvedValue({ id: 51 });
+    client.apiPatch.mockResolvedValue(media);
+    client.apiDelete.mockResolvedValue({ id: 51 });
+    const create = { category: "ANIME" as const, title: "Frieren", status: "PLANNED" as const, currentEpisode: 3 };
+    const update = { currentEpisode: 4, tags: [] };
+
+    await recentMediaApi(12);
+    const found = await searchMediaApi({ category: "ANIME", status: "WATCHING", titleLike: "A/B ?", page: 2, size: 20 });
+    expect(await createMediaApi(create)).toEqual({ id: 51 });
+    await updateMediaApi(51, update);
+    await deleteMediaApi(51);
+
+    expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/media/recent?limit=12");
+    expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/media/search?category=ANIME&status=WATCHING&titleLike=A%2FB+%3F&page=2&size=20");
+    expect(client.apiPostRaw).toHaveBeenCalledWith("/api/v1/players/media", create);
+    expect(client.apiPatch).toHaveBeenCalledWith("/api/v1/players/media/51", update);
+    expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/media/51");
+    expect(found).toEqual([media]);
+    expect(found).not.toHaveProperty("totalElements");
+    expect([...client.apiGetRaw.mock.calls, ...client.apiPostRaw.mock.calls].flat().join(" ")).not.toMatch(/playerId|userId|lifelogs\/me\/media/);
+  });
+
+  it("mock는 one authority에서 raw paging, ID-only create, canonical enums와 Journal 분리를 유지한다", () => {
+    const journalIds = journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId);
+    expect(MEDIA_CATEGORIES).toEqual(["ANIME", "MOVIE", "SERIES", "BOOK", "WEBTOON", "GAME", "MUSIC"]);
+    expect(MEDIA_STATUSES).toEqual(["PLANNED", "WATCHING", "COMPLETED", "DROPPED", "ON_HOLD"]);
+    expect(mediaMock.recent(1)).toHaveLength(1);
+    expect(mediaMock.search({ category: "BOOK", status: "WATCHING", titleLike: "data", page: 0, size: 1 })).toHaveLength(1);
+    const created = mediaMock.create({ category: "WEBTOON", title: "New", status: "PLANNED", currentEpisode: 5 });
+    expect(created).toEqual({ id: expect.any(Number) });
+    expect(mediaMock.search({ category: "WEBTOON", page: 0, size: 20 })[0]).toEqual(expect.objectContaining({ id: created.id, currentEpisode: 5, totalEpisode: 5 }));
+    expect(mediaMock.delete(created.id)).toEqual({ id: created.id });
+    expect(journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId)).toEqual(journalIds);
+  });
+
+  it("Quick Record MEDIA source를 normalized progress로 shared recent/search authority에 기록한다", () => {
+    const result = journalMock.quickRecord({ type: "MEDIA", media: { category: "ANIME", title: "Shared source", status: "WATCHING", currentEpisode: 5 } }, "shared-media");
+    const recent = mediaMock.recent(20).find(({ id }) => id === result.sourceId);
+    const searched = mediaMock.search({ category: "ANIME", status: "WATCHING", titleLike: "Shared", page: 0, size: 20 }).find(({ id }) => id === result.sourceId);
+
+    expect(recent).toEqual(expect.objectContaining({ id: result.sourceId, title: "Shared source", status: "WATCHING", currentEpisode: 5, totalEpisode: 5 }));
+    expect(searched).toEqual(recent);
+  });
+
+  it("invalid create/Quick Record progress는 authority write 전에 거부한다", () => {
+    const mediaBefore = mediaMock.recent(100);
+    const journalBefore = journalMock.page({ page: 0, size: 100 });
+
+    for (const progress of [{ currentEpisode: -1 }, { currentEpisode: 5, totalEpisode: 3 }, { totalEpisode: 0 }]) {
+      expect(() => mediaMock.create({ category: "ANIME", title: "Invalid", status: "WATCHING", ...progress })).toThrow("Invalid Media episode progress.");
+    }
+    expect(mediaMock.recent(100)).toEqual(mediaBefore);
+
+    expect(() => journalMock.quickRecord({ type: "MEDIA", media: { category: "ANIME", title: "Invalid quick", status: "WATCHING", currentEpisode: 5, totalEpisode: 3 } }, "invalid-media-progress")).toThrow("Invalid Media episode progress.");
+    expect(mediaMock.recent(100)).toEqual(mediaBefore);
+    expect(journalMock.page({ page: 0, size: 100 })).toEqual(journalBefore);
+    expect(() => journalMock.quickRecord({ type: "MEDIA", media: { category: "ANIME", title: "Valid retry", status: "WATCHING" } }, "invalid-media-progress")).not.toThrow();
   });
 });
 
