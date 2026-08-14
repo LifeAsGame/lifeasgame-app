@@ -15,6 +15,7 @@ import JourneyShell from "@/features/quests/JourneyShell";
 import RoleShell from "@/features/role/RoleShell";
 import JournalShell from "@/features/lifelog/JournalShell";
 import CollectionShell from "@/features/lifelog/CollectionShell";
+import ExerciseShell from "@/features/lifelog/ExerciseShell";
 import InventoryShell from "@/features/inventory/InventoryShell";
 import GearShell from "@/features/inventory/GearShell";
 import HomeShell from "@/features/home/HomeShell";
@@ -46,7 +47,6 @@ import {
   PLAYER_LISTS,
 } from "@/features/player/model";
 import {
-  EXERCISE_FORM_FIELDS,
   LIFELOG_CATEGORY_ITEMS,
   LIFELOG_LISTS,
   MEDIA_FORM_FIELDS,
@@ -258,7 +258,7 @@ function buildPanels(
 
   if (selectedMain === "lifelog") {
     const sub = selectedMainSub as LifelogSubId;
-    if (sub === "journal" || sub === "collection") return { panelStack, socialContext: null };
+    if (sub === "journal" || sub === "collection" || sub === "exercise") return { panelStack, socialContext: null };
     const subLabel = mainItems.find((item) => item.id === sub)?.label ?? "Lifelog";
     const categoryItems = LIFELOG_CATEGORY_ITEMS[sub] ?? [];
     const selectedCategory = selectedLifelogCategoryBySub[sub] ?? null;
@@ -806,9 +806,7 @@ export default function Home() {
     const route = panel.context.route;
     const sub = selectedSubByMain[panel.context.main];
 
-    if (route === "lifelog-list" && sub === "exercise") {
-      openForm("exercise-create", "Log Exercise", EXERCISE_FORM_FIELDS, "기록하기");
-    } else if (route === "lifelog-list" && sub === "media") {
+    if (route === "lifelog-list" && sub === "media") {
       openForm("media-create", "Log Media", MEDIA_FORM_FIELDS, "기록하기");
     } else if (route === "social-list" && sub === "party") {
       openForm("party-create", "Create Party", PARTY_FORM_FIELDS, "파티 생성");
@@ -825,16 +823,7 @@ export default function Home() {
     const sub = selectedSubByMain[selectedMain];
 
     if (actionType === "edit") {
-      const allLists = [
-        ...LIFELOG_LISTS.exercise,
-        ...LIFELOG_LISTS.media,
-      ];
-      const item = allLists.find((i) => i.id === itemId);
-
-      if (selectedMain === "lifelog" && sub === "exercise") {
-        openForm("exercise-edit", "Edit Exercise", EXERCISE_FORM_FIELDS, "수정하기",
-          item ? { category: item.detailRows[0]?.split(": ")[1] ?? "" } : undefined);
-      } else if (selectedMain === "lifelog" && sub === "media") {
+      if (selectedMain === "lifelog" && sub === "media") {
         openForm("media-edit", "Edit Media", MEDIA_FORM_FIELDS, "수정하기");
       }
 
@@ -1021,7 +1010,7 @@ export default function Home() {
     if (formKey.startsWith("credential") || formKey.startsWith("hobby")) {
       const sub = selectedSubByMain.player as PlayerSubId;
       setSelectedPlayerCategoryBySub((prev) => ({ ...prev, [sub]: value || null }));
-    } else if (formKey.startsWith("exercise") || formKey.startsWith("media")) {
+    } else if (formKey.startsWith("media")) {
       const sub = selectedSubByMain.lifelog as LifelogSubId;
       setSelectedLifelogCategoryBySub((prev) => ({ ...prev, [sub]: value || null }));
     }
@@ -1054,9 +1043,7 @@ export default function Home() {
       setSelectedLifelogCategoryBySub((prev) => ({ ...prev, [sub]: itemId }));
       updateDetailSelections({ lifelog: null });
       setEditingItemId(null);
-      if (sub === "exercise") {
-        openForm("exercise-create", "Log Exercise", EXERCISE_FORM_FIELDS, "기록하기", { category: itemId });
-      } else if (sub === "media") {
+      if (sub === "media") {
         openForm("media-create", "Log Media", MEDIA_FORM_FIELDS, "기록하기", { type: itemId });
       }
       return;
@@ -1079,9 +1066,7 @@ export default function Home() {
     } else if (selectedMain === "lifelog") {
       updateDetailSelections({ lifelog: itemId });
       setEditingItemId(itemId);
-      if (sub === "exercise") {
-        openForm("exercise-edit", "Edit Exercise", EXERCISE_FORM_FIELDS, "수정하기");
-      } else if (sub === "media") {
+      if (sub === "media") {
         openForm("media-edit", "Edit Media", MEDIA_FORM_FIELDS, "수정하기");
       }
     }
@@ -1284,6 +1269,16 @@ export default function Home() {
                 onPanelItemSelect={handlePanelItemSelect}
               />
               <CollectionShell />
+            </div>
+          ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "exercise" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="lifelog"
+                panelStack={panelStack.slice(0, 1)}
+                panelStackKey="lifelog-exercise-menu"
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <ExerciseShell />
             </div>
           ) : (
             <RightPanels

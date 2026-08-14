@@ -1,41 +1,6 @@
-import { USE_MOCK, apiDelete, apiGet, apiPost } from "../client";
-import {
-  MOCK_EXERCISES,
-  MOCK_MEDIA_LOGS,
-} from "../mock/lifelog.mock";
-import type { ExerciseInfo, MediaLogInfo } from "../types";
-
-export async function getExercisesApi(): Promise<ExerciseInfo[]> {
-  if (USE_MOCK) return MOCK_EXERCISES;
-  const res = await apiGet<{ items: ExerciseInfo[] }>("/api/v1/lifelogs/me/exercises");
-  return res.items;
-}
-
-export async function createExerciseApi(data: {
-  category: string;
-  durationMinutes: number | null;
-  distanceKm: number | null;
-  calories: number | null;
-  exercisedOn: string;
-  memo: string | null;
-}): Promise<ExerciseInfo> {
-  if (USE_MOCK) {
-    const newEntry: ExerciseInfo = {
-      id: Date.now(),
-      playerId: 6,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    return newEntry;
-  }
-  return apiPost<ExerciseInfo>("/api/v1/lifelogs/me/exercises", data);
-}
-
-export async function deleteExerciseApi(id: number): Promise<void> {
-  if (USE_MOCK) return;
-  await apiDelete(`/api/v1/lifelogs/me/exercises/${id}`);
-}
+import { USE_MOCK, apiGet, apiPost } from "../client";
+import { MOCK_MEDIA_LOGS } from "../mock/lifelog.mock";
+import type { MediaLogInfo } from "../types";
 
 export async function getMediaLogsApi(): Promise<MediaLogInfo[]> {
   if (USE_MOCK) return MOCK_MEDIA_LOGS;

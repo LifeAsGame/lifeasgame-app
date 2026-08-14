@@ -6,15 +6,64 @@ import type {
   CollectionInfo,
   CollectionSearchParams,
   CollectionUpdateRequest,
+  ExerciseCreateRequest,
+  ExerciseCreated,
+  ExerciseDeleted,
+  ExerciseInfo,
+  ExerciseSearchParams,
+  ExerciseUpdateRequest,
   JournalDetail,
   JournalListParams,
   JournalPage,
   QuickRecordRequest,
   QuickRecordResult,
 } from "@/shared/api/types";
-import { collectionMock, journalMock } from "./mock";
+import { collectionMock, exerciseMock, journalMock } from "./mock";
 
 const COLLECTION_PATH = "/api/v1/players/collections";
+const EXERCISE_PATH = "/api/v1/players/exercises";
+
+export function recentExercisesApi(limit: number): Promise<ExerciseInfo[]> {
+  return USE_MOCK
+    ? Promise.resolve(exerciseMock.recent(limit))
+    : apiGetRaw<ExerciseInfo[]>(`${EXERCISE_PATH}/recent?limit=${limit}`);
+}
+
+export function searchExercisesApi(params: ExerciseSearchParams): Promise<ExerciseInfo[]> {
+  const query = new URLSearchParams();
+  if (params.category) query.set("category", params.category);
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  query.set("page", String(params.page));
+  query.set("size", String(params.size));
+  return USE_MOCK
+    ? Promise.resolve(exerciseMock.search(params))
+    : apiGetRaw<ExerciseInfo[]>(`${EXERCISE_PATH}/search?${query}`);
+}
+
+export function getExerciseApi(exerciseId: number): Promise<ExerciseInfo> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => exerciseMock.get(exerciseId))
+    : apiGet<ExerciseInfo>(`${EXERCISE_PATH}/${exerciseId}`);
+}
+
+export function createExerciseApi(body: ExerciseCreateRequest): Promise<ExerciseCreated> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => exerciseMock.create(body))
+    : apiPostRaw<ExerciseCreated>(EXERCISE_PATH, body);
+}
+
+export function updateExerciseApi(exerciseId: number, body: ExerciseUpdateRequest): Promise<ExerciseInfo> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => exerciseMock.update(exerciseId, body))
+    : apiPostRaw<ExerciseInfo>(`${EXERCISE_PATH}/${exerciseId}`, body);
+}
+
+export function deleteExerciseApi(exerciseId: number): Promise<ExerciseDeleted> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => exerciseMock.delete(exerciseId))
+    : apiDelete<ExerciseDeleted>(`${EXERCISE_PATH}/${exerciseId}`);
+}
 
 export function recentCollectionsApi(limit: number): Promise<CollectionInfo[]> {
   return USE_MOCK

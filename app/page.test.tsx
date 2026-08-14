@@ -34,6 +34,7 @@ vi.mock("@/widgets/right-panels/RightPanels", () => ({
 }));
 vi.mock("@/features/lifelog/JournalShell", () => ({ default: ({ roles: roleOptions }: { roles: RoleDetail[] }) => <div data-testid="journal-shell">Journal · {roleOptions.map(({ name }) => name).join(", ")}</div> }));
 vi.mock("@/features/lifelog/CollectionShell", () => ({ default: () => <div data-testid="collection-shell">Collection Shell</div> }));
+vi.mock("@/features/lifelog/ExerciseShell", () => ({ default: () => <div data-testid="exercise-shell">Exercise Shell</div> }));
 vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
 vi.mock("@/features/inventory/GearShell", () => ({ default: () => <div data-testid="gear-shell">Gear Shell</div> }));
 vi.mock("@/features/home/HomeShell", () => ({
@@ -136,6 +137,10 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Collection" }));
       expect(screen.queryByTestId("journal-shell")).not.toBeInTheDocument();
       expect(screen.getByTestId("collection-shell")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Exercise" }));
+      expect(screen.queryByTestId("collection-shell")).not.toBeInTheDocument();
+      expect(screen.getByTestId("exercise-shell")).toBeInTheDocument();
     });
 
     it("Role과 Journey feature shell routing을 그대로 유지한다", () => {

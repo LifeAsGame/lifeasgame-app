@@ -1,8 +1,11 @@
+export const EXERCISE_CATEGORIES = ["RUNNING", "WALKING", "CYCLING", "SWIMMING", "GYM", "YOGA", "OTHER"] as const;
+export type ExerciseCategory = typeof EXERCISE_CATEGORIES[number];
+
 export interface ExerciseInfo {
   id: number;
   playerId: number;
-  category: string;
-  durationMinutes: number | null;
+  category: ExerciseCategory;
+  durationMinutes: number;
   distanceKm: number | null;
   calories: number | null;
   exercisedOn: string;
@@ -10,6 +13,34 @@ export interface ExerciseInfo {
   createdAt: string;
   updatedAt: string;
 }
+
+export type ExerciseSearchParams = {
+  category?: ExerciseCategory;
+  from?: string;
+  to?: string;
+  page: number;
+  size: number;
+};
+
+export type ExerciseCreateRequest = {
+  category: ExerciseCategory;
+  durationMinutes: number;
+  distanceKm?: number;
+  calories?: number;
+  exercisedOn: string;
+  memo?: string;
+};
+
+export type ExerciseUpdateRequest = {
+  category?: ExerciseCategory | null;
+  durationMinutes?: number | null;
+  distanceKm?: number | null;
+  calories?: number | null;
+  exercisedOn?: string | null;
+  memo?: string | null;
+};
+export type ExerciseCreated = { id: number };
+export type ExerciseDeleted = { id: number };
 
 export interface MediaLogInfo {
   id: number;
@@ -146,7 +177,7 @@ export interface JournalListParams {
 
 export type QuickRecordType = JournalSourceType;
 export type QuickRecordCollectionCategory = CollectionCategory;
-export type QuickRecordExerciseCategory = "RUNNING" | "WALKING" | "CYCLING" | "SWIMMING" | "GYM" | "YOGA" | "OTHER";
+export type QuickRecordExerciseCategory = ExerciseCategory;
 export type QuickRecordMediaCategory = "ANIME" | "MOVIE" | "SERIES" | "BOOK" | "WEBTOON" | "GAME" | "MUSIC";
 export type QuickRecordMediaStatus = "PLANNED" | "WATCHING" | "COMPLETED" | "DROPPED" | "ON_HOLD";
 
