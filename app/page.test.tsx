@@ -11,10 +11,12 @@ const roles = vi.hoisted((): RoleDetail[] => [
   { id: 1, roleType: "PROFESSIONAL", name: "Backend Engineer", description: "Build systems", status: "ACTIVE", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 },
 ]);
 const roleHook = vi.hoisted(() => ({ useRoles: vi.fn(() => ({ roles, isLoading: false, error: null, refresh: vi.fn() })) }));
+const growthApi = vi.hoisted(() => ({ getPlayerGrowthApi: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth.state }));
 vi.mock("@/features/role/useRoles", () => roleHook);
+vi.mock("@/features/player/api", () => growthApi);
 vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock("@/shared/hooks/usePanScroll", () => ({ usePanScroll: vi.fn() }));
 vi.mock("@/widgets/left-context/LeftContext", () => ({ default: () => null }));
@@ -71,6 +73,13 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     vi.clearAllMocks();
     auth.state = { isAuthenticated: true, playerId: 7, isLoading: false, logout: vi.fn() };
     vi.stubGlobal("requestAnimationFrame", () => 1);
+    growthApi.getPlayerGrowthApi.mockResolvedValue({
+      current: { level: 8, exp: 842, str: 12, agi: 11, dex: 10, intel: 9, vit: 8, luc: 7, extraStats: { Focus: 6 }, representativeTitleId: null },
+      recentExpChanges: [
+        { changeId: 2, requestedExp: 100, appliedExp: 80, leftoverExp: 20, beforeLevel: 7, afterLevel: 8, beforeTotalExp: 762, afterTotalExp: 842, occurredAt: "2026-08-14T09:00:00Z", sourceType: "QUEST", sourceId: 31 },
+        { changeId: 1, requestedExp: 10, appliedExp: 10, leftoverExp: 0, beforeLevel: 7, afterLevel: 7, beforeTotalExp: 752, afterTotalExp: 762, occurredAt: "2026-08-13T09:00:00Z", sourceType: null, sourceId: null },
+      ],
+    });
   });
 
   describe("인증된 player가 처음 진입하면", () => {
@@ -171,6 +180,28 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
       expect(screen.getByTestId("certification-shell")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Cloud" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("인증된 player가 Growth를 선택하면", () => {
+    it("첫 Player submenu에서 backend-owned overview와 ordered history를 렌더한다", async () => {
+      render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+
+      const submenu = screen.getByTestId("right-panels").querySelectorAll("button");
+      expect([...submenu].map((button) => button.textContent)).toEqual(["Growth", "Achievement", "Credentials", "Title", "Interests"]);
+      fireEvent.click(screen.getByRole("button", { name: "Growth" }));
+
+      expect(await screen.findByTestId("growth-shell")).toBeInTheDocument();
+      expect(screen.getByText("Level: 8")).toBeInTheDocument();
+      expect(screen.getByText("EXP: 842")).toBeInTheDocument();
+      expect(screen.getByText("Focus: 6")).toBeInTheDocument();
+      expect(screen.getByText("Requested EXP: 100")).toBeInTheDocument();
+      expect(screen.getByText("Applied EXP: 80")).toBeInTheDocument();
+      expect(screen.getByText("Leftover EXP: 20")).toBeInTheDocument();
+      expect(screen.getAllByText("Source Type: —")).toHaveLength(1);
+      expect(screen.queryByText(/next level|percentage|remaining exp|radar/i)).not.toBeInTheDocument();
+      expect(growthApi.getPlayerGrowthApi).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -9,7 +9,7 @@ export type MainNavId =
   | "market"
   | "system";
 
-export type PlayerSubId = "achievement" | "credentials" | "title" | "interests";
+export type PlayerSubId = "growth" | "achievement" | "credentials" | "title" | "interests";
 export type SkillsSubId = "passive" | "active";
 export type InventorySubId = "items" | "gear" | "inbox";
 export type InventoryGearPartId = "weapon" | "armor" | "accessory" | "boots";

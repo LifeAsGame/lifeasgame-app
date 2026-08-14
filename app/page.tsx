@@ -24,6 +24,7 @@ import AchievementShell from "@/features/player/AchievementShell";
 import CertificationShell from "@/features/player/CertificationShell";
 import TitleShell from "@/features/player/TitleShell";
 import HobbyShell from "@/features/player/HobbyShell";
+import GrowthShell from "@/features/player/GrowthShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -993,6 +994,16 @@ export default function Home() {
               }}
               onOpenRole={handleRoleSelect}
             />
+          ) : selectedMain === "player" && selectedSubByMain.player === "growth" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="player"
+                panelStack={panelStack.slice(0, 1)}
+                panelStackKey="player-growth-menu"
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <GrowthShell />
+            </div>
           ) : selectedMain === "player" && selectedSubByMain.player === "achievement" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
