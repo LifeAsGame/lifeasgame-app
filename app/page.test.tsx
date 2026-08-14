@@ -36,6 +36,7 @@ vi.mock("@/features/lifelog/JournalShell", () => ({ default: ({ roles: roleOptio
 vi.mock("@/features/lifelog/CollectionShell", () => ({ default: () => <div data-testid="collection-shell">Collection Shell</div> }));
 vi.mock("@/features/lifelog/ExerciseShell", () => ({ default: () => <div data-testid="exercise-shell">Exercise Shell</div> }));
 vi.mock("@/features/player/AchievementShell", () => ({ default: () => <div data-testid="achievement-shell">Achievement Shell</div> }));
+vi.mock("@/features/player/CertificationShell", () => ({ default: () => <div data-testid="certification-shell">Certification Shell</div> }));
 vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
 vi.mock("@/features/inventory/GearShell", () => ({ default: () => <div data-testid="gear-shell">Gear Shell</div> }));
 vi.mock("@/features/home/HomeShell", () => ({
@@ -151,6 +152,18 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       expect(screen.getByTestId("role-shell")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Journey" }));
       expect(screen.getByTestId("journey-shell")).toBeInTheDocument();
+    });
+  });
+
+  describe("인증된 player가 Credentials를 선택하면", () => {
+    it("generic static panels 대신 feature-owned CertificationShell로 routing한다", () => {
+      render(<Home />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      fireEvent.click(screen.getByRole("button", { name: "Credentials" }));
+
+      expect(screen.getByTestId("certification-shell")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Cloud" })).not.toBeInTheDocument();
     });
   });
 

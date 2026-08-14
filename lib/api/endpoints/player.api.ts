@@ -1,13 +1,11 @@
 import { USE_MOCK, apiGet, apiPut } from "../client";
 import {
   MOCK_CHARACTER_SHEET,
-  MOCK_CERTIFICATIONS,
   MOCK_HOBBIES,
   MOCK_TITLES,
 } from "../mock/player.mock";
 import type {
   CharacterSheet,
-  PlayerCertificationInfo,
   PlayerHobbyInfo,
   PlayerTitleInfo,
 } from "../types";
@@ -15,12 +13,6 @@ import type {
 export async function getCharacterSheetApi(): Promise<CharacterSheet> {
   if (USE_MOCK) return MOCK_CHARACTER_SHEET;
   return apiGet<CharacterSheet>("/api/v1/players/me/sheet");
-}
-
-export async function getCertificationsApi(): Promise<PlayerCertificationInfo[]> {
-  if (USE_MOCK) return MOCK_CERTIFICATIONS;
-  const res = await apiGet<{ infos: PlayerCertificationInfo[] }>("/api/v1/players/me/certifications");
-  return res.infos;
 }
 
 export async function getTitlesApi(): Promise<PlayerTitleInfo[]> {

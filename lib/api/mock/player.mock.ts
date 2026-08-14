@@ -1,7 +1,6 @@
 import type {
   CharacterSheet,
   PlayerAchievementInfo,
-  PlayerCertificationInfo,
   PlayerHobbyInfo,
   PlayerTitleInfo,
 } from "../types";
@@ -96,21 +95,6 @@ export const MOCK_ACHIEVEMENTS: PlayerAchievementInfo[] = [
   { achievementId: 16, code: "PARTY_LEADER", name: "Party Leader", category: "Social", descMd: "Led a party to clear a boss without casualties.", acquiredAt: "2026-03-02T12:00:00Z" },
   { achievementId: 17, code: "RARE_ITEM", name: "Rare Collector", category: "Collection", descMd: "Obtained 20 rare-tier or above items.", acquiredAt: "2026-02-15T16:30:00Z" },
   { achievementId: 18, code: "LEGENDARY_KILL", name: "Legend Slayer", category: "Combat", descMd: "Defeated a legendary-tier monster.", acquiredAt: "2026-03-01T21:00:00Z" },
-];
-
-export const MOCK_CERTIFICATIONS: PlayerCertificationInfo[] = [
-  { certificationId: 1, name: "AWS Solutions Architect", issuer: "Amazon Web Services", category: "Cloud", acquiredDate: "2025-06-15", expiresDate: "2028-06-15", grantedAt: "2025-06-15T09:00:00Z" },
-  { certificationId: 2, name: "Python Professional", issuer: "Python Institute", category: "Programming", acquiredDate: "2025-03-20", expiresDate: null, grantedAt: "2025-03-20T10:00:00Z" },
-  { certificationId: 3, name: "Kubernetes Administrator", issuer: "CNCF", category: "DevOps", acquiredDate: "2025-09-10", expiresDate: "2027-09-10", grantedAt: "2025-09-10T11:00:00Z" },
-  { certificationId: 4, name: "TOEIC 935", issuer: "ETS Korea", category: "Language", acquiredDate: "2024-11-02", expiresDate: "2026-11-02", grantedAt: "2024-11-02T08:00:00Z" },
-  { certificationId: 5, name: "Google Cloud Professional", issuer: "Google", category: "Cloud", acquiredDate: "2025-12-01", expiresDate: "2027-12-01", grantedAt: "2025-12-01T14:00:00Z" },
-  { certificationId: 6, name: "React Developer", issuer: "Meta", category: "Frontend", acquiredDate: "2025-04-15", expiresDate: null, grantedAt: "2025-04-15T10:00:00Z" },
-  { certificationId: 7, name: "Computer Science Bachelor", issuer: "Seoul National University", category: "Academic", acquiredDate: "2024-02-28", expiresDate: null, grantedAt: "2024-02-28T09:00:00Z" },
-  { certificationId: 8, name: "SQLD Database Developer", issuer: "Korea Data Agency", category: "Database", acquiredDate: "2025-07-20", expiresDate: null, grantedAt: "2025-07-20T10:00:00Z" },
-  { certificationId: 9, name: "Security+ Certified", issuer: "CompTIA", category: "Security", acquiredDate: "2025-10-05", expiresDate: "2028-10-05", grantedAt: "2025-10-05T09:00:00Z" },
-  { certificationId: 10, name: "TypeScript Advanced", issuer: "Microsoft", category: "Programming", acquiredDate: "2025-08-12", expiresDate: null, grantedAt: "2025-08-12T11:00:00Z" },
-  { certificationId: 11, name: "Docker Certified Associate", issuer: "Docker Inc.", category: "DevOps", acquiredDate: "2025-05-28", expiresDate: "2027-05-28", grantedAt: "2025-05-28T10:00:00Z" },
-  { certificationId: 12, name: "JLPT N3 Japanese", issuer: "Japan Foundation", category: "Language", acquiredDate: "2025-01-10", expiresDate: null, grantedAt: "2025-01-10T08:00:00Z" },
 ];
 
 export const MOCK_TITLES: PlayerTitleInfo[] = [

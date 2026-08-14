@@ -62,10 +62,28 @@ export interface PlayerCertificationInfo {
   name: string;
   issuer: string;
   category: string;
-  acquiredDate: string;
+  acquiredDate: string | null;
   expiresDate: string | null;
   grantedAt: string;
 }
+
+export interface CertificationCatalogInfo {
+  certificationId: number;
+  name: string;
+  issuer: string;
+  category: string;
+}
+
+export type PlayerCertificationDatesRequest = {
+  acquiredDate?: string | null;
+  expiresDate?: string | null;
+};
+
+export type PlayerCertificationMutationResult = {
+  certificationId: number;
+  acquiredDate: string | null;
+  expiresDate: string | null;
+};
 
 export interface PlayerHobbyInfo {
   hobbyId: number;
