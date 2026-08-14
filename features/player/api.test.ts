@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { PlayerAchievementInfo, PlayerCertificationInfo } from "@/shared/api/types";
+import type { PlayerAchievementInfo, PlayerCertificationInfo, PlayerInfo, PlayerTitleInfo } from "@/shared/api/types";
 import {
   deletePlayerCertificationApi,
   getCertificationCatalogApi,
   getPlayerAchievementApi,
   getPlayerAchievementsApi,
   getPlayerCertificationsApi,
+  getCurrentPlayerApi,
+  getPlayerTitlesApi,
   registerPlayerCertificationApi,
   updatePlayerCertificationApi,
+  setRepresentativeTitleApi,
 } from "./api";
-import { achievementMock, certificationMock, resetCertificationMock } from "./mock";
+import { achievementMock, certificationMock, resetCertificationMock, resetTitleMock, titleMock } from "./mock";
 
 const client = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPatch: vi.fn(), apiPost: vi.fn() }));
 
@@ -90,5 +93,36 @@ describe("Current Player Certification API를 사용할 때", () => {
     expect(() => certificationMock.update(3, { expiresDate: "2026-07-31" })).toThrow("Expiration date cannot be before acquired date.");
     expect(certificationMock.delete(3)).toBe(3);
     expect(certificationMock.owned().some(({ certificationId }) => certificationId === 3)).toBe(false);
+  });
+});
+
+describe("Current Player Title API를 사용할 때", () => {
+  const player = { playerId: 7, representativeTitleId: 31 } as PlayerInfo;
+  const title: PlayerTitleInfo = { titleId: 31, code: "VANGUARD", name: "Vanguard", category: "Combat", descMd: "Leads from the front.", acquiredAt: "2026-08-14T00:00:00Z" };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetTitleMock();
+  });
+
+  it("exact Current Player/list GET과 body 없는 PATCH만 호출하고 list envelope를 푼다", async () => {
+    client.apiGet.mockResolvedValueOnce(player).mockResolvedValueOnce({ infos: [title] });
+    client.apiPatch.mockResolvedValue({ titleId: 31 });
+
+    expect(await getCurrentPlayerApi()).toEqual(player);
+    expect(await getPlayerTitlesApi()).toEqual([title]);
+    expect(await setRepresentativeTitleApi(31)).toEqual({ titleId: 31 });
+
+    expect(client.apiGet).toHaveBeenNthCalledWith(1, "/api/v1/players");
+    expect(client.apiGet).toHaveBeenNthCalledWith(2, "/api/v1/players/titles");
+    expect(client.apiPatch).toHaveBeenCalledWith("/api/v1/players/titles/31", undefined);
+    expect([...client.apiGet.mock.calls, ...client.apiPatch.mock.calls].flat().join(" ")).not.toMatch(/playerId|userId|\/players\/me\/|\/api\/v1\/titles/);
+  });
+
+  it("mock authority는 acquired ID만 대표로 설정하고 Current Player에 반영한다", () => {
+    const nextId = titleMock.titles()[1].titleId;
+    expect(titleMock.setRepresentative(nextId)).toEqual({ titleId: nextId });
+    expect(titleMock.player().representativeTitleId).toBe(nextId);
+    expect(() => titleMock.setRepresentative(999_999)).toThrow("Acquired Title not found.");
   });
 });

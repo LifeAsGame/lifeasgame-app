@@ -6,6 +6,7 @@ import type {
   PlayerCertificationInfo,
   PlayerCertificationMutationResult,
   PlayerHobbyInfo,
+  PlayerInfo,
   PlayerTitleInfo,
 } from "@/shared/api/types";
 
@@ -196,6 +197,23 @@ export const MOCK_TITLES: PlayerTitleInfo[] = [
   { titleId: 11, code: "FRONTLINER", name: "Frontliner", category: "Rank", descMd: "Active member of the front-line clearing team.", acquiredAt: "2026-01-20T12:00:00Z" },
   { titleId: 12, code: "RARE_HUNTER", name: "Rare Hunter", category: "Collection", descMd: "Collector of rare and legendary items.", acquiredAt: "2026-02-15T16:30:00Z" },
 ];
+
+const MOCK_CURRENT_PLAYER: PlayerInfo = copy(MOCK_CHARACTER_SHEET.player);
+let currentPlayer: PlayerInfo = copy(MOCK_CURRENT_PLAYER);
+
+export function resetTitleMock(): void {
+  currentPlayer = copy(MOCK_CURRENT_PLAYER);
+}
+
+export const titleMock = {
+  player: (): PlayerInfo => copy(currentPlayer),
+  titles: (): PlayerTitleInfo[] => copy(MOCK_TITLES),
+  setRepresentative: (titleId: number): { titleId: number } => {
+    if (!MOCK_TITLES.some((title) => title.titleId === titleId)) throw new Error("Acquired Title not found.");
+    currentPlayer = { ...currentPlayer, representativeTitleId: titleId };
+    return { titleId };
+  },
+};
 
 export const MOCK_HOBBIES: PlayerHobbyInfo[] = [
   { hobbyId: 1, name: "Programming", category: "Tech", customName: "Full-Stack Dev", detail: "Next.js, TypeScript, Spring Boot", proficiency: 85, status: "ACTIVE", startedOn: "2020-03-01", xp: 42000 },

@@ -1,13 +1,11 @@
-import { USE_MOCK, apiGet, apiPut } from "../client";
+import { USE_MOCK, apiGet } from "../client";
 import {
   MOCK_CHARACTER_SHEET,
   MOCK_HOBBIES,
-  MOCK_TITLES,
 } from "../mock/player.mock";
 import type {
   CharacterSheet,
   PlayerHobbyInfo,
-  PlayerTitleInfo,
 } from "../types";
 
 export async function getCharacterSheetApi(): Promise<CharacterSheet> {
@@ -15,19 +13,8 @@ export async function getCharacterSheetApi(): Promise<CharacterSheet> {
   return apiGet<CharacterSheet>("/api/v1/players/me/sheet");
 }
 
-export async function getTitlesApi(): Promise<PlayerTitleInfo[]> {
-  if (USE_MOCK) return MOCK_TITLES;
-  const res = await apiGet<{ infos: PlayerTitleInfo[] }>("/api/v1/players/me/titles");
-  return res.infos;
-}
-
 export async function getHobbiesApi(): Promise<PlayerHobbyInfo[]> {
   if (USE_MOCK) return MOCK_HOBBIES;
   const res = await apiGet<{ infos: PlayerHobbyInfo[] }>("/api/v1/players/me/hobbies");
   return res.infos;
-}
-
-export async function setRepresentativeTitleApi(titleId: number): Promise<void> {
-  if (USE_MOCK) return;
-  await apiPut(`/api/v1/players/me/title/${titleId}`, {});
 }

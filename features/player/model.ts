@@ -1,27 +1,12 @@
 import type { PlayerSubId, PanelDataItem, PanelMenuItem } from "@/entities/nav";
-import { CRUD_ACTIONS, pad, dateAt, uniqueOrderedCats, catMenuItems } from "@/entities/nav";
-import { TITLE_DATA, HOBBY_DATA } from "./data";
+import { CRUD_ACTIONS, pad, uniqueOrderedCats, catMenuItems } from "@/entities/nav";
+import { HOBBY_DATA } from "./data";
 
 export * from "./forms";
 
-type LegacyPlayerSubId = Exclude<PlayerSubId, "achievement" | "credentials">;
+type LegacyPlayerSubId = Exclude<PlayerSubId, "achievement" | "credentials" | "title">;
 
 export const PLAYER_LISTS: Record<LegacyPlayerSubId, PanelDataItem[]> = {
-  title: TITLE_DATA.map((t, i) => ({
-    id: `title-${pad(i + 1, 3)}`,
-    label: t.name,
-    slotLabel: t.code.slice(0, 2),
-    subtitle: `${t.cat} | Acquired: ${dateAt(i)}`,
-    category: t.cat,
-    detailTitle: "Title Detail",
-    detailDescription: t.desc,
-    detailRows: [
-      `Code: ${t.code}`,
-      `Category: ${t.cat}`,
-      `Acquired: ${dateAt(i)}`,
-      `Status: Unlocked`,
-    ],
-  })),
   interests: HOBBY_DATA.map((h, i) => ({
     id: `hobby-${pad(i + 1, 3)}`,
     label: h.custom,
@@ -41,6 +26,5 @@ export const PLAYER_LISTS: Record<LegacyPlayerSubId, PanelDataItem[]> = {
 };
 
 export const PLAYER_CATEGORY_ITEMS: Record<LegacyPlayerSubId, PanelMenuItem[]> = {
-  title:       catMenuItems(uniqueOrderedCats(TITLE_DATA)),
   interests:   catMenuItems(uniqueOrderedCats(HOBBY_DATA)),
 };

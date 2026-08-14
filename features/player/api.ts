@@ -1,12 +1,14 @@
 import { USE_MOCK, apiDelete, apiGet, apiPatch, apiPost } from "@/shared/api/client";
 import type {
   CertificationCatalogInfo,
+  PlayerInfo,
   PlayerAchievementInfo,
   PlayerCertificationDatesRequest,
   PlayerCertificationInfo,
   PlayerCertificationMutationResult,
+  PlayerTitleInfo,
 } from "@/shared/api/types";
-import { achievementMock, certificationMock } from "./mock";
+import { achievementMock, certificationMock, titleMock } from "./mock";
 
 export type RegisterPlayerRequest = { name: string; gender: string };
 export type CreatedPlayerWithToken = {
@@ -63,4 +65,20 @@ export function deletePlayerCertificationApi(certificationId: number): Promise<n
   return USE_MOCK
     ? Promise.resolve().then(() => certificationMock.delete(certificationId))
     : apiDelete<number>(`/api/v1/players/certifications/${certificationId}`);
+}
+
+export function getCurrentPlayerApi(): Promise<PlayerInfo> {
+  return USE_MOCK ? Promise.resolve(titleMock.player()) : apiGet<PlayerInfo>("/api/v1/players");
+}
+
+export async function getPlayerTitlesApi(): Promise<PlayerTitleInfo[]> {
+  if (USE_MOCK) return titleMock.titles();
+  const result = await apiGet<{ infos: PlayerTitleInfo[] }>("/api/v1/players/titles");
+  return result.infos;
+}
+
+export function setRepresentativeTitleApi(titleId: number): Promise<{ titleId: number }> {
+  return USE_MOCK
+    ? Promise.resolve().then(() => titleMock.setRepresentative(titleId))
+    : apiPatch<{ titleId: number }>(`/api/v1/players/titles/${titleId}`, undefined);
 }

@@ -21,6 +21,7 @@ import GearShell from "@/features/inventory/GearShell";
 import HomeShell from "@/features/home/HomeShell";
 import AchievementShell from "@/features/player/AchievementShell";
 import CertificationShell from "@/features/player/CertificationShell";
+import TitleShell from "@/features/player/TitleShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -153,7 +154,7 @@ function buildPanels(
 
   if (selectedMain === "player") {
     const sub = selectedMainSub as PlayerSubId;
-    if (sub === "achievement" || sub === "credentials") return { panelStack, socialContext: null };
+    if (sub === "achievement" || sub === "credentials" || sub === "title") return { panelStack, socialContext: null };
     const subLabel = mainItems.find((item) => item.id === sub)?.label ?? "Player";
     const categoryItems = PLAYER_CATEGORY_ITEMS[sub] ?? [];
     const selectedCategory = selectedPlayerCategoryBySub[sub] ?? null;
@@ -1231,6 +1232,16 @@ export default function Home() {
                 onPanelItemSelect={handlePanelItemSelect}
               />
               <CertificationShell />
+            </div>
+          ) : selectedMain === "player" && selectedSubByMain.player === "title" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="player"
+                panelStack={panelStack.slice(0, 1)}
+                panelStackKey="player-title-menu"
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <TitleShell />
             </div>
           ) : selectedMain === "role" ? (
             <div className="flex w-fit items-center gap-3">
