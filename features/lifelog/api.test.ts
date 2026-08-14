@@ -1,19 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { COLLECTION_CATEGORIES } from "@/shared/api/types";
-import type { CollectionCreateRequest, CollectionInfo, CollectionUpdateRequest, JournalPage, JournalSubtype, QuickRecordRequest } from "@/shared/api/types";
+import { COLLECTION_CATEGORIES, EXERCISE_CATEGORIES } from "@/shared/api/types";
+import type { CollectionCreateRequest, CollectionInfo, CollectionUpdateRequest, ExerciseCreateRequest, ExerciseInfo, ExerciseUpdateRequest, JournalPage, JournalSubtype, QuickRecordRequest } from "@/shared/api/types";
 import {
   createCollectionApi,
+  createExerciseApi,
   deleteCollectionApi,
+  deleteExerciseApi,
   getCollectionApi,
+  getExerciseApi,
   getJournalDetailApi,
   listJournalApi,
   quickRecordApi,
   recentCollectionsApi,
+  recentExercisesApi,
   searchCollectionsApi,
+  searchExercisesApi,
   updateCollectionApi,
+  updateExerciseApi,
 } from "./api";
-import { collectionMock, journalMock, MOCK_JOURNAL_ENTRIES, resetJournalMock } from "./mock";
+import { collectionMock, exerciseMock, journalMock, MOCK_JOURNAL_ENTRIES, resetJournalMock } from "./mock";
 
 const client = vi.hoisted(() => ({
   apiDelete: vi.fn(),
@@ -39,6 +45,64 @@ const collection: CollectionInfo = {
   createdAt: "2026-08-12T09:00:00Z",
   updatedAt: "2026-08-12T09:00:00Z",
 };
+const exercise: ExerciseInfo = {
+  id: 41,
+  playerId: 7,
+  category: "RUNNING",
+  durationMinutes: 30,
+  distanceKm: 5,
+  calories: 250,
+  exercisedOn: "2026-08-14",
+  memo: "Morning run",
+  createdAt: "2026-08-14T00:00:00Z",
+  updatedAt: "2026-08-14T00:00:00Z",
+};
+
+describe("Exercise source API를 호출할 때", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetJournalMock();
+  });
+
+  it("exact six paths에서 recent/search/create/update는 raw, get/delete는 envelope client를 사용한다", async () => {
+    client.apiGetRaw.mockResolvedValue([exercise]);
+    client.apiGet.mockResolvedValue(exercise);
+    client.apiPostRaw.mockResolvedValueOnce({ id: 41 }).mockResolvedValueOnce(exercise);
+    client.apiDelete.mockResolvedValue({ id: 41 });
+    const create: ExerciseCreateRequest = { category: "RUNNING", durationMinutes: 30, distanceKm: 5, calories: 250, exercisedOn: "2026-08-14", memo: "Morning run" };
+    const update: ExerciseUpdateRequest = { category: "YOGA", durationMinutes: 45, exercisedOn: "2026-08-15", memo: "" };
+
+    await recentExercisesApi(12);
+    const search = await searchExercisesApi({ category: "RUNNING", from: "2026-08-01", to: "2026-08-14", page: 2, size: 20 });
+    await getExerciseApi(41);
+    await createExerciseApi(create);
+    await updateExerciseApi(41, update);
+    await deleteExerciseApi(41);
+
+    expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/exercises/recent?limit=12");
+    expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/exercises/search?category=RUNNING&from=2026-08-01&to=2026-08-14&page=2&size=20");
+    expect(client.apiGet).toHaveBeenCalledWith("/api/v1/players/exercises/41");
+    expect(client.apiPostRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/exercises", create);
+    expect(client.apiPostRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/exercises/41", update);
+    expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/exercises/41");
+    expect(search).toEqual([exercise]);
+    expect(search).not.toHaveProperty("totalElements");
+  });
+
+  it("canonical request fields와 partial/null mock semantics를 한 authority에서 유지한다", () => {
+    const journalIds = journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId);
+    const create: ExerciseCreateRequest = { category: "CYCLING", durationMinutes: 60, distanceKm: 0, calories: 0, exercisedOn: "2026-08-14", memo: "Ride" };
+    const created = exerciseMock.create(create);
+    const updated = exerciseMock.update(created.id, { durationMinutes: 75, distanceKm: null, calories: null, memo: "" });
+
+    expect(EXERCISE_CATEGORIES).toEqual(["RUNNING", "WALKING", "CYCLING", "SWIMMING", "GYM", "YOGA", "OTHER"]);
+    for (const unsupported of ["playerId", "userId", "ownerPlayerId", "intensity", "duration", "caloriesBurned", "notes"]) expect(create).not.toHaveProperty(unsupported);
+    expect(updated).toEqual(expect.objectContaining({ durationMinutes: 75, distanceKm: 0, calories: 0, memo: null }));
+    expect(exerciseMock.search({ category: "CYCLING", from: "2026-08-14", to: "2026-08-14", page: 0, size: 1 }).map(({ id }) => id)).toEqual([created.id]);
+    expect(exerciseMock.delete(created.id)).toEqual({ id: created.id });
+    expect(journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId)).toEqual(journalIds);
+  });
+});
 
 describe("Collection source API를 호출할 때", () => {
   beforeEach(() => {

@@ -1,19 +1,4 @@
-import type { ExerciseInfo, MediaLogInfo } from "../types";
-
-export const MOCK_EXERCISES: ExerciseInfo[] = [
-  { id: 1, playerId: 6, category: "Running", durationMinutes: 32, distanceKm: 5.2, calories: 310, exercisedOn: "2026-03-02", memo: "Morning park run. PB for 5km!", createdAt: "2026-03-02T07:30:00Z", updatedAt: "2026-03-02T07:30:00Z" },
-  { id: 2, playerId: 6, category: "Cycling", durationMinutes: 75, distanceKm: 28.4, calories: 620, exercisedOn: "2026-03-01", memo: "Weekend road ride around Han River.", createdAt: "2026-03-01T09:00:00Z", updatedAt: "2026-03-01T09:00:00Z" },
-  { id: 3, playerId: 6, category: "Strength Training", durationMinutes: 55, distanceKm: null, calories: 380, exercisedOn: "2026-02-28", memo: "Upper body — bench, rows, curls.", createdAt: "2026-02-28T18:30:00Z", updatedAt: "2026-02-28T18:30:00Z" },
-  { id: 4, playerId: 6, category: "Swimming", durationMinutes: 40, distanceKm: 1.5, calories: 420, exercisedOn: "2026-02-26", memo: "Lap swimming at the university pool.", createdAt: "2026-02-26T19:00:00Z", updatedAt: "2026-02-26T19:00:00Z" },
-  { id: 5, playerId: 6, category: "Running", durationMinutes: 28, distanceKm: 4.8, calories: 285, exercisedOn: "2026-02-25", memo: "Evening run in the neighborhood.", createdAt: "2026-02-25T19:30:00Z", updatedAt: "2026-02-25T19:30:00Z" },
-  { id: 6, playerId: 6, category: "Yoga", durationMinutes: 45, distanceKm: null, calories: 120, exercisedOn: "2026-02-24", memo: "Morning yoga routine. 10 poses.", createdAt: "2026-02-24T07:00:00Z", updatedAt: "2026-02-24T07:00:00Z" },
-  { id: 7, playerId: 6, category: "Hiking", durationMinutes: 180, distanceKm: 12.0, calories: 850, exercisedOn: "2026-02-22", memo: "Bukhansan National Park trail.", createdAt: "2026-02-22T08:00:00Z", updatedAt: "2026-02-22T08:00:00Z" },
-  { id: 8, playerId: 6, category: "Strength Training", durationMinutes: 60, distanceKm: null, calories: 420, exercisedOn: "2026-02-21", memo: "Leg day. Squat PR: 120kg!", createdAt: "2026-02-21T17:00:00Z", updatedAt: "2026-02-21T17:00:00Z" },
-  { id: 9, playerId: 6, category: "Running", durationMinutes: 35, distanceKm: 6.0, calories: 360, exercisedOn: "2026-02-19", memo: "Interval training — fast/slow splits.", createdAt: "2026-02-19T07:15:00Z", updatedAt: "2026-02-19T07:15:00Z" },
-  { id: 10, playerId: 6, category: "Cycling", durationMinutes: 90, distanceKm: 35.2, calories: 750, exercisedOn: "2026-02-16", memo: "Long ride to Suwon and back.", createdAt: "2026-02-16T09:30:00Z", updatedAt: "2026-02-16T09:30:00Z" },
-  { id: 11, playerId: 6, category: "Jump Rope", durationMinutes: 20, distanceKm: null, calories: 200, exercisedOn: "2026-02-15", memo: "Double-unders, 1000 reps.", createdAt: "2026-02-15T08:00:00Z", updatedAt: "2026-02-15T08:00:00Z" },
-  { id: 12, playerId: 6, category: "Swimming", durationMinutes: 50, distanceKm: 2.0, calories: 530, exercisedOn: "2026-02-12", memo: "Butterfly and freestyle sets.", createdAt: "2026-02-12T18:30:00Z", updatedAt: "2026-02-12T18:30:00Z" },
-];
+import type { MediaLogInfo } from "../types";
 
 export const MOCK_MEDIA_LOGS: MediaLogInfo[] = [
   { id: 1, playerId: 6, category: "Anime", title: "Sword Art Online", originalTitle: "ソードアート・オンライン", currentEpisode: 25, totalEpisode: 25, status: "COMPLETED", rating: 9.5, tags: ["VR", "RPG", "Action"], rewatchCount: 3, startedOn: "2023-01-10", finishedOn: "2023-01-25", createdAt: "2023-01-10T20:00:00Z", updatedAt: "2023-01-25T22:00:00Z" },

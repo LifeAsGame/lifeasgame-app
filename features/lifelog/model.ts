@@ -1,12 +1,12 @@
 import type { LifelogSubId, PanelDataItem, PanelMenuItem } from "@/entities/nav";
 import { CRUD_ACTIONS, pad, uniqueOrderedCats, catMenuItems } from "@/entities/nav";
-import { MEDIA_DATA, EXERCISE_DATA } from "./data";
+import { MEDIA_DATA } from "./data";
 
 export * from "./forms";
 
-type SourceLifelogSubId = Exclude<LifelogSubId, "journal" | "collection">;
+type LegacySourceLifelogSubId = Extract<LifelogSubId, "media">;
 
-export const LIFELOG_LISTS: Record<SourceLifelogSubId, PanelDataItem[]> = {
+export const LIFELOG_LISTS: Record<LegacySourceLifelogSubId, PanelDataItem[]> = {
   media: MEDIA_DATA.map((m, i) => ({
     id: `lifelog-media-${pad(i + 1, 3)}`,
     label: m.title,
@@ -23,25 +23,8 @@ export const LIFELOG_LISTS: Record<SourceLifelogSubId, PanelDataItem[]> = {
     ],
     actions: CRUD_ACTIONS,
   })),
-  exercise: EXERCISE_DATA.map((e, i) => ({
-    id: `lifelog-exercise-${pad(i + 1, 3)}`,
-    label: `${e.cat} — ${e.date}`,
-    slotLabel: e.cat.slice(0, 2).toUpperCase(),
-    subtitle: `${e.dur}min | ${e.cal} kcal${e.dist !== null ? ` | ${e.dist}km` : ""}`,
-    category: e.cat,
-    detailTitle: "Exercise Detail",
-    detailDescription: `${e.cat} session on ${e.date}.`,
-    detailRows: [
-      `Category: ${e.cat}`,
-      `Duration: ${e.dur} min`,
-      `Calories Burned: ${e.cal} kcal`,
-      e.dist !== null ? `Distance: ${e.dist} km` : `No distance tracked`,
-    ],
-    actions: CRUD_ACTIONS,
-  })),
 };
 
-export const LIFELOG_CATEGORY_ITEMS: Record<SourceLifelogSubId, PanelMenuItem[]> = {
+export const LIFELOG_CATEGORY_ITEMS: Record<LegacySourceLifelogSubId, PanelMenuItem[]> = {
   media:      catMenuItems(uniqueOrderedCats(MEDIA_DATA)),
-  exercise:   catMenuItems(uniqueOrderedCats(EXERCISE_DATA)),
 };
