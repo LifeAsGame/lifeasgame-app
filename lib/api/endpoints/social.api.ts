@@ -105,36 +105,3 @@ export async function sendGiftApi(data: {
   }
   return apiPost<{ mailId: number }>("/api/v1/social/gift", data);
 }
-
-export async function openFriendChatChannelApi(friendPlayerId: number): Promise<{ channelId: number }> {
-  if (USE_MOCK) {
-    return { channelId: friendPlayerId * 1000 };
-  }
-  const res = await apiPost<{ id: number }>(`/api/v1/chat/channels/friend/${friendPlayerId}`, {
-    friendPlayerId,
-  });
-  return { channelId: res.id };
-}
-
-export async function getChatMessagesApi(
-  channelId: number,
-  cursor?: number,
-  size = 50,
-): Promise<Array<{ id: number; senderId: number; senderName: string; content: string; sentAt: string }>> {
-  if (USE_MOCK) return [];
-  const params = new URLSearchParams({ size: String(size) });
-  if (cursor) params.set("cursor", String(cursor));
-  const res = await apiGet<{
-    messages: Array<{ id: number; senderId: number; senderName: string; content: string; sentAt: string }>;
-  }>(`/api/v1/chat/channels/${channelId}/messages?${params}`);
-  return res.messages;
-}
-
-export async function sendChatMessageApi(
-  channelId: number,
-  content: string,
-): Promise<{ messageId: number }> {
-  if (USE_MOCK) return { messageId: Date.now() };
-  const res = await apiPost<{ id: number }>(`/api/v1/chat/channels/${channelId}/messages`, { content });
-  return { messageId: res.id };
-}

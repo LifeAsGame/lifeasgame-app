@@ -1,9 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useRef } from "react";
-
-import { MOCK_CHAT_HISTORY } from "@/features/social/chat.mock";
 import type { MainNavId, PanelStackItem } from "@/entities/nav";
 import { MOTION } from "@/shared/lib/motion";
 import { reorderToCenter } from "@/shared/lib/reorder";
@@ -16,7 +13,6 @@ import { NAV_ICONS, actionBtnStyle } from "./ui/styles";
 import { GoldRow, InfoCard } from "./ui/Rows";
 import { PanelFrame } from "./ui/PanelFrame";
 import { FormPanel } from "./ui/FormPanel";
-import { MessagePanel, type MockMessage } from "./ui/MessagePanel";
 import { GiftPanel } from "./ui/GiftPanel";
 
 type RightPanelsProps = {
@@ -47,7 +43,6 @@ function PanelContent({
   onPanelFormFieldChange,
   onPanelBack,
   onPanelActionClick,
-  chatMessages,
 }: {
   panel: PanelStackItem;
   panelIndex: number;
@@ -59,7 +54,6 @@ function PanelContent({
   onPanelFormFieldChange?: (formKey: string, fieldKey: string, value: string) => void;
   onPanelBack?: (panelIndex: number) => void;
   onPanelActionClick?: (panelIndex: number) => void;
-  chatMessages?: MockMessage[];
 }) {
   if (panel.kind === "form") {
     return (
@@ -70,18 +64,6 @@ function PanelContent({
         onSubmit={onPanelFormSubmit ?? (() => {})}
         onBack={onPanelBack ?? (() => {})}
         onFieldChange={onPanelFormFieldChange}
-        depth={depth}
-      />
-    );
-  }
-
-  if (panel.kind === "message") {
-    return (
-      <MessagePanel
-        panel={panel}
-        panelIndex={panelIndex}
-        onBack={onPanelBack ?? (() => {})}
-        initialMessages={chatMessages ?? []}
         depth={depth}
       />
     );
@@ -249,8 +231,6 @@ export default function RightPanels({
   onPanelBack,
   onPanelActionClick,
 }: RightPanelsProps) {
-  const chatMessagesRef = useRef<Record<string, MockMessage[]>>(MOCK_CHAT_HISTORY);
-
   return (
     <AnimatePresence mode="wait" initial={false}>
       {panelStack.length > 0 ? (
@@ -305,11 +285,6 @@ export default function RightPanels({
                     onPanelFormFieldChange={onPanelFormFieldChange}
                     onPanelBack={onPanelBack}
                     onPanelActionClick={onPanelActionClick}
-                    chatMessages={
-                      panel.kind === "message"
-                        ? chatMessagesRef.current[panel.friendId] ?? []
-                        : undefined
-                    }
                   />
                 </motion.div>
               );

@@ -82,6 +82,12 @@ export const connectionsMock = {
       });
     return pageOf(contents, page, size);
   },
+  isMutual(peerPlayerId: number) {
+    return follows.some(({ playerId, targetPlayerId, state }) =>
+      playerId === CURRENT_PLAYER_ID && targetPlayerId === peerPlayerId && state === "FOLLOWING")
+      && follows.some(({ playerId, targetPlayerId, state }) =>
+        playerId === peerPlayerId && targetPlayerId === CURRENT_PLAYER_ID && state === "FOLLOWING");
+  },
   follow(targetPlayerId: number): FollowInfo {
     const existing = follows.find(({ playerId, targetPlayerId: target }) =>
       playerId === CURRENT_PLAYER_ID && target === targetPlayerId);
