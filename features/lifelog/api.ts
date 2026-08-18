@@ -64,7 +64,7 @@ export function rateMediaApi(mediaId: number, body: MediaRateRequest): Promise<M
 }
 
 export function advanceMediaApi(mediaId: number, body: MediaAdvanceRequest): Promise<MediaInfo> {
-  return USE_MOCK ? Promise.resolve().then(() => mediaMock.advance(mediaId, body)) : apiPostRaw<MediaInfo>(`${MEDIA_PATH}/${mediaId}/advance`, body);
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.advance(mediaId, body)) : apiPostRaw<MediaInfo>(`${MEDIA_PATH}/${mediaId}/advance`, body, { retry: false });
 }
 
 export function markMediaStatusApi(mediaId: number, body: MediaMarkStatusRequest): Promise<MediaInfo> {
@@ -72,7 +72,7 @@ export function markMediaStatusApi(mediaId: number, body: MediaMarkStatusRequest
 }
 
 export function rewatchMediaApi(mediaId: number): Promise<MediaInfo> {
-  return USE_MOCK ? Promise.resolve().then(() => mediaMock.rewatch(mediaId)) : apiPostRaw<MediaInfo>(`${MEDIA_PATH}/${mediaId}/rewatch`, undefined);
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.rewatch(mediaId)) : apiPostRaw<MediaInfo>(`${MEDIA_PATH}/${mediaId}/rewatch`, undefined, { retry: false });
 }
 
 export function recentExercisesApi(limit: number): Promise<ExerciseInfo[]> {

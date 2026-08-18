@@ -378,12 +378,12 @@ export const mediaMock = {
     const current = media(id);
     const currentEpisode = Math.min(current.totalEpisode, current.currentEpisode + step);
     const completed = currentEpisode === current.totalEpisode;
-    return replaceMedia({ ...current, currentEpisode, status: completed ? "COMPLETED" : current.status === "PLANNED" ? "WATCHING" : current.status, ...(completed ? { finishedOn: MOCK_MUTATION_TIME.slice(0, 10) } : {}), updatedAt: MOCK_MUTATION_TIME });
+    return replaceMedia({ ...current, currentEpisode, status: completed ? "COMPLETED" : current.status === "PLANNED" ? "WATCHING" : current.status, ...(completed && current.finishedOn === null ? { finishedOn: MOCK_MUTATION_TIME.slice(0, 10) } : {}), updatedAt: MOCK_MUTATION_TIME });
   },
   markStatus: (id: number, { status }: MediaMarkStatusRequest): MediaInfo => {
     const current = media(id);
-    const completed = status === "COMPLETED";
-    return replaceMedia({ ...current, status, ...(completed ? { currentEpisode: current.totalEpisode, finishedOn: MOCK_MUTATION_TIME.slice(0, 10) } : {}), updatedAt: MOCK_MUTATION_TIME });
+    const completing = status === "COMPLETED" && current.currentEpisode !== current.totalEpisode;
+    return replaceMedia({ ...current, status, ...(completing ? { currentEpisode: current.totalEpisode, ...(current.finishedOn === null ? { finishedOn: MOCK_MUTATION_TIME.slice(0, 10) } : {}) } : {}), updatedAt: MOCK_MUTATION_TIME });
   },
   rewatch: (id: number): MediaInfo => {
     const current = media(id);
