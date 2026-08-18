@@ -24,6 +24,7 @@ export default function GrowthShell() {
             <GoldRow>Level: {current.level}</GoldRow>
             <GoldRow>EXP: {current.exp}</GoldRow>
             {CORE_STATS.map(([label, key]) => <GoldRow key={key}>{label}: {current[key]}</GoldRow>)}
+            {Object.keys(current.extraStats).length === 0 ? <InfoCard>No extra stats.</InfoCard> : null}
             {Object.entries(current.extraStats).map(([name, value]) => <GoldRow key={name}>{name}: {value}</GoldRow>)}
           </> : null}
         </div>
@@ -40,8 +41,10 @@ export default function GrowthShell() {
               <div>Level: {change.beforeLevel} → {change.afterLevel}</div>
               <div>Total EXP: {change.beforeTotalExp} → {change.afterTotalExp}</div>
               <div>Occurred: {change.occurredAt}</div>
-              <div>Source Type: {change.sourceType ?? "—"}</div>
-              <div>Source ID: {change.sourceId ?? "—"}</div>
+              {change.sourceType === null ? <div>Source unavailable.</div> : <>
+                <div>Source Type: {change.sourceType}</div>
+                {change.sourceId === null ? null : <div>Source ID: {change.sourceId}</div>}
+              </>}
             </InfoCard>
           ))}
         </div>

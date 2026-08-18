@@ -74,10 +74,10 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     auth.state = { isAuthenticated: true, playerId: 7, isLoading: false, logout: vi.fn() };
     vi.stubGlobal("requestAnimationFrame", () => 1);
     growthApi.getPlayerGrowthApi.mockResolvedValue({
-      current: { level: 8, exp: 842, str: 12, agi: 11, dex: 10, intel: 9, vit: 8, luc: 7, extraStats: { Focus: 6 }, representativeTitleId: null },
+      current: { level: 8, exp: 842, str: 12, agi: 11, dex: 10, intel: 9, vit: 8, luc: 7, extraStats: {}, representativeTitleId: null },
       recentExpChanges: [
         { changeId: 2, requestedExp: 100, appliedExp: 80, leftoverExp: 20, beforeLevel: 7, afterLevel: 8, beforeTotalExp: 762, afterTotalExp: 842, occurredAt: "2026-08-14T09:00:00Z", sourceType: "QUEST", sourceId: 31 },
-        { changeId: 1, requestedExp: 10, appliedExp: 10, leftoverExp: 0, beforeLevel: 7, afterLevel: 7, beforeTotalExp: 752, afterTotalExp: 762, occurredAt: "2026-08-13T09:00:00Z", sourceType: null, sourceId: null },
+        { changeId: 1, requestedExp: 10, appliedExp: 10, leftoverExp: 0, beforeLevel: 7, afterLevel: 7, beforeTotalExp: 752, afterTotalExp: 762, occurredAt: "2026-08-13T09:00:00Z", sourceType: null, sourceId: 999 },
       ],
     });
   });
@@ -195,11 +195,14 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       expect(await screen.findByTestId("growth-shell")).toBeInTheDocument();
       expect(screen.getByText("Level: 8")).toBeInTheDocument();
       expect(screen.getByText("EXP: 842")).toBeInTheDocument();
-      expect(screen.getByText("Focus: 6")).toBeInTheDocument();
+      expect(screen.getByText("No extra stats.")).toBeInTheDocument();
       expect(screen.getByText("Requested EXP: 100")).toBeInTheDocument();
       expect(screen.getByText("Applied EXP: 80")).toBeInTheDocument();
       expect(screen.getByText("Leftover EXP: 20")).toBeInTheDocument();
-      expect(screen.getAllByText("Source Type: —")).toHaveLength(1);
+      expect(screen.getByText("Source Type: QUEST")).toBeInTheDocument();
+      expect(screen.getByText("Source ID: 31")).toBeInTheDocument();
+      expect(screen.getByText("Source unavailable.")).toBeInTheDocument();
+      expect(screen.queryByText("Source ID: 999")).not.toBeInTheDocument();
       expect(screen.queryByText(/next level|percentage|remaining exp|radar/i)).not.toBeInTheDocument();
       expect(growthApi.getPlayerGrowthApi).toHaveBeenCalledTimes(1);
     });
