@@ -1,10 +1,9 @@
 export type GraphicsQuality = "LOW" | "MEDIUM" | "HIGH" | "ULTRA";
 export type VoiceChatMode = "OFF" | "TEAM_ONLY" | "ALL";
 export type UiScale = 75 | 100 | 125 | 150;
-export type InputPreset = "STANDARD" | "CUSTOM";
+export type InputPreset = "STANDARD" | "ADVANCED" | "CUSTOM";
 
-export interface GameSettings {
-  volume: number;
+export interface SettingsFlags {
   graphicsQuality: GraphicsQuality;
   voiceChat: VoiceChatMode;
   uiScale: UiScale;
@@ -17,11 +16,26 @@ export interface GameSettings {
   language: string;
 }
 
+export interface SettingsView extends SettingsFlags {
+  volume: number;
+}
+
 export interface UserSettingsResponse {
   userId: number;
   volume: number;
   uiLayoutJson: string | null;
   flagsJson: string | null;
   updatedAt: string;
-  parsed: GameSettings;
+}
+
+export interface UpdateUserSettingsRequest {
+  volume?: number | null;
+  uiLayoutJson?: string | null;
+  flagsJson?: string | null;
+}
+
+export interface ParsedUserSettings {
+  transport: UserSettingsResponse;
+  rawFlags: Record<string, unknown>;
+  view: SettingsView;
 }

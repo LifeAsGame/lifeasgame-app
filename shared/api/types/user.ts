@@ -10,12 +10,3 @@ export interface UserInfo {
     badges: { notifications: number; pendingRewards: number };
   };
 }
-
-export interface UserSettings {
-  notifications: boolean;
-  emailAlerts: boolean;
-  publicProfile: boolean;
-  showOnlineStatus: boolean;
-  language: string;
-  uiScale: number;
-}
