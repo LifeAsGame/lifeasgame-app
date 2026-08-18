@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { MediaCategory, MediaCreateRequest, MediaInfo, MediaSearchParams, MediaStatus, MediaUpdateRequest } from "@/shared/api/types";
-import { createMediaApi, deleteMediaApi, searchMediaApi, updateMediaApi } from "./api";
+import { advanceMediaApi, createMediaApi, deleteMediaApi, markMediaStatusApi, rateMediaApi, rewatchMediaApi, searchMediaApi, updateMediaApi } from "./api";
 
 const INITIAL_PARAMS: MediaSearchParams = { page: 0, size: 20 };
 
@@ -143,5 +143,23 @@ export function useMediaQueries() {
     if (selectedIdRef.current === deleted.id) clearSelection();
   });
 
-  return { params, list: { items, loading, error, reload }, detail, selectedId, select, search, changePage, pendingMutation, mutationError, create, update, remove };
+  const command = (key: string, id: number, request: () => Promise<MediaInfo>) => {
+    if (!detail || detail.id !== id) return Promise.resolve(false);
+    return mutate(`${key}-${id}`, request, (updated) => {
+      if (selectedIdRef.current === id) setDetail(updated);
+    });
+  };
+
+  const rate = (id: number, score: number) => !Number.isFinite(score) || score < 0 || score > 5
+    ? Promise.resolve(false)
+    : command("rate", id, () => rateMediaApi(id, { score }));
+  const advance = (id: number, step = 1) => !Number.isFinite(step) || step < 1 || detail?.status === "COMPLETED" || detail?.currentEpisode === detail?.totalEpisode
+    ? Promise.resolve(false)
+    : command("advance", id, () => advanceMediaApi(id, { step }));
+  const markStatus = (id: number, status: MediaStatus) => detail?.status === status
+    ? Promise.resolve(false)
+    : command("status", id, () => markMediaStatusApi(id, { status }));
+  const rewatch = (id: number) => command("rewatch", id, () => rewatchMediaApi(id));
+
+  return { params, list: { items, loading, error, reload }, detail, selectedId, select, search, changePage, pendingMutation, mutationError, create, update, remove, rate, advance, markStatus, rewatch };
 }
