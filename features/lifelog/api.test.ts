@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { COLLECTION_CATEGORIES, EXERCISE_CATEGORIES, MEDIA_CATEGORIES, MEDIA_STATUSES } from "@/shared/api/types";
 import type { CollectionCreateRequest, CollectionInfo, CollectionUpdateRequest, ExerciseCreateRequest, ExerciseInfo, ExerciseUpdateRequest, JournalPage, JournalSubtype, MediaInfo, QuickRecordRequest } from "@/shared/api/types";
 import {
+  advanceMediaApi,
   createCollectionApi,
   createExerciseApi,
   createMediaApi,
@@ -13,10 +14,13 @@ import {
   getExerciseApi,
   getJournalDetailApi,
   listJournalApi,
+  markMediaStatusApi,
   quickRecordApi,
+  rateMediaApi,
   recentCollectionsApi,
   recentExercisesApi,
   recentMediaApi,
+  rewatchMediaApi,
   searchCollectionsApi,
   searchExercisesApi,
   searchMediaApi,
@@ -239,6 +243,46 @@ describe("Media source API를 호출할 때", () => {
     expect(mediaMock.recent(100)).toEqual(mediaBefore);
     expect(journalMock.page({ page: 0, size: 100 })).toEqual(journalBefore);
     expect(() => journalMock.quickRecord({ type: "MEDIA", media: { category: "ANIME", title: "Valid retry", status: "WATCHING" } }, "invalid-media-progress")).not.toThrow();
+  });
+});
+
+describe("Media command API를 호출할 때", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("four exact command paths에 raw POST body만 전송한다", async () => {
+    client.apiPostRaw.mockResolvedValue(media);
+
+    await rateMediaApi(51, { score: 4.5 });
+    await advanceMediaApi(51, { step: 2 });
+    await markMediaStatusApi(51, { status: "ON_HOLD" });
+    await rewatchMediaApi(51);
+
+    expect(client.apiPostRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/media/51/rate", { score: 4.5 });
+    expect(client.apiPostRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/media/51/advance", { step: 2 });
+    expect(client.apiPostRaw).toHaveBeenNthCalledWith(3, "/api/v1/players/media/51/status", { status: "ON_HOLD" });
+    expect(client.apiPostRaw).toHaveBeenNthCalledWith(4, "/api/v1/players/media/51/rewatch", undefined);
+    expect(client.apiPostRaw.mock.calls.flat().join(" ")).not.toMatch(/playerId|userId|idempotency/i);
+  });
+});
+
+describe("Media mock command lifecycle를 사용할 때", () => {
+  beforeEach(() => resetJournalMock());
+
+  it("shared source만 rate/advance/complete/rewatch하고 invalid commands는 보존한다", () => {
+    const journalBefore = journalMock.page({ page: 0, size: 100 });
+    const firstId = mediaMock.create({ category: "ANIME", title: "Lifecycle", status: "PLANNED", totalEpisode: 2 }).id;
+
+    expect(mediaMock.rate(firstId, { score: 4.5 }).rating).toBe(4.5);
+    expect(mediaMock.advance(firstId, {})).toMatchObject({ currentEpisode: 1, status: "WATCHING", finishedOn: null });
+    expect(mediaMock.advance(firstId, { step: 1 })).toMatchObject({ currentEpisode: 2, status: "COMPLETED", finishedOn: "2026-08-14" });
+    expect(mediaMock.rewatch(firstId).rewatchCount).toBe(1);
+
+    const secondId = mediaMock.create({ category: "BOOK", title: "Status", status: "WATCHING", currentEpisode: 1, totalEpisode: 3 }).id;
+    expect(mediaMock.markStatus(secondId, { status: "COMPLETED" })).toMatchObject({ currentEpisode: 3, totalEpisode: 3, status: "COMPLETED", finishedOn: "2026-08-14" });
+    expect(() => mediaMock.rate(secondId, { score: 6 })).toThrow("Rating must be between 0 and 5.");
+    expect(() => mediaMock.advance(secondId, { step: 0 })).toThrow("Advance step must be positive.");
+    expect(mediaMock.search({ titleLike: "Status", page: 0, size: 20 })[0]).toMatchObject({ currentEpisode: 3, rating: null });
+    expect(journalMock.page({ page: 0, size: 100 })).toEqual(journalBefore);
   });
 });
 

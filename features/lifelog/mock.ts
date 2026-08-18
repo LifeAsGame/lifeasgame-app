@@ -12,7 +12,10 @@ import type {
   JournalListParams,
   JournalPage,
   MediaCreateRequest,
+  MediaAdvanceRequest,
   MediaInfo,
+  MediaMarkStatusRequest,
+  MediaRateRequest,
   MediaSearchParams,
   MediaUpdateRequest,
   QuickRecordRequest,
@@ -321,6 +324,11 @@ function mediaTags(tags: string[]): string[] {
   return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
 }
 
+function replaceMedia(updated: MediaInfo): MediaInfo {
+  mediaEntries = mediaEntries.map((entry) => entry.id === updated.id ? updated : entry);
+  return copy(updated);
+}
+
 export const mediaMock = {
   recent: (limit: number): MediaInfo[] => copy(mediaEntries.slice(0, limit)),
   search: ({ category, status, titleLike, page, size }: MediaSearchParams): MediaInfo[] => {
@@ -354,13 +362,32 @@ export const mediaMock = {
       ...(body.tags == null ? {} : { tags: mediaTags(body.tags) }),
       updatedAt: MOCK_MUTATION_TIME,
     };
-    mediaEntries = mediaEntries.map((entry) => entry.id === id ? updated : entry);
-    return copy(updated);
+    return replaceMedia(updated);
   },
   delete: (id: number): { id: number } => {
     media(id);
     mediaEntries = mediaEntries.filter((entry) => entry.id !== id);
     return { id };
+  },
+  rate: (id: number, { score }: MediaRateRequest): MediaInfo => {
+    if (!Number.isFinite(score) || score < 0 || score > 5) throw new Error("Rating must be between 0 and 5.");
+    return replaceMedia({ ...media(id), rating: score, updatedAt: MOCK_MUTATION_TIME });
+  },
+  advance: (id: number, { step = 1 }: MediaAdvanceRequest): MediaInfo => {
+    if (!Number.isFinite(step) || step < 1) throw new Error("Advance step must be positive.");
+    const current = media(id);
+    const currentEpisode = Math.min(current.totalEpisode, current.currentEpisode + step);
+    const completed = currentEpisode === current.totalEpisode;
+    return replaceMedia({ ...current, currentEpisode, status: completed ? "COMPLETED" : current.status === "PLANNED" ? "WATCHING" : current.status, ...(completed ? { finishedOn: MOCK_MUTATION_TIME.slice(0, 10) } : {}), updatedAt: MOCK_MUTATION_TIME });
+  },
+  markStatus: (id: number, { status }: MediaMarkStatusRequest): MediaInfo => {
+    const current = media(id);
+    const completed = status === "COMPLETED";
+    return replaceMedia({ ...current, status, ...(completed ? { currentEpisode: current.totalEpisode, finishedOn: MOCK_MUTATION_TIME.slice(0, 10) } : {}), updatedAt: MOCK_MUTATION_TIME });
+  },
+  rewatch: (id: number): MediaInfo => {
+    const current = media(id);
+    return replaceMedia({ ...current, rewatchCount: current.rewatchCount + 1, updatedAt: MOCK_MUTATION_TIME });
   },
 };
 

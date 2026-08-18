@@ -5,7 +5,7 @@ import type { MediaInfo, MediaUpdateRequest } from "@/shared/api/types";
 import { mediaMock, resetJournalMock } from "./mock";
 import { changedMediaFields, useMediaQueries } from "./useMediaQueries";
 
-const api = vi.hoisted(() => ({ createMediaApi: vi.fn(), deleteMediaApi: vi.fn(), searchMediaApi: vi.fn(), updateMediaApi: vi.fn() }));
+const api = vi.hoisted(() => ({ advanceMediaApi: vi.fn(), createMediaApi: vi.fn(), deleteMediaApi: vi.fn(), markMediaStatusApi: vi.fn(), rateMediaApi: vi.fn(), rewatchMediaApi: vi.fn(), searchMediaApi: vi.fn(), updateMediaApi: vi.fn() }));
 vi.mock("./api", () => api);
 
 const first: MediaInfo = { id: 51, playerId: 7, category: "ANIME", title: "Frieren", originalTitle: "葬送のフリーレン", currentEpisode: 10, totalEpisode: 28, status: "WATCHING", rating: 4.5, tags: ["fantasy"], rewatchCount: 0, startedOn: "2026-08-01", finishedOn: null, createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-10T00:00:00Z" };
@@ -55,6 +55,36 @@ describe("Media query/mutation state를 관리할 때", () => {
     expect(result.current.selectedId).toBeNull();
     expect(result.current.detail).toBeNull();
     expect(api.searchMediaApi).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("Media selected command state를 관리할 때", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("selected-only lock과 authoritative response를 지키고 failed refresh에도 command를 retry하지 않는다", async () => {
+    const advanced = { ...first, currentEpisode: 11, updatedAt: "2026-08-14T00:00:00Z" };
+    let resolveAdvance!: (value: MediaInfo) => void;
+    api.searchMediaApi.mockResolvedValueOnce([first]).mockRejectedValueOnce(new Error("refresh failed"));
+    api.advanceMediaApi.mockImplementation(() => new Promise<MediaInfo>((resolve) => { resolveAdvance = resolve; }));
+    const { result } = renderHook(() => useMediaQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+
+    await expect(result.current.rate(first.id, 5)).resolves.toBe(false);
+    expect(api.rateMediaApi).not.toHaveBeenCalled();
+    act(() => result.current.select(first.id));
+
+    let command!: Promise<boolean>;
+    act(() => { command = result.current.advance(first.id); });
+    await waitFor(() => expect(result.current.pendingMutation).toBe(`advance-${first.id}`));
+    await expect(result.current.rewatch(first.id)).resolves.toBe(false);
+    expect(api.rewatchMediaApi).not.toHaveBeenCalled();
+
+    await act(async () => { resolveAdvance(advanced); await command; });
+    expect(api.advanceMediaApi).toHaveBeenCalledTimes(1);
+    expect(api.advanceMediaApi).toHaveBeenCalledWith(first.id, { step: 1 });
+    expect(result.current.detail).toEqual(advanced);
+    expect(result.current.mutationError).toBe("Media changed, but the authoritative list could not be refreshed.");
+    expect(api.searchMediaApi).toHaveBeenCalledTimes(2);
   });
 });
 

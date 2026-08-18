@@ -16,9 +16,12 @@ import type {
   JournalListParams,
   JournalPage,
   MediaCreateRequest,
+  MediaAdvanceRequest,
   MediaCreated,
   MediaDeleted,
   MediaInfo,
+  MediaMarkStatusRequest,
+  MediaRateRequest,
   MediaSearchParams,
   MediaUpdateRequest,
   QuickRecordRequest,
@@ -54,6 +57,22 @@ export function updateMediaApi(mediaId: number, body: MediaUpdateRequest): Promi
 
 export function deleteMediaApi(mediaId: number): Promise<MediaDeleted> {
   return USE_MOCK ? Promise.resolve().then(() => mediaMock.delete(mediaId)) : apiDelete<MediaDeleted>(`${MEDIA_PATH}/${mediaId}`);
+}
+
+export function rateMediaApi(mediaId: number, body: MediaRateRequest): Promise<MediaInfo> {
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.rate(mediaId, body)) : apiPostRaw<MediaInfo>(`${MEDIA_PATH}/${mediaId}/rate`, body);
+}
+
+export function advanceMediaApi(mediaId: number, body: MediaAdvanceRequest): Promise<MediaInfo> {
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.advance(mediaId, body)) : apiPostRaw<MediaInfo>(`${MEDIA_PATH}/${mediaId}/advance`, body);
+}
+
+export function markMediaStatusApi(mediaId: number, body: MediaMarkStatusRequest): Promise<MediaInfo> {
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.markStatus(mediaId, body)) : apiPostRaw<MediaInfo>(`${MEDIA_PATH}/${mediaId}/status`, body);
+}
+
+export function rewatchMediaApi(mediaId: number): Promise<MediaInfo> {
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.rewatch(mediaId)) : apiPostRaw<MediaInfo>(`${MEDIA_PATH}/${mediaId}/rewatch`, undefined);
 }
 
 export function recentExercisesApi(limit: number): Promise<ExerciseInfo[]> {

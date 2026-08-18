@@ -92,6 +92,9 @@ export type MediaUpdateRequest = {
   status?: MediaStatus;
   tags?: string[];
 };
+export type MediaRateRequest = { score: number };
+export type MediaAdvanceRequest = { step?: number };
+export type MediaMarkStatusRequest = { status: MediaStatus };
 export type MediaCreated = { id: number };
 export type MediaDeleted = { id: number };
 
