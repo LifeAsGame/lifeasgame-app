@@ -12,17 +12,22 @@ describe("Connections utility drawer surface", () => {
   });
 
   it("opens outside OrbNav and renders only canonical peer fields and directional actions", async () => {
-    render(<ConnectionsDrawer />);
+    const onMessage = vi.fn();
+    render(<ConnectionsDrawer onMessage={onMessage} />);
     fireEvent.click(screen.getByRole("button", { name: "Connections" }));
 
     expect(screen.getByRole("dialog", { name: "Current Player Connections" })).toBeInTheDocument();
     expect(await screen.findByText("Asuna")).toBeInTheDocument();
     expect(screen.getByText("Fencer · Level 76")).toBeInTheDocument();
     expect(screen.queryByText(/online|last seen/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /chat|gift/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /message|gift/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Followers" }));
     expect(await screen.findByText("Lisbeth")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Message" })).toHaveLength(1);
+    expect(screen.getByText("Lisbeth").closest("article")).not.toHaveTextContent("Message");
+    fireEvent.click(screen.getByRole("button", { name: "Message" }));
+    expect(onMessage).toHaveBeenCalledWith(7);
     expect(screen.queryByRole("button", { name: /^mute|unmute|block|unblock$/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Follow back" })[0]);
     await waitFor(() => expect(screen.getAllByRole("button", { name: "Unfollow" }).length).toBeGreaterThan(1));

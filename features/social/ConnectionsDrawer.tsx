@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { ConnectionPeer } from "@/shared/api/types";
 import { SAO } from "@/shared/design/tokens";
@@ -24,8 +24,19 @@ function Peer({ peer }: { peer: ConnectionPeer }) {
   );
 }
 
-export default function ConnectionsDrawer() {
-  const [open, setOpen] = useState(false);
+type ConnectionsDrawerProps = {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onMessage?: (peerPlayerId: number) => void;
+};
+
+export default function ConnectionsDrawer({ open: controlledOpen, onOpenChange, onMessage }: ConnectionsDrawerProps = {}) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen ?? localOpen;
+  const setOpen = useCallback((next: boolean) => {
+    if (controlledOpen === undefined) setLocalOpen(next);
+    onOpenChange?.(next);
+  }, [controlledOpen, onOpenChange]);
   const state = useConnectionsQueries();
   const locked = state.pendingKey !== null;
   const page = state.activeTab === "followings" ? state.followings : state.followers;
@@ -39,7 +50,7 @@ export default function ConnectionsDrawer() {
     const close = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
     document.addEventListener("keydown", close);
     return () => document.removeEventListener("keydown", close);
-  }, [open]);
+  }, [open, setOpen]);
 
   return (
     <>
@@ -47,7 +58,7 @@ export default function ConnectionsDrawer() {
         type="button"
         aria-label="Connections"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => setOpen(!open)}
         className="h-[34px] rounded-full px-3 text-[10px] font-semibold uppercase tracking-[0.12em]"
         style={buttonStyle}
       >
@@ -117,15 +128,18 @@ export default function ConnectionsDrawer() {
               return (
                 <article key={follower.peer.playerId} className="flex items-center gap-3 rounded-sm border p-3" style={{ borderColor: SAO.color.border.inner, background: SAO.color.bg.inset }}>
                   <Peer peer={follower.peer} />
-                  <button
-                    type="button"
-                    disabled={locked || inconsistent}
-                    onClick={() => void (follower.followedBack ? state.unfollowFollower(follower) : state.followBack(follower))}
-                    className="px-2 py-1 text-xs disabled:opacity-40"
-                    style={buttonStyle}
-                  >
-                    {inconsistent ? "Unavailable" : follower.followedBack ? "Unfollow" : "Follow back"}
-                  </button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {follower.followedBack && onMessage ? <button type="button" onClick={() => onMessage(follower.peer.playerId)} className="px-2 py-1 text-xs" style={buttonStyle}>Message</button> : null}
+                    <button
+                      type="button"
+                      disabled={locked || inconsistent}
+                      onClick={() => void (follower.followedBack ? state.unfollowFollower(follower) : state.followBack(follower))}
+                      className="px-2 py-1 text-xs disabled:opacity-40"
+                      style={buttonStyle}
+                    >
+                      {inconsistent ? "Unavailable" : follower.followedBack ? "Unfollow" : "Follow back"}
+                    </button>
+                  </div>
                 </article>
               );
             })}

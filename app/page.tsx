@@ -24,7 +24,7 @@ import CertificationShell from "@/features/player/CertificationShell";
 import TitleShell from "@/features/player/TitleShell";
 import HobbyShell from "@/features/player/HobbyShell";
 import GrowthShell from "@/features/player/GrowthShell";
-import ConnectionsDrawer from "@/features/social/ConnectionsDrawer";
+import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
@@ -800,7 +800,7 @@ export default function Home() {
 
         <div className="shrink-0" style={{ width: UI_CONSTS.layout.centerWidth, position: "relative" }}>
           <div className="flex items-center gap-2" style={{ position: "absolute", top: 0, right: -14, zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
-            <ConnectionsDrawer />
+            <SocialUtilityHub />
             <NotificationBell />
           </div>
           <OrbNav

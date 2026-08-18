@@ -1,0 +1,52 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { expect, it, vi } from "vitest";
+
+import type { DirectChatState } from "./useDirectChat";
+import DirectChatDrawer from "./DirectChatDrawer";
+
+vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ playerId: 6 }) }));
+
+it("renders canonical identity fields and opens an existing read-only channel without a friend-open POST", () => {
+  const selectChannel = vi.fn();
+  const openFriendChat = vi.fn();
+  const chat = {
+    open: true,
+    setOpen: vi.fn(),
+    channels: [
+      { channelId: 10, peer: { playerId: 70, name: "A", job: null, level: 1 }, readOnly: false },
+      { channelId: 20, peer: { playerId: 80, name: "B", job: "Mage", level: 2 }, readOnly: true },
+    ],
+    channelsLoading: false,
+    channelsError: null,
+    channelsRetry: vi.fn(),
+    selectedChannelId: 20,
+    selectChannel,
+    messages: [{ id: 1, channelId: 20, senderId: 6, content: "canonical", edited: false, createdAt: "2026-08-18T00:00:00Z" }],
+    messagesLoading: false,
+    messagesError: null,
+    loadLatest: vi.fn(),
+    hasMore: false,
+    nextCursor: null,
+    olderLoading: false,
+    loadOlder: vi.fn(),
+    draft: "",
+    setDraft: vi.fn(),
+    sending: false,
+    sendError: null,
+    send: vi.fn(),
+    openingPeerId: null,
+    openError: null,
+    openFriendChat,
+  } as unknown as DirectChatState;
+
+  render(<DirectChatDrawer chat={chat} />);
+  expect(screen.getByRole("dialog", { name: "Direct Friend Chat" })).toBeInTheDocument();
+  expect(screen.getByText("Mage · Level 2")).toBeInTheDocument();
+  expect(screen.getByText("You")).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "Message" })).toBeDisabled();
+  expect(screen.queryByText(/presence|typing|unread/i)).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: /A\s*Level 1/i }));
+  expect(selectChannel).toHaveBeenCalledWith(10);
+  expect(openFriendChat).not.toHaveBeenCalled();
+});

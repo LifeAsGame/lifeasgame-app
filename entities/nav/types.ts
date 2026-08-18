@@ -118,14 +118,6 @@ export type PanelStackItem =
     }
   | {
       id: string;
-      kind: "message";
-      title: string;
-      friendId: string;
-      friendName: string;
-      context: { main: "social"; route: "social-message" };
-    }
-  | {
-      id: string;
       kind: "gift";
       title: string;
       friendId: string;
