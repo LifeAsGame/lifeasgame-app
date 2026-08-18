@@ -86,7 +86,7 @@ export const connectionsMock = {
     const existing = follows.find(({ playerId, targetPlayerId: target }) =>
       playerId === CURRENT_PLAYER_ID && target === targetPlayerId);
     if (existing) {
-      update(existing.id, { state: "FOLLOWING", muted: false, blocked: false });
+      if (existing.state === "STOPPED") update(existing.id, { state: "FOLLOWING", muted: false });
       return requireFollow(existing.id);
     }
     const created: StoredFollow = {

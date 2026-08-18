@@ -77,4 +77,26 @@ describe("Connections query and mutation state", () => {
     await act(async () => { await result.current.unfollowFollower({ ...mutual, outboundFollowId: null }); });
     expect(api.unfollowApi).toHaveBeenCalledTimes(calls);
   });
+
+  it("keeps directional read failures independent and retries only the active direction", async () => {
+    api.getFollowingsApi.mockRejectedValueOnce(new Error("followings failed"));
+    const { result } = renderHook(() => useConnectionsQueries());
+
+    await waitFor(() => expect(result.current.queryErrors.followings).toBe("followings failed"));
+    await waitFor(() => expect(result.current.followers).toEqual(followerPage));
+    expect(result.current.queryErrors.followers).toBeNull();
+
+    act(() => result.current.setActiveTab("followers"));
+    expect(result.current.queryErrors[result.current.activeTab]).toBeNull();
+    api.getFollowersApi.mockRejectedValueOnce(new Error("followers failed"));
+    await act(async () => { await result.current.reloadFollowers(); });
+    expect(result.current.followers).toEqual(followerPage);
+    expect(result.current.queryErrors.followers).toBe("followers failed");
+
+    api.getFollowingsApi.mockResolvedValueOnce(followingPage);
+    await act(async () => { await result.current.reloadFollowings(); });
+    expect(result.current.followings).toEqual(followingPage);
+    expect(result.current.queryErrors.followings).toBeNull();
+    expect(result.current.queryErrors.followers).toBe("followers failed");
+  });
 });

@@ -23,4 +23,16 @@ describe("directed Connections authority", () => {
     expect(reactivated.id).toBe(created.id);
     expect(connectionsMock.listFollowings(0, 20).contents.some(({ followId }) => followId === created.id)).toBe(true);
   });
+
+  it("preserves active flags and blocked state when reactivating a stopped row", () => {
+    connectionsMock.block(2);
+    const active = connectionsMock.follow(13);
+    expect(active).toMatchObject({ id: 2, state: "FOLLOWING", muted: true, blocked: true });
+
+    connectionsMock.mute(1);
+    connectionsMock.block(1);
+    connectionsMock.unfollow(1);
+    const reactivated = connectionsMock.follow(7);
+    expect(reactivated).toMatchObject({ id: 1, state: "FOLLOWING", muted: false, blocked: true });
+  });
 });

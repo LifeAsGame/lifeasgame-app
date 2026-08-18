@@ -31,6 +31,8 @@ export default function ConnectionsDrawer() {
   const page = state.activeTab === "followings" ? state.followings : state.followers;
   const pageIndex = state.activeTab === "followings" ? state.followingPage : state.followerPage;
   const setPage = state.activeTab === "followings" ? state.setFollowingPage : state.setFollowerPage;
+  const queryError = state.queryErrors[state.activeTab];
+  const retry = state.activeTab === "followings" ? state.reloadFollowings : state.reloadFollowers;
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +91,8 @@ export default function ConnectionsDrawer() {
           </div>
 
           <p className="mt-3 text-xs" style={{ color: SAO.color.text.label }}>{page.totalElements} total</p>
-          {(state.queryError || state.mutationError) ? <p role="alert" className="mt-2 text-xs" style={{ color: SAO.color.action.red }}>{state.mutationError ?? state.queryError}</p> : null}
+          {queryError ? <div className="mt-2 flex items-center gap-2"><p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{queryError}</p><button type="button" className="px-2 py-1 text-xs" style={buttonStyle} onClick={() => void retry()}>Retry</button></div> : null}
+          {state.mutationError ? <p role="alert" className="mt-2 text-xs" style={{ color: SAO.color.action.red }}>{state.mutationError}</p> : null}
 
           <div className="mt-3 min-h-28 flex-1 space-y-2 overflow-y-auto">
             {state.loading[state.activeTab] ? <p className="py-6 text-center text-sm" style={{ color: SAO.color.text.secondary }}>Loading...</p> : null}

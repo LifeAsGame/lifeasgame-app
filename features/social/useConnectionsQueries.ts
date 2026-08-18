@@ -25,7 +25,7 @@ export function useConnectionsQueries() {
   const [followings, setFollowings] = useState<ConnectionPage<ConnectionFollowing>>(emptyPage());
   const [followers, setFollowers] = useState<ConnectionPage<ConnectionFollower>>(emptyPage());
   const [loading, setLoading] = useState({ followings: false, followers: false });
-  const [queryError, setQueryError] = useState<string | null>(null);
+  const [queryErrors, setQueryErrors] = useState({ followings: null as string | null, followers: null as string | null });
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const mutationLocked = useRef(false);
@@ -35,10 +35,10 @@ export function useConnectionsQueries() {
     try {
       const page = await getFollowingsApi(followingPage, PAGE_SIZE);
       setFollowings(page);
-      setQueryError(null);
+      setQueryErrors((errors) => ({ ...errors, followings: null }));
       return page;
     } catch (caught) {
-      setQueryError(errorMessage(caught));
+      setQueryErrors((errors) => ({ ...errors, followings: errorMessage(caught) }));
     } finally {
       setLoading((state) => ({ ...state, followings: false }));
     }
@@ -49,10 +49,10 @@ export function useConnectionsQueries() {
     try {
       const page = await getFollowersApi(followerPage, PAGE_SIZE);
       setFollowers(page);
-      setQueryError(null);
+      setQueryErrors((errors) => ({ ...errors, followers: null }));
       return page;
     } catch (caught) {
-      setQueryError(errorMessage(caught));
+      setQueryErrors((errors) => ({ ...errors, followers: errorMessage(caught) }));
     } finally {
       setLoading((state) => ({ ...state, followers: false }));
     }
@@ -99,7 +99,9 @@ export function useConnectionsQueries() {
     followings,
     followers,
     loading,
-    queryError,
+    queryErrors,
+    reloadFollowings,
+    reloadFollowers,
     mutationError,
     pendingKey,
     followBack,
