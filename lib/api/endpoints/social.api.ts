@@ -1,11 +1,6 @@
 import { USE_MOCK, apiGet, apiPost } from "../client";
-import {
-  MOCK_FOLLOWS,
-  MOCK_FRIEND_PROFILES,
-  MOCK_GUILDS,
-  MOCK_PARTIES,
-} from "../mock/social.mock";
-import type { FollowSummary, GuildInfo, PartyInfo } from "../types";
+import { MOCK_GUILDS, MOCK_PARTIES } from "../mock/social.mock";
+import type { GuildInfo, PartyInfo } from "../types";
 
 export async function getPartiesApi(): Promise<PartyInfo[]> {
   if (USE_MOCK) return MOCK_PARTIES;
@@ -97,79 +92,6 @@ export async function requestJoinGuildApi(guildId: number, message?: string): Pr
 export async function leaveGuildApi(guildId: number): Promise<void> {
   if (USE_MOCK) return;
   await apiPost(`/api/v1/guilds/${guildId}/leave`, {});
-}
-
-export async function getFollowsApi(): Promise<FollowSummary[]> {
-  if (USE_MOCK) return MOCK_FOLLOWS;
-  const res = await apiGet<{ contents: FollowSummary[] }>("/api/v1/follows/followings");
-  return res.contents;
-}
-
-export async function getFriendProfilesApi(): Promise<
-  Array<{
-    followId: number;
-    targetPlayerId: number;
-    nickname: string;
-    level: number;
-    job: string;
-    status: string;
-    muted: boolean;
-    blocked: boolean;
-  }>
-> {
-  if (USE_MOCK) {
-    return MOCK_FOLLOWS.map((f) => {
-      const profile = MOCK_FRIEND_PROFILES[f.targetPlayerId] ?? {
-        nickname: `Player ${f.targetPlayerId}`,
-        level: 50,
-        job: "Adventurer",
-        status: "OFFLINE",
-      };
-      return {
-        followId: f.id,
-        targetPlayerId: f.targetPlayerId,
-        nickname: profile.nickname,
-        level: profile.level,
-        job: profile.job,
-        status: profile.status,
-        muted: f.muted,
-        blocked: f.blocked,
-      };
-    });
-  }
-  const res = await apiGet<{
-    content: Array<{
-      followId: number;
-      targetPlayerId: number;
-      nickname: string;
-      level: number;
-      job: string;
-      status: string;
-      muted: boolean;
-      blocked: boolean;
-    }>;
-  }>("/api/v1/follows/followings");
-  return res.content;
-}
-
-export async function unfollowApi(followId: number): Promise<void> {
-  if (USE_MOCK) return;
-  await apiPost(`/api/v1/follows/${followId}/unfollow`, {});
-}
-
-export async function muteFollowApi(followId: number): Promise<void> {
-  if (USE_MOCK) return;
-  await apiPost(`/api/v1/follows/${followId}/mute`, {});
-}
-
-export async function unmuteFollowApi(followId: number): Promise<void> {
-  if (USE_MOCK) return;
-  await apiPost(`/api/v1/follows/${followId}/unmute`, {});
-}
-
-export async function blockFollowApi(followId: number): Promise<void> {
-  if (USE_MOCK) return;
-  await apiPost(`/api/v1/follows/${followId}/block`, {});
 }
 
 export async function sendGiftApi(data: {

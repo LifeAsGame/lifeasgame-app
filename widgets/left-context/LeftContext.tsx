@@ -11,9 +11,6 @@ import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { PlayerPanel } from "./ui/PlayerPanel";
 import { SocialPanel } from "./ui/SocialPanel";
 import { RoleContextPanel } from "./ui/RoleContextPanel";
-import { type FriendMemoData } from "./ui/FriendDetailPanel";
-
-export type { FriendMemoData };
 
 type LeftContextMode = "hidden" | "player" | "role" | "social";
 
@@ -27,12 +24,6 @@ type LeftContextProps = {
   rolesError?: string | null;
   selectedRoleId?: number | null;
   socialContext: SocialContextData | null;
-  selectedFriendId?: string | null;
-  isFriendMode?: boolean;
-  friendMemoByFollowId?: Record<string, FriendMemoData>;
-  onFriendMemoUpdate?: (followId: string, memo: FriendMemoData) => void;
-  onFriendAction?: (action: "message" | "gift" | "unfollow", followId: string) => void;
-  onFriendSelect?: (followId: string) => void;
   onRoleSelect?: (roleId: number) => void;
   zIndex?: number;
   onFocus?: () => void;
@@ -48,12 +39,6 @@ export default function LeftContext({
   rolesError,
   selectedRoleId,
   socialContext,
-  selectedFriendId,
-  isFriendMode,
-  friendMemoByFollowId,
-  onFriendMemoUpdate,
-  onFriendAction,
-  onFriendSelect,
   onRoleSelect,
   zIndex,
   onFocus,
@@ -109,20 +94,10 @@ export default function LeftContext({
               selectedRoleId={selectedRoleId ?? null}
               isLoading={rolesLoading}
               error={rolesError}
-              selectedFriendId={selectedFriendId}
               onRoleSelect={onRoleSelect}
-              onFriendSelect={onFriendSelect}
-              onFriendAction={onFriendAction}
             />
           ) : (
-            <SocialPanel
-              socialContext={socialContext}
-              isFriendMode={isFriendMode}
-              selectedFriendId={selectedFriendId}
-              friendMemoByFollowId={friendMemoByFollowId}
-              onFriendMemoUpdate={onFriendMemoUpdate}
-              onFriendAction={onFriendAction}
-            />
+            <SocialPanel socialContext={socialContext} />
           )}
         </motion.div>
       ) : null}

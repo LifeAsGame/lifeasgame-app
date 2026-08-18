@@ -67,6 +67,7 @@ vi.mock("@/shared/ui/ParticleBackground", () => ({ default: () => null }));
 vi.mock("@/shared/ui/AmbientOverlay", () => ({ default: () => null }));
 vi.mock("@/shared/ui/SaoAlert", () => ({ default: () => null }));
 vi.mock("@/shared/ui/NotificationBell", () => ({ NotificationBell: () => null }));
+vi.mock("@/features/social/ConnectionsDrawer", () => ({ default: () => <div data-testid="connections-utility" /> }));
 
 describe("Home shell에서 feature surface를 routing할 때", () => {
   beforeEach(() => {
@@ -87,6 +88,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       render(<Home />);
 
       expect(screen.getByTestId("home-shell")).toBeInTheDocument();
+      expect(screen.getByTestId("connections-utility")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^Home$/ })).not.toBeInTheDocument();
       expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(8);
       expect(roleHook.useRoles).toHaveBeenCalledWith(false);

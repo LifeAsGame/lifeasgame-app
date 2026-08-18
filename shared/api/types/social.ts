@@ -1,10 +1,40 @@
-export interface FollowSummary {
+export interface FollowInfo {
   id: number;
   playerId: number;
   targetPlayerId: number;
   state: string;
   muted: boolean;
   blocked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConnectionPeer {
+  playerId: number;
+  name: string;
+  job: string | null;
+  level: number;
+}
+
+export interface ConnectionFollowing {
+  followId: number;
+  peer: ConnectionPeer;
+  muted: boolean;
+  blocked: boolean;
+}
+
+export interface ConnectionFollower {
+  peer: ConnectionPeer;
+  followedBack: boolean;
+  outboundFollowId: number | null;
+}
+
+export interface ConnectionPage<T> {
+  contents: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 export interface PartySummary {

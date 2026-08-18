@@ -3,35 +3,11 @@
 import { SAO } from "@/shared/design/tokens";
 import type { SocialContextData } from "@/entities/nav";
 
-import { FriendDetailPanel, type FriendMemoData } from "./FriendDetailPanel";
-
 export function SocialPanel({
   socialContext,
-  isFriendMode,
-  selectedFriendId,
-  friendMemoByFollowId,
-  onFriendMemoUpdate,
-  onFriendAction,
 }: {
   socialContext: SocialContextData | null;
-  isFriendMode?: boolean;
-  selectedFriendId?: string | null;
-  friendMemoByFollowId?: Record<string, FriendMemoData>;
-  onFriendMemoUpdate?: (followId: string, memo: FriendMemoData) => void;
-  onFriendAction?: (action: "message" | "gift" | "unfollow", followId: string) => void;
 }) {
-  if (isFriendMode && selectedFriendId && socialContext) {
-    return (
-      <FriendDetailPanel
-        followId={selectedFriendId}
-        socialContext={socialContext}
-        memo={friendMemoByFollowId?.[selectedFriendId] ?? null}
-        onMemoUpdate={(memo) => onFriendMemoUpdate?.(selectedFriendId, memo)}
-        onAction={(action) => onFriendAction?.(action, selectedFriendId)}
-      />
-    );
-  }
-
   const cellStyle = {
     background: SAO.color.bg.inset,
     border: `1px solid rgba(0,0,0,0.08)`,
@@ -92,7 +68,7 @@ export function SocialPanel({
           <div className="rounded-sm px-4 py-3" style={cellStyle}>
             <p className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label }}>INFO</p>
             <p className="mt-1 text-sm" style={{ letterSpacing: "0.07em", color: SAO.color.text.primary }}>
-              Select a party, guild, or friend from the social list to load context here.
+              Select a party or guild from the social list to load context here.
             </p>
           </div>
         </div>
