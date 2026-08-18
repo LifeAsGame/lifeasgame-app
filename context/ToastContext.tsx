@@ -9,7 +9,6 @@ import React, {
   useRef,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { NotificationEventType } from "@/shared/api/types";
 
 type ToastVariant = "success" | "error" | "info" | "warning" | "quest" | "system";
 
@@ -23,7 +22,6 @@ interface Toast {
 
 interface ToastContextValue {
   showToast: (opts: Omit<Toast, "id">) => void;
-  showNotificationToast: (type: NotificationEventType, title: string, body: string) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -59,21 +57,6 @@ const VARIANT_STYLES: Record<ToastVariant, { border: string; glow: string; icon:
     glow: "rgba(160,160,180,0.1)",
     icon: "◈",
   },
-};
-
-const NOTIFICATION_TYPE_MAP: Record<NotificationEventType, ToastVariant> = {
-  FRIEND_ONLINE: "info",
-  FRIEND_OFFLINE: "system",
-  MAIL_RECEIVED: "info",
-  QUEST_PROGRESS: "quest",
-  QUEST_COMPLETED: "quest",
-  QUEST_REWARD_READY: "quest",
-  PARTY_INVITE: "info",
-  GUILD_INVITE: "info",
-  LISTING_SOLD: "success",
-  SKILL_LEVELUP: "success",
-  ACHIEVEMENT_UNLOCK: "success",
-  SYSTEM_NOTICE: "system",
 };
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) {
@@ -183,15 +166,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => [...prev.slice(-4), { ...opts, id }]);
   }, []);
 
-  const showNotificationToast = useCallback(
-    (type: NotificationEventType, title: string, body: string) => {
-      showToast({ variant: NOTIFICATION_TYPE_MAP[type], title, body, duration: 5000 });
-    },
-    [showToast],
-  );
-
   return (
-    <ToastContext.Provider value={{ showToast, showNotificationToast }}>
+    <ToastContext.Provider value={{ showToast }}>
       {children}
       {/* Toast container — top right */}
       <div

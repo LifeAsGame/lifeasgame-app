@@ -66,7 +66,7 @@ vi.mock("@/features/quests/JourneyShell", () => ({ default: ({ initialSurface }:
 vi.mock("@/shared/ui/ParticleBackground", () => ({ default: () => null }));
 vi.mock("@/shared/ui/AmbientOverlay", () => ({ default: () => null }));
 vi.mock("@/shared/ui/SaoAlert", () => ({ default: () => null }));
-vi.mock("@/shared/ui/NotificationBell", () => ({ NotificationBell: () => null }));
+vi.mock("@/features/notification/NotificationBell", () => ({ NotificationBell: () => null }));
 vi.mock("@/features/social/SocialUtilityHub", () => ({ default: () => <div data-testid="social-utility" /> }));
 vi.mock("@/features/system/settings/SettingsShell", () => ({ default: () => <div data-testid="settings-shell">Canonical Settings</div> }));
 

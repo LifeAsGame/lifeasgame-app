@@ -1,23 +1,31 @@
-export type NotificationEventType =
-  | "FRIEND_ONLINE"
-  | "FRIEND_OFFLINE"
+export type NotificationType =
   | "MAIL_RECEIVED"
   | "QUEST_PROGRESS"
   | "QUEST_COMPLETED"
   | "QUEST_REWARD_READY"
-  | "PARTY_INVITE"
-  | "GUILD_INVITE"
   | "LISTING_SOLD"
-  | "SKILL_LEVELUP"
   | "ACHIEVEMENT_UNLOCK"
   | "SYSTEM_NOTICE";
 
-export interface NotificationEvent {
-  id: string;
-  type: NotificationEventType;
+export interface NotificationInfo {
+  id: number;
+  type: NotificationType;
   title: string;
   body: string;
-  data: Record<string, unknown>;
   occurredAt: string;
   read: boolean;
+}
+
+export interface NotificationPage {
+  notifications: NotificationInfo[];
+  hasMore: boolean;
+  nextCursor: number | null;
+}
+
+export interface UnreadCount {
+  unreadCount: number;
+}
+
+export interface MarkAllRead {
+  markedCount: number;
 }
