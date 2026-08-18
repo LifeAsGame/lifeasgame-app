@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { HobbyCatalogInfo, PlayerAchievementInfo, PlayerCertificationInfo, PlayerHobbyInfo, PlayerInfo, PlayerTitleInfo } from "@/shared/api/types";
+import type { HobbyCatalogInfo, PlayerAchievementInfo, PlayerCertificationInfo, PlayerGrowthOverview, PlayerHobbyInfo, PlayerInfo, PlayerTitleInfo } from "@/shared/api/types";
 import {
   deletePlayerCertificationApi,
   deletePlayerHobbyApi,
@@ -10,6 +10,7 @@ import {
   getPlayerCertificationsApi,
   getCurrentPlayerApi,
   getHobbyCatalogApi,
+  getPlayerGrowthApi,
   getPlayerHobbiesApi,
   getPlayerTitlesApi,
   registerPlayerCertificationApi,
@@ -18,7 +19,7 @@ import {
   setRepresentativeTitleApi,
   updatePlayerHobbyApi,
 } from "./api";
-import { achievementMock, certificationMock, hobbyMock, resetCertificationMock, resetHobbyMock, resetTitleMock, titleMock } from "./mock";
+import { achievementMock, certificationMock, EMPTY_PLAYER_GROWTH, growthMock, hobbyMock, MOCK_PLAYER_GROWTH, resetCertificationMock, resetHobbyMock, resetTitleMock, titleMock } from "./mock";
 
 const client = vi.hoisted(() => ({ apiDelete: vi.fn(), apiGet: vi.fn(), apiPatch: vi.fn(), apiPost: vi.fn() }));
 
@@ -32,6 +33,26 @@ const achievement: PlayerAchievementInfo = {
   descMd: "Completed the first step.",
   acquiredAt: "2026-08-14T00:00:00Z",
 };
+
+describe("Current Player Growth API를 사용할 때", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("envelope-aware client의 exact path와 exact mock shape를 사용한다", async () => {
+    client.apiGet.mockResolvedValue(MOCK_PLAYER_GROWTH);
+
+    expect(await getPlayerGrowthApi()).toEqual(MOCK_PLAYER_GROWTH);
+    expect(client.apiGet).toHaveBeenCalledWith("/api/v1/players/growth");
+    expect(client.apiGet.mock.calls.flat().join(" ")).not.toMatch(/playerId|userId|\/players\/me\/growth/);
+
+    const mock = growthMock.overview();
+    expect(mock).toEqual(MOCK_PLAYER_GROWTH satisfies PlayerGrowthOverview);
+    expect(mock.recentExpChanges).toHaveLength(2);
+    expect(mock.recentExpChanges[0]).toMatchObject({ beforeLevel: 77, afterLevel: 78, requestedExp: 500, appliedExp: 400, leftoverExp: 100 });
+    expect(mock.recentExpChanges[1]).toMatchObject({ sourceType: null, sourceId: null });
+    expect(EMPTY_PLAYER_GROWTH.recentExpChanges).toEqual([]);
+    expect(mock.current).not.toHaveProperty("nextLevelExp");
+  });
+});
 
 describe("Current Player Achievement API를 사용할 때", () => {
   beforeEach(() => vi.clearAllMocks());

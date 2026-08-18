@@ -9,9 +9,34 @@ import type {
   PlayerHobbyInfo,
   PlayerHobbyMutationRequest,
   PlayerHobbyMutationResult,
+  PlayerGrowthOverview,
   PlayerInfo,
   PlayerTitleInfo,
 } from "@/shared/api/types";
+
+export const MOCK_PLAYER_GROWTH = {
+  current: {
+    level: 78,
+    exp: 7842,
+    str: 342,
+    agi: 287,
+    dex: 256,
+    intel: 145,
+    vit: 310,
+    luc: 89,
+    extraStats: { "Critical Rate": 24, "Movement Speed": 112 },
+    representativeTitleId: 1,
+  },
+  recentExpChanges: [
+    { changeId: 52, requestedExp: 500, appliedExp: 400, leftoverExp: 100, beforeLevel: 77, afterLevel: 78, beforeTotalExp: 77442, afterTotalExp: 77842, occurredAt: "2026-08-14T09:00:00Z", sourceType: "QUEST", sourceId: 31 },
+    { changeId: 51, requestedExp: 150, appliedExp: 150, leftoverExp: 0, beforeLevel: 77, afterLevel: 77, beforeTotalExp: 77292, afterTotalExp: 77442, occurredAt: "2026-08-13T09:00:00Z", sourceType: null, sourceId: null },
+  ],
+} satisfies PlayerGrowthOverview;
+
+export const EMPTY_PLAYER_GROWTH = {
+  ...MOCK_PLAYER_GROWTH,
+  recentExpChanges: [],
+} satisfies PlayerGrowthOverview;
 
 export const MOCK_CHARACTER_SHEET: CharacterSheet = {
   player: {
@@ -124,6 +149,10 @@ export const MOCK_ACHIEVEMENTS: PlayerAchievementInfo[] = [
 function copy<T>(value: T): T {
   return structuredClone(value);
 }
+
+export const growthMock = {
+  overview: (): PlayerGrowthOverview => copy(MOCK_PLAYER_GROWTH),
+};
 
 export const achievementMock = {
   list: (): PlayerAchievementInfo[] => copy(MOCK_ACHIEVEMENTS),

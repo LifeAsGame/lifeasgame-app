@@ -23,6 +23,7 @@ export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {
 
 export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
   player: [
+    { id: "growth",      label: "Growth",      slotLabel: "GR" },
     { id: "achievement", label: "Achievement", slotLabel: "AC" },
     { id: "credentials", label: "Credentials", slotLabel: "CR" },
     { id: "title",       label: "Title",       slotLabel: "TI" },

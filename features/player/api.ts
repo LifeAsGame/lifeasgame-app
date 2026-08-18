@@ -6,13 +6,14 @@ import type {
   PlayerHobbyInfo,
   PlayerHobbyMutationRequest,
   PlayerHobbyMutationResult,
+  PlayerGrowthOverview,
   PlayerAchievementInfo,
   PlayerCertificationDatesRequest,
   PlayerCertificationInfo,
   PlayerCertificationMutationResult,
   PlayerTitleInfo,
 } from "@/shared/api/types";
-import { achievementMock, certificationMock, hobbyMock, titleMock } from "./mock";
+import { achievementMock, certificationMock, growthMock, hobbyMock, titleMock } from "./mock";
 
 export type RegisterPlayerRequest = { name: string; gender: string };
 export type CreatedPlayerWithToken = {
@@ -27,6 +28,10 @@ export async function registerPlayerApi(body: RegisterPlayerRequest): Promise<Cr
     return { id, accessToken: `mock-player-access-${id}`, refreshToken: `mock-player-refresh-${id}` };
   }
   return apiPost<CreatedPlayerWithToken>("/api/v1/players/register", body);
+}
+
+export function getPlayerGrowthApi(): Promise<PlayerGrowthOverview> {
+  return USE_MOCK ? Promise.resolve(growthMock.overview()) : apiGet<PlayerGrowthOverview>("/api/v1/players/growth");
 }
 
 export async function getPlayerAchievementsApi(): Promise<PlayerAchievementInfo[]> {

@@ -120,3 +120,31 @@ export interface PlayerTitleInfo {
   descMd: string;
   acquiredAt: string;
 }
+
+export interface PlayerGrowthOverview {
+  current: {
+    level: number;
+    exp: number;
+    str: number;
+    agi: number;
+    dex: number;
+    intel: number;
+    vit: number;
+    luc: number;
+    extraStats: Record<string, number>;
+    representativeTitleId: number | null;
+  };
+  recentExpChanges: Array<{
+    changeId: number;
+    requestedExp: number;
+    appliedExp: number;
+    leftoverExp: number;
+    beforeLevel: number;
+    afterLevel: number;
+    beforeTotalExp: number;
+    afterTotalExp: number;
+    occurredAt: string;
+    sourceType: string | null;
+    sourceId: number | null;
+  }>;
+}
