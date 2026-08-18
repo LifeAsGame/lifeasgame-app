@@ -28,6 +28,7 @@ export function useDirectChat() {
   const [openError, setOpenError] = useState<string | null>(null);
   const channelsRequest = useRef(0);
   const messagesRequest = useRef(0);
+  const selectionIntent = useRef(0);
   const selectedRef = useRef<number | null>(null);
   const sendLocked = useRef(false);
   const openLocked = useRef(false);
@@ -67,6 +68,7 @@ export function useDirectChat() {
   }, []);
 
   const selectChannel = useCallback(async (channelId: number) => {
+    selectionIntent.current += 1;
     selectedRef.current = channelId;
     setSelectedChannelId(channelId);
     setMessages([]);
@@ -101,6 +103,7 @@ export function useDirectChat() {
   const openFriendChat = useCallback(async (peerPlayerId: number) => {
     setOpen(true);
     if (openLocked.current) return;
+    const intent = selectionIntent.current;
     openLocked.current = true;
     setOpeningPeerId(peerPlayerId);
     setOpenError(null);
@@ -108,6 +111,7 @@ export function useDirectChat() {
       const opened = await openFriendChannelApi(peerPlayerId);
       const canonical = await reloadChannels();
       if (!canonical?.some(({ channelId }) => channelId === opened.id)) throw new Error("The canonical friend channel is unavailable.");
+      if (selectionIntent.current !== intent) return;
       await selectChannel(opened.id);
     } catch (caught) {
       setOpenError(messageOf(caught));

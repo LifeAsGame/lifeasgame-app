@@ -48,6 +48,29 @@ describe("feature-owned Direct Friend Chat state", () => {
     expect(result.current.messages.map(({ id }) => id)).toEqual([2]);
   });
 
+  it("keeps a newer deliberate channel selection when an older friend-open finishes", async () => {
+    const opened = deferred<{ id: number; type: "FRIEND"; name: string; contextId: null; readOnly: boolean; role: "MEMBER" }>();
+    const canonical = deferred<FriendChatChannel[]>();
+    api.openFriendChannelApi.mockReturnValue(opened.promise);
+    api.getFriendChannelsApi.mockResolvedValueOnce(channels).mockReturnValueOnce(canonical.promise);
+    api.getFriendMessagesApi.mockImplementation((channelId: number) => Promise.resolve(page([message(channelId, channelId)])));
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+
+    let opening!: Promise<void>;
+    act(() => { opening = result.current.openFriendChat(70); });
+    await act(async () => { await result.current.selectChannel(20); });
+    expect(result.current.messages.map(({ channelId }) => channelId)).toEqual([20]);
+
+    act(() => opened.resolve({ id: 10, type: "FRIEND", name: "A", contextId: null, readOnly: false, role: "MEMBER" }));
+    await waitFor(() => expect(api.getFriendChannelsApi).toHaveBeenCalledTimes(2));
+    await act(async () => { canonical.resolve(channels); await opening; });
+
+    expect(result.current.selectedChannelId).toBe(20);
+    expect(result.current.messages.map(({ channelId }) => channelId)).toEqual([20]);
+    expect(api.getFriendMessagesApi).not.toHaveBeenCalledWith(10, null, 50);
+  });
+
   it("ignores an older-page result after the selected channel changes", async () => {
     const older = deferred<ChatMessagePage>();
     api.getFriendMessagesApi

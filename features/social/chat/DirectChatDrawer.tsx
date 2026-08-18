@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
 import { SAO } from "@/shared/design/tokens";
@@ -12,6 +12,12 @@ const buttonStyle = {
   color: SAO.color.text.secondary,
   borderRadius: SAO.radius.input,
 } as const;
+
+export function MessageTimestamp({ createdAt }: { createdAt: string }) {
+  const [label, setLabel] = useState(createdAt);
+  useEffect(() => setLabel(new Date(createdAt).toLocaleString()), [createdAt]);
+  return <time dateTime={createdAt}>{label}</time>;
+}
 
 export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatState; onOpen?: () => void }) {
   const { playerId } = useAuth();
@@ -96,7 +102,7 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
                       const mine = message.senderId === playerId;
                       return (
                         <article key={message.id} className={`max-w-[85%] rounded-sm border p-2 ${mine ? "ml-auto" : "mr-auto"}`} style={{ borderColor: SAO.color.border.inner, background: SAO.color.bg.inset }}>
-                          <div className="flex gap-2 text-[10px]" style={{ color: SAO.color.text.label }}><span>{mine ? "You" : selected.peer.name}</span><time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleString()}</time>{message.edited ? <span>Edited</span> : null}</div>
+                          <div className="flex gap-2 text-[10px]" style={{ color: SAO.color.text.label }}><span>{mine ? "You" : selected.peer.name}</span><MessageTimestamp createdAt={message.createdAt} />{message.edited ? <span>Edited</span> : null}</div>
                           <p className="mt-1 whitespace-pre-wrap break-words text-sm" style={{ color: SAO.color.text.primary }}>{message.content}</p>
                         </article>
                       );

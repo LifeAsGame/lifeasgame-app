@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
 import type { DirectChatState } from "./useDirectChat";
-import DirectChatDrawer from "./DirectChatDrawer";
+import DirectChatDrawer, { MessageTimestamp } from "./DirectChatDrawer";
 
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ playerId: 6 }) }));
 
@@ -49,4 +50,15 @@ it("renders canonical identity fields and opens an existing read-only channel wi
   fireEvent.click(screen.getByRole("button", { name: /A\s*Level 1/i }));
   expect(selectChannel).toHaveBeenCalledWith(10);
   expect(openFriendChat).not.toHaveBeenCalled();
+});
+
+it("renders an authoritative deterministic timestamp before client localization", () => {
+  const createdAt = "2026-08-18T00:00:00Z";
+  const localize = vi.spyOn(Date.prototype, "toLocaleString");
+  const html = renderToString(<MessageTimestamp createdAt={createdAt} />);
+
+  expect(localize).not.toHaveBeenCalled();
+  expect(html).toContain(`dateTime="${createdAt}"`);
+  expect(html).toContain(`>${createdAt}</time>`);
+  localize.mockRestore();
 });
