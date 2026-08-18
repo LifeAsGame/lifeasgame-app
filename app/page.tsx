@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import AmbientOverlay from "@/shared/ui/AmbientOverlay";
 import ParticleBackground from "@/shared/ui/ParticleBackground";
 import LeftContext from "@/widgets/left-context/LeftContext";
-import type { FriendMemoData } from "@/widgets/left-context/LeftContext";
 import OrbNav from "@/widgets/orb-nav/OrbNav";
 import RightPanels from "@/widgets/right-panels/RightPanels";
 import SaoAlert from "@/shared/ui/SaoAlert";
@@ -25,6 +24,7 @@ import CertificationShell from "@/features/player/CertificationShell";
 import TitleShell from "@/features/player/TitleShell";
 import HobbyShell from "@/features/player/HobbyShell";
 import GrowthShell from "@/features/player/GrowthShell";
+import ConnectionsDrawer from "@/features/social/ConnectionsDrawer";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -64,7 +64,7 @@ import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { useToast } from "@/context/ToastContext";
 import { NotificationBell } from "@/shared/ui/NotificationBell";
-import { requestJoinPartyApi, requestJoinGuildApi, unfollowApi } from "@/lib/api/endpoints/social.api";
+import { requestJoinPartyApi, requestJoinGuildApi } from "@/lib/api/endpoints/social.api";
 import { reserveShopItemApi, confirmShopPurchaseApi, cancelListingApi, createListingApi } from "@/lib/api/endpoints/market.api";
 import { MOCK_SHOP_ITEMS } from "@/lib/api/mock/market.mock";
 
@@ -186,7 +186,7 @@ function buildPanels(
       title: `${categoryLabel} List`,
       items: list,
       selectedId: selectedDetailByKey.social ?? undefined,
-      actionLabel: selectedMainSub === "friend" ? "Add" : "Create",
+      actionLabel: "Create",
       context: { main: "social", route: "social-list" },
     });
 
@@ -419,21 +419,8 @@ export default function Home() {
   const [activeFormPanel, setActiveFormPanel] = useState<Extract<PanelStackItem, { kind: "form" }> | null>(null);
   // Item currently being edited — suppresses its detail panel so only the form shows
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  // Message / gift special panels
-  const [activeSpecialPanel, setActiveSpecialPanel] = useState<
-    Extract<PanelStackItem, { kind: "message" }> | Extract<PanelStackItem, { kind: "gift" }> | null
-  >(null);
   // Pending action waiting for SaoAlert confirmation
   const [pendingAction, setPendingAction] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
-  // Friend memo data persisted to localStorage
-  const [friendMemos, setFriendMemos] = useState<Record<string, FriendMemoData>>(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem("lag_friendMemos") : null;
-      return raw ? (JSON.parse(raw) as Record<string, FriendMemoData>) : {};
-    } catch {
-      return {};
-    }
-  });
 
   const updateDetailSelections = (updates: Partial<Record<DetailSelectionKey, string | null>>) => {
     setSelectedDetailByKey((prev) => ({ ...prev, ...updates }));
@@ -480,12 +467,11 @@ export default function Home() {
     ],
   );
 
-  // Append form or special panel after the base stack
+  // Append the active form after the base stack
   const panelStack = useMemo<PanelStackItem[]>(() => {
-    if (activeSpecialPanel) return [...basePanelStack, activeSpecialPanel];
     if (activeFormPanel) return [...basePanelStack, activeFormPanel];
     return basePanelStack;
-  }, [basePanelStack, activeFormPanel, activeSpecialPanel]);
+  }, [basePanelStack, activeFormPanel]);
 
   const orderedNavItems = bringToFrontStable(MAIN_NAV_ITEMS, selectedMain, (item) => item.id);
 
@@ -510,7 +496,6 @@ export default function Home() {
     setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
     setActiveFormPanel(null);
-    setActiveSpecialPanel(null);
     setEditingItemId(null);
   };
 
@@ -608,13 +593,11 @@ export default function Home() {
       prefillValues,
       context: { main: selectedMain, route: `form-${formKey}` },
     });
-    setActiveSpecialPanel(null);
   };
 
   const handlePanelBack = () => {
     const wasEditing = editingItemId !== null;
     setActiveFormPanel(null);
-    setActiveSpecialPanel(null);
     setEditingItemId(null);
     // Clear selected item after edit so no detail panel appears (user wants just the list)
     if (wasEditing) {
@@ -757,44 +740,11 @@ export default function Home() {
       }
 
     } else if (actionType === "delete") {
-      if (selectedMain === "social" && sub === "friend") {
-        const followId = parseInt(itemId.split("-").pop() ?? "0", 10);
-        const friendName = SOCIAL_LISTS.friend.find((f) => f.id === itemId)?.label ?? "플레이어";
-        setPendingAction({
-          title: "언팔로우",
-          message: `${friendName}을(를) 언팔로우하시겠습니까?`,
-          onConfirm: async () => {
-            try {
-              await unfollowApi(followId);
-              updateDetailSelections({ social: null });
-              showToast({ variant: "info", title: "언팔로우됨", body: friendName });
-            } catch {
-              showToast({ variant: "error", title: "실패", body: "다시 시도해주세요." });
-            }
-          },
-        });
-      } else {
-        setPendingAction({
-          title: "삭제",
-          message: "이 항목을 삭제하시겠습니까?",
-          onConfirm: async () => {},
-        });
-      }
-
-    } else if (actionType === "gift") {
-      // Friend gift action from long press — push gift panel
-      const friendItem = SOCIAL_LISTS.friend.find((f) => f.id === itemId);
-      if (friendItem) {
-        setActiveSpecialPanel({
-          id: `gift-${itemId}`,
-          kind: "gift",
-          title: `Send Gift — ${friendItem.label}`,
-          friendId: itemId,
-          friendName: friendItem.label,
-          context: { main: "social", route: "social-gift" },
-        });
-        setActiveFormPanel(null);
-      }
+      setPendingAction({
+        title: "삭제",
+        message: "이 항목을 삭제하시겠습니까?",
+        onConfirm: async () => {},
+      });
     }
   };
 
@@ -848,46 +798,6 @@ export default function Home() {
       if (selectedMain === "player") updateDetailSelections({ player: null });
       else if (selectedMain === "lifelog") updateDetailSelections({ lifelog: null });
     }
-  };
-
-  // Called from LeftContext friend action buttons
-  const handleFriendAction = (action: "message" | "gift" | "unfollow", followId: string) => {
-    const friendItem = SOCIAL_LISTS.friend.find((f) => f.id === followId);
-    if (!friendItem) return;
-
-    if (action === "message") {
-      setActiveSpecialPanel({
-        id: `message-${followId}`,
-        kind: "message",
-        title: `Message — ${friendItem.label}`,
-        friendId: followId,
-        friendName: friendItem.label,
-        context: { main: "social", route: "social-message" },
-      });
-      setActiveFormPanel(null);
-    } else if (action === "gift") {
-      setActiveSpecialPanel({
-        id: `gift-${followId}`,
-        kind: "gift",
-        title: `Send Gift — ${friendItem.label}`,
-        friendId: followId,
-        friendName: friendItem.label,
-        context: { main: "social", route: "social-gift" },
-      });
-      setActiveFormPanel(null);
-    } else if (action === "unfollow") {
-      updateDetailSelections({ social: null });
-      setActiveSpecialPanel(null);
-    }
-  };
-
-  // Friend memo persistence
-  const handleFriendMemoUpdate = (followId: string, memo: FriendMemoData) => {
-    const next = { ...friendMemos, [followId]: memo };
-    setFriendMemos(next);
-    try {
-      localStorage.setItem("lag_friendMemos", JSON.stringify(next));
-    } catch {}
   };
 
   const leftContextMode =
@@ -949,19 +859,14 @@ export default function Home() {
           rolesError={roleState.error}
           selectedRoleId={selectedRoleId}
           socialContext={socialContext}
-          selectedFriendId={selectedDetailByKey.social}
-          isFriendMode={selectedMain === "social" && selectedSubByMain.social === "friend"}
-          friendMemoByFollowId={friendMemos}
-          onFriendMemoUpdate={handleFriendMemoUpdate}
-          onFriendAction={handleFriendAction}
-          onFriendSelect={(followId) => updateDetailSelections({ social: followId })}
           onRoleSelect={handleRoleSelect}
           onFocus={() => bringSurfaceToFront("left-context")}
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
 
         <div className="shrink-0" style={{ width: UI_CONSTS.layout.centerWidth, position: "relative" }}>
-          <div style={{ position: "absolute", top: 0, right: -14, zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
+          <div className="flex items-center gap-2" style={{ position: "absolute", top: 0, right: -14, zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
+            <ConnectionsDrawer />
             <NotificationBell />
           </div>
           <OrbNav
@@ -1054,15 +959,6 @@ export default function Home() {
                 onSelectRole={setSelectedRoleId}
                 onRefresh={roleState.refresh}
               />
-              {activeSpecialPanel ? (
-                <RightPanels
-                  selectedMain="role"
-                  panelStack={[activeSpecialPanel]}
-                  panelStackKey="role-social-special"
-                  onPanelItemSelect={() => {}}
-                  onPanelBack={() => setActiveSpecialPanel(null)}
-                />
-              ) : null}
             </div>
           ) : selectedMain === "quests" ? (
             <JourneyShell initialSurface={(selectedSubByMain.quests as QuestsSubId | null) ?? "current"} />

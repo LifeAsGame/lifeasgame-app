@@ -1,4 +1,4 @@
-import type { FollowSummary, GuildInfo, PartyInfo } from "../types";
+import type { GuildInfo, PartyInfo } from "../types";
 
 export const MOCK_PARTIES: PartyInfo[] = [
   { id: 1, playerId: 6, name: "Frontline Assault", code: "FLA-001", visibility: "PUBLIC", joinPolicy: "OPEN", status: "ACTIVE", maxMembers: 6, tags: ["PvE", "Boss", "Frontline"], descriptionMd: "Elite frontline clearing team. Floor 25+ specialists.", emblemImageUrl: null, emblemBgColor: "#1a1a2e", leaderPlayerId: 6, createdAt: "2026-01-15T10:00:00Z", updatedAt: "2026-03-01T12:00:00Z" },
@@ -19,33 +19,3 @@ export const MOCK_GUILDS: GuildInfo[] = [
   { id: 5, playerId: 50, name: "Eternal Crafters", code: "ETC-005", visibility: "PUBLIC", joinPolicy: "OPEN", status: "ACTIVE", maxMembers: 40, tags: ["Crafting", "Materials", "Support"], descriptionMd: "The crafting backbone of Aincrad. Any item, any quality.", emblemImageUrl: null, emblemBgColor: "#1a2a00", leaderPlayerId: 50, createdAt: "2026-01-28T10:00:00Z", updatedAt: "2026-03-01T14:00:00Z" },
   { id: 6, playerId: 67, name: "Seekers of Lore", code: "SOL-006", visibility: "PUBLIC", joinPolicy: "APPLICATION", status: "ACTIVE", maxMembers: 25, tags: ["Lore", "Exploration", "Research"], descriptionMd: "Dedicated to uncovering the secrets of Aincrad.", emblemImageUrl: null, emblemBgColor: "#001a2a", leaderPlayerId: 67, createdAt: "2026-02-12T13:00:00Z", updatedAt: "2026-02-28T16:00:00Z" },
 ];
-
-export const MOCK_FOLLOWS: FollowSummary[] = [
-  { id: 1, playerId: 6, targetPlayerId: 7, state: "FOLLOWING", muted: false, blocked: false },
-  { id: 2, playerId: 6, targetPlayerId: 13, state: "FOLLOWING", muted: false, blocked: false },
-  { id: 3, playerId: 6, targetPlayerId: 21, state: "FOLLOWING", muted: true, blocked: false },
-  { id: 4, playerId: 6, targetPlayerId: 34, state: "FOLLOWING", muted: false, blocked: false },
-  { id: 5, playerId: 6, targetPlayerId: 42, state: "FOLLOWING", muted: false, blocked: false },
-  { id: 6, playerId: 6, targetPlayerId: 55, state: "FOLLOWING", muted: false, blocked: false },
-  { id: 7, playerId: 6, targetPlayerId: 68, state: "FOLLOWING", muted: false, blocked: true },
-  { id: 8, playerId: 6, targetPlayerId: 74, state: "FOLLOWING", muted: false, blocked: false },
-  { id: 9, playerId: 6, targetPlayerId: 89, state: "FOLLOWING", muted: false, blocked: false },
-  { id: 10, playerId: 6, targetPlayerId: 93, state: "FOLLOWING", muted: false, blocked: false },
-];
-
-// Extended friend data for display (playerId → profile)
-export const MOCK_FRIEND_PROFILES: Record<
-  number,
-  { nickname: string; level: number; job: string; status: string }
-> = {
-  7: { nickname: "Asuna", level: 76, job: "Fencer", status: "ONLINE" },
-  13: { nickname: "Klein", level: 65, job: "Samurai", status: "IN_DUNGEON" },
-  21: { nickname: "Agil", level: 72, job: "Warrior", status: "ONLINE" },
-  34: { nickname: "Lisbeth", level: 60, job: "Blacksmith", status: "CRAFTING" },
-  42: { nickname: "Silica", level: 55, job: "Beast Tamer", status: "ONLINE" },
-  55: { nickname: "Leafa", level: 48, job: "Spriggan", status: "AWAY" },
-  68: { nickname: "Sinon", level: 70, job: "Gunner", status: "ONLINE" },
-  74: { nickname: "Eugeo", level: 68, job: "Swordsman", status: "OFFLINE" },
-  89: { nickname: "Alice", level: 80, job: "Integrity Knight", status: "ONLINE" },
-  93: { nickname: "Heathcliff", level: 100, job: "Paladin", status: "AWAY" },
-};

@@ -1,6 +1,6 @@
 import type { SocialSubId, PanelDataItem } from "@/entities/nav";
 import { pad, dateAt } from "@/entities/nav";
-import { PARTY_DATA, GUILD_DATA, FRIEND_DATA } from "./data";
+import { PARTY_DATA, GUILD_DATA } from "./data";
 
 export * from "./forms";
 
@@ -50,31 +50,5 @@ export const SOCIAL_LISTS: Record<SocialSubId, PanelDataItem[]> = {
       `Rank: #${g.rank}`,
     ],
     actions: [{ type: "start" as const, label: "가입 신청" }],
-  })),
-  friend: FRIEND_DATA.map((f, i) => ({
-    id: `social-friend-${pad(i + 1, 3)}`,
-    label: f.nickname,
-    slotLabel: f.nickname.slice(0, 2).toUpperCase(),
-    subtitle: `Lv.${f.level} ${f.job} | ${f.status}${f.muted ? " | MUTED" : ""}`,
-    detailTitle: "Friend Detail",
-    detailDescription: `${f.nickname} — ${f.job}, Level ${f.level}.`,
-    detailRows: [
-      `Job: ${f.job}`,
-      `Level: ${f.level}`,
-      `Status: ${f.status}`,
-      `Muted: ${f.muted ? "Yes" : "No"}`,
-    ],
-    contextTitle: f.nickname,
-    contextDescription: `${f.nickname}, Lv.${f.level} ${f.job}. Currently ${f.status.toLowerCase().replace("_", " ")}.`,
-    contextRows: [
-      `Job: ${f.job}`,
-      `Level: ${f.level}`,
-      `Status: ${f.status}`,
-      `Last Seen: ${dateAt(i + 1)}`,
-    ],
-    actions: [
-      { type: "gift"   as const, label: "선물" },
-      { type: "delete" as const, label: "언팔로우" },
-    ],
   })),
 };

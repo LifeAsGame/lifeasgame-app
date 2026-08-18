@@ -51,7 +51,6 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
   social: [
     { id: "party",  label: "Party",  slotLabel: "PT" },
     { id: "guild",  label: "Guild",  slotLabel: "GD" },
-    { id: "friend", label: "Friend", slotLabel: "FR" },
   ],
   lifelog: [
     { id: "journal",    label: "Journal",    slotLabel: "JR" },

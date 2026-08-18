@@ -17,16 +17,3 @@ export const GUILD_DATA = [
   { name: "Eternal Crafters",    code: "ETC-005", members: 35, max: 40, policy: "OPEN",         rank: 4 },
   { name: "Seekers of Lore",     code: "SOL-006", members: 22, max: 25, policy: "APPLICATION",  rank: 6 },
 ];
-
-export const FRIEND_DATA = [
-  { nickname: "Asuna",      level: 76,  job: "Fencer",           status: "ONLINE",     muted: false },
-  { nickname: "Klein",      level: 65,  job: "Samurai",          status: "IN_DUNGEON", muted: false },
-  { nickname: "Agil",       level: 72,  job: "Warrior",          status: "ONLINE",     muted: true },
-  { nickname: "Lisbeth",    level: 60,  job: "Blacksmith",       status: "CRAFTING",   muted: false },
-  { nickname: "Silica",     level: 55,  job: "Beast Tamer",      status: "ONLINE",     muted: false },
-  { nickname: "Leafa",      level: 48,  job: "Spriggan",         status: "AWAY",       muted: false },
-  { nickname: "Sinon",      level: 70,  job: "Gunner",           status: "ONLINE",     muted: false },
-  { nickname: "Eugeo",      level: 68,  job: "Swordsman",        status: "OFFLINE",    muted: false },
-  { nickname: "Alice",      level: 80,  job: "Integrity Knight", status: "ONLINE",     muted: false },
-  { nickname: "Heathcliff", level: 100, job: "Paladin",          status: "AWAY",       muted: false },
-];
