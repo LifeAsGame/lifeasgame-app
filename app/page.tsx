@@ -25,6 +25,7 @@ import TitleShell from "@/features/player/TitleShell";
 import HobbyShell from "@/features/player/HobbyShell";
 import GrowthShell from "@/features/player/GrowthShell";
 import ConnectionsDrawer from "@/features/social/ConnectionsDrawer";
+import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
@@ -57,9 +58,7 @@ import {
   MARKET_WALLET_SUMMARY_LIST,
 } from "@/features/market/model";
 import { SKILLS_LISTS } from "@/features/skills/model";
-import { SYSTEM_PANEL_ROWS, SYSTEM_OPTIONS_FORM_FIELDS } from "@/features/system/model";
-import { getSettingsApi, updateSettingsApi } from "@/lib/api/endpoints/settings.api";
-import type { GameSettings } from "@/shared/api/types";
+import { SYSTEM_PANEL_ROWS } from "@/features/system/model";
 import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { useToast } from "@/context/ToastContext";
@@ -121,8 +120,6 @@ function buildPanels(
   selectedSubByMain: Record<MainNavId, string | null>,
   selectedMarketShopSectionId: string | null,
   selectedDetailByKey: Record<DetailSelectionKey, string | null>,
-  editingItemId: string | null,
-  hasActiveForm: boolean,
 ): { panelStack: PanelStackItem[]; socialContext: SocialContextData | null } {
   const mainItems = SUBMENUS_BY_MAIN[selectedMain];
   const selectedMainSub = selectedSubForMain(selectedMain, selectedSubByMain);
@@ -359,15 +356,6 @@ function buildPanels(
   const systemPanel = SYSTEM_PANEL_ROWS[selectedMainSub as keyof typeof SYSTEM_PANEL_ROWS];
 
   if (selectedMainSub === "options") {
-    if (hasActiveForm) return { panelStack, socialContext: null };
-    panelStack.push({
-      id: "system-options-placeholder",
-      kind: "placeholder",
-      title: "Options",
-      description: systemPanel?.description ?? "Game settings and preferences.",
-      rows: systemPanel?.rows ?? [],
-      primaryActionLabel: "설정 편집",
-    });
     return { panelStack, socialContext: null };
   }
 
@@ -453,8 +441,6 @@ export default function Home() {
         selectedSubByMain,
         selectedMarketShopSectionId,
         selectedDetailByKey,
-        editingItemId,
-        Boolean(activeFormPanel),
       )
       : { panelStack: [], socialContext: null },
     [
@@ -462,8 +448,6 @@ export default function Home() {
       selectedSubByMain,
       selectedMarketShopSectionId,
       selectedDetailByKey,
-      editingItemId,
-      activeFormPanel,
     ],
   );
 
@@ -611,33 +595,6 @@ export default function Home() {
     const panel = basePanelStack[panelIndex];
     if (!panel) return;
 
-    // Placeholder primary action — system options edit button
-    if (panel.kind === "placeholder" && panel.id === "system-options-placeholder") {
-      getSettingsApi().then((settings) => {
-        const p = settings.parsed;
-        openForm(
-          "system-options",
-          "System Options",
-          SYSTEM_OPTIONS_FORM_FIELDS,
-          "설정 저장",
-          {
-            volume: String(p.volume ?? 78),
-            graphicsQuality: p.graphicsQuality ?? "HIGH",
-            voiceChat: p.voiceChat ?? "TEAM_ONLY",
-            uiScale: String(p.uiScale ?? 100),
-            inputPreset: p.inputPreset ?? "STANDARD",
-            showDamageNumbers: String(p.showDamageNumbers ?? true),
-            showParticles: String(p.showParticles ?? true),
-            showOnlineStatus: String(p.showOnlineStatus ?? true),
-            notifications: String(p.notifications ?? true),
-            emailAlerts: String(p.emailAlerts ?? false),
-            language: p.language ?? "ko",
-          },
-        );
-      });
-      return;
-    }
-
     if (panel.kind !== "list") return;
     const route = panel.context.route;
     const sub = selectedSubByMain[panel.context.main];
@@ -750,29 +707,6 @@ export default function Home() {
 
   // Called when form panel submit is confirmed
   const handlePanelFormSubmit = (formKey: string, values: Record<string, string>) => {
-    if (formKey === "system-options") {
-      const settings: Partial<GameSettings> = {
-        volume: Number(values.volume),
-        graphicsQuality: values.graphicsQuality as GameSettings["graphicsQuality"],
-        voiceChat: values.voiceChat as GameSettings["voiceChat"],
-        uiScale: Number(values.uiScale) as GameSettings["uiScale"],
-        inputPreset: values.inputPreset as GameSettings["inputPreset"],
-        showDamageNumbers: values.showDamageNumbers === "true",
-        showParticles: values.showParticles === "true",
-        showOnlineStatus: values.showOnlineStatus === "true",
-        notifications: values.notifications === "true",
-        emailAlerts: values.emailAlerts === "true",
-        language: values.language,
-      };
-      updateSettingsApi(settings).then(() => {
-        showToast({ variant: "success", title: "설정 저장됨", body: "System options updated." });
-      }).catch(() => {
-        showToast({ variant: "error", title: "저장 실패", body: "다시 시도해주세요." });
-      });
-      setActiveFormPanel(null);
-      return;
-    }
-
     if (formKey === "listing-create") {
       const itemInstanceId = Number(values._itemInstanceId);
       const itemId = Number(values._itemId);
@@ -1008,6 +942,11 @@ export default function Home() {
             <div className="flex w-fit items-center gap-3">
               <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} panelStackKey="lifelog-media-menu" onPanelItemSelect={handlePanelItemSelect} />
               <MediaShell />
+            </div>
+          ) : selectedMain === "system" && selectedSubByMain.system === "options" ? (
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels selectedMain="system" panelStack={panelStack.slice(0, 1)} panelStackKey="system-settings-menu" onPanelItemSelect={handlePanelItemSelect} />
+              <SettingsShell />
             </div>
           ) : (
             <RightPanels

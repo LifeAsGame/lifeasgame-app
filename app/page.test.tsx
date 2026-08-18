@@ -68,6 +68,7 @@ vi.mock("@/shared/ui/AmbientOverlay", () => ({ default: () => null }));
 vi.mock("@/shared/ui/SaoAlert", () => ({ default: () => null }));
 vi.mock("@/shared/ui/NotificationBell", () => ({ NotificationBell: () => null }));
 vi.mock("@/features/social/ConnectionsDrawer", () => ({ default: () => <div data-testid="connections-utility" /> }));
+vi.mock("@/features/system/settings/SettingsShell", () => ({ default: () => <div data-testid="settings-shell">Canonical Settings</div> }));
 
 describe("Home shell에서 feature surface를 routing할 때", () => {
   beforeEach(() => {
@@ -246,6 +247,16 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Gear" }));
       expect(screen.queryByTestId("inventory-shell")).not.toBeInTheDocument();
       expect(screen.getByTestId("gear-shell")).toBeInTheDocument();
+    });
+  });
+
+  describe("인증된 user가 System Options를 선택하면", () => {
+    it("page-owned form 대신 feature-owned Settings shell로 routing한다", () => {
+      render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "System" }));
+      fireEvent.click(screen.getByRole("button", { name: "Options" }));
+
+      expect(screen.getByTestId("settings-shell")).toHaveTextContent("Canonical Settings");
     });
   });
 

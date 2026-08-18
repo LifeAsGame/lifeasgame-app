@@ -1,4 +1,4 @@
-import type { UserInfo, UserSettings } from "../types";
+import type { UserInfo } from "../types";
 
 export const MOCK_USER_INFO: UserInfo = {
   user: {
@@ -18,15 +18,6 @@ export const MOCK_USER_INFO: UserInfo = {
       pendingRewards: 2,
     },
   },
-};
-
-export const MOCK_USER_SETTINGS: UserSettings = {
-  notifications: true,
-  emailAlerts: false,
-  publicProfile: true,
-  showOnlineStatus: true,
-  language: "ko",
-  uiScale: 100,
 };
 
 export const MOCK_ADMIN_USERS: Array<{

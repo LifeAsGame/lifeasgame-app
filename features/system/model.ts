@@ -6,13 +6,7 @@ export const SYSTEM_PANEL_ROWS: Record<Exclude<SystemSubId, "logout">, {
 }> = {
   options: {
     description: "Graphics, audio, controls, and gameplay preferences.",
-    rows: [
-      "Master Volume: 78%",
-      "Graphics Quality: High",
-      "Voice Chat: Team Only",
-      "UI Scale: 100%",
-      "Input Preset: Standard",
-    ],
+    rows: [],
   },
   help: {
     description: "Quick guides, FAQ, and support routes.",
@@ -57,8 +51,8 @@ export const SYSTEM_OPTIONS_FORM_FIELDS: FormFieldSpec[] = [
   {
     key: "uiScale",
     label: "UI Scale (%)",
-    type: "number",
-    placeholder: "75 ~ 150",
+    type: "select",
+    options: [75, 100, 125, 150].map((value) => ({ value: String(value), label: `${value}%` })),
   },
   {
     key: "inputPreset",
