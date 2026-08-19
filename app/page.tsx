@@ -62,7 +62,7 @@ import { SYSTEM_PANEL_ROWS } from "@/features/system/model";
 import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { useToast } from "@/context/ToastContext";
-import { NotificationBell } from "@/shared/ui/NotificationBell";
+import { NotificationBell } from "@/features/notification/NotificationBell";
 import { requestJoinPartyApi, requestJoinGuildApi } from "@/lib/api/endpoints/social.api";
 import { reserveShopItemApi, confirmShopPurchaseApi, cancelListingApi, createListingApi } from "@/lib/api/endpoints/market.api";
 import { MOCK_SHOP_ITEMS } from "@/lib/api/mock/market.mock";
