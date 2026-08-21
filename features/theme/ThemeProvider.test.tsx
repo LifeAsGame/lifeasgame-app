@@ -1,0 +1,76 @@
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { ThemeProvider, useTheme } from "./ThemeProvider";
+import { DEFAULT_THEME_PREFERENCE, THEME_STORAGE_KEY, readStoredThemePreference, resolveTheme } from "./theme";
+
+let dark = false;
+const listeners = new Set<() => void>();
+const media = {
+  get matches() { return dark; },
+  media: "(prefers-color-scheme: dark)",
+  onchange: null,
+  addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
+  removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
+  addListener: () => {},
+  removeListener: () => {},
+  dispatchEvent: () => true,
+};
+
+function Harness() {
+  const theme = useTheme();
+  const [draft, setDraft] = useState("kept");
+  return (
+    <div>
+      <output>{theme.preference}:{theme.effectiveTheme}</output>
+      <input aria-label="Representative draft" value={draft} onChange={(event) => setDraft(event.target.value)} />
+      <button type="button" onClick={() => theme.setPreference("SYSTEM")}>System</button>
+      <button type="button" onClick={() => theme.setPreference("ASTRAL")}>Astral</button>
+      <button type="button" onClick={() => theme.setPreference("WARM_BEIGE")}>Warm Beige</button>
+    </div>
+  );
+}
+
+describe("dual theme runtime", () => {
+  beforeEach(() => {
+    dark = false;
+    listeners.clear();
+    localStorage.clear();
+    delete document.documentElement.dataset.theme;
+    vi.stubGlobal("matchMedia", vi.fn(() => media));
+  });
+
+  it("resolves defaults, SYSTEM, explicit, and unknown preferences safely", () => {
+    expect(DEFAULT_THEME_PREFERENCE).toBe("WARM_BEIGE");
+    expect(resolveTheme(undefined)).toBe("warm-beige");
+    expect(resolveTheme("SYSTEM", false)).toBe("warm-beige");
+    expect(resolveTheme("SYSTEM", true)).toBe("astral");
+    expect(resolveTheme("ASTRAL", false)).toBe("astral");
+    expect(resolveTheme("WARM_BEIGE", true)).toBe("warm-beige");
+    expect(resolveTheme("FUTURE_THEME", true)).toBe("warm-beige");
+    expect(readStoredThemePreference({ getItem: () => "FUTURE_THEME" })).toBe("WARM_BEIGE");
+  });
+
+  it("bootstraps local preference, follows OS only for SYSTEM, persists, and never remounts child state", async () => {
+    dark = true;
+    localStorage.setItem(THEME_STORAGE_KEY, "SYSTEM");
+    render(<ThemeProvider><Harness /></ThemeProvider>);
+
+    await waitFor(() => expect(screen.getByText("SYSTEM:astral")).toBeInTheDocument());
+    expect(document.documentElement.dataset.theme).toBe("astral");
+    fireEvent.change(screen.getByRole("textbox", { name: "Representative draft" }), { target: { value: "still here" } });
+
+    dark = false;
+    act(() => listeners.forEach((listener) => listener()));
+    await waitFor(() => expect(screen.getByText("SYSTEM:warm-beige")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "Astral" }));
+    expect(document.documentElement.dataset.theme).toBe("astral");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("ASTRAL");
+    dark = false;
+    act(() => listeners.forEach((listener) => listener()));
+    expect(document.documentElement.dataset.theme).toBe("astral");
+    expect(screen.getByRole("textbox", { name: "Representative draft" })).toHaveValue("still here");
+  });
+});

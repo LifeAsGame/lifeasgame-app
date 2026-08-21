@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { UserSettingsResponse } from "@/shared/api/types";
 import { SYSTEM_OPTIONS_FORM_FIELDS } from "../model";
-import { buildSettingsPatch, parseUserSettings, SettingsParseError } from "./model";
+import { buildSettingsPatch, buildThemeSettingsPatch, parseUserSettings, SettingsParseError } from "./model";
 
 const transport = (flagsJson: string | null): UserSettingsResponse => ({
   userId: 7,
@@ -40,5 +40,16 @@ describe("Settings flags parser and merger", () => {
   it("offers only canonical UI scales and includes Advanced input", () => {
     expect(SYSTEM_OPTIONS_FORM_FIELDS.find(({ key }) => key === "uiScale")?.options?.map(({ value }) => value)).toEqual(["75", "100", "125", "150"]);
     expect(SYSTEM_OPTIONS_FORM_FIELDS.find(({ key }) => key === "inputPreset")?.options?.map(({ value }) => value)).toContain("ADVANCED");
+  });
+
+  it("falls back unknown theme safely and changes it only through the focused theme patch", () => {
+    const canonical = parseUserSettings(transport(JSON.stringify({ themePreference: "FUTURE_THEME", futureFlag: "keep" })));
+    expect(canonical.view.themePreference).toBe("WARM_BEIGE");
+
+    const ordinaryFlags = JSON.parse(buildSettingsPatch(canonical, { ...canonical.view, volume: 55 }).flagsJson!);
+    expect(ordinaryFlags).toMatchObject({ themePreference: "FUTURE_THEME", futureFlag: "keep" });
+
+    const themeFlags = JSON.parse(buildThemeSettingsPatch(canonical, "ASTRAL").flagsJson!);
+    expect(themeFlags).toMatchObject({ themePreference: "ASTRAL", futureFlag: "keep" });
   });
 });

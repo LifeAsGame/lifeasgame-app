@@ -15,6 +15,7 @@ const initialSettings: UserSettingsResponse = {
     notifications: true,
     emailAlerts: false,
     language: "ko",
+    themePreference: "WARM_BEIGE",
     futureFlag: "preserved",
   }),
   updatedAt: "2026-05-01T12:00:00Z",

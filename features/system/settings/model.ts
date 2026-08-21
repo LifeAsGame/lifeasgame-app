@@ -4,11 +4,13 @@ import type {
   ParsedUserSettings,
   SettingsFlags,
   SettingsView,
+  ThemePreference,
   UiScale,
   UpdateUserSettingsRequest,
   UserSettingsResponse,
   VoiceChatMode,
 } from "@/shared/api/types";
+import { DEFAULT_THEME_PREFERENCE, parseThemePreference } from "@/features/theme/theme";
 
 export const DEFAULT_SETTINGS_FLAGS: SettingsFlags = {
   graphicsQuality: "HIGH",
@@ -21,6 +23,7 @@ export const DEFAULT_SETTINGS_FLAGS: SettingsFlags = {
   notifications: true,
   emailAlerts: false,
   language: "ko",
+  themePreference: DEFAULT_THEME_PREFERENCE,
 };
 
 const GRAPHICS_QUALITIES: GraphicsQuality[] = ["LOW", "MEDIUM", "HIGH", "ULTRA"];
@@ -76,6 +79,7 @@ export function parseUserSettings(transport: UserSettingsResponse): ParsedUserSe
     notifications: booleanValue(rawFlags.notifications, DEFAULT_SETTINGS_FLAGS.notifications),
     emailAlerts: booleanValue(rawFlags.emailAlerts, DEFAULT_SETTINGS_FLAGS.emailAlerts),
     language: stringValue(rawFlags.language, DEFAULT_SETTINGS_FLAGS.language),
+    themePreference: parseThemePreference(rawFlags.themePreference) ?? DEFAULT_SETTINGS_FLAGS.themePreference,
   };
   return { transport, rawFlags, view };
 }
@@ -83,5 +87,11 @@ export function parseUserSettings(transport: UserSettingsResponse): ParsedUserSe
 export function buildSettingsPatch(canonical: ParsedUserSettings, draft: SettingsView): UpdateUserSettingsRequest {
   const flagsJson = { ...canonical.rawFlags, ...draft } as Record<string, unknown>;
   delete flagsJson.volume;
+  if (Object.prototype.hasOwnProperty.call(canonical.rawFlags, "themePreference")) flagsJson.themePreference = canonical.rawFlags.themePreference;
+  else delete flagsJson.themePreference;
   return { volume: draft.volume, flagsJson: JSON.stringify(flagsJson) };
+}
+
+export function buildThemeSettingsPatch(canonical: ParsedUserSettings, themePreference: ThemePreference): UpdateUserSettingsRequest {
+  return { flagsJson: JSON.stringify({ ...canonical.rawFlags, themePreference }) };
 }

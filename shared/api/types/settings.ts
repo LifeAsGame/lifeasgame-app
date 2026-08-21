@@ -2,6 +2,7 @@ export type GraphicsQuality = "LOW" | "MEDIUM" | "HIGH" | "ULTRA";
 export type VoiceChatMode = "OFF" | "TEAM_ONLY" | "ALL";
 export type UiScale = 75 | 100 | 125 | 150;
 export type InputPreset = "STANDARD" | "ADVANCED" | "CUSTOM";
+export type ThemePreference = "SYSTEM" | "ASTRAL" | "WARM_BEIGE";
 
 export interface SettingsFlags {
   graphicsQuality: GraphicsQuality;
@@ -14,6 +15,7 @@ export interface SettingsFlags {
   notifications: boolean;
   emailAlerts: boolean;
   language: string;
+  themePreference: ThemePreference;
 }
 
 export interface SettingsView extends SettingsFlags {
