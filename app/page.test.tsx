@@ -1,4 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MainNavId, PanelStackItem } from "@/entities/nav";
@@ -40,7 +42,12 @@ vi.mock("@/features/lifelog/ExerciseShell", () => ({ default: () => <div data-te
 vi.mock("@/features/lifelog/MediaShell", () => ({ default: () => <div data-testid="media-shell">Media Shell</div> }));
 vi.mock("@/features/player/AchievementShell", () => ({ default: () => <div data-testid="achievement-shell">Achievement Shell</div> }));
 vi.mock("@/features/player/CertificationShell", () => ({ default: () => <div data-testid="certification-shell">Certification Shell</div> }));
-vi.mock("@/features/player/TitleShell", () => ({ default: () => <div data-testid="title-shell">Title Shell</div> }));
+vi.mock("@/features/player/TitleShell", () => ({
+  default: function MockTitleShell() {
+    const [detail, setDetail] = useState(false);
+    return <div data-testid="title-shell">Title Shell<button type="button" onClick={() => setDetail(true)}>Select Mock Title</button>{detail ? <span>Mock Title Detail</span> : null}</div>;
+  },
+}));
 vi.mock("@/features/player/HobbyShell", () => ({ default: () => <div data-testid="hobby-shell">Hobby Shell</div> }));
 vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
 vi.mock("@/features/inventory/GearShell", () => ({ default: () => <div data-testid="gear-shell">Gear Shell</div> }));
@@ -82,6 +89,18 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
         { changeId: 1, requestedExp: 10, appliedExp: 10, leftoverExp: 0, beforeLevel: 7, afterLevel: 7, beforeTotalExp: 752, afterTotalExp: 762, occurredAt: "2026-08-13T09:00:00Z", sourceType: null, sourceId: 999 },
       ],
     });
+  });
+
+  it("utility와 responsive stage geometry를 shared layout/camera contract로 묶는다", () => {
+    const page = readFileSync("app/page.tsx", "utf8");
+    const css = readFileSync("app/globals.css", "utf8");
+
+    expect(page).toContain("useStageCamera(viewportRef, workspaceRef");
+    expect(page).not.toContain("right: -14");
+    expect(css).toContain(".lag-panel-rail");
+    expect(css).toContain("flex: 0 0 auto");
+    expect(css).toContain("width: clamp(280px, calc(100vw - 32px), 344px)");
+    expect(css).toContain("text-overflow: ellipsis");
   });
 
   describe("인증된 player가 처음 진입하면", () => {
@@ -220,6 +239,19 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
       expect(screen.getByTestId("title-shell")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Combat" })).not.toBeInTheDocument();
+    });
+
+    it("다른 Player submenu로 전환했다 돌아오면 이전 detail state를 복원하지 않는다", () => {
+      render(<Home />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      fireEvent.click(screen.getByRole("button", { name: "Title" }));
+      fireEvent.click(screen.getByRole("button", { name: "Select Mock Title" }));
+      expect(screen.getByText("Mock Title Detail")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Growth" }));
+      fireEvent.click(screen.getByRole("button", { name: "Title" }));
+      expect(screen.queryByText("Mock Title Detail")).not.toBeInTheDocument();
     });
   });
 

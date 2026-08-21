@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -63,5 +64,14 @@ describe("NotificationBell canonical surface", () => {
     expect(first).toBe(second);
     expect(first).toContain("2026-08-18 12:34 UTC");
     expect(now).not.toHaveBeenCalled();
+  });
+
+  it("uses dual-theme semantic surfaces without the fixed dark/gold container", () => {
+    const source = readFileSync("features/notification/NotificationBell.tsx", "utf8");
+
+    expect(source).toContain("lag-utility-button");
+    expect(source).toContain("lag-notification-dropdown");
+    expect(source).toContain("var(--lag-control-bg)");
+    expect(source).not.toMatch(/rgba\(|#[0-9a-fA-F]{3,8}/);
   });
 });

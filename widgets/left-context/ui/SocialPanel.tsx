@@ -1,6 +1,5 @@
 "use client";
 
-import { SAO } from "@/shared/design/tokens";
 import type { SocialContextData } from "@/entities/nav";
 
 export function SocialPanel({
@@ -9,42 +8,42 @@ export function SocialPanel({
   socialContext: SocialContextData | null;
 }) {
   const cellStyle = {
-    background: SAO.color.bg.inset,
-    border: `1px solid rgba(0,0,0,0.08)`,
-    borderRadius: SAO.radius.panel,
+    background: "var(--lag-muted-surface)",
+    border: "1px solid var(--lag-divider)",
+    borderRadius: "var(--lag-radius-sm)",
   };
 
   return (
     <div className="relative z-10 p-7">
       <div className="text-center">
-        <p className="uppercase" style={{ fontSize: "11px", letterSpacing: "0.24em", color: SAO.color.text.label }}>
+        <p className="uppercase" style={{ fontSize: "11px", letterSpacing: "0.24em", color: "var(--lag-text-2)" }}>
           SOCIAL CONTEXT
         </p>
-        <h2 className="mt-2 font-semibold" style={{ fontSize: "1.875rem", letterSpacing: "0.08em", color: SAO.color.text.primary }}>
+        <h2 className="mt-2 font-semibold" style={{ fontSize: "1.875rem", letterSpacing: "0.08em", color: "var(--lag-text)" }}>
           {socialContext?.categoryLabel ?? "Social"}
         </h2>
         <div
           className="mx-auto mt-5"
-          style={{ width: "88%", height: "1px", background: `linear-gradient(90deg, transparent, ${SAO.color.border.panel}, transparent)` }}
+          style={{ width: "88%", height: "1px", background: "linear-gradient(90deg, transparent, var(--lag-divider), transparent)" }}
         />
       </div>
 
       {socialContext ? (
         <div className="mt-8 space-y-3">
           <div className="rounded-sm px-4 py-3" style={cellStyle}>
-            <p className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label }}>TARGET</p>
-            <p className="mt-1 break-words text-lg font-semibold" style={{ letterSpacing: "0.08em", color: SAO.color.text.primary }}>
+            <p className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>TARGET</p>
+            <p className="mt-1 break-words text-lg font-semibold" style={{ letterSpacing: "0.08em", color: "var(--lag-text)" }}>
               {socialContext.title}
             </p>
             {socialContext.subtitle ? (
-              <p className="mt-1 break-words text-sm" style={{ letterSpacing: "0.08em", color: SAO.color.text.secondary }}>
+              <p className="mt-1 break-words text-sm" style={{ letterSpacing: "0.08em", color: "var(--lag-text-2)" }}>
                 {socialContext.subtitle}
               </p>
             ) : null}
           </div>
           <div className="rounded-sm px-4 py-3" style={cellStyle}>
-            <p className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label }}>DETAIL</p>
-            <p className="mt-1 break-words text-sm" style={{ letterSpacing: "0.07em", color: SAO.color.text.primary }}>
+            <p className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>DETAIL</p>
+            <p className="mt-1 break-words text-sm" style={{ letterSpacing: "0.07em", color: "var(--lag-text)" }}>
               {socialContext.description}
             </p>
           </div>
@@ -55,8 +54,8 @@ export function SocialPanel({
                 className="flex min-h-10 items-center gap-3 rounded-sm px-3 py-2"
                 style={cellStyle}
               >
-                <span className="rounded-full flex-shrink-0" style={{ width: "6px", height: "6px", background: SAO.color.action.gold }} />
-                <span className="break-words text-sm" style={{ letterSpacing: "0.06em", color: SAO.color.text.primary }}>
+                <span className="rounded-full flex-shrink-0" style={{ width: "6px", height: "6px", background: "var(--lag-focus)" }} />
+                <span className="break-words text-sm" style={{ letterSpacing: "0.06em", color: "var(--lag-text)" }}>
                   {row}
                 </span>
               </div>
@@ -66,8 +65,8 @@ export function SocialPanel({
       ) : (
         <div className="mt-8 space-y-2.5">
           <div className="rounded-sm px-4 py-3" style={cellStyle}>
-            <p className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label }}>INFO</p>
-            <p className="mt-1 text-sm" style={{ letterSpacing: "0.07em", color: SAO.color.text.primary }}>
+            <p className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>INFO</p>
+            <p className="mt-1 text-sm" style={{ letterSpacing: "0.07em", color: "var(--lag-text)" }}>
               Select a party or guild from the social list to load context here.
             </p>
           </div>

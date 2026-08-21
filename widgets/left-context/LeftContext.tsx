@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 
 import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
-import { PANEL_STYLE, GRID_OVERLAY_STYLE } from "@/shared/design/tokens";
 import { MOTION } from "@/shared/lib/motion";
 import type { SocialContextData } from "@/entities/nav";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
@@ -52,25 +51,24 @@ export default function LeftContext({
           animate={MOTION.panelReset.animate}
           exit={MOTION.panelReset.exit}
           transition={MOTION.panelReset.transition}
-          className="relative h-full min-h-[420px] overflow-hidden border"
+          className="lag-left-context lag-panel-stage relative h-full min-h-[420px] overflow-hidden"
+          data-stage-key={`left-context-${mode}`}
           onPointerDownCapture={onFocus}
           style={{
-            ...PANEL_STYLE,
             width: UI_CONSTS.leftContext.width,
             minHeight: UI_CONSTS.leftContext.minHeight,
             willChange: "transform, opacity",
             zIndex,
-            borderRadius: "6px",
           }}
         >
-          <div style={GRID_OVERLAY_STYLE} />
+          <div className="lag-left-context-grid pointer-events-none absolute inset-0 opacity-40" />
 
           {/* Corner L-bracket ornaments */}
           {[
-            { top: 4, left: 4, borderTop: "1.5px solid rgba(218,178,55,0.60)", borderLeft: "1.5px solid rgba(218,178,55,0.60)" },
-            { top: 4, right: 4, borderTop: "1.5px solid rgba(218,178,55,0.60)", borderRight: "1.5px solid rgba(218,178,55,0.60)" },
-            { bottom: 4, left: 4, borderBottom: "1.5px solid rgba(218,178,55,0.60)", borderLeft: "1.5px solid rgba(218,178,55,0.60)" },
-            { bottom: 4, right: 4, borderBottom: "1.5px solid rgba(218,178,55,0.60)", borderRight: "1.5px solid rgba(218,178,55,0.60)" },
+            { top: 4, left: 4, borderTop: "1.5px solid var(--lag-focus)", borderLeft: "1.5px solid var(--lag-focus)" },
+            { top: 4, right: 4, borderTop: "1.5px solid var(--lag-focus)", borderRight: "1.5px solid var(--lag-focus)" },
+            { bottom: 4, left: 4, borderBottom: "1.5px solid var(--lag-focus)", borderLeft: "1.5px solid var(--lag-focus)" },
+            { bottom: 4, right: 4, borderBottom: "1.5px solid var(--lag-focus)", borderRight: "1.5px solid var(--lag-focus)" },
           ].map((c, i) => (
             <div key={i} aria-hidden style={{ position: "absolute", width: 14, height: 14, pointerEvents: "none", zIndex: 30, ...c }} />
           ))}
@@ -82,7 +80,7 @@ export default function LeftContext({
               top: 0, left: 0, right: 0,
               height: "1px",
               zIndex: 20,
-              background: "linear-gradient(90deg, transparent 5%, rgba(218,178,55,0.72) 35%, rgba(218,178,55,0.72) 65%, transparent 95%)",
+              background: "linear-gradient(90deg, transparent 5%, var(--lag-focus) 35%, var(--lag-focus) 65%, transparent 95%)",
               pointerEvents: "none",
             }}
           />

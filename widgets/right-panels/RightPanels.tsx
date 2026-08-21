@@ -8,6 +8,7 @@ import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
 import SaoAlert from "@/shared/ui/SaoAlert";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 
 import { NAV_ICONS, actionBtnStyle } from "./ui/styles";
 import { GoldRow, InfoCard } from "./ui/Rows";
@@ -240,14 +241,11 @@ export default function RightPanels({
           animate={MOTION.hologramIn.animate}
           exit={MOTION.hologramIn.exit}
           transition={MOTION.hologramIn.transition}
-          className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center overflow-x-hidden"
+          className="lag-panel-rail relative overflow-x-visible"
           data-main={selectedMain}
           style={{
-            minHeight: 420,
             width: "fit-content",
-            paddingBottom: UI_CONSTS.rightPanels.stackBottomSafePadding,
-            rowGap: UI_CONSTS.rightPanels.panelGap,
-            columnGap: UI_CONSTS.rightPanels.panelGap,
+            gap: UI_CONSTS.rightPanels.panelGap,
             willChange: "transform, opacity",
           }}
         >
@@ -255,24 +253,12 @@ export default function RightPanels({
             {panelStack.map((panel, panelIndex) => {
               const depth = panelStack.length - 1 - panelIndex;
               return (
-                <motion.div
-                  layout="position"
-                  key={`panel-slot-${panelIndex}`}
+                <PanelStage
+                  key={panel.id}
+                  stageKey={panel.id}
+                  index={panelIndex}
                   onPointerDownCapture={() => onPanelFocus?.(panelIndex, panel.id)}
-                  initial={MOTION.panelSlot.initial}
-                  animate={MOTION.panelSlot.animate}
-                  exit={MOTION.panelSlot.exit}
-                  transition={{
-                    type: "spring",
-                    stiffness: 380,
-                    damping: 28,
-                    delay: panelIndex * 0.055,
-                  }}
-                  style={{
-                    willChange: "transform, opacity",
-                    position: "relative",
-                    zIndex: getPanelZIndex?.(panelIndex, panel.id) ?? panelIndex + 1,
-                  }}
+                  zIndex={getPanelZIndex?.(panelIndex, panel.id) ?? panelIndex + 1}
                 >
                   <PanelContent
                     panel={panel}
@@ -286,7 +272,7 @@ export default function RightPanels({
                     onPanelBack={onPanelBack}
                     onPanelActionClick={onPanelActionClick}
                   />
-                </motion.div>
+                </PanelStage>
               );
             })}
           </AnimatePresence>

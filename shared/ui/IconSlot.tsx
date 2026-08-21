@@ -16,11 +16,11 @@ export function IconSlot({
   className = "",
   iconSrc,
 }: IconSlotProps) {
-  const ring = active ? "rgba(244, 198, 86, 0.92)" : "rgba(200, 210, 225, 0.70)";
-  const border = active ? "rgba(249, 210, 108, 0.85)" : "rgba(180, 192, 210, 0.55)";
+  const ring = active ? "var(--lag-state-selected)" : "var(--lag-divider)";
+  const border = active ? "var(--lag-focus)" : "var(--lag-border)";
   const fill = active
-    ? "radial-gradient(circle at 32% 28%, rgba(255, 220, 120, 0.22), rgba(255, 173, 33, 0.08) 45%, rgba(255,255,255,0.02) 100%)"
-    : "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.55), rgba(240,244,252,0.25) 42%, rgba(0,0,0,0) 100%)";
+    ? "color-mix(in srgb, var(--lag-state-selected) 14%, var(--lag-panel))"
+    : "var(--lag-panel-2)";
 
   const iconSize = Math.round(size * 0.6);
 
@@ -34,8 +34,8 @@ export function IconSlot({
         background: fill,
         border: `1px solid ${border}`,
         boxShadow: subtle
-          ? `inset 0 0 0 1px rgba(255,255,255,0.55), 0 0 0 1px rgba(0,0,0,0.18)`
-          : `inset 0 0 0 1px rgba(255,255,255,0.55), 0 0 0 1px rgba(0,0,0,0.12), 0 0 14px ${active ? "rgba(242,186,58,0.18)" : "rgba(180,190,210,0.08)"}`,
+          ? "inset 0 0 0 1px color-mix(in srgb, var(--lag-paper) 55%, transparent)"
+          : `0 0 14px ${active ? "color-mix(in srgb, var(--lag-state-selected) 18%, transparent)" : "transparent"}`,
       }}
     >
       <div
@@ -44,7 +44,7 @@ export function IconSlot({
           width: size - 8,
           height: size - 8,
           border: `1px solid ${ring}`,
-          boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.03)`,
+          boxShadow: "none",
         }}
       >
         {iconSrc ? (
@@ -58,7 +58,7 @@ export function IconSlot({
               display: "block",
               opacity: active ? 1 : 0.72,
               filter: active
-                ? "drop-shadow(0 0 4px rgba(244,197,79,0.4))"
+                ? "drop-shadow(0 0 4px var(--lag-focus))"
                 : "brightness(1.1)",
             }}
             onError={(e) => {
@@ -71,8 +71,8 @@ export function IconSlot({
                 "line-height: 1",
                 "font-weight: 600",
                 "letter-spacing: 0.18em",
-                "color: " + (active ? "rgba(255,235,184,0.95)" : "rgba(80,100,135,0.85)"),
-                active ? "text-shadow: 0 0 10px rgba(244,197,79,0.28)" : "",
+                "color: " + (active ? "var(--lag-text)" : "var(--lag-text-2)"),
+                active ? "text-shadow: 0 0 10px color-mix(in srgb,var(--lag-focus) 28%,transparent)" : "",
               ].join(";");
               img.parentElement?.replaceChild(span, img);
             }}
@@ -83,8 +83,8 @@ export function IconSlot({
             style={{
               fontSize: Math.max(10, Math.round(size * 0.22)),
               lineHeight: 1,
-              color: active ? "rgba(255, 235, 184, 0.95)" : "rgba(80, 100, 135, 0.85)",
-              textShadow: active ? "0 0 10px rgba(244, 197, 79, 0.28)" : "none",
+              color: active ? "var(--lag-text)" : "var(--lag-text-2)",
+              textShadow: active ? "0 0 10px color-mix(in srgb, var(--lag-focus) 28%, transparent)" : "none",
             }}
           >
             {label}
@@ -96,9 +96,9 @@ export function IconSlot({
         style={{
           width: Math.max(4, Math.round(size * 0.08)),
           height: Math.max(4, Math.round(size * 0.08)),
-          background: active ? "rgba(255, 221, 120, 0.85)" : "rgba(180, 195, 215, 0.55)",
+          background: active ? "var(--lag-focus)" : "var(--lag-disabled)",
           bottom: Math.round(size * 0.15),
-          boxShadow: active ? "0 0 8px rgba(247, 206, 94, 0.45)" : "none",
+          boxShadow: active ? "0 0 8px color-mix(in srgb, var(--lag-focus) 45%, transparent)" : "none",
         }}
       />
     </div>

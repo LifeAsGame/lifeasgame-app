@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -69,6 +70,14 @@ describe("실제 Role shell을 사용할 때", () => {
     api.cancelRoleEventApi.mockResolvedValue({ ...roleEvent, status: "CANCELED" });
   });
 
+  it("Role list/surface/detail/form이 shared semantic material만 사용한다", () => {
+    const source = readFileSync("features/role/RoleShell.tsx", "utf8");
+
+    expect(source).toContain("var(--lag-control-bg)");
+    expect(source).toContain("var(--lag-state-error)");
+    expect(source).not.toMatch(/SAO\.color|INPUT_STYLE|rgba\(/);
+  });
+
   describe("Role 목록을 탐색하고 관리하면", () => {
     it("loading/empty/error 상태를 표시하고 선택·create·edit·archive 흐름을 제공한다", async () => {
       const refresh = vi.fn().mockResolvedValue(undefined);
@@ -83,6 +92,7 @@ describe("실제 Role shell을 사용할 때", () => {
 
       rerender(<Harness refresh={refresh} />);
       fireEvent.click(screen.getByRole("button", { name: "Family Member" }));
+      fireEvent.click(screen.getByRole("button", { name: "Overview" }));
       expect(screen.getByText("Be present")).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: "Create Role" }));
@@ -100,10 +110,36 @@ describe("실제 Role shell을 사용할 때", () => {
   });
 
   describe("Role을 선택하지 않은 상태이면", () => {
-    it("Relation/Event 하위 API를 호출하지 않고 선택 guard를 표시한다", () => {
+    it("첫 Role을 자동 선택하지 않고 downstream stage/API를 열지 않는다", () => {
+      const onSelectRole = vi.fn();
+      render(<RoleShell roles={roles} selectedRoleId={null} isLoading={false} error={null} onSelectRole={onSelectRole} onRefresh={vi.fn()} />);
+
+      expect(onSelectRole).not.toHaveBeenCalled();
+      expect(screen.queryByRole("button", { name: "Overview" })).not.toBeInTheDocument();
+      expect(screen.queryByText("Build systems")).not.toBeInTheDocument();
+      expect(api.listPersonsApi).not.toHaveBeenCalled();
+      expect(api.listRoleRelationsApi).not.toHaveBeenCalled();
+      expect(api.listRoleEventsApi).not.toHaveBeenCalled();
+    });
+
+    it("Role 선택은 surfaces만 열고 surface 선택 후 detail을 열며 Role 교체 시 detail을 닫는다", async () => {
+      render(<Harness initialRoleId={null} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Backend Engineer" }));
+      expect(screen.getByRole("button", { name: "Overview" })).toBeInTheDocument();
+      expect(screen.queryByText("Build systems")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Overview" }));
+      expect(screen.getByText("Build systems")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Family Member" }));
+      await waitFor(() => expect(screen.queryByText("Build systems")).not.toBeInTheDocument());
+      expect(screen.queryByText("Be present")).not.toBeInTheDocument();
+    });
+
+    it("Role이 비어 있으면 downstream API를 호출하지 않는다", () => {
       render(<Harness initialRoleId={null} availableRoles={[]} />);
 
-      expect(screen.getAllByText(/Select a Role/).length).toBeGreaterThan(0);
       expect(api.listPersonsApi).not.toHaveBeenCalled();
       expect(api.listRoleRelationsApi).not.toHaveBeenCalled();
       expect(api.listRoleEventsApi).not.toHaveBeenCalled();

@@ -48,11 +48,11 @@ describe("System Options surface save timing", () => {
     render(<ThemeProvider><SettingsShell /></ThemeProvider>);
     expect(await screen.findByText("Master Volume: 70%")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Theme" }), { target: { value: "ASTRAL" } });
+    fireEvent.click(screen.getByRole("radio", { name: /Astral Neutral/ }));
     expect(document.documentElement.dataset.theme).toBe("astral");
     expect(localStorage.getItem("lifeasgame.themePreference")).toBe("ASTRAL");
     expect(await screen.findByText("theme save failed")).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Theme" })).toHaveValue("ASTRAL");
+    expect(screen.getByRole("radio", { name: /Astral Neutral/ })).toBeChecked();
     expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
 
     const request = api.updateSettingsApi.mock.calls[0][0];

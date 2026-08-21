@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -32,6 +33,15 @@ function Harness() {
   );
 }
 
+function selectorBlock(css: string, selector: string) {
+  const blocks: string[] = [];
+  for (const match of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    if (match[1].split(",").some((part) => part.trim() === selector)) blocks.push(match[2]);
+  }
+  if (blocks.length > 0) return blocks.join("\n");
+  throw new Error(`Missing selector block: ${selector}`);
+}
+
 describe("dual theme runtime", () => {
   beforeEach(() => {
     dark = false;
@@ -50,6 +60,32 @@ describe("dual theme runtime", () => {
     expect(resolveTheme("WARM_BEIGE", true)).toBe("warm-beige");
     expect(resolveTheme("FUTURE_THEME", true)).toBe("warm-beige");
     expect(readStoredThemePreference({ getItem: () => "FUTURE_THEME" })).toBe("WARM_BEIGE");
+  });
+
+  it("exposes the approved representative tokens on the existing runtime selectors", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    const warm = selectorBlock(css, ':root[data-theme="warm-beige"]');
+    const astral = selectorBlock(css, ':root[data-theme="astral"]');
+
+    expect(warm).toContain("--lag-ambient: #EDE6DA;");
+    expect(warm).toContain("--lag-panel: #FBF7F0;");
+    expect(warm).toContain("--lag-focus: #5B9295;");
+    expect(warm).not.toContain("--lag-ambient: #07111F;");
+    expect(astral).toContain("--lag-ambient: #07111F;");
+    expect(astral).toContain("--lag-panel: #162337;");
+    expect(astral).toContain("--lag-focus: #54D4DE;");
+    expect(astral).not.toContain("--lag-ambient: #EDE6DA;");
+    expect(css).not.toContain('data-theme="beige"');
+    expect(css).not.toContain('data-theme="warm_beige"');
+  });
+
+  it("derives stronger controls from the approved palette while keeping meta text readable", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+
+    expect(css).toContain("--lag-control-bg: color-mix(in srgb, var(--lag-panel-2) 76%, var(--lag-border));");
+    expect(css).toContain("--lag-control-border: color-mix(in srgb, var(--lag-border) 76%, var(--lag-text));");
+    expect(selectorBlock(css, ".lag-button-secondary")).toContain("background-color: var(--lag-control-bg)");
+    expect(selectorBlock(css, ".lag-text-meta")).toContain("color: var(--lag-text-2)");
   });
 
   it("bootstraps local preference, follows OS only for SYSTEM, persists, and never remounts child state", async () => {

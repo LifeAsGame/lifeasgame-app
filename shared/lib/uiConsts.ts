@@ -2,7 +2,7 @@ export const UI_CONSTS = {
   layout: {
     // Reference image estimate (landscape): left card ~35%, center orb rail ~12%, right panels ~53%
     leftWidth: 520,
-    centerWidth: 176,
+    centerWidth: 112,
     rightMinWidth: 560,
     columnGap: 28,
     canvasMinHeight: 860,
@@ -14,11 +14,11 @@ export const UI_CONSTS = {
   },
   orbNav: {
     viewportHeight: 560,
-    orbSize: 88,
-    orbGap: 34,
+    orbSize: 48,
+    orbGap: 22,
     framePaddingY: 12,
-    safePaddingY: 32,
-    labelGap: 8,
+    safePaddingY: 24,
+    labelGap: 4,
     labelHeight: 18,
     labelPaddingY: 2,
     outerRingPadding: 4,

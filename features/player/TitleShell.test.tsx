@@ -17,12 +17,27 @@ vi.mock("@/shared/ui/PanelCard", () => ({
 }));
 
 const title: PlayerTitleInfo = { titleId: 1, code: "BLACK_SWORDSMAN", name: "Black Swordsman", category: "Combat", descMd: "Canonical description.", acquiredAt: "2026-08-01T00:00:00Z" };
+const secondTitle: PlayerTitleInfo = { ...title, titleId: 2, code: "BEATER", name: "Beater" };
 
 describe("Title surface와 routing을 사용할 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.getCurrentPlayerApi.mockResolvedValue({ ...MOCK_CHARACTER_SHEET.player, representativeTitleId: 1 });
     api.getPlayerTitlesApi.mockResolvedValue([title]);
+  });
+
+  it("선택 전에는 detail stage가 없고 선택 교체 시 transition identity를 바꾼다", async () => {
+    api.getPlayerTitlesApi.mockResolvedValue([title, secondTitle]);
+    render(<TitleShell />);
+
+    const entries = await screen.findAllByTestId("title-entry");
+    expect(screen.queryByText("Title Detail")).not.toBeInTheDocument();
+
+    fireEvent.click(entries[0]);
+    expect(document.querySelector('[data-stage-key="player-title-detail-1"]')).toBeInTheDocument();
+
+    fireEvent.click(entries[1]);
+    expect(document.querySelector('[data-stage-key="player-title-detail-2"]')).toBeInTheDocument();
   });
 
   it("acquired fields와 representative marker를 표시하고 fabricated state는 만들지 않는다", async () => {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence } from "framer-motion";
 
 import type {
   PersonDetail,
@@ -10,8 +11,8 @@ import type {
   RoleEventInput,
   RoleRelationDetail,
 } from "@/shared/api/types";
-import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
@@ -41,10 +42,10 @@ const ROLE_SURFACES: Array<{ id: RoleSurface; label: string; slotLabel: string }
 ];
 
 const secondaryButton = {
-  border: `1px solid ${SAO.color.border.panel}`,
-  background: SAO.color.bg.inset,
-  color: SAO.color.text.secondary,
-  borderRadius: SAO.radius.panel,
+  border: "1px solid var(--lag-control-border)",
+  background: "var(--lag-control-bg)",
+  color: "var(--lag-control-text)",
+  borderRadius: "var(--lag-radius-sm)",
   padding: "7px 10px",
   fontSize: "0.68rem",
   letterSpacing: "0.08em",
@@ -54,8 +55,21 @@ const fieldLabel = {
   display: "block",
   fontSize: "0.62rem",
   letterSpacing: "0.14em",
-  color: SAO.color.text.label,
+  color: "var(--lag-text-2)",
   textTransform: "uppercase",
+} as const;
+
+const inputStyle = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "8px 12px",
+  background: "var(--lag-control-bg)",
+  border: "1px solid var(--lag-control-border)",
+  borderRadius: "var(--lag-radius-sm)",
+  color: "var(--lag-control-text)",
+  fontSize: "0.875rem",
+  letterSpacing: "0.04em",
+  outline: "none",
 } as const;
 
 function value(form: FormData, key: string) {
@@ -80,7 +94,7 @@ function toInstant(local: string) {
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
     <div className="space-y-3 px-3">
-      <p role="alert" className="text-sm" style={{ color: SAO.color.action.red }}>{message}</p>
+      <p role="alert" className="text-sm" style={{ color: "var(--lag-state-error)" }}>{message}</p>
       <button type="button" style={secondaryButton} onClick={onRetry}>Retry</button>
     </div>
   );
@@ -111,10 +125,10 @@ function RoleEditForm({ role, onSaved, onCancel }: { role: RoleDetail; onSaved: 
 
   return (
     <form className="space-y-3 px-3" onSubmit={submit}>
-      <label style={fieldLabel}>Role Type<input name="roleType" required defaultValue={role.roleType} style={INPUT_STYLE} /></label>
-      <label style={fieldLabel}>Name<input name="name" required defaultValue={role.name} style={INPUT_STYLE} /></label>
-      <label style={fieldLabel}>Description<textarea name="description" required defaultValue={role.description} rows={4} style={{ ...INPUT_STYLE, resize: "vertical" }} /></label>
-      {error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{error}</p> : null}
+      <label style={fieldLabel}>Role Type<input className="lag-role-control" name="roleType" required defaultValue={role.roleType} style={inputStyle} /></label>
+      <label style={fieldLabel}>Name<input className="lag-role-control" name="name" required defaultValue={role.name} style={inputStyle} /></label>
+      <label style={fieldLabel}>Description<textarea className="lag-role-control" name="description" required defaultValue={role.description} rows={4} style={{ ...inputStyle, resize: "vertical" }} /></label>
+      {error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
       <div className="flex gap-2">
         <button type="submit" disabled={pending} style={{ ...actionBtnStyle, flex: 1 }}>{pending ? "Saving..." : "Save Role"}</button>
         <button type="button" style={secondaryButton} onClick={onCancel}>Cancel</button>
@@ -222,23 +236,23 @@ function RelationsSurface({ roleId }: { roleId: number }) {
 
   return (
     <div className="space-y-5 px-3">
-      {error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{error}</p> : null}
+      {error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
       <section className="space-y-2" aria-labelledby="persons-heading">
         <h3 id="persons-heading" style={fieldLabel}>Persons</h3>
         {persons.length ? persons.map((person) => (
-          <div key={person.id} className="rounded-sm px-3 py-2" style={{ background: SAO.color.bg.inset, border: `1px solid ${SAO.color.border.panel}` }}>
-            <p className="text-sm font-semibold" style={{ color: SAO.color.text.primary }}>{person.displayName}</p>
-            <p className="text-xs" style={{ color: SAO.color.text.label }}>
+          <div key={person.id} className="lag-utility-row rounded-sm border px-3 py-2">
+            <p className="text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{person.displayName}</p>
+            <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>
               {person.linkedUserId ? "Linked account available · identity remains Person" : "Person"}
             </p>
           </div>
         )) : <InfoCard>No Persons yet.</InfoCard>}
         <form className="space-y-2" onSubmit={createPerson}>
-          <label style={fieldLabel}>Display Name<input name="displayName" required style={INPUT_STYLE} /></label>
-          <label style={fieldLabel}>Notes<input name="notes" style={INPUT_STYLE} /></label>
+          <label style={fieldLabel}>Display Name<input className="lag-role-control" name="displayName" required style={inputStyle} /></label>
+          <label style={fieldLabel}>Notes<input className="lag-role-control" name="notes" style={inputStyle} /></label>
           <div className="grid grid-cols-2 gap-2">
-            <label style={fieldLabel}>Birthday<input name="birthday" type="date" style={INPUT_STYLE} /></label>
-            <label style={fieldLabel}>Contact<input name="contact" style={INPUT_STYLE} /></label>
+            <label style={fieldLabel}>Birthday<input className="lag-role-control" name="birthday" type="date" style={inputStyle} /></label>
+            <label style={fieldLabel}>Contact<input className="lag-role-control" name="contact" style={inputStyle} /></label>
           </div>
           <button type="submit" disabled={pending} style={secondaryButton}>Create Person</button>
         </form>
@@ -247,9 +261,9 @@ function RelationsSurface({ roleId }: { roleId: number }) {
       <section className="space-y-2" aria-labelledby="relations-heading">
         <h3 id="relations-heading" style={fieldLabel}>Role Relations</h3>
         {relations.length ? relations.map((relation) => (
-          <div key={relation.id} className="rounded-sm px-3 py-2" style={{ background: SAO.color.bg.inset, border: `1px solid ${SAO.color.border.panel}` }}>
-            <p className="text-sm font-semibold" style={{ color: SAO.color.text.primary }}>{relation.personDisplayName} · {relation.relationType}</p>
-            <p className="text-xs" style={{ color: SAO.color.text.secondary }}>{relation.roleNotes || "No role notes"}</p>
+          <div key={relation.id} className="lag-utility-row rounded-sm border px-3 py-2">
+            <p className="text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{relation.personDisplayName} · {relation.relationType}</p>
+            <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>{relation.roleNotes || "No role notes"}</p>
             <div className="mt-2 flex gap-2">
               <button type="button" style={secondaryButton} onClick={() => setEditing(relation)}>Edit</button>
               <button type="button" disabled={pending} style={secondaryButton} onClick={() => void archiveRelation(relation)}>Archive</button>
@@ -262,14 +276,14 @@ function RelationsSurface({ roleId }: { roleId: number }) {
             <InfoCard>Editing {editing.personDisplayName}. Person identity cannot be changed here.</InfoCard>
           ) : (
             <label style={fieldLabel}>Person
-              <select name="personId" required defaultValue="" style={INPUT_STYLE}>
+              <select className="lag-role-control" name="personId" required defaultValue="" style={inputStyle}>
                 <option value="" disabled>Select a Person</option>
                 {persons.map((person) => <option key={person.id} value={person.id}>{person.displayName}</option>)}
               </select>
             </label>
           )}
-          <label style={fieldLabel}>Relation Type<input name="relationType" required defaultValue={editing?.relationType ?? ""} placeholder="e.g. FAMILY" style={INPUT_STYLE} /></label>
-          <label style={fieldLabel}>Role Notes<textarea name="roleNotes" defaultValue={editing?.roleNotes ?? ""} rows={3} style={{ ...INPUT_STYLE, resize: "vertical" }} /></label>
+          <label style={fieldLabel}>Relation Type<input className="lag-role-control" name="relationType" required defaultValue={editing?.relationType ?? ""} placeholder="e.g. FAMILY" style={inputStyle} /></label>
+          <label style={fieldLabel}>Role Notes<textarea className="lag-role-control" name="roleNotes" defaultValue={editing?.roleNotes ?? ""} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></label>
           <div className="flex gap-2">
             <button type="submit" disabled={pending || (!editing && persons.length === 0)} style={secondaryButton}>{editing ? "Update Relation" : "Create Relation"}</button>
             {editing ? <button type="button" style={secondaryButton} onClick={() => setEditing(null)}>Cancel Edit</button> : null}
@@ -309,11 +323,11 @@ function EventForm({ roleId, event, onSaved, onCancel }: { roleId: number; event
 
   return (
     <form className="space-y-3" onSubmit={submit}>
-      <label style={fieldLabel}>Title<input name="title" required maxLength={120} defaultValue={event?.title ?? ""} style={INPUT_STYLE} /></label>
-      <label style={fieldLabel}>Description<textarea name="description" maxLength={1000} defaultValue={event?.description ?? ""} rows={3} style={{ ...INPUT_STYLE, resize: "vertical" }} /></label>
-      <label style={fieldLabel}>Starts At<input name="startsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.startsAt ?? null)} style={INPUT_STYLE} /></label>
-      <label style={fieldLabel}>Ends At<input name="endsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.endsAt ?? null)} style={INPUT_STYLE} /></label>
-      {error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{error}</p> : null}
+      <label style={fieldLabel}>Title<input className="lag-role-control" name="title" required maxLength={120} defaultValue={event?.title ?? ""} style={inputStyle} /></label>
+      <label style={fieldLabel}>Description<textarea className="lag-role-control" name="description" maxLength={1000} defaultValue={event?.description ?? ""} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></label>
+      <label style={fieldLabel}>Starts At<input className="lag-role-control" name="startsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.startsAt ?? null)} style={inputStyle} /></label>
+      <label style={fieldLabel}>Ends At<input className="lag-role-control" name="endsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.endsAt ?? null)} style={inputStyle} /></label>
+      {error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
       <div className="flex gap-2">
         <button type="submit" disabled={pending} style={secondaryButton}>{event ? "Update Event" : "Save New Event"}</button>
         <button type="button" style={secondaryButton} onClick={onCancel}>Cancel</button>
@@ -381,13 +395,13 @@ function EventsSurface({ roleId }: { roleId: number }) {
 
   return (
     <div className="space-y-4 px-3">
-      {error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{error}</p> : null}
+      {error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
       <button type="button" style={actionBtnStyle} onClick={() => setFormEvent("create")}>Create Event</button>
       <div className="space-y-2">
         {events.length ? events.map((roleEvent) => (
-          <button key={roleEvent.id} type="button" className="w-full rounded-sm px-3 py-2 text-left" style={{ background: SAO.color.bg.inset, border: `1px solid ${selectedEvent?.id === roleEvent.id ? SAO.color.border.gold : SAO.color.border.panel}` }} onClick={() => void selectEvent(roleEvent.id)}>
-            <span className="block text-sm font-semibold" style={{ color: SAO.color.text.primary }}>{roleEvent.title}</span>
-            <span className="block text-xs" style={{ color: SAO.color.text.label }}>{roleEvent.status}</span>
+          <button key={roleEvent.id} type="button" className="w-full rounded-sm px-3 py-2 text-left" style={{ background: selectedEvent?.id === roleEvent.id ? "var(--lag-selected-surface)" : "var(--lag-control-bg)", border: `1px solid ${selectedEvent?.id === roleEvent.id ? "var(--lag-focus)" : "var(--lag-control-border)"}` }} onClick={() => void selectEvent(roleEvent.id)}>
+            <span className="block text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{roleEvent.title}</span>
+            <span className="block text-xs" style={{ color: "var(--lag-text-2)" }}>{roleEvent.status}</span>
           </button>
         )) : <InfoCard>No Events for this Role.</InfoCard>}
       </div>
@@ -437,18 +451,15 @@ export default function RoleShell({
   onRefresh: () => Promise<void>;
 }) {
   const router = useRouter();
-  const [surface, setSurface] = useState<RoleSurface>("overview");
+  const [surface, setSurface] = useState<RoleSurface | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const selectedRole = roles.find(({ id }) => id === selectedRoleId) ?? null;
   const editingRole = selectedRole?.id === editingRoleId;
 
   useEffect(() => {
-    if (roles.length > 0 && !selectedRole) onSelectRole(roles[0].id);
-  }, [onSelectRole, roles, selectedRole, selectedRoleId]);
-
-  useEffect(() => {
-    setSurface("overview");
+    setSurface(null);
+    setEditingRoleId((current) => current === selectedRoleId ? current : null);
   }, [selectedRoleId]);
 
   const archiveRole = async (role: RoleDetail) => {
@@ -464,13 +475,14 @@ export default function RoleShell({
   };
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="role-shell">
-      <PanelFrame title="Roles" depth={2}>
+    <div className="lag-panel-rail relative" data-testid="role-shell">
+      <PanelStage stageKey="role-list">
+        <PanelFrame title="Roles" depth={2}>
         <div className="space-y-3">
           <div className="px-3"><button type="button" style={actionBtnStyle} onClick={() => router.push("/roles/create")}>Create Role</button></div>
           {isLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
           {error ? <ErrorState message={error} onRetry={() => void onRefresh()} /> : null}
-          {actionError ? <p role="alert" className="px-3 text-xs" style={{ color: SAO.color.action.red }}>{actionError}</p> : null}
+          {actionError ? <p role="alert" className="px-3 text-xs" style={{ color: "var(--lag-state-error)" }}>{actionError}</p> : null}
           {!isLoading && !error && roles.length === 0 ? <InfoCard>No Roles yet. Create your first Role.</InfoCard> : null}
           {roles.map((role, index) => (
             <PanelCard
@@ -493,25 +505,36 @@ export default function RoleShell({
             />
           ))}
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title={selectedRole?.name ?? "Role Surfaces"} depth={1}>
+      <AnimatePresence initial={false}>
         {selectedRole ? (
-          <div className="grid gap-1">
-            {ROLE_SURFACES.map((item, index) => (
-              <PanelCard key={item.id} label={item.label} slotLabel={item.slotLabel} selected={surface === item.id} index={index} onClick={() => { setSurface(item.id); setEditingRoleId(null); }} />
-            ))}
-          </div>
-        ) : <InfoCard>Select a Role.</InfoCard>}
-      </PanelFrame>
+          <PanelStage key={`role-surfaces-${selectedRole.id}`} stageKey={`role-surfaces-${selectedRole.id}`} index={1}>
+            <PanelFrame title={selectedRole.name} depth={1}>
+              <div className="grid gap-1">
+                {ROLE_SURFACES.map((item, index) => (
+                  <PanelCard key={item.id} label={item.label} slotLabel={item.slotLabel} selected={surface === item.id} index={index} onClick={() => { setSurface(item.id); setEditingRoleId(null); }} />
+                ))}
+              </div>
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
 
-      <PanelFrame title={editingRole ? "Edit Role" : ROLE_SURFACES.find(({ id }) => id === surface)?.label ?? "Overview"} depth={0}>
-        {!selectedRole ? <InfoCard>Select a Role to open its shell.</InfoCard> : editingRole ? (
-          <RoleEditForm role={selectedRole} onSaved={async () => { await onRefresh(); setEditingRoleId(null); }} onCancel={() => setEditingRoleId(null)} />
-        ) : surface === "overview" ? <Overview role={selectedRole} />
-          : surface === "relations" ? <RelationsSurface roleId={selectedRole.id} />
-            : <EventsSurface roleId={selectedRole.id} />}
-      </PanelFrame>
+      <AnimatePresence initial={false} mode="popLayout">
+        {selectedRole && (editingRole || surface) ? (
+          <PanelStage key={editingRole ? `role-edit-${selectedRole.id}` : `role-${selectedRole.id}-${surface}`} stageKey={editingRole ? `role-edit-${selectedRole.id}` : `role-${selectedRole.id}-${surface}`} index={2}>
+            <PanelFrame title={editingRole ? "Edit Role" : ROLE_SURFACES.find(({ id }) => id === surface)?.label ?? "Role"} depth={0}>
+              {editingRole ? (
+                <RoleEditForm role={selectedRole} onSaved={async () => { await onRefresh(); setEditingRoleId(null); }} onCancel={() => setEditingRoleId(null)} />
+              ) : surface === "overview" ? <Overview role={selectedRole} />
+                : surface === "relations" ? <RelationsSurface roleId={selectedRole.id} />
+                  : <EventsSurface roleId={selectedRole.id} />}
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
