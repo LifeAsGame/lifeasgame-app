@@ -34,7 +34,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useLayoutEffect(() => {
-    const stored = readStoredThemePreference(localStorage);
+    let stored = DEFAULT_THEME_PREFERENCE;
+    try { stored = readStoredThemePreference(localStorage); } catch { /* local cache is best-effort */ }
     setPreferenceState(stored);
     setEffectiveTheme(applyRoot(stored));
   }, []);

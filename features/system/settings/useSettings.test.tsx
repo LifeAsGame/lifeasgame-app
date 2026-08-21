@@ -92,8 +92,12 @@ describe("feature-owned Settings state", () => {
 
   it("preserves a valid local preference when server flags omit themePreference", async () => {
     localStorage.setItem(THEME_STORAGE_KEY, "ASTRAL");
+    let finishLoad!: (settings: UserSettingsResponse) => void;
+    api.getSettingsApi.mockReturnValue(new Promise((resolve) => { finishLoad = resolve; }));
     const { result } = renderHook(() => useSettings(), { wrapper });
 
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe("astral"));
+    await act(async () => { finishLoad(response()); });
     await waitFor(() => expect(result.current.canonical).not.toBeNull());
     expect(result.current.themePreference).toBe("ASTRAL");
     expect(result.current.canonical?.view.themePreference).toBe("ASTRAL");

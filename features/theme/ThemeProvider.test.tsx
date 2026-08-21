@@ -73,4 +73,18 @@ describe("dual theme runtime", () => {
     expect(document.documentElement.dataset.theme).toBe("astral");
     expect(screen.getByRole("textbox", { name: "Representative draft" })).toHaveValue("still here");
   });
+
+  it("falls back safely when obtaining localStorage throws", () => {
+    const storage = vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
+      throw new Error("storage unavailable");
+    });
+
+    try {
+      render(<ThemeProvider><Harness /></ThemeProvider>);
+      expect(screen.getByText("WARM_BEIGE:warm-beige")).toBeInTheDocument();
+      expect(document.documentElement.dataset.theme).toBe("warm-beige");
+    } finally {
+      storage.mockRestore();
+    }
+  });
 });

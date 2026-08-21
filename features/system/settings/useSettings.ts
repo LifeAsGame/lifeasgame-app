@@ -10,11 +10,11 @@ import { buildSettingsPatch, buildThemeSettingsPatch, parseUserSettings } from "
 
 const message = (caught: unknown, fallback: string) => caught instanceof Error ? caught.message : fallback;
 
-function withTheme(parsed: ParsedUserSettings, fallback: ThemePreference) {
+function withTheme(parsed: ParsedUserSettings, localPreferenceWhenServerKeyMissing: ThemePreference) {
   const supplied = Object.prototype.hasOwnProperty.call(parsed.rawFlags, "themePreference");
   const preference = supplied
     ? parseThemePreference(parsed.rawFlags.themePreference) ?? DEFAULT_THEME_PREFERENCE
-    : fallback;
+    : localPreferenceWhenServerKeyMissing;
   return { ...parsed, view: { ...parsed.view, themePreference: preference } };
 }
 
@@ -31,7 +31,10 @@ export function useSettings() {
   const saveLocked = useRef(false);
   const themeSaveLocked = useRef(false);
   const themePreferenceRef = useRef(runtimePreference);
-  themePreferenceRef.current = runtimePreference;
+
+  useEffect(() => {
+    themePreferenceRef.current = runtimePreference;
+  }, [runtimePreference]);
 
   const load = useCallback(async () => {
     setLoading(true);
