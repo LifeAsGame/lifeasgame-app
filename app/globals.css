@@ -3,20 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --drift: 14px;
+
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+:root[data-theme="astral"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: dark;
 }
 
 body {
@@ -142,11 +138,6 @@ body {
    다크 패널 인풋 — 플레이스홀더 & 브라우저 기본값 덮어쓰기
 ═══════════════════════════════════════════════════ */
 
-/* 전체 color-scheme dark → 브라우저 UI(스크롤바, form)를 다크 모드로 */
-:root {
-  color-scheme: dark;
-}
-
 /* SAO 인풋 플레이스홀더 */
 input::placeholder,
 textarea::placeholder {
@@ -155,7 +146,7 @@ textarea::placeholder {
 
 /* select 요소 다크 */
 select {
-  color-scheme: dark;
+  color-scheme: inherit;
 }
 
 /* SAO 텍스트 글로우 — 선택 상태, 타이틀 강조 */

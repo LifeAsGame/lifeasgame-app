@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { useToast } from "@/context/ToastContext";
-import type { GraphicsQuality, InputPreset, SettingsView, UiScale, VoiceChatMode } from "@/shared/api/types";
+import type { GraphicsQuality, InputPreset, SettingsView, ThemePreference, UiScale, VoiceChatMode } from "@/shared/api/types";
 import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
@@ -34,6 +34,7 @@ const isUiScale = (value: number): value is UiScale => UI_SCALES.some((scale) =>
 const isGraphicsQuality = (value: string): value is GraphicsQuality => ["LOW", "MEDIUM", "HIGH", "ULTRA"].includes(value);
 const isVoiceChat = (value: string): value is VoiceChatMode => ["OFF", "TEAM_ONLY", "ALL"].includes(value);
 const isInputPreset = (value: string): value is InputPreset => ["STANDARD", "ADVANCED", "CUSTOM"].includes(value);
+const isThemePreference = (value: string): value is ThemePreference => ["SYSTEM", "ASTRAL", "WARM_BEIGE"].includes(value);
 
 function summaryRows(settings: SettingsView) {
   return [
@@ -94,6 +95,26 @@ export default function SettingsShell() {
           </div>
         ) : null}
 
+        {!settings.error && settings.canonical ? (
+          <section aria-label="Appearance">
+            <label style={fieldLabel}>
+              Theme
+              <select
+                aria-label="Theme"
+                value={settings.themePreference}
+                disabled={settings.themeSaving || settings.saving}
+                onChange={(event) => { if (isThemePreference(event.target.value)) void settings.setThemePreference(event.target.value); }}
+                style={INPUT_STYLE}
+              >
+                <option value="SYSTEM">System</option>
+                <option value="ASTRAL">Astral</option>
+                <option value="WARM_BEIGE">Warm Beige</option>
+              </select>
+            </label>
+            {settings.themeSaveError ? <p role="alert" className="mt-1 text-xs" style={{ color: SAO.color.action.red }}>{settings.themeSaveError}</p> : null}
+          </section>
+        ) : null}
+
         {!settings.error && settings.canonical && !editing ? (
           <>
             <InfoCard>Graphics, audio, controls, and gameplay preferences.</InfoCard>
@@ -129,8 +150,8 @@ export default function SettingsShell() {
             ))}
             {settings.saveError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{settings.saveError}</p> : null}
             <div className="flex gap-2">
-              <button type="submit" disabled={!settings.dirty || settings.saving} style={{ ...actionBtnStyle, flex: 1 }}>{settings.saving ? "Saving..." : "Save Settings"}</button>
-              <button type="button" disabled={settings.saving} style={secondaryButton} onClick={() => { settings.cancel(); setEditing(false); }}>Cancel</button>
+              <button type="submit" disabled={!settings.dirty || settings.saving || settings.themeSaving} style={{ ...actionBtnStyle, flex: 1 }}>{settings.saving ? "Saving..." : "Save Settings"}</button>
+              <button type="button" disabled={settings.saving || settings.themeSaving} style={secondaryButton} onClick={() => { settings.cancel(); setEditing(false); }}>Cancel</button>
             </div>
           </form>
         ) : null}
