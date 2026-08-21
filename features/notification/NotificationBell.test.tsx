@@ -8,6 +8,7 @@ const state = vi.hoisted(() => ({
   inbox: [
     { id: 2, type: "SYSTEM_NOTICE" as const, title: "Unread", body: "Canonical body", occurredAt: "2026-08-18T12:34:56Z", read: false },
     { id: 1, type: "MAIL_RECEIVED" as const, title: "Read", body: "Older body", occurredAt: "2026-08-17T11:22:33Z", read: true },
+    { id: 0, type: "FUTURE_ANNOUNCEMENT", title: "Future title", body: "Future body", occurredAt: "2026-08-16T10:20:30Z", read: true },
   ],
   inboxLoaded: false,
   inboxLoading: false,
@@ -45,6 +46,9 @@ describe("NotificationBell canonical surface", () => {
     expect(screen.getByRole("button", { name: "모두 읽음" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Load older" })).toBeInTheDocument();
     expect(screen.queryByText(/전체 삭제|clear|delete/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Future title")).toBeInTheDocument();
+    expect(screen.getByText("Future body")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Notification" })).toHaveTextContent("!");
 
     fireEvent.click(screen.getByRole("button", { name: "Mark read" }));
     expect(state.markRead).toHaveBeenCalledWith(2);

@@ -9,7 +9,7 @@ export type NotificationType =
 
 export interface NotificationInfo {
   id: number;
-  type: NotificationType;
+  type: string;
   title: string;
   body: string;
   occurredAt: string;

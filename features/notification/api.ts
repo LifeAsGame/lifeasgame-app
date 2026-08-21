@@ -18,9 +18,9 @@ export function markNotificationReadApi(id: number): Promise<void> {
     notificationMock.markRead(id);
     return Promise.resolve();
   }
-  return apiPost<void>(`/api/v1/notifications/${id}/read`, {});
+  return apiPost<void>(`/api/v1/notifications/${id}/read`, undefined);
 }
 
 export function markAllNotificationsReadApi(): Promise<MarkAllRead> {
-  return USE_MOCK ? Promise.resolve(notificationMock.markAllRead()) : apiPost<MarkAllRead>("/api/v1/notifications/read-all", {});
+  return USE_MOCK ? Promise.resolve(notificationMock.markAllRead()) : apiPost<MarkAllRead>("/api/v1/notifications/read-all", undefined);
 }
