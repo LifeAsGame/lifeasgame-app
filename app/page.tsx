@@ -28,6 +28,7 @@ import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
+import { useStageCamera } from "@/shared/hooks/useStageCamera";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
 import {
   DEFAULT_SUB_SELECTIONS,
@@ -376,6 +377,7 @@ export default function Home() {
   const playerInfo = MOCK_CHARACTER_SHEET.player;
 
   const viewportRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const formOpenCountRef = useRef(0);
   usePanScroll(viewportRef);
 
@@ -481,6 +483,7 @@ export default function Home() {
     setSelectedDetailByKey(createDefaultDetailSelections());
     setActiveFormPanel(null);
     setEditingItemId(null);
+    setSelectedRoleId(null);
   };
 
   const handleMainSelect = (nextMain: MainNavId) => {
@@ -737,16 +740,7 @@ export default function Home() {
   const leftContextMode =
     selectedMain === "player" ? "player" : selectedMain === "role" ? "role" : selectedMain === "social" ? "social" : "hidden";
 
-  // Auto-scroll viewport right when panel stack grows (new panel added)
-  const prevPanelLengthRef = useRef(0);
-  useEffect(() => {
-    if (panelStack.length > prevPanelLengthRef.current) {
-      requestAnimationFrame(() => {
-        viewportRef.current?.scrollTo({ left: viewportRef.current.scrollWidth, behavior: "smooth" });
-      });
-    }
-    prevPanelLengthRef.current = panelStack.length;
-  }, [panelStack.length]);
+  useStageCamera(viewportRef, workspaceRef, selectedMain ?? "home");
 
   if (isLoading || !isAuthenticated || !playerId) return null;
 
@@ -782,7 +776,7 @@ export default function Home() {
         />
 
         <div className="lag-orb-column shrink-0" style={{ width: UI_CONSTS.layout.centerWidth, position: "relative" }}>
-          <div className="lag-utility-cluster flex items-center gap-2" style={{ position: "absolute", top: 0, right: -14, zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
+          <div className="lag-utility-cluster" style={{ zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
             <SocialUtilityHub />
             <NotificationBell />
           </div>
@@ -795,7 +789,7 @@ export default function Home() {
           />
         </div>
 
-        <div className="lag-workspace scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
+        <div ref={workspaceRef} className="lag-workspace scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
           {selectedMain === null ? (
             <HomeShell
               onOpenJournal={() => {
@@ -878,7 +872,7 @@ export default function Home() {
               />
             </div>
           ) : selectedMain === "quests" ? (
-            <JourneyShell initialSurface={(selectedSubByMain.quests as QuestsSubId | null) ?? "current"} />
+            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} />
           ) : selectedMain === "inventory" && selectedSubByMain.inventory ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels

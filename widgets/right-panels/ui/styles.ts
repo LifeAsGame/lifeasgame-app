@@ -1,8 +1,12 @@
 import { GOLD_BTN_STYLE, SAO_ICON } from "@/shared/design/tokens";
 import type { MainNavId } from "@/entities/nav";
 
+export function getFrameBackground(depth: number) {
+  return depth === 0 ? "var(--lag-panel)" : depth === 1 ? "var(--lag-panel-2)" : "var(--lag-personal)";
+}
+
 export function getFrameStyle(depth: number) {
-  const background = depth === 0 ? "var(--lag-panel)" : depth === 1 ? "var(--lag-panel-2)" : "var(--lag-personal)";
+  const background = getFrameBackground(depth);
 
   return {
     background,

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import type { PlayerCertificationDatesRequest } from "@/shared/api/types";
 import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useCertificationQueries } from "./useCertificationQueries";
@@ -49,8 +51,9 @@ export default function CertificationShell() {
   const selected = certifications.selected;
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="certification-shell">
-      <PanelFrame title="Certification Catalog" depth={2}>
+    <div className="lag-panel-rail relative" data-testid="certification-shell">
+      <PanelStage stageKey="player-certification-catalog">
+        <PanelFrame title="Certification Catalog" depth={2}>
         <div className="space-y-3 px-3">
           {certifications.catalog.loading && certifications.catalog.items.length === 0 ? <InfoCard>Loading Certification catalog...</InfoCard> : null}
           {certifications.catalog.error ? <ErrorState message={certifications.catalog.error} retry={() => void certifications.catalog.retry()} /> : null}
@@ -77,9 +80,11 @@ export default function CertificationShell() {
             </form>
           ) : null}
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="My Certifications" depth={1}>
+      <PanelStage stageKey="player-certification-list" index={1}>
+        <PanelFrame title="My Certifications" depth={1}>
         <div className="space-y-3">
           {certifications.owned.loading && certifications.owned.items.length === 0 ? <InfoCard>Loading Certifications...</InfoCard> : null}
           {certifications.owned.error ? <ErrorState message={certifications.owned.error} retry={() => void certifications.owned.reload()} /> : null}
@@ -91,11 +96,14 @@ export default function CertificationShell() {
             ))}
           </div>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Certification Detail" depth={0}>
-        {!selected ? <InfoCard>Select an owned Certification.</InfoCard> : (
-          <div className="space-y-3 px-3">
+      <AnimatePresence initial={false} mode="popLayout">
+        {selected ? (
+          <PanelStage key={`player-certification-detail-${selected.certificationId}`} stageKey={`player-certification-detail-${selected.certificationId}`} index={2}>
+            <PanelFrame title="Certification Detail" depth={0}>
+              <div className="space-y-3 px-3">
             <InfoCard>{selected.name}</InfoCard>
             <GoldRow>Issuer: {selected.issuer}</GoldRow>
             <GoldRow>Category: {selected.category}</GoldRow>
@@ -117,9 +125,11 @@ export default function CertificationShell() {
                 }}>Delete</button>
               </div>
             </form>
-          </div>
-        )}
-      </PanelFrame>
+              </div>
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

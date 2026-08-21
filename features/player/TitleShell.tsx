@@ -1,16 +1,18 @@
 "use client";
 
-import { SAO } from "@/shared/design/tokens";
+import { AnimatePresence } from "framer-motion";
+
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useTitleQueries } from "./useTitleQueries";
 
 const buttonStyle = {
-  border: `1px solid ${SAO.color.border.panel}`,
-  background: SAO.color.bg.inset,
-  color: SAO.color.text.secondary,
-  borderRadius: SAO.radius.panel,
+  border: "1px solid var(--lag-control-border)",
+  background: "var(--lag-control-bg)",
+  color: "var(--lag-control-text)",
+  borderRadius: "var(--lag-radius-sm)",
   padding: "7px 10px",
   fontSize: "0.68rem",
   letterSpacing: "0.08em",
@@ -19,7 +21,7 @@ const buttonStyle = {
 function ErrorState({ message, retry }: { message: string; retry: () => void }) {
   return (
     <div className="space-y-2 px-3">
-      <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{message}</p>
+      <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{message}</p>
       <button type="button" style={buttonStyle} onClick={retry}>Retry</button>
     </div>
   );
@@ -32,8 +34,9 @@ export default function TitleShell() {
   const representativeAvailable = representative === null || titles.titles.items.some(({ titleId }) => titleId === representative);
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="title-shell">
-      <PanelFrame title="Acquired Titles" depth={1}>
+    <div className="lag-panel-rail relative" data-testid="title-shell">
+      <PanelStage stageKey="player-title-list">
+        <PanelFrame title="Acquired Titles" depth={1}>
         <div className="space-y-3">
           {titles.player.loading && !titles.player.data ? <InfoCard>Loading Current Player...</InfoCard> : null}
           {titles.player.error ? <ErrorState message={titles.player.error} retry={() => void titles.player.reload()} /> : null}
@@ -41,7 +44,7 @@ export default function TitleShell() {
           {titles.titles.error ? <ErrorState message={titles.titles.error} retry={() => void titles.titles.reload()} /> : null}
           {!titles.titles.loading && !titles.titles.error && titles.titles.items.length === 0 ? <InfoCard>No acquired Titles.</InfoCard> : null}
           {!representativeAvailable ? <InfoCard>Representative Title #{representative} is unavailable in acquired Titles.</InfoCard> : null}
-          {titles.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: SAO.color.action.red }}>{titles.mutationError}</p> : null}
+          {titles.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: "var(--lag-state-error)" }}>{titles.mutationError}</p> : null}
           <div className="space-y-2">
             {titles.titles.items.map((title, index) => (
               <PanelCard
@@ -56,28 +59,33 @@ export default function TitleShell() {
             ))}
           </div>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Title Detail" depth={0}>
-        {!selected ? <InfoCard>Select an acquired Title.</InfoCard> : (
-          <div className="space-y-3 px-3">
-            <InfoCard>{selected.name}</InfoCard>
-            <GoldRow>Code: {selected.code}</GoldRow>
-            <GoldRow>Category: {selected.category}</GoldRow>
-            <GoldRow>Acquired: {selected.acquiredAt}</GoldRow>
-            {representative === selected.titleId ? <GoldRow>Representative Title</GoldRow> : null}
-            <InfoCard label="Description"><span style={{ whiteSpace: "pre-wrap" }}>{selected.descMd}</span></InfoCard>
-            <button
-              type="button"
-              disabled={titles.pendingMutation || representative === selected.titleId}
-              style={buttonStyle}
-              onClick={() => void titles.setRepresentative(selected.titleId)}
-            >
-              {titles.pendingMutation ? "Working..." : representative === selected.titleId ? "Representative Title" : "Set Representative"}
-            </button>
-          </div>
-        )}
-      </PanelFrame>
+      <AnimatePresence initial={false} mode="popLayout">
+        {selected ? (
+          <PanelStage key={`player-title-detail-${selected.titleId}`} stageKey={`player-title-detail-${selected.titleId}`} index={1}>
+            <PanelFrame title="Title Detail" depth={0}>
+              <div className="space-y-3 px-3">
+                <InfoCard>{selected.name}</InfoCard>
+                <GoldRow>Code: {selected.code}</GoldRow>
+                <GoldRow>Category: {selected.category}</GoldRow>
+                <GoldRow>Acquired: {selected.acquiredAt}</GoldRow>
+                {representative === selected.titleId ? <GoldRow>Representative Title</GoldRow> : null}
+                <InfoCard label="Description"><span style={{ whiteSpace: "pre-wrap" }}>{selected.descMd}</span></InfoCard>
+                <button
+                  type="button"
+                  disabled={titles.pendingMutation || representative === selected.titleId}
+                  style={buttonStyle}
+                  onClick={() => void titles.setRepresentative(selected.titleId)}
+                >
+                  {titles.pendingMutation ? "Working..." : representative === selected.titleId ? "Representative Title" : "Set Representative"}
+                </button>
+              </div>
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

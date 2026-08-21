@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
 import { MOCK_EQUIPPED_ITEMS } from "@/features/player/mock";
-import { SAO } from "@/shared/design/tokens";
 import { RoleBadges } from "./RoleContextPanel";
 
 function StatBar({
@@ -23,14 +22,14 @@ function StatBar({
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.18em", color: SAO.color.text.label }}>
+        <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.18em", color: "var(--lag-text-2)" }}>
           {label}
         </span>
-        <span style={{ fontSize: "10px", letterSpacing: "0.1em", color: SAO.color.text.label }}>
+        <span style={{ fontSize: "10px", letterSpacing: "0.1em", color: "var(--lag-text-2)" }}>
           {value.toLocaleString()} / {max.toLocaleString()}
         </span>
       </div>
-      <div className="w-full" style={{ height: "6px", background: SAO.color.bar.track, borderRadius: "1px" }}>
+      <div className="w-full" style={{ height: "6px", background: "color-mix(in srgb, var(--lag-divider) 72%, transparent)", borderRadius: "1px" }}>
         <div
           style={{
             width: `${pct}%`,
@@ -38,7 +37,7 @@ function StatBar({
             background: color,
             borderRadius: "1px",
             transition: "width 0.5s ease",
-            boxShadow: `0 0 8px ${color.includes("f43") || color.includes("f87") ? "rgba(244,63,94,0.60)" : color.includes("38b") || color.includes("60a") ? "rgba(56,189,248,0.60)" : "rgba(248,197,78,0.55)"}`,
+            boxShadow: "0 0 8px color-mix(in srgb, var(--lag-focus) 36%, transparent)",
           }}
         />
       </div>
@@ -91,9 +90,9 @@ export function PlayerPanel({
   }, {});
 
   const statCellStyle = {
-    background: SAO.color.bg.inset,
-    border: `1px solid rgba(0,0,0,0.08)`,
-    borderRadius: SAO.radius.panel,
+    background: "var(--lag-muted-surface)",
+    border: "1px solid var(--lag-divider)",
+    borderRadius: "var(--lag-radius-sm)",
   };
 
   return (
@@ -101,24 +100,24 @@ export function PlayerPanel({
       <div className="p-7">
         {/* Identity header */}
         <div className="text-center">
-          <h2 className="font-semibold" style={{ fontSize: "2.25rem", letterSpacing: "0.08em", color: SAO.color.text.primary }}>
+          <h2 className="font-semibold" style={{ fontSize: "2.25rem", letterSpacing: "0.08em", color: "var(--lag-text)" }}>
             {name}
           </h2>
-          <p className="mt-0.5 uppercase" style={{ fontSize: "11px", letterSpacing: "0.22em", color: SAO.color.text.label }}>
+          <p className="mt-0.5 uppercase" style={{ fontSize: "11px", letterSpacing: "0.22em", color: "var(--lag-text-2)" }}>
             {[gender, guildName].filter(Boolean).join(" · ")}
           </p>
-          <p className="mt-1 uppercase" style={{ fontSize: "11px", letterSpacing: "0.22em", color: SAO.color.text.label }}>
+          <p className="mt-1 uppercase" style={{ fontSize: "11px", letterSpacing: "0.22em", color: "var(--lag-text-2)" }}>
             Lv.{level} {job}
           </p>
           <div
             className="mx-auto mt-4"
-            style={{ width: "88%", height: "1px", background: `linear-gradient(90deg, transparent, ${SAO.color.border.panel}, transparent)` }}
+            style={{ width: "88%", height: "1px", background: "linear-gradient(90deg, transparent, var(--lag-divider), transparent)" }}
           />
         </div>
 
         {roles.length > 0 ? (
           <div className="mt-4 px-1">
-            <p className="mb-2 text-center uppercase" style={{ fontSize: 10, letterSpacing: "0.2em", color: SAO.color.text.label }}>Roles</p>
+            <p className="mb-2 text-center uppercase" style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>Roles</p>
             <RoleBadges roles={roles} selectedRoleId={selectedRoleId} onSelect={onRoleSelect} />
           </div>
         ) : null}
@@ -126,17 +125,17 @@ export function PlayerPanel({
         {/* EXP bar */}
         <div className="mt-4 px-1">
           <div className="mb-1 flex items-center justify-between">
-            <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label }}>EXP</span>
-            <span style={{ fontSize: "11px", letterSpacing: "0.1em", color: SAO.color.text.label, fontWeight: 600 }}>
+            <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>EXP</span>
+            <span style={{ fontSize: "11px", letterSpacing: "0.1em", color: "var(--lag-text-2)", fontWeight: 600 }}>
               {exp.toLocaleString()} xp
             </span>
           </div>
-          <div style={{ height: "6px", background: SAO.color.bar.track, borderRadius: "1px" }}>
+          <div style={{ height: "6px", background: "color-mix(in srgb, var(--lag-divider) 72%, transparent)", borderRadius: "1px" }}>
             <div
               style={{
                 width: `${Math.min(100, Math.round(((exp % 10000) / 10000) * 100))}%`,
                 height: "100%",
-                background: `linear-gradient(90deg, rgba(248,197,78,0.85), rgba(234,168,40,0.85))`,
+                background: "linear-gradient(90deg, var(--lag-amber), var(--lag-warning))",
                 borderRadius: "1px",
                 transition: "width 0.5s ease",
               }}
@@ -146,8 +145,8 @@ export function PlayerPanel({
 
         {/* HP / MP bars */}
         <div className="mt-3 space-y-2.5 px-1">
-          <StatBar label="HP" value={hp} max={hpMax} color={`linear-gradient(90deg, #f87171, ${SAO.color.bar.hp})`} />
-          <StatBar label="MP" value={mp} max={mpMax} color={`linear-gradient(90deg, #60a5fa, ${SAO.color.bar.mp})`} />
+          <StatBar label="HP" value={hp} max={hpMax} color="linear-gradient(90deg, var(--lag-warning), var(--lag-error))" />
+          <StatBar label="MP" value={mp} max={mpMax} color="linear-gradient(90deg, var(--lag-cyan), var(--lag-focus))" />
         </div>
 
         {/* Stat grid 3×2 */}
@@ -160,15 +159,15 @@ export function PlayerPanel({
                 className="flex flex-col items-center px-1 py-2"
                 style={{
                   ...statCellStyle,
-                  border: `1px solid ${isTop ? SAO.color.border.gold : "rgba(0,0,0,0.08)"}`,
+                  border: `1px solid ${isTop ? "var(--lag-focus)" : "var(--lag-divider)"}`,
                 }}
               >
-                <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label }}>
+                <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>
                   {s.label}
                 </span>
                 <span
                   className="mt-1 font-semibold"
-                  style={{ fontSize: "18px", letterSpacing: "0.02em", color: isTop ? SAO.color.action.gold : SAO.color.text.primary }}
+                  style={{ fontSize: "18px", letterSpacing: "0.02em", color: isTop ? "var(--lag-focus)" : "var(--lag-text)" }}
                 >
                   {s.value}
                 </span>
@@ -182,8 +181,8 @@ export function PlayerPanel({
           <div className="mt-4 space-y-1 px-1">
             {Object.entries(extraStats).map(([k, v]) => (
               <div key={k} className="flex items-center justify-between rounded-sm px-3 py-1.5" style={statCellStyle}>
-                <span className="text-xs uppercase" style={{ letterSpacing: "0.12em", color: SAO.color.text.label }}>{k}</span>
-                <span className="text-sm font-semibold" style={{ color: SAO.color.text.primary }}>{v}</span>
+                <span className="text-xs uppercase" style={{ letterSpacing: "0.12em", color: "var(--lag-text-2)" }}>{k}</span>
+                <span className="text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{v}</span>
               </div>
             ))}
           </div>
@@ -192,13 +191,13 @@ export function PlayerPanel({
         {/* Equipment section */}
         {Object.keys(equipByCat).length > 0 ? (
           <div className="mt-6 px-1">
-            <p className="mb-2 uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: SAO.color.text.label }}>
+            <p className="mb-2 uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>
               Equipment
             </p>
             <div className="space-y-3">
               {Object.entries(equipByCat).map(([cat, slots]) => (
                 <div key={cat}>
-                  <p className="mb-1 uppercase" style={{ fontSize: "9px", letterSpacing: "0.18em", color: SAO.color.text.label, opacity: 0.7 }}>
+                  <p className="mb-1 uppercase" style={{ fontSize: "9px", letterSpacing: "0.18em", color: "var(--lag-text-2)", opacity: 0.7 }}>
                     {cat}
                   </p>
                   <div className="space-y-1">
@@ -215,20 +214,20 @@ export function PlayerPanel({
                             <div
                               className="flex items-center gap-2 rounded-sm px-3 py-2 transition-colors"
                               style={{
-                                background: isSelected ? "rgba(249,208,105,0.12)" : SAO.color.bg.inset,
-                                border: `1px solid ${isSelected ? SAO.color.border.gold : "rgba(0,0,0,0.08)"}`,
-                                borderRadius: SAO.radius.panel,
+                                background: isSelected ? "var(--lag-selected-surface)" : "var(--lag-control-bg)",
+                                border: `1px solid ${isSelected ? "var(--lag-focus)" : "var(--lag-control-border)"}`,
+                                borderRadius: "var(--lag-radius-sm)",
                               }}
                             >
                               <span
                                 className="uppercase"
-                                style={{ fontSize: "9px", letterSpacing: "0.14em", color: SAO.color.text.label, flexShrink: 0, width: 56 }}
+                                style={{ fontSize: "9px", letterSpacing: "0.14em", color: "var(--lag-text-2)", flexShrink: 0, width: 56 }}
                               >
                                 {slot.slotName}
                               </span>
                               <span
                                 className="min-w-0 flex-1 truncate text-sm"
-                                style={{ color: item ? SAO.color.text.primary : "rgba(90,128,178,0.55)", fontStyle: item ? "normal" : "italic" }}
+                                style={{ color: item ? "var(--lag-text)" : "var(--lag-meta)", fontStyle: item ? "normal" : "italic" }}
                               >
                                 {item ? item.name : "Empty"}
                               </span>
@@ -247,9 +246,9 @@ export function PlayerPanel({
                                 <div
                                   className="mt-1 rounded-sm px-3 py-2 space-y-0.5"
                                   style={{
-                                    background: "rgba(249,208,105,0.07)",
-                                    border: `1px solid rgba(249,208,105,0.35)`,
-                                    borderRadius: SAO.radius.panel,
+                                    background: "var(--lag-selected-surface)",
+                                    border: "1px solid var(--lag-focus)",
+                                    borderRadius: "var(--lag-radius-sm)",
                                   }}
                                 >
                                   {[
@@ -260,8 +259,8 @@ export function PlayerPanel({
                                     { k: "Equipped", v: item.equippedAt },
                                   ].map(({ k, v }) => (
                                     <div key={k} className="flex items-center gap-2">
-                                      <span className="uppercase" style={{ fontSize: "9px", letterSpacing: "0.14em", color: SAO.color.text.label, width: 54, flexShrink: 0 }}>{k}</span>
-                                      <span className="min-w-0 flex-1 truncate text-xs" style={{ color: SAO.color.text.primary }}>{v}</span>
+                                      <span className="uppercase" style={{ fontSize: "9px", letterSpacing: "0.14em", color: "var(--lag-text-2)", width: 54, flexShrink: 0 }}>{k}</span>
+                                      <span className="min-w-0 flex-1 truncate text-xs" style={{ color: "var(--lag-text)" }}>{v}</span>
                                     </div>
                                   ))}
                                 </div>

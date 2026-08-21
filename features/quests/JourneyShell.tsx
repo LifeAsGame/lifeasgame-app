@@ -1,12 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import { SUBMENUS_BY_MAIN } from "@/entities/nav";
 import type { QuestsSubId } from "@/entities/nav";
 import type { PlayerQuestDetail, QuestRoute, QuestRouteStepDetail } from "@/shared/api/types";
-import { SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
@@ -32,10 +33,10 @@ import {
 import { useJourneyQueries } from "./useJourneyQueries";
 
 const secondaryButton = {
-  border: `1px solid ${SAO.color.border.panel}`,
-  background: SAO.color.bg.inset,
-  color: SAO.color.text.secondary,
-  borderRadius: SAO.radius.panel,
+  border: "1px solid var(--lag-control-border)",
+  background: "var(--lag-control-bg)",
+  color: "var(--lag-control-text)",
+  borderRadius: "var(--lag-radius-sm)",
   padding: "7px 10px",
   fontSize: "0.68rem",
   letterSpacing: "0.08em",
@@ -48,7 +49,7 @@ function message(caught: unknown, fallback: string): string {
 function ErrorState({ text, retry }: { text: string; retry: () => void }) {
   return (
     <div className="space-y-2 px-3">
-      <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{text}</p>
+      <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{text}</p>
       <button type="button" style={secondaryButton} onClick={retry}>Retry</button>
     </div>
   );
@@ -69,9 +70,9 @@ type RouteDetailState = {
   error: string | null;
 };
 
-export default function JourneyShell({ initialSurface = "current" }: { initialSurface?: QuestsSubId }) {
+export default function JourneyShell({ initialSurface = "current" }: { initialSurface?: QuestsSubId | null }) {
   const queries = useJourneyQueries(true);
-  const [surface, setSurface] = useState<QuestsSubId>(initialSurface);
+  const [surface, setSurface] = useState<QuestsSubId | null>(initialSurface);
   const [selectedAcceptanceId, setSelectedAcceptanceId] = useState<number | null>(null);
   const [selectedCatalogCode, setSelectedCatalogCode] = useState<string | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
@@ -82,6 +83,18 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
   const mutationLocked = useRef(false);
   const questDetailRequestId = useRef(0);
   const routeDetailRequestId = useRef(0);
+
+  const selectSurface = (next: QuestsSubId) => {
+    setSurface(next);
+    setSelectedAcceptanceId(null);
+    setSelectedCatalogCode(null);
+    setSelectedRouteId(null);
+    setQuestDetail({ code: null, data: null, loading: false, error: null });
+    setRouteDetail({ routeId: null, data: null, step: null, loading: false, error: null });
+    setMutationError(null);
+    questDetailRequestId.current += 1;
+    routeDetailRequestId.current += 1;
+  };
 
   const mineById = new Map(queries.routes.data.mine.map((route) => [route.id, route]));
   const catalogIds = new Set(queries.routes.data.catalog.map((route) => route.id));
@@ -254,8 +267,8 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedAcceptance.code)} />;
     return (
       <div className="space-y-3 px-3">
-        {detail?.error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{detail.error}</p> : null}
-        {mutationError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{mutationError}</p> : null}
+        {detail?.error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{detail.error}</p> : null}
+        {mutationError ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{mutationError}</p> : null}
         <InfoCard>{detail?.data?.descriptionMd ?? selectedAcceptance.descriptionMd}</InfoCard>
         <GoldRow>Status: {QUEST_STATUS_LABEL[selectedAcceptance.status]}</GoldRow>
         <GoldRow>Progress: {selectedAcceptance.progressValue} / {selectedAcceptance.targetValue} ({questProgressPercent(selectedAcceptance)}%)</GoldRow>
@@ -286,7 +299,7 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedBlueprint.code)} />;
     return (
       <div className="space-y-3 px-3">
-        {mutationError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{mutationError}</p> : null}
+        {mutationError ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{mutationError}</p> : null}
         <InfoCard>{detail?.data?.descriptionMd ?? selectedBlueprint.descriptionMd}</InfoCard>
         <GoldRow>Target: {selectedBlueprint.targetType} × {selectedBlueprint.targetValue}</GoldRow>
         <GoldRow>Completion policy: {selectedBlueprint.completionPolicy}</GoldRow>
@@ -314,20 +327,20 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
     const canAdvance = progress?.status === "IN_PROGRESS" && currentStep?.state === "READY_TO_ADVANCE";
     return (
       <div className="space-y-3 px-3">
-        {detailState?.error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{detailState.error}</p> : null}
-        {mutationError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{mutationError}</p> : null}
+        {detailState?.error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{detailState.error}</p> : null}
+        {mutationError ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{mutationError}</p> : null}
         <InfoCard>{route.description ?? "No Route description."}</InfoCard>
         <GoldRow>Status: {progress?.status ?? "NOT_SELECTED"}</GoldRow>
         {progress ? <GoldRow>Current Step ID: {progress.currentStepId}</GoldRow> : null}
         <section className="space-y-2" aria-label="Ordered Route Steps">
           {route.steps.slice().sort((left, right) => left.stepOrder - right.stepOrder).map((step) => (
-            <div key={step.id} className="rounded-sm px-3 py-2" style={{ background: SAO.color.bg.inset, border: `1px solid ${step.id === progress?.currentStepId ? SAO.color.border.gold : SAO.color.border.panel}` }}>
-              <p className="text-sm font-semibold" style={{ color: SAO.color.text.primary }}>{step.stepOrder}. {step.title}</p>
-              <p className="text-xs" style={{ color: SAO.color.text.label }}>{step.state} · criteria {step.criteriaSatisfied ? "satisfied" : "not satisfied"}</p>
-              <p className="text-xs" style={{ color: SAO.color.text.secondary }}>{step.description ?? "No Step description."}</p>
+            <div key={step.id} className="rounded-sm px-3 py-2" style={{ background: "var(--lag-muted-surface)", border: `1px solid ${step.id === progress?.currentStepId ? "var(--lag-focus)" : "var(--lag-divider)"}` }}>
+              <p className="text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{step.stepOrder}. {step.title}</p>
+              <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>{step.state} · criteria {step.criteriaSatisfied ? "satisfied" : "not satisfied"}</p>
+              <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>{step.description ?? "No Step description."}</p>
               {step.questLinks.map((link) => {
                 const acceptedQuest = queries.current.data.find((quest) => quest.questId === link.questId);
-                return <p key={link.questId} className="text-xs" style={{ color: SAO.color.text.label }}>Requirement: {acceptedQuest?.title ?? `Quest #${link.questId}`} · {link.requirementType}</p>;
+                return <p key={link.questId} className="text-xs" style={{ color: "var(--lag-text-2)" }}>Requirement: {acceptedQuest?.title ?? `Quest #${link.questId}`} · {link.requirementType}</p>;
               })}
             </div>
           ))}
@@ -340,23 +353,45 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
     );
   };
 
+  const detailStageKey = surface === "current" && selectedAcceptance
+    ? `journey-current-detail-${selectedAcceptance.id}`
+    : surface === "catalog" && selectedBlueprint
+      ? `journey-catalog-detail-${selectedBlueprint.code}`
+      : surface === "routes" && selectedRoute
+        ? `journey-route-detail-${selectedRoute.id}`
+        : null;
+
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="journey-shell">
-      <PanelFrame title="Journey" depth={2}>
-        <div className="grid gap-1">
-          {SUBMENUS_BY_MAIN.quests.map((item, index) => (
-            <PanelCard key={item.id} label={item.label} slotLabel={item.slotLabel} selected={surface === item.id} index={index} onClick={() => { setSurface(item.id as QuestsSubId); setMutationError(null); }} />
-          ))}
-        </div>
-      </PanelFrame>
+    <div className="lag-panel-rail relative" data-testid="journey-shell">
+      <PanelStage stageKey="journey-root">
+        <PanelFrame title="Journey" depth={2}>
+          <div className="grid gap-1">
+            {SUBMENUS_BY_MAIN.quests.map((item, index) => (
+              <PanelCard key={item.id} label={item.label} slotLabel={item.slotLabel} selected={surface === item.id} index={index} onClick={() => selectSurface(item.id as QuestsSubId)} />
+            ))}
+          </div>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title={SUBMENUS_BY_MAIN.quests.find((item) => item.id === surface)?.label ?? "Journey"} depth={1}>
-        {surface === "current" ? renderCurrentList() : surface === "catalog" ? renderCatalogList() : renderRouteList()}
-      </PanelFrame>
+      <AnimatePresence initial={false}>
+        {surface ? (
+          <PanelStage key={`journey-list-${surface}`} stageKey={`journey-list-${surface}`} index={1}>
+            <PanelFrame title={SUBMENUS_BY_MAIN.quests.find((item) => item.id === surface)?.label ?? "Journey"} depth={1}>
+              {surface === "current" ? renderCurrentList() : surface === "catalog" ? renderCatalogList() : renderRouteList()}
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
 
-      <PanelFrame title={surface === "current" ? selectedAcceptance?.title ?? "Quest Detail" : surface === "catalog" ? selectedBlueprint?.title ?? "Catalog Detail" : selectedRoute?.title ?? "Route Detail"} depth={0}>
-        {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
-      </PanelFrame>
+      <AnimatePresence initial={false} mode="popLayout">
+        {detailStageKey ? (
+          <PanelStage key={detailStageKey} stageKey={detailStageKey} index={2}>
+            <PanelFrame title={surface === "current" ? selectedAcceptance?.title ?? "Quest Detail" : surface === "catalog" ? selectedBlueprint?.title ?? "Catalog Detail" : selectedRoute?.title ?? "Route Detail"} depth={0}>
+              {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

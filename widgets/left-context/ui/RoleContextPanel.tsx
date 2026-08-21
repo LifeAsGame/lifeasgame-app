@@ -1,12 +1,11 @@
 "use client";
 
 import type { RoleDetail } from "@/shared/api/types";
-import { SAO } from "@/shared/design/tokens";
 
 const cellStyle = {
-  background: SAO.color.bg.inset,
-  border: `1px solid ${SAO.color.border.panel}`,
-  borderRadius: SAO.radius.panel,
+  background: "var(--lag-control-bg)",
+  border: "1px solid var(--lag-control-border)",
+  borderRadius: "var(--lag-radius-sm)",
 } as const;
 
 export function RoleBadges({ roles, selectedRoleId, onSelect }: { roles: RoleDetail[]; selectedRoleId?: number | null; onSelect?: (roleId: number) => void }) {
@@ -20,8 +19,9 @@ export function RoleBadges({ roles, selectedRoleId, onSelect }: { roles: RoleDet
           className="rounded-sm px-2.5 py-1.5 text-xs uppercase transition-opacity hover:opacity-80"
           style={{
             ...cellStyle,
-            borderColor: selectedRoleId === role.id ? SAO.color.border.gold : SAO.color.border.panel,
-            color: selectedRoleId === role.id ? SAO.color.action.gold : SAO.color.text.secondary,
+            background: selectedRoleId === role.id ? "var(--lag-selected-surface)" : "var(--lag-control-bg)",
+            borderColor: selectedRoleId === role.id ? "var(--lag-focus)" : "var(--lag-control-border)",
+            color: selectedRoleId === role.id ? "var(--lag-text)" : "var(--lag-text-2)",
             letterSpacing: "0.08em",
           }}
           onClick={() => onSelect?.(role.id)}
@@ -49,14 +49,14 @@ export function RoleContextPanel({
   return (
     <div className="relative z-10 overflow-y-auto p-7 scrollbar-hide" style={{ maxHeight: "100%" }}>
       <div className="text-center">
-        <p className="uppercase" style={{ fontSize: 11, letterSpacing: "0.24em", color: SAO.color.text.label }}>ROLE CONTEXT</p>
-        <h2 className="mt-2 text-2xl font-semibold" style={{ letterSpacing: "0.08em", color: SAO.color.text.primary }}>My Roles</h2>
+        <p className="uppercase" style={{ fontSize: 11, letterSpacing: "0.24em", color: "var(--lag-text-2)" }}>ROLE CONTEXT</p>
+        <h2 className="mt-2 text-2xl font-semibold" style={{ letterSpacing: "0.08em", color: "var(--lag-text)" }}>My Roles</h2>
       </div>
 
       <div className="mt-5">
-        {isLoading ? <p className="text-center text-sm" style={{ color: SAO.color.text.secondary }}>Loading Roles...</p> : null}
-        {error ? <p role="alert" className="text-center text-xs" style={{ color: SAO.color.action.red }}>{error}</p> : null}
-        {!isLoading && !error && roles.length === 0 ? <p className="text-center text-sm" style={{ color: SAO.color.text.secondary }}>No Roles yet.</p> : null}
+        {isLoading ? <p className="text-center text-sm" style={{ color: "var(--lag-text-2)" }}>Loading Roles...</p> : null}
+        {error ? <p role="alert" className="text-center text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
+        {!isLoading && !error && roles.length === 0 ? <p className="text-center text-sm" style={{ color: "var(--lag-text-2)" }}>No Roles yet.</p> : null}
         <RoleBadges roles={roles} selectedRoleId={selectedRoleId} onSelect={onRoleSelect} />
       </div>
     </div>

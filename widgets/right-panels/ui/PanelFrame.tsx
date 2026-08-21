@@ -2,7 +2,7 @@
 
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import EdgeFadeScrollArea from "@/shared/ui/EdgeFadeScrollArea";
-import { getFrameStyle, D, cellStyle } from "./styles";
+import { getFrameBackground, getFrameStyle, D, cellStyle } from "./styles";
 
 export function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -78,7 +78,7 @@ export function PanelFrame({
             <div style={{ flex: 1, height: "1px", background: "var(--lag-divider)" }} />
             <span aria-hidden style={{ color: "var(--lag-violet)", fontSize: "9px", flexShrink: 0 }}>◆</span>
             <h3
-              className="flex-shrink-0 font-semibold uppercase"
+              className="lag-panel-title font-semibold uppercase"
               style={{ fontSize: "0.9rem", letterSpacing: "0.20em", color: D.text }}
             >
               {title}
@@ -91,12 +91,12 @@ export function PanelFrame({
 
       <EdgeFadeScrollArea
         data-no-pan
-        className="scrollbar-hide"
+        className="lag-panel-body scrollbar-hide"
         centerTargetSelector='[data-scroll-center-target="true"]'
         centerTargetKey={centerTargetKey ?? null}
         resetScrollKey={resetScrollKey ?? null}
         centerBehavior={centerBehavior}
-        fadeColor="var(--lag-panel)"
+        fadeColor={getFrameBackground(depth)}
         style={
           fixedScrollHeight
             ? {

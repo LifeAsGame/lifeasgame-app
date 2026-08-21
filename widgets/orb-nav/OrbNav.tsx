@@ -194,7 +194,6 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
                       paddingBlock: labelPaddingY,
                       color: selected ? "var(--lag-text)" : "var(--lag-meta)",
                       textShadow: selected ? "0 0 10px color-mix(in srgb, var(--lag-focus) 35%, transparent)" : "none",
-                      transition: "color var(--lag-motion-normal) ease",
                     }}
                   >
                     {item.label}

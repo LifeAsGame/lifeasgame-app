@@ -218,7 +218,7 @@ export default function PanelCard({
         <div
           className="absolute inset-0 flex items-center justify-end"
           style={{
-            background: `rgba(244,63,94,${0.82 + swipeDeleteProgress * 0.18})`,
+            background: `color-mix(in srgb, var(--lag-state-error) ${82 + swipeDeleteProgress * 18}%, transparent)`,
             paddingRight: 20,
           }}
           aria-hidden
@@ -282,15 +282,15 @@ export default function PanelCard({
             background: showActions
               ? "var(--lag-personal)"
               : selected
-              ? "color-mix(in srgb, var(--lag-state-selected) 10%, var(--lag-panel))"
-              : "var(--lag-paper)",
+              ? "var(--lag-selected-surface)"
+              : "var(--lag-control-bg)",
             borderColor: showActions
               ? "var(--lag-focus)"
               : isLongPressing
               ? "var(--lag-focus)"
               : selected
               ? "var(--lag-state-selected)"
-              : "var(--lag-divider)",
+              : "var(--lag-control-border)",
             boxShadow: selected
               ? "0 0 0 1px var(--lag-state-selected)"
               : isLongPressing
@@ -376,15 +376,15 @@ export default function PanelCard({
               className="absolute inset-0 z-[400001] flex items-center justify-end gap-2 overflow-hidden border"
               style={{
                 borderRadius: "9px",
-                background: "linear-gradient(180deg, rgba(22,18,10,0.98), rgba(16,13,7,0.97))",
-                borderColor: `rgba(218,178,55,0.58)`,
-                boxShadow: "inset 0 0 0 1px rgba(218,178,55,0.06), 0 0 20px rgba(212,168,37,0.08)",
+                background: "var(--lag-raised-surface)",
+                borderColor: "var(--lag-focus)",
+                boxShadow: "0 0 20px color-mix(in srgb, var(--lag-shadow) 20%, transparent)",
                 paddingInline: 12,
               }}
             >
               <span
                 className="mr-auto uppercase"
-                style={{ fontSize: "10px", letterSpacing: "0.2em", color: "rgba(148,135,98,0.72)" }}
+                style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}
               >
                 Action
               </span>

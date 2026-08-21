@@ -58,7 +58,7 @@ export function IconSlot({
               display: "block",
               opacity: active ? 1 : 0.72,
               filter: active
-                ? "drop-shadow(0 0 4px rgba(244,197,79,0.4))"
+                ? "drop-shadow(0 0 4px var(--lag-focus))"
                 : "brightness(1.1)",
             }}
             onError={(e) => {

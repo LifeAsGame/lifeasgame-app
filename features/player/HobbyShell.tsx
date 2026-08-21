@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import type { HobbyStatus, PlayerHobbyMutationRequest } from "@/shared/api/types";
 import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useHobbyQueries } from "./useHobbyQueries";
@@ -47,8 +49,9 @@ export default function HobbyShell() {
   const selected = hobbies.selected;
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="hobby-shell">
-      <PanelFrame title="Hobby Catalog" depth={2}>
+    <div className="lag-panel-rail relative" data-testid="hobby-shell">
+      <PanelStage stageKey="player-hobby-catalog">
+        <PanelFrame title="Hobby Catalog" depth={2}>
         <div className="space-y-3 px-3">
           {hobbies.catalog.loading && hobbies.catalog.items.length === 0 ? <InfoCard>Loading Hobby catalog...</InfoCard> : null}
           {hobbies.catalog.error ? <ErrorState message={hobbies.catalog.error} retry={() => void hobbies.catalog.retry()} /> : null}
@@ -69,9 +72,11 @@ export default function HobbyShell() {
             </form>
           ) : null}
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="My Hobbies" depth={1}>
+      <PanelStage stageKey="player-hobby-list" index={1}>
+        <PanelFrame title="My Hobbies" depth={1}>
         <div className="space-y-3">
           {hobbies.owned.loading && hobbies.owned.items.length === 0 ? <InfoCard>Loading Hobbies...</InfoCard> : null}
           {hobbies.owned.error ? <ErrorState message={hobbies.owned.error} retry={() => void hobbies.owned.reload()} /> : null}
@@ -79,11 +84,14 @@ export default function HobbyShell() {
           {hobbies.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: SAO.color.action.red }}>{hobbies.mutationError}</p> : null}
           <div className="space-y-2">{hobbies.owned.items.map((item, index) => <PanelCard key={item.hobbyId} label={item.customName} slotLabel={item.category.slice(0, 2).toUpperCase()} subtitle={`${item.name} · ${item.status} · ${item.proficiency}/100`} selected={hobbies.selectedId === item.hobbyId} index={index} onClick={() => hobbies.select(item.hobbyId)} />)}</div>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Hobby Detail" depth={0}>
-        {!selected ? <InfoCard>Select an owned Hobby.</InfoCard> : (
-          <div className="space-y-3 px-3">
+      <AnimatePresence initial={false} mode="popLayout">
+        {selected ? (
+          <PanelStage key={`player-hobby-detail-${selected.hobbyId}`} stageKey={`player-hobby-detail-${selected.hobbyId}`} index={2}>
+            <PanelFrame title="Hobby Detail" depth={0}>
+              <div className="space-y-3 px-3">
             <InfoCard>{selected.customName}</InfoCard>
             <GoldRow>Hobby: {selected.name}</GoldRow><GoldRow>Category: {selected.category}</GoldRow><GoldRow>Status: {selected.status}</GoldRow><GoldRow>Proficiency: {selected.proficiency}/100</GoldRow><GoldRow>Started: {selected.startedOn ?? "Not recorded"}</GoldRow><GoldRow>XP: {selected.xp}</GoldRow><InfoCard label="Detail">{selected.detail ?? "Not recorded"}</InfoCard>
             <form key={selected.hobbyId} className="space-y-2" onSubmit={(event) => { event.preventDefault(); void hobbies.update(selected.hobbyId, fields(new FormData(event.currentTarget))); }}>
@@ -95,9 +103,11 @@ export default function HobbyShell() {
               <p className="text-xs" style={{ color: SAO.color.text.label }}>Blank fields preserve current values; fields cannot be cleared.</p>
               <div className="flex gap-2"><button type="submit" disabled={pending} style={{ ...buttonStyle, flex: 1 }}>{pending ? "Working..." : "Update Hobby"}</button><button type="button" disabled={pending} style={buttonStyle} onClick={() => { if (window.confirm(`Delete ${selected.customName}?`)) void hobbies.remove(selected.hobbyId); }}>Delete</button></div>
             </form>
-          </div>
-        )}
-      </PanelFrame>
+              </div>
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

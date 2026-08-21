@@ -116,6 +116,22 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     });
   });
 
+  describe("Journey main navigation으로 직접 진입하면", () => {
+    it("root stage만 열고 subsection과 detail은 선택 전까지 만들지 않는다", async () => {
+      render(<JourneyShell initialSurface={null} />);
+
+      expect(screen.getByRole("button", { name: /Current/ })).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-root"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key^="journey-list-"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key*="detail-"]')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /Current/ }));
+      expect(await screen.findByText(/In Progress · 1\/3/)).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-list-current"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key*="detail-"]')).not.toBeInTheDocument();
+    });
+  });
+
   describe("Current Quest의 상태와 next action을 확인하면", () => {
     it("IN_PROGRESS/GOAL_REACHED/COMPLETED/CANCELED를 구분하고 Party/Guild surface나 reward claim을 노출하지 않는다", async () => {
       render(<JourneyShell />);
@@ -196,7 +212,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
         stale.reject(new Error("stale Quest failure"));
         await stale.promise.catch(() => undefined);
       });
-      expect(screen.getByText("Loading Quest detail...")).toBeInTheDocument();
+      expect(screen.getAllByText("Loading Quest detail...").length).toBeGreaterThan(0);
       expect(screen.queryByText("stale Quest failure")).not.toBeInTheDocument();
 
       await act(async () => {
@@ -238,7 +254,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
 
       await waitFor(() => expect(api.acceptQuestApi).toHaveBeenCalledTimes(1));
       expect(await screen.findByText(/Request outcome was not confirmed/)).toBeInTheDocument();
-      expect(screen.getByText("Acceptance: In Progress")).toBeInTheDocument();
+      expect(screen.getAllByText("Acceptance: In Progress").length).toBeGreaterThan(0);
       expect(screen.queryByRole("button", { name: "Accept Quest" })).not.toBeInTheDocument();
     });
   });
@@ -311,6 +327,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
 
       expect(await screen.findByText("Current Step Detail: 첫 흔적 남기기 · READY_TO_ADVANCE")).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key^="journey-route-detail-"] .lag-panel-body')).toHaveClass("lag-panel-body");
       expect(api.getMyQuestRouteApi).toHaveBeenCalledWith(selectedRoute.id);
       expect(api.getQuestRouteApi).not.toHaveBeenCalled();
     });
