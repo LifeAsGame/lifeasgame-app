@@ -4,7 +4,6 @@ import { useState } from "react";
 
 import { useToast } from "@/context/ToastContext";
 import type { GraphicsQuality, InputPreset, SettingsView, ThemePreference, UiScale, VoiceChatMode } from "@/shared/api/types";
-import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
@@ -12,22 +11,21 @@ import { SYSTEM_OPTIONS_FORM_FIELDS } from "../model";
 import { useSettings } from "./useSettings";
 
 const secondaryButton = {
-  border: `1px solid ${SAO.color.border.panel}`,
-  background: SAO.color.bg.inset,
-  color: SAO.color.text.secondary,
-  borderRadius: SAO.radius.panel,
   padding: "7px 10px",
   fontSize: "0.68rem",
   letterSpacing: "0.08em",
 } as const;
 
-const fieldLabel = {
-  display: "block",
-  fontSize: "0.62rem",
-  letterSpacing: "0.14em",
-  color: SAO.color.text.label,
-  textTransform: "uppercase",
-} as const;
+const THEME_OPTIONS: Array<{
+  value: ThemePreference;
+  title: string;
+  description: string;
+  previewTheme?: "astral" | "warm-beige";
+}> = [
+  { value: "ASTRAL", title: "Astral Neutral", description: "Dark · spatial · focused", previewTheme: "astral" },
+  { value: "WARM_BEIGE", title: "Warm Beige / Analog Spatial", description: "Analog · calm · archive", previewTheme: "warm-beige" },
+  { value: "SYSTEM", title: "System follow", description: "Dark OS → Astral · Light OS → Warm Beige" },
+];
 
 const UI_SCALES = [75, 100, 125, 150] as const;
 const isUiScale = (value: number): value is UiScale => UI_SCALES.some((scale) => scale === value);
@@ -85,34 +83,53 @@ export default function SettingsShell() {
   };
 
   return (
-    <PanelFrame title="System Options" depth={1}>
-      <div className="space-y-3 px-3" data-testid="settings-shell">
+    <div className="lag-settings-shell">
+      <PanelFrame title="Settings" depth={1}>
+        <div className="space-y-3 px-3" data-testid="settings-shell">
         {settings.loading && !settings.canonical ? <InfoCard>Loading Settings...</InfoCard> : null}
         {settings.error ? (
           <div className="space-y-2">
-            <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{settings.error}</p>
-            <button type="button" style={secondaryButton} onClick={() => void settings.retry()}>Retry</button>
+            <p role="alert" className="lag-state-error text-xs">{settings.error}</p>
+            <button type="button" className="lag-button-secondary" style={secondaryButton} onClick={() => void settings.retry()}>Retry</button>
           </div>
         ) : null}
 
         {!settings.error && settings.canonical ? (
-          <section aria-label="Appearance">
-            <label style={fieldLabel}>
-              Theme
-              <select
-                aria-label="Theme"
-                value={settings.themePreference}
-                disabled={settings.themeSaving || settings.saving}
-                onChange={(event) => { if (isThemePreference(event.target.value)) void settings.setThemePreference(event.target.value); }}
-                style={INPUT_STYLE}
-              >
-                <option value="SYSTEM">System</option>
-                <option value="ASTRAL">Astral</option>
-                <option value="WARM_BEIGE">Warm Beige</option>
-              </select>
-            </label>
-            {settings.themeSaveError ? <p role="alert" className="mt-1 text-xs" style={{ color: SAO.color.action.red }}>{settings.themeSaveError}</p> : null}
-          </section>
+          <fieldset aria-label="Appearance" className="space-y-3">
+            <legend className="lag-settings-label">Theme</legend>
+            <div className="lag-theme-preview" aria-live="polite">
+              <div className="text-center">
+                <strong className="block text-sm">Immediate preview</strong>
+                <span className="lag-text-meta mt-1 block text-xs">{settings.themePreference.replace("_", " ")}</span>
+              </div>
+            </div>
+            <div className="lag-theme-picker">
+              {THEME_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className={`lag-theme-option${option.value === "SYSTEM" ? " lag-theme-option-system" : ""}`}
+                  data-lag-preview-theme={option.previewTheme}
+                >
+                  <input
+                    type="radio"
+                    name="themePreference"
+                    value={option.value}
+                    checked={settings.themePreference === option.value}
+                    disabled={settings.themeSaving || settings.saving}
+                    onChange={(event) => { if (isThemePreference(event.target.value)) void settings.setThemePreference(event.target.value); }}
+                  />
+                  <strong className="text-sm">{option.title}</strong>
+                  <span className="lag-text-meta text-xs">{option.description}</span>
+                  {option.previewTheme ? (
+                    <span className="lag-theme-swatches" aria-hidden>
+                      {Array.from({ length: 5 }, (_, index) => <span key={index} className="lag-theme-swatch" />)}
+                    </span>
+                  ) : null}
+                </label>
+              ))}
+            </div>
+            {settings.themeSaveError ? <p role="alert" className="lag-state-error mt-1 text-xs">{settings.themeSaveError}</p> : null}
+          </fieldset>
         ) : null}
 
         {!settings.error && settings.canonical && !editing ? (
@@ -121,17 +138,17 @@ export default function SettingsShell() {
             <div className="space-y-1.5">
               {summaryRows(settings.canonical.view).map((row) => <GoldRow key={row}>{row}</GoldRow>)}
             </div>
-            <button type="button" style={actionBtnStyle} onClick={() => setEditing(true)}>설정 편집</button>
+            <button type="button" className="lag-button-primary" style={actionBtnStyle} onClick={() => setEditing(true)}>설정 편집</button>
           </>
         ) : null}
 
         {!settings.error && editing && draft ? (
           <form className="space-y-3" onSubmit={submit}>
             {SYSTEM_OPTIONS_FORM_FIELDS.map((field) => (
-              <label key={field.key} style={fieldLabel}>
+              <label key={field.key} className="lag-settings-label block">
                 {field.label}
                 {field.type === "select" ? (
-                  <select title={field.label} value={String(draft[field.key as keyof SettingsView])} onChange={(event) => change(field.key, event.target.value)} style={INPUT_STYLE}>
+                  <select className="lag-settings-control mt-1" title={field.label} value={String(draft[field.key as keyof SettingsView])} onChange={(event) => change(field.key, event.target.value)}>
                     {field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
                 ) : (
@@ -143,19 +160,20 @@ export default function SettingsShell() {
                     step={1}
                     value={draft.volume}
                     onChange={(event) => change(field.key, event.target.value)}
-                    style={INPUT_STYLE}
+                    className="lag-settings-control mt-1"
                   />
                 )}
               </label>
             ))}
-            {settings.saveError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{settings.saveError}</p> : null}
+            {settings.saveError ? <p role="alert" className="lag-state-error text-xs">{settings.saveError}</p> : null}
             <div className="flex gap-2">
-              <button type="submit" disabled={!settings.dirty || settings.saving || settings.themeSaving} style={{ ...actionBtnStyle, flex: 1 }}>{settings.saving ? "Saving..." : "Save Settings"}</button>
-              <button type="button" disabled={settings.saving || settings.themeSaving} style={secondaryButton} onClick={() => { settings.cancel(); setEditing(false); }}>Cancel</button>
+              <button type="submit" className="lag-button-primary" disabled={!settings.dirty || settings.saving || settings.themeSaving} style={{ ...actionBtnStyle, flex: 1 }}>{settings.saving ? "Saving..." : "Save Settings"}</button>
+              <button type="button" className="lag-button-secondary" disabled={settings.saving || settings.themeSaving} style={secondaryButton} onClick={() => { settings.cancel(); setEditing(false); }}>Cancel</button>
             </div>
           </form>
         ) : null}
-      </div>
-    </PanelFrame>
+        </div>
+      </PanelFrame>
+    </div>
   );
 }

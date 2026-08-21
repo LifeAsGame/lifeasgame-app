@@ -5,16 +5,13 @@ import { D } from "./styles";
 export function GoldRow({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="flex min-h-[38px] items-center gap-2.5"
+      className="lag-row flex min-h-[38px] items-center gap-2.5"
       style={{
-        background: "rgba(218,178,55,0.08)",
-        border: "1px solid rgba(200,165,50,0.30)",
-        borderRadius: "20px",
         paddingInline: "16px",
         paddingBlock: "8px",
       }}
     >
-      <span aria-hidden style={{ color: "rgba(218,178,55,0.70)", fontSize: "9px", flexShrink: 0 }}>◆</span>
+      <span aria-hidden style={{ color: "var(--lag-violet)", fontSize: "9px", flexShrink: 0 }}>◆</span>
       <span className="break-words text-sm" style={{ letterSpacing: "0.06em", color: D.text }}>
         {children}
       </span>
@@ -25,10 +22,8 @@ export function GoldRow({ children }: { children: React.ReactNode }) {
 export function InfoCard({ label, children }: { label?: string; children: React.ReactNode }) {
   return (
     <div
+      className="lag-info-card"
       style={{
-        background: "rgba(218,178,55,0.06)",
-        border: "1px solid rgba(200,165,50,0.25)",
-        borderRadius: "12px",
         paddingInline: "16px",
         paddingBlock: "12px",
       }}

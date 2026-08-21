@@ -268,37 +268,35 @@ export default function PanelCard({
           onPointerLeave={(hasActions || hasDelete || onDoubleClick) ? handlePointerLeave : undefined}
           onPointerCancel={(hasActions || hasDelete || onDoubleClick) ? handlePointerCancel : undefined}
           whileTap={isInteractive ? { scale: 0.97 } : undefined}
+          aria-pressed={selected}
           transition={{ type: "spring", stiffness: 480, damping: 28 }}
           className={[
             "group relative flex w-full items-center gap-4 overflow-hidden",
             "border text-left",
-            "sao-card-shimmer",
+            "lag-panel-card sao-card-shimmer",
             isInteractive || hasActions || onDoubleClick ? "cursor-pointer" : "cursor-default",
           ].join(" ")}
           style={{
             height: UI_CONSTS.rightPanels.rowHeight,
-            borderRadius: "9px",
+            borderRadius: "var(--lag-radius-sm)",
             background: showActions
-              ? `rgba(30,25,12,0.97)`
+              ? "var(--lag-personal)"
               : selected
-              ? "linear-gradient(165deg, rgba(32,26,10,0.97), rgba(26,20,8,0.96))"
-              : "linear-gradient(165deg, rgba(18,15,10,0.95), rgba(14,12,8,0.93))",
+              ? "color-mix(in srgb, var(--lag-state-selected) 10%, var(--lag-panel))"
+              : "var(--lag-paper)",
             borderColor: showActions
-              ? `rgba(225,185,60,0.72)`
+              ? "var(--lag-focus)"
               : isLongPressing
-              ? `rgba(218,178,55,0.68)`
+              ? "var(--lag-focus)"
               : selected
-              ? "rgba(218,178,55,0.62)"
-              : "rgba(200,165,50,0.24)",
+              ? "var(--lag-state-selected)"
+              : "var(--lag-divider)",
             boxShadow: selected
-              ? [
-                  "inset 0 0 0 1px rgba(218,178,55,0.12)",
-                  "0 0 22px rgba(212,168,37,0.14)",
-                ].join(", ")
+              ? "0 0 0 1px var(--lag-state-selected)"
               : isLongPressing
-              ? `inset 0 0 0 1px rgba(218,178,55,0.18), 0 0 14px rgba(212,168,37,0.12)`
-              : `inset 0 0 0 1px rgba(218,178,55,0.04)`,
-            transition: "border-color 0.5s ease, background 0.3s ease, box-shadow 0.4s ease",
+              ? "0 0 0 2px color-mix(in srgb, var(--lag-focus) 30%, transparent)"
+              : "none",
+            transition: "border-color var(--lag-motion-normal) ease, background-color var(--lag-motion-normal) ease, box-shadow var(--lag-motion-normal) ease",
           }}
         >
           <div
@@ -306,14 +304,14 @@ export default function PanelCard({
             style={{
               borderRadius: "0 3px 3px 0",
               background: selected
-                ? "linear-gradient(180deg, rgba(255,232,120,0.98), rgba(212,168,30,0.96))"
+                ? "var(--lag-state-selected)"
                 : showActions
-                ? "rgba(218,178,55,0.70)"
-                : "rgba(200,165,50,0.28)",
+                ? "var(--lag-focus)"
+                : "var(--lag-divider)",
               boxShadow: selected
-                ? "0 0 12px rgba(212,168,37,0.60), inset 0 1px 0 rgba(255,248,180,0.55)"
+                ? "0 0 8px color-mix(in srgb, var(--lag-state-selected) 50%, transparent)"
                 : showActions
-                ? "0 0 8px rgba(218,178,55,0.40)"
+                ? "0 0 8px color-mix(in srgb, var(--lag-focus) 40%, transparent)"
                 : "none",
             }}
           />
@@ -330,7 +328,7 @@ export default function PanelCard({
             <p
               className="break-words font-semibold uppercase tracking-[0.08em]"
               style={{
-                color: selected ? "rgba(242,222,158,0.98)" : "rgba(225,208,162,0.90)",
+                color: selected ? "var(--lag-text)" : "var(--lag-text-2)",
                 fontSize: compact ? "0.9rem" : "1.1rem",
                 lineHeight: compact ? 1.2 : 1.15,
                 display: "-webkit-box",
@@ -345,7 +343,7 @@ export default function PanelCard({
               <p
                 className="mt-1 break-words text-sm tracking-[0.08em]"
                 style={{
-                  color: rarityColor(subtitle) ?? (selected ? "rgba(195,172,112,0.85)" : "rgba(162,148,108,0.78)"),
+                  color: rarityColor(subtitle) ?? (selected ? "var(--lag-text-2)" : "var(--lag-meta)"),
                   display: "-webkit-box",
                   WebkitLineClamp: compact ? 1 : 2,
                   WebkitBoxOrient: "vertical",

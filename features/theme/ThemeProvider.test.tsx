@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -50,6 +51,21 @@ describe("dual theme runtime", () => {
     expect(resolveTheme("WARM_BEIGE", true)).toBe("warm-beige");
     expect(resolveTheme("FUTURE_THEME", true)).toBe("warm-beige");
     expect(readStoredThemePreference({ getItem: () => "FUTURE_THEME" })).toBe("WARM_BEIGE");
+  });
+
+  it("exposes the approved representative tokens on the existing runtime selectors", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+
+    expect(css).toContain(':root[data-theme="warm-beige"]');
+    expect(css).toContain("--lag-ambient: #EDE6DA;");
+    expect(css).toContain("--lag-panel: #FBF7F0;");
+    expect(css).toContain("--lag-focus: #5B9295;");
+    expect(css).toContain(':root[data-theme="astral"]');
+    expect(css).toContain("--lag-ambient: #07111F;");
+    expect(css).toContain("--lag-panel: #162337;");
+    expect(css).toContain("--lag-focus: #54D4DE;");
+    expect(css).not.toContain('data-theme="beige"');
+    expect(css).not.toContain('data-theme="warm_beige"');
   });
 
   it("bootstraps local preference, follows OS only for SYSTEM, persists, and never remounts child state", async () => {
