@@ -45,7 +45,7 @@ function NotificationRow({ notification, pending, onMarkRead }: {
         background: notification.read ? "transparent" : "rgba(218,178,55,0.04)",
       }}
     >
-      <span aria-label={meta.label} title={meta.label} style={{ width: 22, height: 22, borderRadius: "50%", border: `1.5px solid ${meta.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: meta.color, flexShrink: 0, marginTop: 1 }}>{meta.icon}</span>
+      <span role="img" aria-label={meta.label} title={meta.label} style={{ width: 22, height: 22, borderRadius: "50%", border: `1.5px solid ${meta.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: meta.color, flexShrink: 0, marginTop: 1 }}>{meta.icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong style={{ display: "block", fontSize: 11, fontWeight: notification.read ? 400 : 600, color: notification.read ? "rgba(185,172,140,0.75)" : "rgba(235,218,175,0.95)", lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis" }}>{notification.title}</strong>
         <p style={{ fontSize: 10, color: "rgba(160,148,115,0.7)", marginTop: 2, lineHeight: 1.3 }}>{notification.body}</p>

@@ -48,7 +48,7 @@ describe("NotificationBell canonical surface", () => {
     expect(screen.queryByText(/전체 삭제|clear|delete/i)).not.toBeInTheDocument();
     expect(screen.getByText("Future title")).toBeInTheDocument();
     expect(screen.getByText("Future body")).toBeInTheDocument();
-    expect(screen.getByLabelText("Notification")).toHaveTextContent("!");
+    expect(screen.getByRole("img", { name: "Notification" })).toHaveTextContent("!");
 
     fireEvent.click(screen.getByRole("button", { name: "Mark read" }));
     expect(state.markRead).toHaveBeenCalledWith(2);
