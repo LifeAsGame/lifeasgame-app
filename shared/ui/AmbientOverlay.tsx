@@ -98,7 +98,7 @@ export default function AmbientOverlay() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-0"
+      className="lag-ambient-overlay pointer-events-none fixed inset-0"
       style={{ zIndex: 8000 }}
       aria-hidden
     >

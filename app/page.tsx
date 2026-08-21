@@ -753,27 +753,10 @@ export default function Home() {
   return (
     <div
       ref={viewportRef}
-      className="h-screen overflow-auto"
-      style={{
-        /* SAO 가상공간 배경 — 파란 격자 + 방사형 빛 + 깊이감 */
-        background: [
-          /* 파란 격자 — 홀로그램 바닥 */
-          "linear-gradient(rgba(82,127,214,0.042) 1px, transparent 1px)",
-          "linear-gradient(90deg, rgba(82,127,214,0.042) 1px, transparent 1px)",
-          /* 좌상단 파란 빛 */
-          "radial-gradient(ellipse at 16% 22%, rgba(82,127,214,0.22) 0%, transparent 48%)",
-          /* 우상단 골드 빛 */
-          "radial-gradient(ellipse at 84% 14%, rgba(247,191,78,0.09) 0%, transparent 38%)",
-          /* 중앙 하단 보조 파란 빛 */
-          "radial-gradient(ellipse at 50% 88%, rgba(60,100,200,0.10) 0%, transparent 44%)",
-          /* 기본 다크 그라데이션 */
-          "linear-gradient(180deg, #06080d 0%, #08090f 40%, #090b11 100%)",
-        ].join(", "),
-        backgroundSize: "44px 44px, 44px 44px, 100% 100%, 100% 100%, 100% 100%, 100% 100%",
-      }}
+      className="lag-app-surface h-screen overflow-auto"
     >
       <main
-        className="mx-auto flex w-full min-w-max items-center"
+        className="lag-app-shell mx-auto flex w-full min-w-max items-center"
         style={{
           minHeight: "100vh",
           gap: UI_CONSTS.layout.columnGap,
@@ -798,8 +781,8 @@ export default function Home() {
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
 
-        <div className="shrink-0" style={{ width: UI_CONSTS.layout.centerWidth, position: "relative" }}>
-          <div className="flex items-center gap-2" style={{ position: "absolute", top: 0, right: -14, zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
+        <div className="lag-orb-column shrink-0" style={{ width: UI_CONSTS.layout.centerWidth, position: "relative" }}>
+          <div className="lag-utility-cluster flex items-center gap-2" style={{ position: "absolute", top: 0, right: -14, zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
             <SocialUtilityHub />
             <NotificationBell />
           </div>
@@ -812,7 +795,7 @@ export default function Home() {
           />
         </div>
 
-        <div className="scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
+        <div className="lag-workspace scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
           {selectedMain === null ? (
             <HomeShell
               onOpenJournal={() => {
@@ -944,7 +927,7 @@ export default function Home() {
               <MediaShell />
             </div>
           ) : selectedMain === "system" && selectedSubByMain.system === "options" ? (
-            <div className="flex w-fit items-center gap-3">
+            <div className="lag-settings-route flex w-fit items-center gap-3">
               <RightPanels selectedMain="system" panelStack={panelStack.slice(0, 1)} panelStackKey="system-settings-menu" onPanelItemSelect={handlePanelItemSelect} />
               <SettingsShell />
             </div>

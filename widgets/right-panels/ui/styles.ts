@@ -2,38 +2,37 @@ import { GOLD_BTN_STYLE, SAO_ICON } from "@/shared/design/tokens";
 import type { MainNavId } from "@/entities/nav";
 
 export function getFrameStyle(depth: number) {
-  const baseR = depth === 0 ? "16,14,10" : depth === 1 ? "14,12,9" : "12,10,7";
-  const bgA   = depth === 0 ? 0.97 : depth === 1 ? 0.94 : 0.91;
-  const borderA = depth === 0 ? 0.42 : depth === 1 ? 0.30 : 0.22;
+  const background = depth === 0 ? "var(--lag-panel)" : depth === 1 ? "var(--lag-panel-2)" : "var(--lag-personal)";
 
   return {
-    background: `linear-gradient(155deg, rgba(${baseR},${bgA}), rgba(${baseR},${bgA - 0.02}))`,
-    border: `1px solid rgba(200,165,50,${borderA})`,
-    boxShadow: [
-      `inset 0 0 0 1px rgba(218,178,55,0.06)`,
-      `0 0 0 1px rgba(0,0,0,0.35)`,
-      `0 22px 55px rgba(0,0,0,0.80)`,
-    ].join(", "),
-    borderRadius: "6px",
+    background,
+    border: "1px solid var(--lag-border)",
+    boxShadow: "0 18px 40px color-mix(in srgb, var(--lag-shadow) 24%, transparent)",
+    borderRadius: "var(--lag-radius-md)",
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
   };
 }
 
 export const D = {
-  text:    "rgba(235,218,175,0.96)",
-  textSub: "rgba(185,170,132,0.88)",
-  label:   "rgba(148,135,98,0.80)",
+  text:    "var(--lag-text)",
+  textSub: "var(--lag-text-2)",
+  label:   "var(--lag-text-2)",
 } as const;
 
 export const cellStyle = {
-  background: "rgba(218,178,55,0.07)",
-  border: "1px solid rgba(200,165,50,0.28)",
-  borderRadius: "18px",
+  background: "var(--lag-paper)",
+  border: "1px solid var(--lag-border)",
+  borderRadius: "var(--lag-radius-sm)",
 } as const;
 
 export const actionBtnStyle = {
   ...GOLD_BTN_STYLE,
+  background: "var(--lag-panel-2)",
+  color: "var(--lag-text)",
+  border: "1px solid var(--lag-focus)",
+  borderRadius: "var(--lag-radius-sm)",
+  boxShadow: "none",
   padding: "8px 12px",
   fontSize: "0.7rem",
   width: "100%",
