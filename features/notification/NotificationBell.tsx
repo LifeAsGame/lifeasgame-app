@@ -6,15 +6,20 @@ import { useEffect, useRef, useState } from "react";
 import type { NotificationInfo, NotificationType } from "@/shared/api/types";
 import { useNotifications } from "./useNotifications";
 
-const TYPE_META: Record<NotificationType, { color: string; icon: string }> = {
-  MAIL_RECEIVED: { color: "rgba(74,158,255,0.85)", icon: "✉" },
-  QUEST_PROGRESS: { color: "rgba(218,178,55,0.9)", icon: "⚔" },
-  QUEST_COMPLETED: { color: "rgba(218,178,55,0.9)", icon: "✓" },
-  QUEST_REWARD_READY: { color: "rgba(248,197,78,1)", icon: "★" },
-  LISTING_SOLD: { color: "rgba(74,222,128,0.85)", icon: "◆" },
-  ACHIEVEMENT_UNLOCK: { color: "rgba(248,197,78,1)", icon: "★" },
-  SYSTEM_NOTICE: { color: "rgba(160,160,180,0.6)", icon: "!" },
+const TYPE_META: Record<NotificationType, { color: string; icon: string; label: string }> = {
+  MAIL_RECEIVED: { color: "rgba(74,158,255,0.85)", icon: "✉", label: "Mail received" },
+  QUEST_PROGRESS: { color: "rgba(218,178,55,0.9)", icon: "⚔", label: "Quest progress" },
+  QUEST_COMPLETED: { color: "rgba(218,178,55,0.9)", icon: "✓", label: "Quest completed" },
+  QUEST_REWARD_READY: { color: "rgba(248,197,78,1)", icon: "★", label: "Quest reward ready" },
+  LISTING_SOLD: { color: "rgba(74,222,128,0.85)", icon: "◆", label: "Listing sold" },
+  ACHIEVEMENT_UNLOCK: { color: "rgba(248,197,78,1)", icon: "★", label: "Achievement unlocked" },
+  SYSTEM_NOTICE: { color: "rgba(160,160,180,0.6)", icon: "!", label: "System notice" },
 };
+const UNKNOWN_TYPE_META = { color: "rgba(160,160,180,0.6)", icon: "!", label: "Notification" };
+
+function isKnownNotificationType(type: string): type is NotificationType {
+  return Object.prototype.hasOwnProperty.call(TYPE_META, type);
+}
 
 export function NotificationTimestamp({ occurredAt }: { occurredAt: string }) {
   const label = occurredAt.replace("T", " ").replace(/:\d{2}(?:\.\d+)?Z$/, " UTC");
@@ -26,7 +31,7 @@ function NotificationRow({ notification, pending, onMarkRead }: {
   pending: boolean;
   onMarkRead: (id: number) => void;
 }) {
-  const meta = TYPE_META[notification.type];
+  const meta = isKnownNotificationType(notification.type) ? TYPE_META[notification.type] : UNKNOWN_TYPE_META;
   return (
     <motion.article
       initial={{ opacity: 0, x: -6 }}
@@ -40,7 +45,7 @@ function NotificationRow({ notification, pending, onMarkRead }: {
         background: notification.read ? "transparent" : "rgba(218,178,55,0.04)",
       }}
     >
-      <span style={{ width: 22, height: 22, borderRadius: "50%", border: `1.5px solid ${meta.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: meta.color, flexShrink: 0, marginTop: 1 }}>{meta.icon}</span>
+      <span aria-label={meta.label} title={meta.label} style={{ width: 22, height: 22, borderRadius: "50%", border: `1.5px solid ${meta.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: meta.color, flexShrink: 0, marginTop: 1 }}>{meta.icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong style={{ display: "block", fontSize: 11, fontWeight: notification.read ? 400 : 600, color: notification.read ? "rgba(185,172,140,0.75)" : "rgba(235,218,175,0.95)", lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis" }}>{notification.title}</strong>
         <p style={{ fontSize: 10, color: "rgba(160,148,115,0.7)", marginTop: 2, lineHeight: 1.3 }}>{notification.body}</p>
