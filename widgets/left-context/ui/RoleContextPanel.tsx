@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import type { RoleDetail } from "@/shared/api/types";
 
 const cellStyle = {
@@ -39,26 +41,48 @@ export function RoleContextPanel({
   isLoading,
   error,
   onRoleSelect,
+  onRetry,
 }: {
   roles: RoleDetail[];
   selectedRoleId: number | null;
   isLoading?: boolean;
   error?: string | null;
   onRoleSelect?: (roleId: number) => void;
+  onRetry?: () => void;
 }) {
   return (
-    <div className="relative p-7">
-      <div className="text-center">
-        <p className="uppercase" style={{ fontSize: 11, letterSpacing: "0.24em", color: "var(--lag-text-2)" }}>ROLE CONTEXT</p>
-        <h2 className="mt-2 text-2xl font-semibold" style={{ letterSpacing: "0.08em", color: "var(--lag-text)" }}>My Roles</h2>
+    <section className="lag-role-selector" data-role-selector aria-labelledby="role-selector-title">
+      <header>
+        <p>Role context</p>
+        <h2 id="role-selector-title">Role Nodes</h2>
+        <span>Select one Role before choosing a deeper surface.</span>
+      </header>
+
+      <div className="lag-role-selector-state">
+        {isLoading ? <p role="status">Loading Roles...</p> : null}
+        {error ? (
+          <div>
+            <p role="alert">{error}</p>
+            {onRetry ? <button type="button" className="lag-role-button" onClick={onRetry}>Retry</button> : null}
+          </div>
+        ) : null}
+        {!isLoading && !error && roles.length === 0 ? <p>No Roles yet.</p> : null}
       </div>
 
-      <div className="mt-5">
-        {isLoading ? <p className="text-center text-sm" style={{ color: "var(--lag-text-2)" }}>Loading Roles...</p> : null}
-        {error ? <p role="alert" className="text-center text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
-        {!isLoading && !error && roles.length === 0 ? <p className="text-center text-sm" style={{ color: "var(--lag-text-2)" }}>No Roles yet.</p> : null}
-        <RoleBadges roles={roles} selectedRoleId={selectedRoleId} onSelect={onRoleSelect} />
+      <div className="lag-role-node-list" aria-label="Role Nodes">
+        {roles.map((role) => {
+          const selected = selectedRoleId === role.id;
+          return (
+            <button key={role.id} type="button" className="lag-role-node" aria-pressed={selected} data-selected={selected} onClick={() => onRoleSelect?.(role.id)}>
+              <span className="lag-role-node-mark" aria-hidden>{role.name.trim().charAt(0).toUpperCase() || role.roleType.charAt(0).toUpperCase()}</span>
+              <span><strong>{role.name}</strong><small>{role.roleType} · {role.status}</small></span>
+              <span aria-hidden>→</span>
+            </button>
+          );
+        })}
       </div>
-    </div>
+
+      <Link href="/roles/create" className="lag-role-create">Create Role</Link>
+    </section>
   );
 }

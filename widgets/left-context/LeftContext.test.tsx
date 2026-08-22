@@ -46,6 +46,22 @@ describe("LeftContext에서 Role을 사용할 때", () => {
     expect(lane).toHaveAttribute("data-context-present", "true");
   });
 
+  it("Role mode에서 canonical Role Nodes selector를 유지하며 selection을 전달한다", () => {
+    const selectRole = vi.fn();
+    const { container, rerender } = render(
+      <LeftContext mode="role" roles={roles} selectedRoleId={null} socialContext={null} onRoleSelect={selectRole} />,
+    );
+    const selector = container.querySelector("[data-role-selector]");
+
+    fireEvent.click(screen.getByRole("button", { name: /Backend Engineer/ }));
+    expect(selectRole).toHaveBeenCalledWith(3);
+
+    rerender(<LeftContext mode="role" roles={roles} selectedRoleId={3} socialContext={null} onRoleSelect={selectRole} />);
+    expect(container.querySelector("[data-role-selector]")).toBe(selector);
+    expect(screen.getByRole("button", { name: /Backend Engineer/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("link", { name: "Create Role" })).toHaveAttribute("href", "/roles/create");
+  });
+
   it("keeps a stable collapsible lane and shared bounded content scroll", () => {
     const css = readFileSync("app/globals.css", "utf8");
     const { container, rerender } = render(
