@@ -237,16 +237,19 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Growth" }));
 
       expect(await screen.findByTestId("growth-shell")).toBeInTheDocument();
-      expect(screen.getByText("Level: 8")).toBeInTheDocument();
-      expect(screen.getByText("EXP: 842")).toBeInTheDocument();
+      expect(document.querySelector(".lag-growth-level-mark")).toHaveTextContent("Level8");
+      expect(screen.getByText("Current EXP").parentElement).toHaveTextContent("842");
       expect(screen.getByText("No extra stats.")).toBeInTheDocument();
-      expect(screen.getByText("Requested EXP: 100")).toBeInTheDocument();
-      expect(screen.getByText("Applied EXP: 80")).toBeInTheDocument();
-      expect(screen.getByText("Leftover EXP: 20")).toBeInTheDocument();
-      expect(screen.getByText("Source Type: QUEST")).toBeInTheDocument();
-      expect(screen.getByText("Source ID: 31")).toBeInTheDocument();
-      expect(screen.getByText("Source unavailable.")).toBeInTheDocument();
-      expect(screen.queryByText("Source ID: 999")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /\+80 EXP/ })).toHaveTextContent("QUEST");
+      expect(screen.getByText("Source unavailable")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /\+80 EXP/ }));
+      expect(document.querySelector('[data-stage-key="player-growth-change-detail"]')).toBeInTheDocument();
+      expect(screen.getByText("Requested EXP").parentElement).toHaveTextContent("100");
+      expect(screen.getByText("Applied EXP").parentElement).toHaveTextContent("80");
+      expect(screen.getByText("Leftover EXP").parentElement).toHaveTextContent("20");
+      expect(screen.getByText("Source type").parentElement).toHaveTextContent("QUEST");
+      expect(screen.getByText("Source ID").parentElement).toHaveTextContent("31");
+      expect(screen.queryByText("999")).not.toBeInTheDocument();
       expect(screen.queryByText(/next level|percentage|remaining exp|radar/i)).not.toBeInTheDocument();
       expect(growthApi.getPlayerGrowthApi).toHaveBeenCalledTimes(1);
     });
