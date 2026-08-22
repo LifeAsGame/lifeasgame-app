@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PlayerQuestDetail, QuestAcceptance, QuestRoute, QuestRouteStepDetail } from "@/shared/api/types";
@@ -87,6 +88,10 @@ function deferred<T>() {
   return { promise, reject, resolve };
 }
 
+function renderCurrentJourney() {
+  return render(<JourneyShell initialSurface="current" />);
+}
+
 describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -118,7 +123,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
 
   describe("Journey main navigation으로 직접 진입하면", () => {
     it("root stage만 열고 subsection과 detail은 선택 전까지 만들지 않는다", async () => {
-      render(<JourneyShell initialSurface={null} />);
+      render(<JourneyShell />);
 
       expect(screen.getByRole("button", { name: /Current/ })).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="journey-root"]')).toBeInTheDocument();
@@ -130,11 +135,58 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       expect(document.querySelector('[data-stage-key="journey-list"]')).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument();
     });
+
+    it("detail/list Back과 surface reset을 staged disclosure로 유지한다", async () => {
+      render(<JourneyShell initialSurface={null} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Current/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
+      await screen.findByText(/Quest progress/);
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Back to Current" }));
+      await waitFor(() => expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument());
+      expect(document.querySelector('[data-stage-key="journey-list"]')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /흔적 세 개 이어보기/ }));
+      await screen.findByText(/Quest progress/);
+      fireEvent.click(screen.getByRole("button", { name: /Catalog/ }));
+      await waitFor(() => expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: /Current/ }));
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Back to Journey" }));
+      await waitFor(() => expect(document.querySelector('[data-stage-key="journey-list"]')).not.toBeInTheDocument());
+      expect(document.querySelector('[data-stage-key="journey-root"]')).toBeInTheDocument();
+    });
+
+    it("같은 list의 selection 변경 시 detail stage DOM을 유지한다", async () => {
+      renderCurrentJourney();
+
+      fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
+      await screen.findByText(/Quest progress/);
+      const detailStage = document.querySelector('[data-stage-key="journey-detail"]');
+      fireEvent.click(screen.getByRole("button", { name: /한 가지에 25분 집중하기/ }));
+      await screen.findByText("Goal reached. This is not the same as Completed.");
+
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).toBe(detailStage);
+    });
+  });
+
+  it("uses semantic Journey styling without screenshot-only domain data", () => {
+    const source = readFileSync("features/quests/JourneyShell.tsx", "utf8");
+    expect(source).toContain("lag-route-thread");
+    expect(source).not.toMatch(/Backend Developer Route|Spring Core|\bXP\b|fake milestone/i);
+
+    const css = readFileSync("app/globals.css", "utf8");
+    const journeyCss = css.slice(css.indexOf("/* v7 Journey"), css.indexOf(".lag-state-error"));
+    expect(journeyCss).toContain("var(--lag-muted-surface)");
+    expect(journeyCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
   });
 
   describe("Current Quest의 상태와 next action을 확인하면", () => {
     it("IN_PROGRESS/GOAL_REACHED/COMPLETED/CANCELED를 구분하고 Party/Guild surface나 reward claim을 노출하지 않는다", async () => {
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       expect(await screen.findByText(/In Progress · 1\/3/)).toBeInTheDocument();
       expect(screen.getByText(/Goal Reached · 25\/25/)).toBeInTheDocument();
@@ -151,7 +203,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
         : quest);
       api.listPlayerQuestsApi.mockResolvedValueOnce(current).mockResolvedValue(completed);
       api.getPlayerQuestApi.mockImplementation(async (code: string) => detail(code, completed.find((item) => item.code === code) ?? null));
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(await screen.findByRole("button", { name: /한 가지에 25분 집중하기/ }));
       expect(await screen.findByText("Goal reached. This is not the same as Completed.")).toBeInTheDocument();
@@ -166,7 +218,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     it("valid cancel 후 authoritative list를 reload해 CANCELED history로 표시한다", async () => {
       const canceled = current.map((quest) => quest.code === "Q_RECORD_THREE_TRACES" ? { ...quest, status: "CANCELED" as const } : quest);
       api.listPlayerQuestsApi.mockResolvedValueOnce(current).mockResolvedValue(canceled);
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
       fireEvent.click(await screen.findByRole("button", { name: "Cancel Quest" }));
@@ -182,7 +234,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       const stale = deferred<PlayerQuestDetail>();
       const latest = deferred<PlayerQuestDetail>();
       api.getPlayerQuestApi.mockImplementation((code: string) => code === "Q_RECORD_THREE_TRACES" ? stale.promise : latest.promise);
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
       fireEvent.click(screen.getByRole("button", { name: /한 가지에 25분 집중하기/ }));
@@ -204,7 +256,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       const stale = deferred<PlayerQuestDetail>();
       const latest = deferred<PlayerQuestDetail>();
       api.getPlayerQuestApi.mockImplementation((code: string) => code === "Q_RECORD_THREE_TRACES" ? stale.promise : latest.promise);
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
       fireEvent.click(screen.getByRole("button", { name: /한 가지에 25분 집중하기/ }));
@@ -242,7 +294,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       };
       api.listPlayerQuestsApi.mockResolvedValueOnce(current).mockResolvedValue([...current, acceptedRest]);
       api.acceptQuestApi.mockRejectedValue(new Error("connection lost"));
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Catalog/ }));
       fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
@@ -279,18 +331,18 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
         .mockResolvedValueOnce(detail(completed.code, completed))
         .mockResolvedValue(detail(completed.code, nextAcceptance));
       api.acceptQuestApi.mockResolvedValue(completed);
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Catalog/ }));
       fireEvent.click(await screen.findByRole("button", { name: /한 가지에 25분 집중하기/ }));
-      expect(await screen.findByText("Acceptance: Completed")).toBeInTheDocument();
+      expect((await screen.findAllByText("Acceptance: Completed")).length).toBeGreaterThan(0);
       fireEvent.click(screen.getByRole("button", { name: "Accept Again" }));
 
       await waitFor(() => expect(api.acceptQuestApi).toHaveBeenCalledWith("Q_GROWTH_ONE_FOCUS"));
       expect(api.acceptQuestApi).toHaveBeenCalledTimes(1);
       expect(api.listPlayerQuestsApi).toHaveBeenCalledTimes(2);
       expect(api.listQuestCatalogApi).toHaveBeenCalledTimes(2);
-      expect(await screen.findByText("Acceptance: In Progress")).toBeInTheDocument();
+      expect((await screen.findAllByText("Acceptance: In Progress")).length).toBeGreaterThan(0);
       expect(screen.queryByRole("button", { name: "Accept Again" })).not.toBeInTheDocument();
       expect(api.advanceQuestRouteApi).not.toHaveBeenCalled();
     });
@@ -301,7 +353,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       api.listPlayerQuestsApi.mockResolvedValue(before);
       api.getPlayerQuestApi.mockResolvedValue(detail(completed.code, completed));
       api.acceptQuestApi.mockRejectedValue(new Error("Quest acceptance already exists"));
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Catalog/ }));
       fireEvent.click(await screen.findByRole("button", { name: /한 가지에 25분 집중하기/ }));
@@ -311,17 +363,49 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       expect(api.listPlayerQuestsApi).toHaveBeenCalledTimes(2);
       expect(api.listQuestCatalogApi).toHaveBeenCalledTimes(2);
       expect(await screen.findByText(/Request outcome was not confirmed/)).toBeInTheDocument();
-      expect(screen.getByText("Acceptance: Completed")).toBeInTheDocument();
+      expect(screen.getAllByText("Acceptance: Completed").length).toBeGreaterThan(0);
       expect(screen.getByRole("button", { name: "Accept Again" })).toBeInTheDocument();
       expect(api.advanceQuestRouteApi).not.toHaveBeenCalled();
     });
   });
 
   describe("QuestRoute를 명시적으로 선택하고 진행하면", () => {
+    it("multiple progress와 실제 stepOrder/currentStepId/criteria/questLinks를 표시한다", async () => {
+      const first = routeVariant(41, "First Direction", "Current First Step");
+      const second = routeVariant(42, "Second Direction", "Current Second Step");
+      first.steps = first.steps.slice().reverse();
+      first.playerProgress = { ...first.playerProgress!, currentStepId: 12 };
+      first.steps = first.steps.map((step) => ({
+        ...step,
+        criteriaSatisfied: step.id === 11,
+        state: step.id === 11 ? "COMPLETED" : step.id === 12 ? "CURRENT" : "LOCKED",
+      }));
+      api.listQuestRoutesApi.mockResolvedValue([]);
+      api.listMyQuestRoutesApi.mockResolvedValue([first, second]);
+      api.getMyQuestRouteApi.mockResolvedValue(first);
+      api.getMyQuestRouteStepApi.mockResolvedValue(routeStep(first));
+      render(<JourneyShell initialSurface="routes" />);
+
+      expect(await screen.findByRole("button", { name: /First Direction/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Second Direction/ })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /First Direction/ }));
+
+      const thread = await screen.findByRole("region", { name: "Ordered Route Steps" });
+      const steps = Array.from(thread.querySelectorAll(":scope > .lag-route-thread-track > ol > li"));
+      expect(steps.map((step) => step.querySelector("strong")?.textContent)).toEqual([
+        "1. Current First Step",
+        "2. 흔적 연결하기",
+        "3. 돌아보기",
+      ]);
+      expect(steps[1]).toHaveAttribute("data-current", "true");
+      expect(within(thread).getByText("Criteria: Satisfied")).toBeInTheDocument();
+      expect(within(thread).getByText(/Requirement: 첫 흔적 남기기/)).toBeInTheDocument();
+    });
+
     it("catalog에 없는 My Route도 보존하고 My Route detail과 step을 표시한다", async () => {
       api.listQuestRoutesApi.mockResolvedValue([]);
       api.listMyQuestRoutesApi.mockResolvedValue([selectedRoute]);
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
       fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
@@ -343,12 +427,14 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
         .mockResolvedValueOnce([advancedRoute]);
       api.getMyQuestRouteApi.mockResolvedValueOnce(selectedRoute).mockResolvedValueOnce(advancedRoute);
       api.getMyQuestRouteStepApi.mockResolvedValueOnce(readyStepDetail).mockResolvedValueOnce(advancedStepDetail);
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
       fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
       expect(await screen.findByText("Status: NOT_SELECTED")).toBeInTheDocument();
-      expect(screen.getAllByText(/LOCKED · criteria/)).toHaveLength(3);
+      expect(screen.getAllByText("LOCKED")).toHaveLength(3);
+      expect(screen.getAllByText("Criteria: Not satisfied")).toHaveLength(2);
+      expect(screen.getByText("Criteria: Satisfied")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Select Route" }));
 
       expect(window.confirm).toHaveBeenCalledWith("Select Route 기록으로 시작하기?");
@@ -357,7 +443,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
 
       await waitFor(() => expect(api.advanceQuestRouteApi).toHaveBeenCalledWith(1, 11));
       expect(api.advanceQuestRouteApi).toHaveBeenCalledTimes(1);
-      expect(await screen.findByText("Current Step ID: 12")).toBeInTheDocument();
+      expect(await screen.findByText(/ID 12/)).toBeInTheDocument();
       expect(screen.getByText("Current Step Detail: 흔적 연결하기 · CURRENT")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Advance Current Step" })).not.toBeInTheDocument();
     });
@@ -371,7 +457,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       api.listMyQuestRoutesApi.mockResolvedValue([staleRoute, latestRoute]);
       api.getMyQuestRouteApi.mockImplementation((routeId: number) => routeId === staleRoute.id ? stale.promise : latest.promise);
       api.getMyQuestRouteStepApi.mockImplementation(async (routeId: number) => routeStep(routeId === staleRoute.id ? staleRoute : latestRoute));
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
       fireEvent.click(await screen.findByRole("button", { name: /Stale Route/ }));
@@ -401,7 +487,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       api.listMyQuestRoutesApi.mockResolvedValue([staleRoute, latestRoute]);
       api.getMyQuestRouteApi.mockImplementation((routeId: number) => routeId === staleRoute.id ? Promise.resolve(staleRoute) : latest.promise);
       api.getMyQuestRouteStepApi.mockImplementation((routeId: number) => routeId === staleRoute.id ? staleStep.promise : Promise.resolve(routeStep(latestRoute)));
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
       fireEvent.click(await screen.findByRole("button", { name: /Route With Stale Step/ }));
@@ -427,7 +513,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       api.getMyQuestRouteApi.mockResolvedValue(selectedRoute);
       api.getMyQuestRouteStepApi.mockResolvedValue(readyStepDetail);
       api.advanceQuestRouteApi.mockRejectedValue(new Error("stale step"));
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
       fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
@@ -436,7 +522,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       await waitFor(() => expect(api.advanceQuestRouteApi).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(api.getMyQuestRouteApi).toHaveBeenCalledTimes(2));
       expect(await screen.findByText(/Request outcome was not confirmed/)).toBeInTheDocument();
-      expect(screen.getByText("Current Step ID: 11")).toBeInTheDocument();
+      expect(screen.getByText(/ID 11/)).toBeInTheDocument();
     });
 
     it("completed Route에는 select/advance를 다시 노출하지 않는다", async () => {
@@ -444,12 +530,12 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       api.listMyQuestRoutesApi.mockResolvedValue([completedRoute]);
       api.getMyQuestRouteApi.mockResolvedValue(completedRoute);
       api.getMyQuestRouteStepApi.mockResolvedValue(routeStep(completedRoute));
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
       fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
 
-      expect(await screen.findByText("Route completed by an explicit final Step advance.")).toBeInTheDocument();
+      expect(await screen.findByText(/Route completed by an explicit final Step advance/)).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Select Route" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Advance Current Step" })).not.toBeInTheDocument();
     });
@@ -460,7 +546,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       api.listPlayerQuestsApi.mockResolvedValue([]);
       api.listQuestCatalogApi.mockResolvedValue([]);
       api.listQuestRoutesApi.mockResolvedValue([]);
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       expect(await screen.findByText("No Quest acceptances yet.")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Catalog/ }));
@@ -471,20 +557,20 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
 
     it("Quest failure와 무관하게 Route를 사용할 수 있다", async () => {
       api.listPlayerQuestsApi.mockRejectedValue(new Error("Quest unavailable"));
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
-      expect(await screen.findByText("Quest unavailable")).toBeInTheDocument();
+      expect(await screen.findByText(/Quest unavailable/)).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
       expect(await screen.findByRole("button", { name: /기록으로 시작하기/ })).toBeInTheDocument();
     });
 
     it("Route failure는 Current를 막지 않고 자체 Retry로 복구한다", async () => {
       api.listQuestRoutesApi.mockRejectedValueOnce(new Error("Route unavailable")).mockResolvedValue([unselectedRoute]);
-      render(<JourneyShell />);
+      renderCurrentJourney();
 
       expect(await screen.findByText(/In Progress · 1\/3/)).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Routes/ }));
-      expect(await screen.findByText("Route unavailable")).toBeInTheDocument();
+      expect(await screen.findByText(/Route unavailable/)).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
       expect(await screen.findByRole("button", { name: /기록으로 시작하기/ })).toBeInTheDocument();
     });
