@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
 import { MOTION } from "@/shared/lib/motion";
@@ -42,15 +42,17 @@ export default function LeftContext({
   zIndex,
   onFocus,
 }: LeftContextProps) {
+  const reducedMotion = useReducedMotion();
   return (
-    <AnimatePresence initial={false}>
-      {mode !== "hidden" ? (
+    <div className={`lag-left-anchor${mode === "hidden" ? " lag-left-anchor-empty" : ""}`}>
+      <AnimatePresence initial={false}>
+        {mode !== "hidden" ? (
         <motion.div
           key={`left-context-${mode}`}
-          initial={MOTION.panelReset.initial}
+          initial={reducedMotion ? false : MOTION.panelReset.initial}
           animate={MOTION.panelReset.animate}
-          exit={MOTION.panelReset.exit}
-          transition={MOTION.panelReset.transition}
+          exit={reducedMotion ? { opacity: 0 } : MOTION.panelReset.exit}
+          transition={reducedMotion ? { duration: 0 } : MOTION.panelReset.transition}
           className="lag-left-context lag-panel-stage relative h-full min-h-[420px] overflow-hidden"
           data-stage-key={`left-context-${mode}`}
           onPointerDownCapture={onFocus}
@@ -98,7 +100,8 @@ export default function LeftContext({
             <SocialPanel socialContext={socialContext} />
           )}
         </motion.div>
-      ) : null}
-    </AnimatePresence>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { MainNavId, PanelStackItem } from "@/entities/nav";
 import { MOTION } from "@/shared/lib/motion";
 import { reorderToCenter } from "@/shared/lib/reorder";
@@ -128,6 +128,7 @@ function PanelContent({
       iconSrc={navIconSrc}
       depth={depth}
       fixedScrollHeight={categoryScrollHeight}
+      contentKey={panel.id}
     >
       {panel.kind === "menu" ? (
         <div style={{ width: "100%", display: "grid", rowGap: 4 }}>
@@ -232,15 +233,16 @@ export default function RightPanels({
   onPanelBack,
   onPanelActionClick,
 }: RightPanelsProps) {
+  const reducedMotion = useReducedMotion();
   return (
     <AnimatePresence mode="wait" initial={false}>
       {panelStack.length > 0 ? (
         <motion.div
           key={panelStackKey}
-          initial={MOTION.hologramIn.initial}
+          initial={reducedMotion ? false : MOTION.hologramIn.initial}
           animate={MOTION.hologramIn.animate}
-          exit={MOTION.hologramIn.exit}
-          transition={MOTION.hologramIn.transition}
+          exit={reducedMotion ? { opacity: 0 } : MOTION.hologramIn.exit}
+          transition={reducedMotion ? { duration: 0 } : MOTION.hologramIn.transition}
           className="lag-panel-rail relative overflow-x-visible"
           data-main={selectedMain}
           style={{
@@ -254,8 +256,9 @@ export default function RightPanels({
               const depth = panelStack.length - 1 - panelIndex;
               return (
                 <PanelStage
-                  key={panel.id}
-                  stageKey={panel.id}
+                  key={`${selectedMain}-stage-${panelIndex}`}
+                  stageKey={`${selectedMain}-stage-${panelIndex}`}
+                  focusKey={panel.id}
                   index={panelIndex}
                   onPointerDownCapture={() => onPanelFocus?.(panelIndex, panel.id)}
                   zIndex={getPanelZIndex?.(panelIndex, panel.id) ?? panelIndex + 1}

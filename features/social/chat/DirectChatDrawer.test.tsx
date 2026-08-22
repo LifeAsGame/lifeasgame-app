@@ -62,3 +62,39 @@ it("renders an authoritative deterministic timestamp before client localization"
   expect(html).toContain(`>${createdAt}</time>`);
   localize.mockRestore();
 });
+
+it("uses the same bounded shared drag behavior as Connections", () => {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1200 });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  const chat = {
+    open: true,
+    setOpen: vi.fn(),
+    channels: [],
+    channelsLoading: false,
+    channelsError: null,
+    channelsRetry: vi.fn(),
+    selectedChannelId: null,
+    selectChannel: vi.fn(),
+    messages: [],
+    messagesLoading: false,
+    messagesError: null,
+    loadLatest: vi.fn(),
+    hasMore: false,
+    olderLoading: false,
+    loadOlder: vi.fn(),
+    draft: "",
+    setDraft: vi.fn(),
+    sending: false,
+    sendError: null,
+    send: vi.fn(),
+    openError: null,
+  } as unknown as DirectChatState;
+  render(<DirectChatDrawer chat={chat} />);
+  const dialog = screen.getByRole("dialog", { name: "Direct Friend Chat" });
+  dialog.getBoundingClientRect = () => ({ left: 0, right: 720, top: 0, bottom: 680, width: 720, height: 680, x: 0, y: 0, toJSON: () => ({}) });
+
+  fireEvent.pointerDown(dialog.querySelector("header")!, { button: 0, clientX: 20, clientY: 20 });
+  fireEvent.pointerMove(window, { clientX: 2000, clientY: 2000 });
+
+  expect(dialog).toHaveStyle({ left: "464px", top: "104px" });
+});

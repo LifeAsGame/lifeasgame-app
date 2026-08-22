@@ -68,10 +68,13 @@ describe("NotificationBell canonical surface", () => {
 
   it("uses dual-theme semantic surfaces without the fixed dark/gold container", () => {
     const source = readFileSync("features/notification/NotificationBell.tsx", "utf8");
+    const css = readFileSync("app/globals.css", "utf8");
 
     expect(source).toContain("lag-utility-button");
     expect(source).toContain("lag-notification-dropdown");
+    expect(source).toContain("notificationPopupPosition");
     expect(source).toContain("var(--lag-control-bg)");
+    expect(css).toMatch(/\.lag-notification-trigger\s*{[\s\S]*?overflow:\s*visible/);
     expect(source).not.toMatch(/rgba\(|#[0-9a-fA-F]{3,8}/);
   });
 });

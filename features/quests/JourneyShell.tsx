@@ -353,7 +353,7 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
     );
   };
 
-  const detailStageKey = surface === "current" && selectedAcceptance
+  const detailContentKey = surface === "current" && selectedAcceptance
     ? `journey-current-detail-${selectedAcceptance.id}`
     : surface === "catalog" && selectedBlueprint
       ? `journey-catalog-detail-${selectedBlueprint.code}`
@@ -375,8 +375,8 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
 
       <AnimatePresence initial={false}>
         {surface ? (
-          <PanelStage key={`journey-list-${surface}`} stageKey={`journey-list-${surface}`} index={1}>
-            <PanelFrame title={SUBMENUS_BY_MAIN.quests.find((item) => item.id === surface)?.label ?? "Journey"} depth={1}>
+          <PanelStage key="journey-list" stageKey="journey-list" focusKey={surface} index={1}>
+            <PanelFrame title={SUBMENUS_BY_MAIN.quests.find((item) => item.id === surface)?.label ?? "Journey"} depth={1} contentKey={surface}>
               {surface === "current" ? renderCurrentList() : surface === "catalog" ? renderCatalogList() : renderRouteList()}
             </PanelFrame>
           </PanelStage>
@@ -384,9 +384,9 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
       </AnimatePresence>
 
       <AnimatePresence initial={false} mode="popLayout">
-        {detailStageKey ? (
-          <PanelStage key={detailStageKey} stageKey={detailStageKey} index={2}>
-            <PanelFrame title={surface === "current" ? selectedAcceptance?.title ?? "Quest Detail" : surface === "catalog" ? selectedBlueprint?.title ?? "Catalog Detail" : selectedRoute?.title ?? "Route Detail"} depth={0}>
+        {detailContentKey ? (
+          <PanelStage key="journey-detail" stageKey="journey-detail" focusKey={detailContentKey} index={2}>
+            <PanelFrame title={surface === "current" ? selectedAcceptance?.title ?? "Quest Detail" : surface === "catalog" ? selectedBlueprint?.title ?? "Catalog Detail" : selectedRoute?.title ?? "Route Detail"} depth={0} contentKey={detailContentKey}>
               {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
             </PanelFrame>
           </PanelStage>

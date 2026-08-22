@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CertificationCatalogInfo, PlayerCertificationInfo } from "@/shared/api/types";
@@ -54,5 +55,12 @@ describe("Certification management surface를 사용할 때", () => {
     expect(api.updatePlayerCertificationApi.mock.calls[0][1]).not.toHaveProperty("acquiredDate");
     expect(api.updatePlayerCertificationApi.mock.calls[0][1]).not.toEqual(expect.objectContaining({ expiresDate: "" }));
     expect(screen.getByText("Blank dates preserve current values; dates cannot be cleared.")).toBeInTheDocument();
+  });
+
+  it("uses v7 semantic control tokens instead of the legacy input palette", () => {
+    const source = readFileSync("features/player/CertificationShell.tsx", "utf8");
+    expect(source).toContain("SEMANTIC_CONTROL_STYLE");
+    expect(source).toContain("var(--lag-control-bg)");
+    expect(source).not.toContain("INPUT_STYLE");
   });
 });

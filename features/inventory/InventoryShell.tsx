@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import type { InventoryEntry, MailEntry } from "@/shared/api/types";
 import { SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
@@ -89,8 +91,9 @@ export default function InventoryShell({ surface }: { surface: InventorySurface 
   const query = items ? queries.inventory : queries.mailbox;
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="inventory-shell">
-      <PanelFrame title={items ? "Items" : "Inbox"} depth={1}>
+    <div className="lag-panel-rail relative" data-testid="inventory-shell">
+      <PanelStage stageKey={`inventory-${surface}-list`}>
+        <PanelFrame title={items ? "Items" : "Inbox"} depth={1}>
         <div className="space-y-3">
           {query.loading && query.data.entries.length === 0 ? <InfoCard>Loading {items ? "Items" : "Inbox"}...</InfoCard> : null}
           {query.error ? <ErrorState text={query.error} retry={() => void query.reload()} /> : null}
@@ -122,25 +125,30 @@ export default function InventoryShell({ surface }: { surface: InventorySurface 
               ))}
           </div>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title={items ? "Item Detail" : "Mail Detail"} depth={0}>
-        {items && !selectedItem ? <InfoCard>Select an Item.</InfoCard> : null}
-        {!items && !selectedMail ? <InfoCard>Select mail.</InfoCard> : null}
-        {items && selectedItem ? <ItemDetail item={selectedItem} /> : null}
-        {!items && selectedMail ? (
-          <MailDetail
-            mail={selectedMail}
-            pending={queries.pendingKey !== null}
-            onClaim={() => {
-              if (window.confirm(`Claim ${selectedMail.itemName} x${selectedMail.quantity}?`)) void queries.claimMail(selectedMail);
-            }}
-            onDelete={() => {
-              if (window.confirm(`Delete ${selectedMail.itemName} mail?`)) void queries.deleteMail(selectedMail);
-            }}
-          />
+      <AnimatePresence initial={false}>
+        {selectedItem || selectedMail ? (
+          <PanelStage stageKey={`inventory-${surface}-detail`} focusKey={selectedItemInstanceId ?? selectedMailId} index={1}>
+            <PanelFrame title={items ? "Item Detail" : "Mail Detail"} depth={0} contentKey={selectedItemInstanceId ?? selectedMailId ?? undefined}>
+              {items && selectedItem ? <ItemDetail item={selectedItem} /> : null}
+              {!items && selectedMail ? (
+                <MailDetail
+                  mail={selectedMail}
+                  pending={queries.pendingKey !== null}
+                  onClaim={() => {
+                    if (window.confirm(`Claim ${selectedMail.itemName} x${selectedMail.quantity}?`)) void queries.claimMail(selectedMail);
+                  }}
+                  onDelete={() => {
+                    if (window.confirm(`Delete ${selectedMail.itemName} mail?`)) void queries.deleteMail(selectedMail);
+                  }}
+                />
+              ) : null}
+            </PanelFrame>
+          </PanelStage>
         ) : null}
-      </PanelFrame>
+      </AnimatePresence>
     </div>
   );
 }

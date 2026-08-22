@@ -75,6 +75,8 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       api.getInventoryApi.mockReturnValue(response.promise);
       render(<InventoryShell surface="items" />);
       expect(screen.getByText("Loading Items...")).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-items-list"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).not.toBeInTheDocument();
 
       await act(async () => {
         response.resolve(inventory);
@@ -82,6 +84,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       });
       fireEvent.click(await screen.findByRole("button", { name: /Server Sword/ }));
 
+      expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBeInTheDocument();
       expect(screen.getByText("Item instance ID: 501")).toBeInTheDocument();
       expect(screen.getByText("Durability: 0")).toBeInTheDocument();
       expect(screen.getByText(/Instance attrs:.*"atk":12/)).toBeInTheDocument();

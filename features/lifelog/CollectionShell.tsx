@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import {
   COLLECTION_CATEGORIES,
@@ -10,6 +11,7 @@ import {
 } from "@/shared/api/types";
 import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useCollectionQueries } from "./useCollectionQueries";
@@ -141,8 +143,9 @@ export default function CollectionShell() {
   const nextDisabled = collections.list.loading || collections.list.items.length < collections.params.size;
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="collection-shell">
-      <PanelFrame title="Collection Search" depth={2}>
+    <div className="lag-panel-rail relative" data-testid="collection-shell">
+      <PanelStage stageKey="lifelog-collection-search">
+        <PanelFrame title="Collection Search" depth={2}>
         <div className="space-y-3 px-3">
           <form className="space-y-2" onSubmit={(event) => {
             event.preventDefault();
@@ -163,9 +166,11 @@ export default function CollectionShell() {
             <CreateForm pending={pending} create={collections.create} />
           </details>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Collections" depth={1}>
+      <PanelStage stageKey="lifelog-collection-list" index={1}>
+        <PanelFrame title="Collections" depth={1}>
         <div className="space-y-3">
           {collections.list.loading && collections.list.items.length === 0 ? <InfoCard>Loading Collections...</InfoCard> : null}
           {collections.list.error ? <ErrorState message={collections.list.error} retry={() => void collections.list.reload()} /> : null}
@@ -190,21 +195,27 @@ export default function CollectionShell() {
             <button type="button" disabled={nextDisabled} style={buttonStyle} onClick={() => collections.changePage(collections.params.page + 1)}>Next</button>
           </div>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Collection Detail" depth={0}>
-        {!collections.selectedId ? <InfoCard>Select a Collection.</InfoCard> : null}
-        {collections.detail.loading && !collections.detail.data ? <InfoCard>Loading Collection...</InfoCard> : null}
-        {collections.detail.error ? <ErrorState message={collections.detail.error} retry={() => void collections.detail.retry()} /> : null}
-        {collections.detail.data ? (
-          <CollectionDetail
-            item={collections.detail.data}
-            pending={pending}
-            update={(body) => collections.update(collections.detail.data!.id, body)}
-            remove={() => collections.remove(collections.detail.data!.id)}
-          />
+      <AnimatePresence initial={false}>
+        {collections.selectedId ? (
+          <PanelStage stageKey="lifelog-collection-detail" focusKey={collections.selectedId} index={2}>
+            <PanelFrame title="Collection Detail" depth={0} contentKey={collections.selectedId}>
+              {collections.detail.loading && !collections.detail.data ? <InfoCard>Loading Collection...</InfoCard> : null}
+              {collections.detail.error ? <ErrorState message={collections.detail.error} retry={() => void collections.detail.retry()} /> : null}
+              {collections.detail.data ? (
+                <CollectionDetail
+                  item={collections.detail.data}
+                  pending={pending}
+                  update={(body) => collections.update(collections.detail.data!.id, body)}
+                  remove={() => collections.remove(collections.detail.data!.id)}
+                />
+              ) : null}
+            </PanelFrame>
+          </PanelStage>
         ) : null}
-      </PanelFrame>
+      </AnimatePresence>
     </div>
   );
 }

@@ -93,12 +93,14 @@ export function useCollectionQueries() {
   }, [loadDetail]);
 
   const search = (category?: CollectionCategory, titleLike?: string) => {
+    clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { page: 0, size: paramsRef.current.size, category, titleLike: titleLike?.trim() || undefined };
     setParams(paramsRef.current);
   };
 
   const changePage = (page: number) => {
+    clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { ...paramsRef.current, page: Math.max(0, page) };
     setParams(paramsRef.current);

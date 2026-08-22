@@ -39,6 +39,20 @@ export const INPUT_STYLE: React.CSSProperties = {
   boxSizing: 'border-box' as const,
 }
 
+/** v7 dual-theme semantic control — use on migrated authenticated surfaces. */
+export const SEMANTIC_CONTROL_STYLE: React.CSSProperties = {
+  background: 'var(--lag-control-bg)',
+  border: '1px solid var(--lag-control-border)',
+  borderRadius: 'var(--lag-radius-sm)',
+  padding: '8px 12px',
+  outline: 'none',
+  fontSize: '0.875rem',
+  letterSpacing: '0.04em',
+  color: 'var(--lag-control-text)',
+  width: '100%',
+  boxSizing: 'border-box',
+}
+
 export const INPUT_FOCUS_STYLE: React.CSSProperties = {
   background: 'rgba(218,178,55,0.12)',
   border: `1px solid ${SAO.color.border.gold}`,

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
+import { useDraggableWindow } from "@/shared/hooks/useDraggableWindow";
+import UtilityPortal from "@/shared/ui/UtilityPortal";
 import type { DirectChatState } from "./useDirectChat";
 
 const buttonStyle = {
@@ -22,6 +24,7 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
   const { playerId } = useAuth();
   const { open, setOpen } = chat;
   const selected = chat.channels.find(({ channelId }) => channelId === chat.selectedChannelId) ?? null;
+  const floating = useDraggableWindow(open);
 
   useEffect(() => {
     if (!open) return;
@@ -47,12 +50,15 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
       </button>
 
       {chat.open ? (
-        <aside
+        <UtilityPortal>
+          <aside
+          ref={floating.windowRef}
           role="dialog"
           aria-label="Direct Friend Chat"
-          className="lag-utility-drawer fixed right-6 top-6 z-[500000] flex h-[min(680px,calc(100vh-3rem))] w-[min(720px,calc(100vw-3rem))] flex-col overflow-hidden p-4"
+          className="lag-utility-drawer flex h-[min(680px,calc(100vh-3rem))] w-[min(720px,calc(100vw-3rem))] flex-col overflow-hidden p-4"
+          style={floating.windowStyle}
         >
-          <header className="flex items-center justify-between gap-3">
+          <header className="lag-utility-drag-handle flex items-center justify-between gap-3" {...floating.dragHandleProps}>
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: "var(--lag-text-2)" }}>Current Player</p>
               <h2 className="text-lg font-semibold tracking-[0.08em]" style={{ color: "var(--lag-text)" }}>Direct Chat</h2>
@@ -113,7 +119,8 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
               )}
             </section>
           </div>
-        </aside>
+          </aside>
+        </UtilityPortal>
       ) : null}
     </>
   );

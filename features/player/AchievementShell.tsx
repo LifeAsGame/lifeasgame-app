@@ -58,8 +58,8 @@ export default function AchievementShell() {
 
       <AnimatePresence initial={false} mode="popLayout">
         {achievements.selectedId ? (
-          <PanelStage key={`player-achievement-detail-${achievements.selectedId}`} stageKey={`player-achievement-detail-${achievements.selectedId}`} index={1}>
-            <PanelFrame title="Achievement Detail" depth={0}>
+          <PanelStage key="player-achievement-detail" stageKey="player-achievement-detail" focusKey={achievements.selectedId} index={1}>
+            <PanelFrame title="Achievement Detail" depth={0} contentKey={achievements.selectedId}>
               {achievements.detail.loading && !detail ? <InfoCard>Loading Achievement...</InfoCard> : null}
               {achievements.detail.error ? <ErrorState message={achievements.detail.error} retry={() => void achievements.detail.retry()} /> : null}
               {detail ? (

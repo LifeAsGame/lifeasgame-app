@@ -2,6 +2,7 @@
 
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import EdgeFadeScrollArea from "@/shared/ui/EdgeFadeScrollArea";
+import { StageContentTransition } from "@/shared/ui/PanelStage";
 import { getFrameBackground, getFrameStyle, D, cellStyle } from "./styles";
 
 export function BackButton({ onClick }: { onClick: () => void }) {
@@ -27,6 +28,7 @@ export function PanelFrame({
   iconSrc,
   depth = 0,
   fixedScrollHeight,
+  contentKey,
 }: {
   title: string;
   children: React.ReactNode;
@@ -37,6 +39,7 @@ export function PanelFrame({
   iconSrc?: string;
   depth?: number;
   fixedScrollHeight?: number;
+  contentKey?: React.Key;
 }) {
   return (
     <div
@@ -113,7 +116,7 @@ export function PanelFrame({
               }
         }
       >
-        {children}
+        {contentKey === undefined ? children : <StageContentTransition identity={contentKey}>{children}</StageContentTransition>}
       </EdgeFadeScrollArea>
     </div>
   );

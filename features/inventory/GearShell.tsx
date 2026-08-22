@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import { INVENTORY_GEAR_PARTS } from "@/entities/nav";
 import type { InventoryGearPartId } from "@/entities/nav";
 import { SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
@@ -57,8 +59,9 @@ export default function GearShell() {
   }, [candidates, selectedItemInstanceId]);
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="gear-shell">
-      <PanelFrame title="Gear Parts" depth={3}>
+    <div className="lag-panel-rail relative" data-testid="gear-shell">
+      <PanelStage stageKey="inventory-gear-parts">
+        <PanelFrame title="Gear Parts" depth={3}>
         <div className="space-y-2">
           {INVENTORY_GEAR_PARTS.map((item, index) => (
             <PanelCard
@@ -75,10 +78,13 @@ export default function GearShell() {
             />
           ))}
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      {part ? (
-        <PanelFrame title="Equipment Slots" depth={2}>
+      <AnimatePresence initial={false}>
+        {part ? (
+          <PanelStage stageKey="inventory-gear-slots" focusKey={part} index={1}>
+            <PanelFrame title="Equipment Slots" depth={2} contentKey={part}>
           <div className="space-y-3">
             {queries.equipment.loading && queries.equipment.data.length === 0 ? <InfoCard>Loading Equipment...</InfoCard> : null}
             {queries.equipment.error ? <ErrorState text={queries.equipment.error} retry={() => void queries.equipment.reload()} /> : null}
@@ -96,16 +102,23 @@ export default function GearShell() {
                       : `${slot.slotCode} · ${item?.itemName} · ${item?.rarity}`}
                   selected={selectedSlotId === slot.slotId}
                   index={index}
-                  onClick={() => setSelectedSlotId(slot.slotId)}
+                  onClick={() => {
+                    setSelectedSlotId(slot.slotId);
+                    setSelectedItemInstanceId(null);
+                  }}
                 />
               ))}
             </div>
           </div>
-        </PanelFrame>
-      ) : null}
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
 
-      {part ? (
-        <PanelFrame title="Inventory Candidates" depth={1}>
+      <AnimatePresence initial={false}>
+        {part ? (
+          <PanelStage stageKey="inventory-gear-candidates" focusKey={part} index={2}>
+            <PanelFrame title="Inventory Candidates" depth={1} contentKey={part}>
           <div className="space-y-3">
             {queries.inventory.loading && queries.inventory.data.entries.length === 0 ? <InfoCard>Loading Inventory candidates...</InfoCard> : null}
             {queries.inventory.error ? <ErrorState text={queries.inventory.error} retry={() => void queries.inventory.reload()} /> : null}
@@ -124,11 +137,15 @@ export default function GearShell() {
               ))}
             </div>
           </div>
-        </PanelFrame>
-      ) : null}
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
 
-      {selectedSlot ? (
-        <PanelFrame title="Gear Action" depth={0}>
+      <AnimatePresence initial={false}>
+        {selectedSlot ? (
+          <PanelStage stageKey="inventory-gear-action" focusKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} index={3}>
+            <PanelFrame title="Gear Action" depth={0} contentKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`}>
           <div className="space-y-2 px-3">
             <InfoCard>{selectedSlot.slot.slotName}</InfoCard>
             <GoldRow>Slot ID: {selectedSlot.slot.slotId}</GoldRow>
@@ -169,8 +186,10 @@ export default function GearShell() {
               ) : null}
             </div>
           </div>
-        </PanelFrame>
-      ) : null}
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

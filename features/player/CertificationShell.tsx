@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import type { PlayerCertificationDatesRequest } from "@/shared/api/types";
-import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
+import { SEMANTIC_CONTROL_STYLE } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
@@ -12,10 +12,10 @@ import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useCertificationQueries } from "./useCertificationQueries";
 
 const buttonStyle = {
-  border: `1px solid ${SAO.color.border.panel}`,
-  background: SAO.color.bg.inset,
-  color: SAO.color.text.secondary,
-  borderRadius: SAO.radius.panel,
+  border: "1px solid var(--lag-control-border)",
+  background: "var(--lag-control-bg)",
+  color: "var(--lag-control-text)",
+  borderRadius: "var(--lag-radius-sm)",
   padding: "7px 10px",
   fontSize: "0.68rem",
   letterSpacing: "0.08em",
@@ -37,7 +37,7 @@ function dates(form: FormData): PlayerCertificationDatesRequest {
 function ErrorState({ message, retry }: { message: string; retry: () => void }) {
   return (
     <div className="space-y-2 px-3">
-      <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{message}</p>
+      <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{message}</p>
       <button type="button" style={buttonStyle} onClick={retry}>Retry</button>
     </div>
   );
@@ -51,7 +51,7 @@ export default function CertificationShell() {
   const selected = certifications.selected;
 
   return (
-    <div className="lag-panel-rail relative" data-testid="certification-shell">
+    <div className="lag-panel-rail lag-semantic-controls relative" data-testid="certification-shell">
       <PanelStage stageKey="player-certification-catalog">
         <PanelFrame title="Certification Catalog" depth={2}>
         <div className="space-y-3 px-3">
@@ -67,15 +67,15 @@ export default function CertificationShell() {
                 setCatalogId("");
               }
             }}>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>
+              <label className="block text-xs" style={{ color: "var(--lag-text-2)" }}>
                 Certification
-                <select aria-label="Certification" value={catalogId} onChange={(event) => setCatalogId(event.target.value)} required disabled={pending} style={INPUT_STYLE}>
+                <select aria-label="Certification" value={catalogId} onChange={(event) => setCatalogId(event.target.value)} required disabled={pending} style={SEMANTIC_CONTROL_STYLE}>
                   <option value="">Select...</option>
                   {available.map((item) => <option key={item.certificationId} value={item.certificationId}>{item.name} · {item.issuer}</option>)}
                 </select>
               </label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>Acquired date<input name="acquiredDate" type="date" disabled={pending} style={INPUT_STYLE} /></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>Expires date<input name="expiresDate" type="date" disabled={pending} style={INPUT_STYLE} /></label>
+              <label className="block text-xs" style={{ color: "var(--lag-text-2)" }}>Acquired date<input name="acquiredDate" type="date" disabled={pending} style={SEMANTIC_CONTROL_STYLE} /></label>
+              <label className="block text-xs" style={{ color: "var(--lag-text-2)" }}>Expires date<input name="expiresDate" type="date" disabled={pending} style={SEMANTIC_CONTROL_STYLE} /></label>
               <button type="submit" disabled={pending || available.length === 0} style={buttonStyle}>{pending ? "Working..." : "Register Certification"}</button>
             </form>
           ) : null}
@@ -89,7 +89,7 @@ export default function CertificationShell() {
           {certifications.owned.loading && certifications.owned.items.length === 0 ? <InfoCard>Loading Certifications...</InfoCard> : null}
           {certifications.owned.error ? <ErrorState message={certifications.owned.error} retry={() => void certifications.owned.reload()} /> : null}
           {!certifications.owned.loading && !certifications.owned.error && certifications.owned.items.length === 0 ? <InfoCard>No owned Certifications.</InfoCard> : null}
-          {certifications.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: SAO.color.action.red }}>{certifications.mutationError}</p> : null}
+          {certifications.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: "var(--lag-state-error)" }}>{certifications.mutationError}</p> : null}
           <div className="space-y-2">
             {certifications.owned.items.map((item, index) => (
               <PanelCard key={item.certificationId} label={item.name} slotLabel={item.category.slice(0, 2).toUpperCase()} subtitle={`${item.issuer} · Acquired: ${item.acquiredDate ?? "Not recorded"}`} selected={certifications.selectedId === item.certificationId} index={index} onClick={() => certifications.select(item.certificationId)} />
@@ -101,8 +101,8 @@ export default function CertificationShell() {
 
       <AnimatePresence initial={false} mode="popLayout">
         {selected ? (
-          <PanelStage key={`player-certification-detail-${selected.certificationId}`} stageKey={`player-certification-detail-${selected.certificationId}`} index={2}>
-            <PanelFrame title="Certification Detail" depth={0}>
+          <PanelStage key="player-certification-detail" stageKey="player-certification-detail" focusKey={selected.certificationId} index={2}>
+            <PanelFrame title="Certification Detail" depth={0} contentKey={selected.certificationId}>
               <div className="space-y-3 px-3">
             <InfoCard>{selected.name}</InfoCard>
             <GoldRow>Issuer: {selected.issuer}</GoldRow>
@@ -115,9 +115,9 @@ export default function CertificationShell() {
               const body = dates(new FormData(event.currentTarget));
               if (Object.keys(body).length > 0) void certifications.update(selected.certificationId, body);
             }}>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>New acquired date<input name="acquiredDate" type="date" disabled={pending} style={INPUT_STYLE} /></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>New expires date<input name="expiresDate" type="date" disabled={pending} style={INPUT_STYLE} /></label>
-              <p className="text-xs" style={{ color: SAO.color.text.label }}>Blank dates preserve current values; dates cannot be cleared.</p>
+              <label className="block text-xs" style={{ color: "var(--lag-text-2)" }}>New acquired date<input name="acquiredDate" type="date" disabled={pending} style={SEMANTIC_CONTROL_STYLE} /></label>
+              <label className="block text-xs" style={{ color: "var(--lag-text-2)" }}>New expires date<input name="expiresDate" type="date" disabled={pending} style={SEMANTIC_CONTROL_STYLE} /></label>
+              <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>Blank dates preserve current values; dates cannot be cleared.</p>
               <div className="flex gap-2">
                 <button type="submit" disabled={pending} style={{ ...buttonStyle, flex: 1 }}>{pending ? "Working..." : "Update Dates"}</button>
                 <button type="button" disabled={pending} style={buttonStyle} onClick={() => {

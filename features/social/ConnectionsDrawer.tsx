@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import type { ConnectionPeer } from "@/shared/api/types";
+import { useDraggableWindow } from "@/shared/hooks/useDraggableWindow";
+import UtilityPortal from "@/shared/ui/UtilityPortal";
 import { useConnectionsQueries } from "./useConnectionsQueries";
 
 const buttonStyle = {
@@ -43,6 +45,7 @@ export default function ConnectionsDrawer({ open: controlledOpen, onOpenChange, 
   const setPage = state.activeTab === "followings" ? state.setFollowingPage : state.setFollowerPage;
   const queryError = state.queryErrors[state.activeTab];
   const retry = state.activeTab === "followings" ? state.reloadFollowings : state.reloadFollowers;
+  const floating = useDraggableWindow(open);
 
   useEffect(() => {
     if (!open) return;
@@ -65,12 +68,15 @@ export default function ConnectionsDrawer({ open: controlledOpen, onOpenChange, 
       </button>
 
       {open ? (
-        <aside
+        <UtilityPortal>
+          <aside
+          ref={floating.windowRef}
           role="dialog"
           aria-label="Current Player Connections"
-          className="lag-utility-drawer fixed right-6 top-6 z-[500000] flex max-h-[calc(100vh-3rem)] w-[min(420px,calc(100vw-3rem))] flex-col overflow-hidden p-4"
+          className="lag-utility-drawer flex max-h-[calc(100vh-3rem)] w-[min(420px,calc(100vw-3rem))] flex-col overflow-hidden p-4"
+          style={floating.windowStyle}
         >
-          <header className="flex items-center justify-between gap-3">
+          <header className="lag-utility-drag-handle flex items-center justify-between gap-3" {...floating.dragHandleProps}>
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: "var(--lag-text-2)" }}>Current Player</p>
               <h2 className="text-lg font-semibold tracking-[0.08em]" style={{ color: "var(--lag-text)" }}>Connections</h2>
@@ -143,7 +149,8 @@ export default function ConnectionsDrawer({ open: controlledOpen, onOpenChange, 
             <span className="text-xs" style={{ color: "var(--lag-text-2)" }}>Page {page.totalPages === 0 ? 0 : page.page + 1} of {page.totalPages}</span>
             <button type="button" disabled={pageIndex + 1 >= page.totalPages} onClick={() => setPage((current) => current + 1)} className="px-3 py-1.5 text-xs disabled:opacity-40" style={buttonStyle}>Next</button>
           </footer>
-        </aside>
+          </aside>
+        </UtilityPortal>
       ) : null}
     </>
   );

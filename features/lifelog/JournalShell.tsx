@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import { COLLECTION_CATEGORIES } from "@/shared/api/types";
 import type {
@@ -18,6 +19,7 @@ import type {
 } from "@/shared/api/types";
 import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useJournalQueries } from "./useJournalQueries";
@@ -325,8 +327,9 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
   const nextDisabled = loading || page.totalPages === 0 || journal.params.page + 1 >= page.totalPages;
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="journal-shell">
-      <PanelFrame title="Journal Filters" depth={2}>
+    <div className="lag-panel-rail relative" data-testid="journal-shell">
+      <PanelStage stageKey="lifelog-journal-filters">
+        <PanelFrame title="Journal Filters" depth={2}>
         <div className="space-y-3 px-3">
           <details>
             <summary className="cursor-pointer text-xs" style={{ color: SAO.color.text.gold }}>Quick Record</summary>
@@ -363,9 +366,11 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
           {rolesLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
           {rolesError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>Role filter unavailable: {rolesError}</p> : null}
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Journal" depth={1}>
+      <PanelStage stageKey="lifelog-journal-list" index={1}>
+        <PanelFrame title="Journal" depth={1}>
         <div className="space-y-3">
           {loading ? <InfoCard>Loading Journal...</InfoCard> : null}
           {error ? <ErrorState text={error} retry={() => void journal.list.reload()} /> : null}
@@ -402,28 +407,34 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
           </div>
           <p className="px-3 text-xs" style={{ color: SAO.color.text.label }}>{page.totalElements} total</p>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title={detail ? `${detail.sourceType} Journal Detail` : "Journal Detail"} depth={0}>
-        {!journal.selectedLifeLogId ? <InfoCard>Select a Journal entry.</InfoCard> : null}
-        {journal.detail.loading && !detail ? <InfoCard>Loading Journal detail...</InfoCard> : null}
-        {journal.detail.error && !detail ? <ErrorState text={journal.detail.error} retry={journal.detail.retry} /> : null}
-        {detail ? (
-          <div className="space-y-3 px-3">
-            {journal.detail.error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{journal.detail.error}</p> : null}
-            <InfoCard>Journal entry #{detail.lifeLogId}</InfoCard>
-            <GoldRow>Source type: {detail.sourceType}</GoldRow>
-            <GoldRow>Recorded at: {detail.recordedAt}</GoldRow>
-            {detail.subtype ? <GoldRow>Subtype: {detail.subtype}</GoldRow> : null}
-            {detail.entryMode ? <GoldRow>Entry mode: {detail.entryMode}</GoldRow> : null}
-            {detail.reflectionScope ? <GoldRow>Reflection scope: {detail.reflectionScope}</GoldRow> : null}
-            {detail.periodKey ? <GoldRow>Period: {detail.periodKey}</GoldRow> : null}
-            {detail.primaryRoleId !== null ? <GoldRow>{roleContext(detail.primaryRoleId, roles)}</GoldRow> : null}
-            {detail.roleEventId !== null ? <GoldRow>Event context #{detail.roleEventId}</GoldRow> : null}
-            <SourceDetail detail={detail} />
-          </div>
+      <AnimatePresence initial={false}>
+        {journal.selectedLifeLogId ? (
+          <PanelStage stageKey="lifelog-journal-detail" focusKey={journal.selectedLifeLogId} index={2}>
+            <PanelFrame title={detail ? `${detail.sourceType} Journal Detail` : "Journal Detail"} depth={0} contentKey={journal.selectedLifeLogId}>
+              {journal.detail.loading && !detail ? <InfoCard>Loading Journal detail...</InfoCard> : null}
+              {journal.detail.error && !detail ? <ErrorState text={journal.detail.error} retry={journal.detail.retry} /> : null}
+              {detail ? (
+                <div className="space-y-3 px-3">
+                  {journal.detail.error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{journal.detail.error}</p> : null}
+                  <InfoCard>Journal entry #{detail.lifeLogId}</InfoCard>
+                  <GoldRow>Source type: {detail.sourceType}</GoldRow>
+                  <GoldRow>Recorded at: {detail.recordedAt}</GoldRow>
+                  {detail.subtype ? <GoldRow>Subtype: {detail.subtype}</GoldRow> : null}
+                  {detail.entryMode ? <GoldRow>Entry mode: {detail.entryMode}</GoldRow> : null}
+                  {detail.reflectionScope ? <GoldRow>Reflection scope: {detail.reflectionScope}</GoldRow> : null}
+                  {detail.periodKey ? <GoldRow>Period: {detail.periodKey}</GoldRow> : null}
+                  {detail.primaryRoleId !== null ? <GoldRow>{roleContext(detail.primaryRoleId, roles)}</GoldRow> : null}
+                  {detail.roleEventId !== null ? <GoldRow>Event context #{detail.roleEventId}</GoldRow> : null}
+                  <SourceDetail detail={detail} />
+                </div>
+              ) : null}
+            </PanelFrame>
+          </PanelStage>
         ) : null}
-      </PanelFrame>
+      </AnimatePresence>
     </div>
   );
 }

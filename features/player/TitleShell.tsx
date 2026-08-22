@@ -64,8 +64,8 @@ export default function TitleShell() {
 
       <AnimatePresence initial={false} mode="popLayout">
         {selected ? (
-          <PanelStage key={`player-title-detail-${selected.titleId}`} stageKey={`player-title-detail-${selected.titleId}`} index={1}>
-            <PanelFrame title="Title Detail" depth={0}>
+          <PanelStage key="player-title-detail" stageKey="player-title-detail" focusKey={selected.titleId} index={1}>
+            <PanelFrame title="Title Detail" depth={0} contentKey={selected.titleId}>
               <div className="space-y-3 px-3">
                 <InfoCard>{selected.name}</InfoCard>
                 <GoldRow>Code: {selected.code}</GoldRow>

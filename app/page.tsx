@@ -750,11 +750,11 @@ export default function Home() {
       className="lag-app-surface h-screen overflow-auto"
     >
       <main
-        className="lag-app-shell mx-auto flex w-full min-w-max items-center"
+        className="lag-app-shell mx-auto flex w-full min-w-max items-start"
         style={{
           minHeight: "100vh",
           gap: UI_CONSTS.layout.columnGap,
-          paddingTop: UI_CONSTS.layout.pagePaddingY + UI_CONSTS.layout.visualCenterOffsetY,
+          paddingTop: UI_CONSTS.layout.pagePaddingY,
           paddingBottom: UI_CONSTS.layout.pagePaddingY,
           paddingLeft: UI_CONSTS.layout.pagePaddingX,
           paddingRight: UI_CONSTS.layout.canvasEndPaddingX,
@@ -775,7 +775,7 @@ export default function Home() {
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
 
-        <div className="lag-orb-column shrink-0" style={{ width: UI_CONSTS.layout.centerWidth, position: "relative" }}>
+        <div className="lag-orb-column shrink-0" style={{ width: UI_CONSTS.layout.centerWidth }}>
           <div className="lag-utility-cluster" style={{ zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
             <SocialUtilityHub />
             <NotificationBell />
@@ -883,7 +883,7 @@ export default function Home() {
               />
               {selectedSubByMain.inventory === "gear"
                 ? <GearShell />
-                : <InventoryShell surface={selectedSubByMain.inventory === "items" ? "items" : "inbox"} />}
+                : <InventoryShell key={selectedSubByMain.inventory} surface={selectedSubByMain.inventory === "items" ? "items" : "inbox"} />}
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
             <div className="flex w-fit items-center gap-3">

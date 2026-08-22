@@ -43,6 +43,13 @@ describe("Exercise query/mutation state를 관리할 때", () => {
   });
 
   it("create reload 후 returned ID를 fetch/select하고 update reload, delete clear를 수행한다", async () => {
+    api.searchExercisesApi.mockReset()
+      .mockResolvedValueOnce([first])
+      .mockResolvedValueOnce([first])
+      .mockResolvedValueOnce([first])
+      .mockResolvedValueOnce([created, first])
+      .mockResolvedValueOnce([updated, first])
+      .mockResolvedValueOnce([first]);
     const { result } = renderHook(() => useExerciseQueries());
     await waitFor(() => expect(result.current.list.items).toEqual([first]));
     act(() => result.current.search("RUNNING", "2026-08-01", "2026-08-14"));

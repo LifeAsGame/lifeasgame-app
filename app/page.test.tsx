@@ -101,6 +101,8 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     expect(css).toContain("flex: 0 0 auto");
     expect(css).toContain("width: clamp(280px, calc(100vw - 32px), 344px)");
     expect(css).toContain("text-overflow: ellipsis");
+    expect(css).toMatch(/\.lag-left-anchor,[\s\S]*\.lag-orb-column\s*{[^}]*position:\s*sticky;[^}]*top:\s*50svh;/);
+    expect(page).toContain('className="lag-app-shell mx-auto flex w-full min-w-max items-start"');
   });
 
   describe("인증된 player가 처음 진입하면", () => {
@@ -289,6 +291,12 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Options" }));
 
       expect(screen.getByTestId("settings-shell")).toHaveTextContent("Canonical Settings");
+    });
+
+    it("mobile CSS가 parent System stage를 삭제하지 않는다", () => {
+      const css = readFileSync("app/globals.css", "utf8");
+      expect(css).not.toMatch(/\.lag-settings-route\s*>\s*:first-child\s*{[\s\S]*?display:\s*none/);
+      expect(css).toContain("width: max-content !important");
     });
   });
 

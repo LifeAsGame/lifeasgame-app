@@ -89,8 +89,8 @@ export default function HobbyShell() {
 
       <AnimatePresence initial={false} mode="popLayout">
         {selected ? (
-          <PanelStage key={`player-hobby-detail-${selected.hobbyId}`} stageKey={`player-hobby-detail-${selected.hobbyId}`} index={2}>
-            <PanelFrame title="Hobby Detail" depth={0}>
+          <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" focusKey={selected.hobbyId} index={2}>
+            <PanelFrame title="Hobby Detail" depth={0} contentKey={selected.hobbyId}>
               <div className="space-y-3 px-3">
             <InfoCard>{selected.customName}</InfoCard>
             <GoldRow>Hobby: {selected.name}</GoldRow><GoldRow>Category: {selected.category}</GoldRow><GoldRow>Status: {selected.status}</GoldRow><GoldRow>Proficiency: {selected.proficiency}/100</GoldRow><GoldRow>Started: {selected.startedOn ?? "Not recorded"}</GoldRow><GoldRow>XP: {selected.xp}</GoldRow><InfoCard label="Detail">{selected.detail ?? "Not recorded"}</InfoCard>

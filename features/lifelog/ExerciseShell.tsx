@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import {
   EXERCISE_CATEGORIES,
@@ -11,6 +12,7 @@ import {
 } from "@/shared/api/types";
 import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useExerciseQueries } from "./useExerciseQueries";
@@ -141,8 +143,9 @@ export default function ExerciseShell() {
   const nextDisabled = exercises.list.loading || exercises.list.items.length < exercises.params.size;
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="exercise-shell">
-      <PanelFrame title="Exercise Search" depth={2}>
+    <div className="lag-panel-rail relative" data-testid="exercise-shell">
+      <PanelStage stageKey="lifelog-exercise-search">
+        <PanelFrame title="Exercise Search" depth={2}>
         <div className="space-y-3 px-3">
           <form className="space-y-2" onSubmit={(event) => {
             event.preventDefault();
@@ -164,9 +167,11 @@ export default function ExerciseShell() {
             <CreateForm pending={pending} create={exercises.create} />
           </details>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Exercises" depth={1}>
+      <PanelStage stageKey="lifelog-exercise-list" index={1}>
+        <PanelFrame title="Exercises" depth={1}>
         <div className="space-y-3">
           {exercises.list.loading && exercises.list.items.length === 0 ? <InfoCard>Loading Exercises...</InfoCard> : null}
           {exercises.list.error ? <ErrorState message={exercises.list.error} retry={() => void exercises.list.reload()} /> : null}
@@ -183,14 +188,20 @@ export default function ExerciseShell() {
             <button type="button" disabled={nextDisabled} style={buttonStyle} onClick={() => exercises.changePage(exercises.params.page + 1)}>Next</button>
           </div>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Exercise Detail" depth={0}>
-        {!exercises.selectedId ? <InfoCard>Select an Exercise.</InfoCard> : null}
-        {exercises.detail.loading && !exercises.detail.data ? <InfoCard>Loading Exercise...</InfoCard> : null}
-        {exercises.detail.error ? <ErrorState message={exercises.detail.error} retry={() => void exercises.detail.retry()} /> : null}
-        {exercises.detail.data ? <ExerciseDetail item={exercises.detail.data} pending={pending} update={(body) => exercises.update(exercises.detail.data!.id, body)} remove={() => exercises.remove(exercises.detail.data!.id)} /> : null}
-      </PanelFrame>
+      <AnimatePresence initial={false}>
+        {exercises.selectedId ? (
+          <PanelStage stageKey="lifelog-exercise-detail" focusKey={exercises.selectedId} index={2}>
+            <PanelFrame title="Exercise Detail" depth={0} contentKey={exercises.selectedId}>
+              {exercises.detail.loading && !exercises.detail.data ? <InfoCard>Loading Exercise...</InfoCard> : null}
+              {exercises.detail.error ? <ErrorState message={exercises.detail.error} retry={() => void exercises.detail.retry()} /> : null}
+              {exercises.detail.data ? <ExerciseDetail item={exercises.detail.data} pending={pending} update={(body) => exercises.update(exercises.detail.data!.id, body)} remove={() => exercises.remove(exercises.detail.data!.id)} /> : null}
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

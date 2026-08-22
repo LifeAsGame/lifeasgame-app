@@ -57,6 +57,7 @@ export function useExerciseQueries() {
       const next = await searchExercisesApi(paramsRef.current);
       if (requestId !== listRequestId.current) return undefined;
       setItems(next);
+      if (selectedIdRef.current !== null && !next.some(({ id }) => id === selectedIdRef.current)) clearSelection();
       return next;
     } catch (caught) {
       if (requestId === listRequestId.current) setListError(message(caught, "Unable to load Exercises."));
@@ -64,7 +65,7 @@ export function useExerciseQueries() {
     } finally {
       if (requestId === listRequestId.current) setListLoading(false);
     }
-  }, []);
+  }, [clearSelection]);
 
   useEffect(() => { void reload(); }, [params, reload]);
 
@@ -92,12 +93,14 @@ export function useExerciseQueries() {
   }, [loadDetail]);
 
   const search = (category?: ExerciseCategory, from?: string, to?: string) => {
+    clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { page: 0, size: paramsRef.current.size, category, from: from || undefined, to: to || undefined };
     setParams(paramsRef.current);
   };
 
   const changePage = (page: number) => {
+    clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { ...paramsRef.current, page: Math.max(0, page) };
     setParams(paramsRef.current);
@@ -107,7 +110,7 @@ export function useExerciseQueries() {
     key: string,
     request: () => Promise<T>,
     onResponse?: (result: T) => void,
-    onReload?: (result: T) => void,
+    onReload?: (result: T, next: ExerciseInfo[]) => void,
   ): Promise<boolean> => {
     if (mutationLocked.current) return false;
     mutationLocked.current = true;
@@ -116,7 +119,8 @@ export function useExerciseQueries() {
     try {
       const result = await request();
       onResponse?.(result);
-      if (await reload()) onReload?.(result);
+      const next = await reload();
+      if (next) onReload?.(result, next);
       else setMutationError("Exercise changed, but the authoritative list could not be reloaded.");
       return true;
     } catch (caught) {
@@ -133,7 +137,7 @@ export function useExerciseQueries() {
     "create",
     () => createExerciseApi(body),
     undefined,
-    ({ id }) => select(id),
+    ({ id }, next) => { if (next.some((item) => item.id === id)) select(id); },
   );
 
   const update = (id: number, body: ExerciseUpdateRequest) => mutate(

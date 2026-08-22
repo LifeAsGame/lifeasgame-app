@@ -26,7 +26,7 @@ describe("Title surface와 routing을 사용할 때", () => {
     api.getPlayerTitlesApi.mockResolvedValue([title]);
   });
 
-  it("선택 전에는 detail stage가 없고 선택 교체 시 transition identity를 바꾼다", async () => {
+  it("선택 전에는 detail stage가 없고 선택 교체 시 frame identity를 유지한다", async () => {
     api.getPlayerTitlesApi.mockResolvedValue([title, secondTitle]);
     render(<TitleShell />);
 
@@ -34,10 +34,12 @@ describe("Title surface와 routing을 사용할 때", () => {
     expect(screen.queryByText("Title Detail")).not.toBeInTheDocument();
 
     fireEvent.click(entries[0]);
-    expect(document.querySelector('[data-stage-key="player-title-detail-1"]')).toBeInTheDocument();
+    const detailStage = document.querySelector('[data-stage-key="player-title-detail"]');
+    expect(detailStage).toBeInTheDocument();
 
     fireEvent.click(entries[1]);
-    expect(document.querySelector('[data-stage-key="player-title-detail-2"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="player-title-detail"]')).toBe(detailStage);
+    expect(screen.getByText("Beater")).toBeInTheDocument();
   });
 
   it("acquired fields와 representative marker를 표시하고 fabricated state는 만들지 않는다", async () => {

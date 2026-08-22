@@ -122,12 +122,12 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
 
       expect(screen.getByRole("button", { name: /Current/ })).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="journey-root"]')).toBeInTheDocument();
-      expect(document.querySelector('[data-stage-key^="journey-list-"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-list"]')).not.toBeInTheDocument();
       expect(document.querySelector('[data-stage-key*="detail-"]')).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: /Current/ }));
       expect(await screen.findByText(/In Progress · 1\/3/)).toBeInTheDocument();
-      expect(document.querySelector('[data-stage-key="journey-list-current"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-list"]')).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key*="detail-"]')).not.toBeInTheDocument();
     });
   });
@@ -327,7 +327,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
 
       expect(await screen.findByText("Current Step Detail: 첫 흔적 남기기 · READY_TO_ADVANCE")).toBeInTheDocument();
-      expect(document.querySelector('[data-stage-key^="journey-route-detail-"] .lag-panel-body')).toHaveClass("lag-panel-body");
+      expect(document.querySelector('[data-stage-key="journey-detail"] .lag-panel-body')).toHaveClass("lag-panel-body");
       expect(api.getMyQuestRouteApi).toHaveBeenCalledWith(selectedRoute.id);
       expect(api.getQuestRouteApi).not.toHaveBeenCalled();
     });

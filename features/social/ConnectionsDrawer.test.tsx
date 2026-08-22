@@ -9,6 +9,8 @@ describe("Connections utility drawer surface", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     connectionsMock.reset();
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1200 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
   });
 
   it("opens outside OrbNav and renders only canonical peer fields and directional actions", async () => {
@@ -44,5 +46,22 @@ describe("Connections utility drawer surface", () => {
     await waitFor(() => expect(screen.queryByText("followings failed")).not.toBeInTheDocument());
     expect(followings).toHaveBeenCalledTimes(2);
     expect(followers).toHaveBeenCalledTimes(1);
+  });
+
+  it("drags by the shared header handle and re-clamps after viewport resize", () => {
+    render(<ConnectionsDrawer />);
+    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
+    const dialog = screen.getByRole("dialog", { name: "Current Player Connections" });
+    dialog.getBoundingClientRect = () => ({ left: 0, right: 420, top: 0, bottom: 500, width: 420, height: 500, x: 0, y: 0, toJSON: () => ({}) });
+    const handle = dialog.querySelector("header")!;
+
+    fireEvent.pointerDown(handle, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: -500, clientY: 1200 });
+    expect(dialog).toHaveStyle({ left: "16px", top: "284px" });
+
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 900 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 650 });
+    fireEvent.resize(window);
+    expect(dialog).toHaveStyle({ left: "16px", top: "134px" });
   });
 });
