@@ -5,33 +5,24 @@ import { AnimatePresence } from "framer-motion";
 
 import { INVENTORY_GEAR_PARTS } from "@/entities/nav";
 import type { InventoryGearPartId } from "@/entities/nav";
-import { SAO } from "@/shared/design/tokens";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
-import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
-import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
-import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
+import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { candidatesForGearPart, getEquipCompatibility, slotsForGearPart } from "./model";
 import { useEquipmentQueries } from "./useEquipmentQueries";
 
-const secondaryButton = {
-  border: `1px solid ${SAO.color.border.panel}`,
-  background: SAO.color.bg.inset,
-  color: SAO.color.text.secondary,
-  borderRadius: SAO.radius.panel,
-  padding: "7px 10px",
-  fontSize: "0.68rem",
-  letterSpacing: "0.08em",
-} as const;
-
 function ErrorState({ text, retry }: { text: string; retry: () => void }) {
   return (
-    <div className="space-y-2 px-3">
-      <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{text}</p>
-      <button type="button" style={secondaryButton} onClick={retry}>Retry</button>
+    <div className="lag-inventory-state">
+      <p role="alert" className="lag-inventory-feedback" data-state="error">{text}</p>
+      <button type="button" className="lag-inventory-button" onClick={retry}>Retry</button>
     </div>
   );
+}
+
+function DataRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="lag-inventory-data-row"><dt>{label}</dt><dd>{children}</dd></div>;
 }
 
 export default function GearShell({ onBack }: { onBack?: () => void }) {
@@ -59,95 +50,97 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
     if (selectedItemInstanceId !== null && !candidates.some(({ itemInstanceId }) => itemInstanceId === selectedItemInstanceId)) setSelectedItemInstanceId(null);
   }, [candidates, selectedItemInstanceId]);
 
+  const selectPart = (next: InventoryGearPartId) => {
+    setPart(next);
+    setSelectedSlotId(null);
+    setSelectedItemInstanceId(null);
+  };
+
+  const closeWorkspace = () => {
+    setPart(null);
+    setSelectedSlotId(null);
+    setSelectedItemInstanceId(null);
+    requestStageFocus("inventory-gear-parts", "center");
+  };
+
+  const closeAction = () => {
+    setSelectedSlotId(null);
+    setSelectedItemInstanceId(null);
+    requestStageFocus("inventory-gear-workspace", "center");
+  };
+
   return (
-    <div className="lag-panel-rail relative" data-testid="gear-shell">
+    <div className="lag-panel-rail lag-gear-shell relative" data-testid="gear-shell">
       <PanelStage stageKey="inventory-gear-parts">
-        <PanelFrame title="Gear Parts" depth={3} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
-        <div className="space-y-2">
-          {INVENTORY_GEAR_PARTS.map((item, index) => (
-            <PanelCard
-              key={item.id}
-              label={item.label}
-              slotLabel={item.slotLabel}
-              selected={part === item.id}
-              index={index}
-              onClick={() => {
-                setPart(item.id as InventoryGearPartId);
-                setSelectedSlotId(null);
-                setSelectedItemInstanceId(null);
-              }}
-            />
-          ))}
-        </div>
+        <PanelFrame title="Gear Parts" depth={2} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
+          <section className="lag-gear-parts" aria-label="Gear Parts">
+            <header><p>Select the real equipment taxonomy before choosing a slot.</p></header>
+            <div>
+              {INVENTORY_GEAR_PARTS.map((item) => (
+                <button key={item.id} type="button" className="lag-gear-part" aria-pressed={part === item.id} data-selected={part === item.id} onClick={() => selectPart(item.id as InventoryGearPartId)}>
+                  <span aria-hidden>{item.slotLabel}</span>
+                  <strong>{item.label}</strong>
+                  <small>{item.id}</small>
+                  <span aria-hidden>→</span>
+                </button>
+              ))}
+            </div>
+          </section>
         </PanelFrame>
       </PanelStage>
 
       <AnimatePresence initial={false}>
         {part ? (
-          <PanelStage stageKey="inventory-gear-slots" focusKey={part} index={1}>
-            <PanelFrame title="Equipment Slots" depth={2} contentKey={part} backButton={<BackButton label="Back to Gear Parts" onClick={() => {
-              setPart(null);
-              setSelectedSlotId(null);
-              setSelectedItemInstanceId(null);
-              requestStageFocus("inventory-gear-parts", "center");
-            }} />}>
-          <div className="space-y-3">
-            {queries.equipment.loading && queries.equipment.data.length === 0 ? <InfoCard>Loading Equipment...</InfoCard> : null}
-            {queries.equipment.error ? <ErrorState text={queries.equipment.error} retry={() => void queries.equipment.reload()} /> : null}
-            {!queries.equipment.loading && !queries.equipment.error && slots.length === 0 ? <InfoCard>No matching Equipment slots.</InfoCard> : null}
-            <div className="space-y-2">
-              {slots.map(({ slot, item, enrichmentMissing }, index) => (
-                <PanelCard
-                  key={slot.slotId}
-                  label={slot.slotName}
-                  slotLabel={slot.slotRole.slice(0, 2)}
-                  subtitle={slot.itemInstanceId === null
-                    ? `${slot.slotCode} · Empty`
-                    : enrichmentMissing
-                      ? `${slot.slotCode} · Occupied · Item details unavailable · itemInstanceId ${slot.itemInstanceId}`
-                      : `${slot.slotCode} · ${item?.itemName} · ${item?.rarity}`}
-                  selected={selectedSlotId === slot.slotId}
-                  index={index}
-                  onClick={() => {
-                    setSelectedSlotId(slot.slotId);
-                    setSelectedItemInstanceId(null);
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-            </PanelFrame>
-          </PanelStage>
-        ) : null}
-      </AnimatePresence>
+          <PanelStage stageKey="inventory-gear-workspace" focusKey={part} index={1}>
+            <PanelFrame title={`${INVENTORY_GEAR_PARTS.find(({ id }) => id === part)?.label ?? part} Workspace`} depth={1} contentKey={part} backButton={<BackButton label="Back to Gear Parts" onClick={closeWorkspace} />}>
+              <div className="lag-gear-workspace">
+                <section className="lag-gear-section" aria-labelledby="gear-slots-title">
+                  <h4 id="gear-slots-title">Equipment Slots</h4>
+                  <div>
+                    {queries.equipment.loading && queries.equipment.data.length === 0 ? <InfoCard>Loading Equipment...</InfoCard> : null}
+                    {queries.equipment.error ? <ErrorState text={queries.equipment.error} retry={() => void queries.equipment.reload()} /> : null}
+                    {!queries.equipment.loading && !queries.equipment.error && slots.length === 0 ? <InfoCard>No matching Equipment slots.</InfoCard> : null}
+                    <div className="lag-gear-card-list">
+                      {slots.map(({ slot, item, enrichmentMissing }) => (
+                        <button key={slot.slotId} type="button" className="lag-gear-card" data-kind="slot" data-selected={selectedSlotId === slot.slotId} aria-pressed={selectedSlotId === slot.slotId} onClick={() => {
+                          setSelectedSlotId(slot.slotId);
+                          setSelectedItemInstanceId(null);
+                        }}>
+                          <span aria-hidden>{slot.slotRole.slice(0, 2)}</span>
+                          <span>
+                            <strong>{slot.slotName}</strong>
+                            <small>{slot.slotCode} · {slot.slotCategory} · {slot.slotRole}</small>
+                            <small>{slot.itemInstanceId === null
+                              ? "Empty"
+                              : enrichmentMissing
+                                ? `Occupied · Item details unavailable · itemInstanceId ${slot.itemInstanceId}`
+                                : `${item?.itemName} · ${item?.rarity}`}</small>
+                          </span>
+                          <span aria-hidden>→</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </section>
 
-      <AnimatePresence initial={false}>
-        {part ? (
-          <PanelStage stageKey="inventory-gear-candidates" focusKey={part} index={2}>
-            <PanelFrame title="Inventory Candidates" depth={1} contentKey={part} backButton={<BackButton label="Back to Gear Parts" onClick={() => {
-              setPart(null);
-              setSelectedSlotId(null);
-              setSelectedItemInstanceId(null);
-              requestStageFocus("inventory-gear-parts", "center");
-            }} />}>
-          <div className="space-y-3">
-            {queries.inventory.loading && queries.inventory.data.entries.length === 0 ? <InfoCard>Loading Inventory candidates...</InfoCard> : null}
-            {queries.inventory.error ? <ErrorState text={queries.inventory.error} retry={() => void queries.inventory.reload()} /> : null}
-            {!queries.inventory.loading && !queries.inventory.error && candidates.length === 0 ? <InfoCard>No candidate Items.</InfoCard> : null}
-            <div className="space-y-2">
-              {candidates.map((item, index) => (
-                <PanelCard
-                  key={item.itemInstanceId}
-                  label={item.itemName}
-                  slotLabel={`x${item.quantity}`}
-                  subtitle={`${item.rarity} · ${item.category} · ${item.type}`}
-                  selected={selectedItemInstanceId === item.itemInstanceId}
-                  index={index}
-                  onClick={() => setSelectedItemInstanceId(item.itemInstanceId)}
-                />
-              ))}
-            </div>
-          </div>
+                <section className="lag-gear-section" aria-labelledby="gear-candidates-title">
+                  <h4 id="gear-candidates-title">Inventory Candidates</h4>
+                  <div>
+                    {queries.inventory.loading && queries.inventory.data.entries.length === 0 ? <InfoCard>Loading Inventory candidates...</InfoCard> : null}
+                    {queries.inventory.error ? <ErrorState text={queries.inventory.error} retry={() => void queries.inventory.reload()} /> : null}
+                    {!queries.inventory.loading && !queries.inventory.error && candidates.length === 0 ? <InfoCard>No candidate Items.</InfoCard> : null}
+                    <div className="lag-gear-card-list">
+                      {candidates.map((item) => (
+                        <button key={item.itemInstanceId} type="button" className="lag-gear-card" data-kind="candidate" data-selected={selectedItemInstanceId === item.itemInstanceId} aria-pressed={selectedItemInstanceId === item.itemInstanceId} onClick={() => setSelectedItemInstanceId(item.itemInstanceId)}>
+                          <span aria-hidden>x{item.quantity}</span>
+                          <span><strong>{item.itemName}</strong><small>{item.rarity} · {item.category} · {item.type}</small><small>itemInstanceId {item.itemInstanceId}</small></span>
+                          <span aria-hidden>→</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              </div>
             </PanelFrame>
           </PanelStage>
         ) : null}
@@ -155,52 +148,66 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
 
       <AnimatePresence initial={false}>
         {selectedSlot ? (
-          <PanelStage stageKey="inventory-gear-action" focusKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} index={3}>
-            <PanelFrame title="Gear Action" depth={0} contentKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} backButton={<BackButton label="Back to Inventory Candidates" onClick={() => {
-              setSelectedSlotId(null);
-              setSelectedItemInstanceId(null);
-              requestStageFocus("inventory-gear-candidates", "center");
-            }} />}>
-          <div className="space-y-2 px-3">
-            <InfoCard>{selectedSlot.slot.slotName}</InfoCard>
-            <GoldRow>Slot ID: {selectedSlot.slot.slotId}</GoldRow>
-            <GoldRow>Slot code: {selectedSlot.slot.slotCode}</GoldRow>
-            <GoldRow>Category: {selectedSlot.slot.slotCategory}</GoldRow>
-            <GoldRow>Role: {selectedSlot.slot.slotRole}</GoldRow>
-            {selectedSlot.slot.itemInstanceId === null ? <GoldRow>Equipped: Empty</GoldRow> : null}
-            {selectedSlot.item ? <GoldRow>Equipped: {selectedSlot.item.itemName} · {selectedSlot.item.rarity}</GoldRow> : null}
-            {selectedSlot.enrichmentMissing ? <GoldRow>Equipped: Item details unavailable · itemInstanceId {selectedSlot.slot.itemInstanceId}</GoldRow> : null}
-            {selectedCandidate ? <GoldRow>Candidate: {selectedCandidate.itemName} · itemInstanceId {selectedCandidate.itemInstanceId}</GoldRow> : <InfoCard>Select an Inventory candidate to equip.</InfoCard>}
-            {compatibility && compatibility.status !== "VERIFIED" ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{compatibility.reason}</p> : null}
-            {queries.mutationError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{queries.mutationError}</p> : null}
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                disabled={pending || compatibility?.status !== "VERIFIED" || selectedSlot.slot.itemInstanceId === selectedCandidate?.itemInstanceId}
-                style={{ ...actionBtnStyle, flex: 1 }}
-                onClick={() => {
-                  if (!selectedCandidate || compatibility?.status !== "VERIFIED") return;
-                  const current = selectedSlot.item?.itemName
-                    ?? (selectedSlot.slot.itemInstanceId === null ? null : `itemInstanceId ${selectedSlot.slot.itemInstanceId}`);
-                  const prompt = current
-                    ? `Replace ${current} in ${selectedSlot.slot.slotName} with ${selectedCandidate.itemName}?`
-                    : `Equip ${selectedCandidate.itemName} to ${selectedSlot.slot.slotName}?`;
-                  if (window.confirm(prompt)) void queries.equip(selectedSlot.slot.slotId, selectedCandidate.itemInstanceId);
-                }}
-              >{pending ? "Working..." : "Equip"}</button>
-              {selectedSlot.slot.itemInstanceId !== null ? (
-                <button
-                  type="button"
-                  disabled={pending}
-                  style={secondaryButton}
-                  onClick={() => {
-                    const item = selectedSlot.item?.itemName ?? `itemInstanceId ${selectedSlot.slot.itemInstanceId}`;
-                    if (window.confirm(`Unequip ${item} from ${selectedSlot.slot.slotName}?`)) void queries.unequip(selectedSlot.slot.slotId);
-                  }}
-                >Unequip</button>
-              ) : null}
-            </div>
-          </div>
+          <PanelStage stageKey="inventory-gear-action" focusKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} index={2}>
+            <PanelFrame title="Gear Action" depth={0} contentKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} backButton={<BackButton label={`Back to ${INVENTORY_GEAR_PARTS.find(({ id }) => id === part)?.label ?? "Part"} Workspace`} onClick={closeAction} />}>
+              <article className="lag-gear-action-detail">
+                <header className="lag-inventory-hero">
+                  <span>Selected Equipment Slot</span>
+                  <h4>{selectedSlot.slot.slotName}</h4>
+                  <div><span>{selectedSlot.slot.slotCategory}</span><span>{selectedSlot.slot.slotRole}</span></div>
+                </header>
+                <section className="lag-inventory-section">
+                  <h4>Slot</h4>
+                  <dl>
+                    <DataRow label="Slot ID">{selectedSlot.slot.slotId}</DataRow>
+                    <DataRow label="Slot code">{selectedSlot.slot.slotCode}</DataRow>
+                    <DataRow label="Category">{selectedSlot.slot.slotCategory}</DataRow>
+                    <DataRow label="Role">{selectedSlot.slot.slotRole}</DataRow>
+                    <DataRow label="Equipped">{selectedSlot.slot.itemInstanceId === null
+                      ? "Empty"
+                      : selectedSlot.item
+                        ? `${selectedSlot.item.itemName} · ${selectedSlot.item.rarity}`
+                        : `Item details unavailable · itemInstanceId ${selectedSlot.slot.itemInstanceId}`}</DataRow>
+                  </dl>
+                </section>
+                <section className="lag-inventory-section">
+                  <h4>Candidate and compatibility</h4>
+                  <dl>
+                    <DataRow label="Candidate">{selectedCandidate ? `${selectedCandidate.itemName} · itemInstanceId ${selectedCandidate.itemInstanceId}` : "Select an Inventory candidate to equip."}</DataRow>
+                    <DataRow label="Compatibility">{compatibility?.status ?? "Not evaluated"}</DataRow>
+                  </dl>
+                </section>
+                {compatibility && compatibility.status !== "VERIFIED" ? <p role="alert" className="lag-inventory-feedback" data-state="error">{compatibility.status}: {compatibility.reason}</p> : null}
+                {queries.mutationError ? <p role="alert" className="lag-inventory-feedback" data-state="error">{queries.mutationError}</p> : null}
+                <div className="lag-inventory-actions">
+                  <button
+                    type="button"
+                    disabled={pending || compatibility?.status !== "VERIFIED" || selectedSlot.slot.itemInstanceId === selectedCandidate?.itemInstanceId}
+                    className="lag-inventory-action"
+                    onClick={() => {
+                      if (!selectedCandidate || compatibility?.status !== "VERIFIED") return;
+                      const current = selectedSlot.item?.itemName
+                        ?? (selectedSlot.slot.itemInstanceId === null ? null : `itemInstanceId ${selectedSlot.slot.itemInstanceId}`);
+                      const prompt = current
+                        ? `Replace ${current} in ${selectedSlot.slot.slotName} with ${selectedCandidate.itemName}?`
+                        : `Equip ${selectedCandidate.itemName} to ${selectedSlot.slot.slotName}?`;
+                      if (window.confirm(prompt)) void queries.equip(selectedSlot.slot.slotId, selectedCandidate.itemInstanceId);
+                    }}
+                  >{pending ? "Working..." : "Equip"}</button>
+                  {selectedSlot.slot.itemInstanceId !== null ? (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      className="lag-inventory-button"
+                      data-variant="destructive"
+                      onClick={() => {
+                        const item = selectedSlot.item?.itemName ?? `itemInstanceId ${selectedSlot.slot.itemInstanceId}`;
+                        if (window.confirm(`Unequip ${item} from ${selectedSlot.slot.slotName}?`)) void queries.unequip(selectedSlot.slot.slotId);
+                      }}
+                    >Unequip</button>
+                  ) : null}
+                </div>
+              </article>
             </PanelFrame>
           </PanelStage>
         ) : null}
