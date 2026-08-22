@@ -82,7 +82,15 @@ export function useDraggableWindow(open: boolean) {
     windowRef,
     dragHandleProps: { onPointerDown, style: { cursor: "move", touchAction: "none" } as const },
     windowStyle: mobile
-      ? { position: "fixed", left: 16, right: 16, bottom: "calc(112px + env(safe-area-inset-bottom))", top: "auto", zIndex: 600000 } as const
+      ? {
+          position: "fixed",
+          left: 16,
+          right: 16,
+          bottom: "calc(112px + env(safe-area-inset-bottom))",
+          top: "auto",
+          maxHeight: "calc(100dvh - 112px - env(safe-area-inset-bottom) - max(16px, env(safe-area-inset-top)))",
+          zIndex: 600000,
+        } as const
       : { position: "fixed", left: position?.x, top: position?.y, right: position ? "auto" : 24, zIndex: 600000 } as const,
   };
 }

@@ -96,7 +96,7 @@ export function PlayerPanel({
   };
 
   return (
-    <div className="relative z-10 overflow-y-auto scrollbar-hide" style={{ maxHeight: "100%" }}>
+    <div className="relative">
       <div className="p-7">
         {/* Identity header */}
         <div className="text-center">

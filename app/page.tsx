@@ -789,8 +789,6 @@ export default function Home() {
         style={{
           minHeight: "100vh",
           gap: UI_CONSTS.layout.columnGap,
-          paddingTop: UI_CONSTS.layout.pagePaddingY,
-          paddingBottom: UI_CONSTS.layout.pagePaddingY,
           paddingLeft: UI_CONSTS.layout.pagePaddingX,
           paddingRight: UI_CONSTS.layout.canvasEndPaddingX,
         }}

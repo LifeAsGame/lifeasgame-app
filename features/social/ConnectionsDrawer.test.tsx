@@ -83,6 +83,8 @@ describe("Connections utility drawer surface", () => {
     const dialog = screen.getByRole("dialog", { name: "Current Player Connections" });
 
     await waitFor(() => expect(dialog.style.bottom).toContain("safe-area-inset-bottom"));
+    expect(dialog.style.maxHeight).toContain("100dvh");
+    expect(dialog.style.maxHeight).toContain("safe-area-inset-top");
     expect(dialog.querySelector("header")).toBeInTheDocument();
     const css = readFileSync("app/globals.css", "utf8");
     expect(css).toContain("max-height: calc(100dvh - 112px - env(safe-area-inset-bottom) - max(16px, env(safe-area-inset-top)))");

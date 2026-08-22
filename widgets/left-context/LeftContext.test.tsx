@@ -31,4 +31,34 @@ describe("LeftContext에서 Role을 사용할 때", () => {
       expect(selectRole).toHaveBeenCalledWith(3);
     });
   });
+
+  it("Player와 Role이 같은 lane/frame을 유지하고 내부 content만 교체한다", () => {
+    const { container, rerender } = render(
+      <LeftContext mode="player" roles={roles} selectedRoleId={null} socialContext={null} />,
+    );
+    const lane = container.querySelector(".lag-left-anchor");
+    const frame = container.querySelector(".lag-left-context");
+
+    rerender(<LeftContext mode="role" roles={roles} selectedRoleId={null} socialContext={null} />);
+
+    expect(container.querySelector(".lag-left-anchor")).toBe(lane);
+    expect(container.querySelector(".lag-left-context")).toBe(frame);
+    expect(lane).toHaveAttribute("data-context-present", "true");
+  });
+
+  it("keeps a stable collapsible lane and shared bounded content scroll", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    const { container, rerender } = render(
+      <LeftContext mode="player" roles={roles} selectedRoleId={null} socialContext={null} />,
+    );
+    const lane = container.querySelector(".lag-left-anchor");
+
+    rerender(<LeftContext mode="hidden" socialContext={null} />);
+
+    expect(container.querySelector(".lag-left-anchor")).toBe(lane);
+    expect(lane).toHaveAttribute("data-context-present", "false");
+    expect(css).not.toContain("display: contents");
+    expect(css).toMatch(/\.lag-left-anchor\[data-context-present="false"\]\s*{[^}]*width:\s*0;[^}]*flex-basis:\s*0;/);
+    expect(css).toMatch(/\.lag-left-context-content\s*{[^}]*height:\s*100%;[^}]*overflow-y:\s*auto;/);
+  });
 });

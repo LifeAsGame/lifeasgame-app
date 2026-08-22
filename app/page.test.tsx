@@ -101,10 +101,12 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     expect(css).toContain("flex: 0 0 auto");
     expect(css).toContain("width: clamp(280px, calc(100vw - 32px), 344px)");
     expect(css).toContain("text-overflow: ellipsis");
-    expect(css).toMatch(/\.lag-left-anchor,[\s\S]*\.lag-orb-column\s*{[^}]*position:\s*sticky;[^}]*top:\s*50svh;/);
+    expect(css).toMatch(/\.lag-left-anchor,[\s\S]*\.lag-orb-column\s*{[^}]*position:\s*sticky;[^}]*top:\s*0;[^}]*height:\s*100svh;[^}]*align-items:\s*center;/);
+    expect(css).not.toContain("translateY(-50%)");
+    expect(css).not.toContain("display: contents");
     expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*\.lag-orb-column\s*{[^}]*position:\s*fixed !important;[^}]*top:\s*auto !important;[^}]*bottom:\s*calc\(var\(--lag-space-4\) \+ env\(safe-area-inset-bottom\)\)/);
-    expect(css).toMatch(/\.lag-left-context\s*{[^}]*height:\s*min\(680px, calc\(100svh - 120px\)\);[^}]*max-height:\s*calc\(100svh - 120px\)/);
-    expect(css).toMatch(/\.lag-left-context > :last-child\s*{[^}]*overflow-y:\s*auto/);
+    expect(css).toMatch(/\.lag-left-context\s*{[^}]*height:\s*min\(680px, calc\(100svh[^}]*max-height:\s*calc\(100svh/);
+    expect(css).toMatch(/\.lag-left-context-content\s*{[^}]*overflow-y:\s*auto/);
     expect(page).toContain('className="lag-app-shell mx-auto flex w-full min-w-max items-start"');
   });
 

@@ -10,6 +10,16 @@ export function parseThemePreference(value: unknown): ThemePreference | null {
   return value === "SYSTEM" || value === "ASTRAL" || value === "WARM_BEIGE" ? value : null;
 }
 
+export function parseServerThemePreference(flagsJson: string | null): ThemePreference | null {
+  try {
+    const flags: unknown = flagsJson === null ? {} : JSON.parse(flagsJson);
+    if (flags === null || typeof flags !== "object" || Array.isArray(flags)) return null;
+    return parseThemePreference((flags as Record<string, unknown>).themePreference);
+  } catch {
+    return null;
+  }
+}
+
 export function resolveTheme(preference: unknown, systemDark = false): EffectiveTheme {
   const supported = parseThemePreference(preference) ?? DEFAULT_THEME_PREFERENCE;
   if (supported === "SYSTEM") return systemDark ? "astral" : "warm-beige";

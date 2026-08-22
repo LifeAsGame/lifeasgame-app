@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type StageFocusPlan = { key: string; align: "center" | "nearest" } | null;
 type StageFocusDetail = NonNullable<StageFocusPlan>;
+export type CameraProfile = "wide" | "compact" | "mobile";
 
 export const STAGE_FOCUS_EVENT = "lag:stage-focus";
 let pendingFocus: StageFocusDetail | null = null;
@@ -35,7 +36,8 @@ export function focusStage(
   target: HTMLElement,
   align: "center" | "nearest",
   reducedMotion: boolean,
-  insets = cameraInsets(owner),
+  insets = cameraInsets(owner, "wide"),
+  profile: CameraProfile = "wide",
 ) {
   const ownerRect = owner.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
@@ -44,6 +46,8 @@ export function focusStage(
 
   if (align === "center") {
     left = targetLeft + targetRect.width / 2 - owner.clientWidth / 2;
+  } else if (profile !== "wide") {
+    left = targetLeft - insets.leading;
   } else if (targetLeft < owner.scrollLeft + insets.leading) {
     left = targetLeft - insets.leading;
   } else if (targetLeft + targetRect.width > owner.scrollLeft + owner.clientWidth - insets.trailing) {
@@ -56,11 +60,28 @@ export function focusStage(
   });
 }
 
-export function cameraInsets(owner: HTMLElement) {
+export function cameraProfileForWidth(width: number): CameraProfile {
+  if (width < 768) return "mobile";
+  if (width < 1200) return "compact";
+  return "wide";
+}
+
+export function cameraInsets(owner: HTMLElement, profile: CameraProfile) {
   const style = getComputedStyle(owner);
+  const cssLeading = Number.parseFloat(style.scrollPaddingLeft) || 24;
+  const cssTrailing = Number.parseFloat(style.scrollPaddingRight) || 24;
+  if (profile === "mobile") {
+    return { leading: Math.max(cssLeading, 64), trailing: Math.max(cssTrailing, 24) };
+  }
+  if (profile === "compact") {
+    return {
+      leading: Math.max(cssLeading, Math.min(128, Math.max(72, owner.clientWidth * 0.16))),
+      trailing: Math.max(cssTrailing, 32),
+    };
+  }
   return {
-    leading: Number.parseFloat(style.scrollPaddingLeft) || 24,
-    trailing: Number.parseFloat(style.scrollPaddingRight) || 24,
+    leading: Math.max(cssLeading, 32),
+    trailing: Math.max(cssTrailing, Math.min(160, Math.max(48, owner.clientWidth * 0.12))),
   };
 }
 
@@ -77,19 +98,22 @@ export function useStageCamera(
   workspaceRef: React.RefObject<HTMLDivElement | null>,
   mainSelectionKey: string,
 ) {
-  const [mobile, setMobile] = useState(false);
+  const [profile, setProfile] = useState<CameraProfile>(() =>
+    cameraProfileForWidth(typeof window === "undefined" ? 1200 : window.innerWidth),
+  );
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const lastFocusedStage = useRef<string | null>(null);
 
   useEffect(() => {
-    if (typeof window.matchMedia !== "function") return;
-    const query = window.matchMedia("(max-width: 767px)");
-    const update = () => setMobile(query.matches);
+    const update = () => setProfile(cameraProfileForWidth(window.innerWidth));
     update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
   useEffect(() => {
-    const owner = mobile ? viewportRef.current : workspaceRef.current;
+    const owner = profile === "mobile" ? viewportRef.current : workspaceRef.current;
     if (!owner) return;
     let previous = stages(owner).map((stage) => stage.dataset.stageKey!);
     let frame = 0;
@@ -98,7 +122,8 @@ export function useStageCamera(
       frame = requestAnimationFrame(() => {
         const target = stages(owner).find((stage) => stage.dataset.stageKey === detail.key);
         if (!target) return;
-        focusStage(owner, target, detail.align, prefersReducedMotion());
+        focusStage(owner, target, detail.align, prefersReducedMotion(), cameraInsets(owner, profile), profile);
+        lastFocusedStage.current = detail.key;
         if (pendingFocus?.key === detail.key) pendingFocus = null;
       });
     };
@@ -110,7 +135,8 @@ export function useStageCamera(
           const target = nextStages.find((stage) => stage.dataset.stageKey === pendingFocus?.key);
           if (target) {
             const detail = pendingFocus;
-            focusStage(owner, target, detail.align, prefersReducedMotion());
+            focusStage(owner, target, detail.align, prefersReducedMotion(), cameraInsets(owner, profile), profile);
+            lastFocusedStage.current = detail.key;
             if (pendingFocus?.key === detail.key) pendingFocus = null;
           }
           previous = nextStages.map((stage) => stage.dataset.stageKey!);
@@ -119,7 +145,10 @@ export function useStageCamera(
         const plan = stageFocusPlan(previous, nextStages.map((stage) => stage.dataset.stageKey!));
         previous = nextStages.map((stage) => stage.dataset.stageKey!);
         const target = plan && nextStages.find((stage) => stage.dataset.stageKey === plan.key);
-        if (plan && target) focusStage(owner, target, plan.align, prefersReducedMotion());
+        if (plan && target) {
+          focusStage(owner, target, plan.align, prefersReducedMotion(), cameraInsets(owner, profile), profile);
+          lastFocusedStage.current = plan.key;
+        }
       });
     });
     const focusRequested = (event: Event) => {
@@ -128,18 +157,23 @@ export function useStageCamera(
     observer.observe(owner, { childList: true, subtree: true });
     window.addEventListener(STAGE_FOCUS_EVENT, focusRequested);
     if (pendingFocus) focus(pendingFocus);
+    else if (lastFocusedStage.current) focus({ key: lastFocusedStage.current, align: "nearest" });
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener(STAGE_FOCUS_EVENT, focusRequested);
     };
-  }, [mobile, viewportRef, workspaceRef]);
+  }, [profile, viewportRef, workspaceRef]);
 
   useEffect(() => {
-    const owner = mobile ? viewportRef.current : workspaceRef.current;
+    const currentProfile = profileRef.current;
+    const owner = currentProfile === "mobile" ? viewportRef.current : workspaceRef.current;
     const target = owner && stages(owner)[0];
     if (!owner || !target || pendingFocus) return;
-    const frame = requestAnimationFrame(() => focusStage(owner, target, mobile ? "nearest" : "center", prefersReducedMotion()));
+    const frame = requestAnimationFrame(() => {
+      focusStage(owner, target, currentProfile === "wide" ? "center" : "nearest", prefersReducedMotion(), cameraInsets(owner, currentProfile), currentProfile);
+      lastFocusedStage.current = target.dataset.stageKey ?? null;
+    });
     return () => cancelAnimationFrame(frame);
-  }, [mainSelectionKey, mobile, viewportRef, workspaceRef]);
+  }, [mainSelectionKey, viewportRef, workspaceRef]);
 }
