@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 
 import type {
@@ -11,11 +10,10 @@ import type {
   RoleEventInput,
   RoleRelationDetail,
 } from "@/shared/api/types";
-import PanelCard from "@/shared/ui/PanelCard";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
-import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
-import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import {
   archiveRoleApi,
   archiveRoleRelationApi,
@@ -41,37 +39,6 @@ const ROLE_SURFACES: Array<{ id: RoleSurface; label: string; slotLabel: string }
   { id: "events", label: "Events", slotLabel: "EV" },
 ];
 
-const secondaryButton = {
-  border: "1px solid var(--lag-control-border)",
-  background: "var(--lag-control-bg)",
-  color: "var(--lag-control-text)",
-  borderRadius: "var(--lag-radius-sm)",
-  padding: "7px 10px",
-  fontSize: "0.68rem",
-  letterSpacing: "0.08em",
-} as const;
-
-const fieldLabel = {
-  display: "block",
-  fontSize: "0.62rem",
-  letterSpacing: "0.14em",
-  color: "var(--lag-text-2)",
-  textTransform: "uppercase",
-} as const;
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box",
-  padding: "8px 12px",
-  background: "var(--lag-control-bg)",
-  border: "1px solid var(--lag-control-border)",
-  borderRadius: "var(--lag-radius-sm)",
-  color: "var(--lag-control-text)",
-  fontSize: "0.875rem",
-  letterSpacing: "0.04em",
-  outline: "none",
-} as const;
-
 function value(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
 }
@@ -93,11 +60,19 @@ function toInstant(local: string) {
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="space-y-3 px-3">
-      <p role="alert" className="text-sm" style={{ color: "var(--lag-state-error)" }}>{message}</p>
-      <button type="button" style={secondaryButton} onClick={onRetry}>Retry</button>
+    <div className="lag-role-state">
+      <p role="alert" className="lag-role-feedback" data-state="error">{message}</p>
+      <button type="button" className="lag-role-button" onClick={onRetry}>Retry</button>
     </div>
   );
+}
+
+function RoleDataRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="lag-role-data-row"><dt>{label}</dt><dd>{children}</dd></div>;
+}
+
+function RoleSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="lag-role-section"><h4>{title}</h4><div>{children}</div></section>;
 }
 
 function RoleEditForm({ role, onSaved, onCancel }: { role: RoleDetail; onSaved: () => Promise<void>; onCancel: () => void }) {
@@ -124,14 +99,14 @@ function RoleEditForm({ role, onSaved, onCancel }: { role: RoleDetail; onSaved: 
   };
 
   return (
-    <form className="space-y-3 px-3" onSubmit={submit}>
-      <label style={fieldLabel}>Role Type<input className="lag-role-control" name="roleType" required defaultValue={role.roleType} style={inputStyle} /></label>
-      <label style={fieldLabel}>Name<input className="lag-role-control" name="name" required defaultValue={role.name} style={inputStyle} /></label>
-      <label style={fieldLabel}>Description<textarea className="lag-role-control" name="description" required defaultValue={role.description} rows={4} style={{ ...inputStyle, resize: "vertical" }} /></label>
-      {error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
-      <div className="flex gap-2">
-        <button type="submit" disabled={pending} style={{ ...actionBtnStyle, flex: 1 }}>{pending ? "Saving..." : "Save Role"}</button>
-        <button type="button" style={secondaryButton} onClick={onCancel}>Cancel</button>
+    <form className="lag-role-form" onSubmit={submit}>
+      <label>Role Type<input className="lag-role-control" name="roleType" required defaultValue={role.roleType} /></label>
+      <label>Name<input className="lag-role-control" name="name" required defaultValue={role.name} /></label>
+      <label>Description<textarea className="lag-role-control" name="description" required defaultValue={role.description} rows={4} /></label>
+      {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
+      <div className="lag-role-actions">
+        <button type="submit" disabled={pending} className="lag-role-action">{pending ? "Saving..." : "Save Role"}</button>
+        <button type="button" className="lag-role-button" onClick={onCancel}>Cancel</button>
       </div>
     </form>
   );
@@ -139,12 +114,21 @@ function RoleEditForm({ role, onSaved, onCancel }: { role: RoleDetail; onSaved: 
 
 function Overview({ role }: { role: RoleDetail }) {
   return (
-    <div className="space-y-3 px-3">
-      <InfoCard>{role.description}</InfoCard>
-      <GoldRow>Name: {role.name}</GoldRow>
-      <GoldRow>Role Type: {role.roleType}</GoldRow>
-      <GoldRow>Status: {role.status}</GoldRow>
-    </div>
+    <article className="lag-role-detail">
+      <header className="lag-role-hero">
+        <span>Role Overview</span>
+        <h4>{role.name}</h4>
+        <span className="lag-role-status">{role.status}</span>
+        <p>{role.description}</p>
+      </header>
+      <RoleSection title="Role identity">
+        <dl>
+          <RoleDataRow label="Name">{role.name}</RoleDataRow>
+          <RoleDataRow label="Role type">{role.roleType}</RoleDataRow>
+          <RoleDataRow label="Status">{role.status}</RoleDataRow>
+        </dl>
+      </RoleSection>
+    </article>
   );
 }
 
@@ -235,60 +219,64 @@ function RelationsSurface({ roleId }: { roleId: number }) {
   if (error && persons.length === 0 && relations.length === 0) return <ErrorState message={error} onRetry={() => void load()} />;
 
   return (
-    <div className="space-y-5 px-3">
-      {error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
-      <section className="space-y-2" aria-labelledby="persons-heading">
-        <h3 id="persons-heading" style={fieldLabel}>Persons</h3>
+    <div className="lag-role-detail lag-role-relations">
+      {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
+      <section className="lag-role-section" aria-labelledby="persons-heading">
+        <h4 id="persons-heading">Persons</h4>
+        <div className="lag-role-section-body">
         {persons.length ? persons.map((person) => (
-          <div key={person.id} className="lag-utility-row rounded-sm border px-3 py-2">
-            <p className="text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{person.displayName}</p>
-            <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>
+          <article key={person.id} className="lag-role-record" data-kind="person">
+            <strong>{person.displayName}</strong>
+            <p>
               {person.linkedUserId ? "Linked account available · identity remains Person" : "Person"}
             </p>
-          </div>
+          </article>
         )) : <InfoCard>No Persons yet.</InfoCard>}
-        <form className="space-y-2" onSubmit={createPerson}>
-          <label style={fieldLabel}>Display Name<input className="lag-role-control" name="displayName" required style={inputStyle} /></label>
-          <label style={fieldLabel}>Notes<input className="lag-role-control" name="notes" style={inputStyle} /></label>
-          <div className="grid grid-cols-2 gap-2">
-            <label style={fieldLabel}>Birthday<input className="lag-role-control" name="birthday" type="date" style={inputStyle} /></label>
-            <label style={fieldLabel}>Contact<input className="lag-role-control" name="contact" style={inputStyle} /></label>
+        <form className="lag-role-form" onSubmit={createPerson}>
+          <label>Display Name<input className="lag-role-control" name="displayName" required /></label>
+          <label>Notes<input className="lag-role-control" name="notes" /></label>
+          <div className="lag-role-form-grid">
+            <label>Birthday<input className="lag-role-control" name="birthday" type="date" /></label>
+            <label>Contact<input className="lag-role-control" name="contact" /></label>
           </div>
-          <button type="submit" disabled={pending} style={secondaryButton}>Create Person</button>
+          <button type="submit" disabled={pending} className="lag-role-button">Create Person</button>
         </form>
+        </div>
       </section>
 
-      <section className="space-y-2" aria-labelledby="relations-heading">
-        <h3 id="relations-heading" style={fieldLabel}>Role Relations</h3>
+      <section className="lag-role-section" aria-labelledby="relations-heading">
+        <h4 id="relations-heading">Role Relations</h4>
+        <div className="lag-role-section-body">
         {relations.length ? relations.map((relation) => (
-          <div key={relation.id} className="lag-utility-row rounded-sm border px-3 py-2">
-            <p className="text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{relation.personDisplayName} · {relation.relationType}</p>
-            <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>{relation.roleNotes || "No role notes"}</p>
-            <div className="mt-2 flex gap-2">
-              <button type="button" style={secondaryButton} onClick={() => setEditing(relation)}>Edit</button>
-              <button type="button" disabled={pending} style={secondaryButton} onClick={() => void archiveRelation(relation)}>Archive</button>
+          <article key={relation.id} className="lag-role-record" data-kind="relation">
+            <strong>{relation.personDisplayName} · {relation.relationType}</strong>
+            <p>{relation.roleNotes || "No role notes"}</p>
+            <div className="lag-role-actions">
+              <button type="button" className="lag-role-button" onClick={() => setEditing(relation)}>Edit</button>
+              <button type="button" disabled={pending} className="lag-role-button" data-variant="destructive" onClick={() => void archiveRelation(relation)}>Archive</button>
             </div>
-          </div>
+          </article>
         )) : <InfoCard>No Relations for this Role.</InfoCard>}
 
-        <form key={editing?.id ?? "new-relation"} className="space-y-2" onSubmit={saveRelation}>
+        <form key={editing?.id ?? "new-relation"} className="lag-role-form" onSubmit={saveRelation}>
           {editing ? (
             <InfoCard>Editing {editing.personDisplayName}. Person identity cannot be changed here.</InfoCard>
           ) : (
-            <label style={fieldLabel}>Person
-              <select className="lag-role-control" name="personId" required defaultValue="" style={inputStyle}>
+            <label>Person
+              <select className="lag-role-control" name="personId" required defaultValue="">
                 <option value="" disabled>Select a Person</option>
                 {persons.map((person) => <option key={person.id} value={person.id}>{person.displayName}</option>)}
               </select>
             </label>
           )}
-          <label style={fieldLabel}>Relation Type<input className="lag-role-control" name="relationType" required defaultValue={editing?.relationType ?? ""} placeholder="e.g. FAMILY" style={inputStyle} /></label>
-          <label style={fieldLabel}>Role Notes<textarea className="lag-role-control" name="roleNotes" defaultValue={editing?.roleNotes ?? ""} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></label>
-          <div className="flex gap-2">
-            <button type="submit" disabled={pending || (!editing && persons.length === 0)} style={secondaryButton}>{editing ? "Update Relation" : "Create Relation"}</button>
-            {editing ? <button type="button" style={secondaryButton} onClick={() => setEditing(null)}>Cancel Edit</button> : null}
+          <label>Relation Type<input className="lag-role-control" name="relationType" required defaultValue={editing?.relationType ?? ""} placeholder="e.g. FAMILY" /></label>
+          <label>Role Notes<textarea className="lag-role-control" name="roleNotes" defaultValue={editing?.roleNotes ?? ""} rows={3} /></label>
+          <div className="lag-role-actions">
+            <button type="submit" disabled={pending || (!editing && persons.length === 0)} className="lag-role-action">{editing ? "Update Relation" : "Create Relation"}</button>
+            {editing ? <button type="button" className="lag-role-button" onClick={() => setEditing(null)}>Cancel Edit</button> : null}
           </div>
         </form>
+        </div>
       </section>
     </div>
   );
@@ -322,15 +310,15 @@ function EventForm({ roleId, event, onSaved, onCancel }: { roleId: number; event
   };
 
   return (
-    <form className="space-y-3" onSubmit={submit}>
-      <label style={fieldLabel}>Title<input className="lag-role-control" name="title" required maxLength={120} defaultValue={event?.title ?? ""} style={inputStyle} /></label>
-      <label style={fieldLabel}>Description<textarea className="lag-role-control" name="description" maxLength={1000} defaultValue={event?.description ?? ""} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></label>
-      <label style={fieldLabel}>Starts At<input className="lag-role-control" name="startsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.startsAt ?? null)} style={inputStyle} /></label>
-      <label style={fieldLabel}>Ends At<input className="lag-role-control" name="endsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.endsAt ?? null)} style={inputStyle} /></label>
-      {error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
-      <div className="flex gap-2">
-        <button type="submit" disabled={pending} style={secondaryButton}>{event ? "Update Event" : "Save New Event"}</button>
-        <button type="button" style={secondaryButton} onClick={onCancel}>Cancel</button>
+    <form className="lag-role-form" onSubmit={submit}>
+      <label>Title<input className="lag-role-control" name="title" required maxLength={120} defaultValue={event?.title ?? ""} /></label>
+      <label>Description<textarea className="lag-role-control" name="description" maxLength={1000} defaultValue={event?.description ?? ""} rows={3} /></label>
+      <label>Starts At<input className="lag-role-control" name="startsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.startsAt ?? null)} /></label>
+      <label>Ends At<input className="lag-role-control" name="endsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.endsAt ?? null)} /></label>
+      {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
+      <div className="lag-role-actions">
+        <button type="submit" disabled={pending} className="lag-role-action">{event ? "Update Event" : "Save New Event"}</button>
+        <button type="button" className="lag-role-button" onClick={onCancel}>Cancel</button>
       </div>
     </form>
   );
@@ -394,14 +382,15 @@ function EventsSurface({ roleId }: { roleId: number }) {
   if (error && events.length === 0) return <ErrorState message={error} onRetry={() => void load()} />;
 
   return (
-    <div className="space-y-4 px-3">
-      {error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
-      <button type="button" style={actionBtnStyle} onClick={() => setFormEvent("create")}>Create Event</button>
-      <div className="space-y-2">
+    <div className="lag-role-detail lag-role-events">
+      {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
+      <button type="button" className="lag-role-action" onClick={() => setFormEvent("create")}>Create Event</button>
+      <div className="lag-role-event-list" aria-label="Role Events">
         {events.length ? events.map((roleEvent) => (
-          <button key={roleEvent.id} type="button" className="w-full rounded-sm px-3 py-2 text-left" style={{ background: selectedEvent?.id === roleEvent.id ? "var(--lag-selected-surface)" : "var(--lag-control-bg)", border: `1px solid ${selectedEvent?.id === roleEvent.id ? "var(--lag-focus)" : "var(--lag-control-border)"}` }} onClick={() => void selectEvent(roleEvent.id)}>
-            <span className="block text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{roleEvent.title}</span>
-            <span className="block text-xs" style={{ color: "var(--lag-text-2)" }}>{roleEvent.status}</span>
+          <button key={roleEvent.id} type="button" className="lag-role-event" data-selected={selectedEvent?.id === roleEvent.id} aria-pressed={selectedEvent?.id === roleEvent.id} onClick={() => void selectEvent(roleEvent.id)}>
+            <span aria-hidden>{roleEvent.status === "PLANNED" ? "○" : roleEvent.status === "COMPLETED" ? "✓" : "×"}</span>
+            <span><strong>{roleEvent.title}</strong><small>{roleEvent.status}</small></span>
+            <span aria-hidden>→</span>
           </button>
         )) : <InfoCard>No Events for this Role.</InfoCard>}
       </div>
@@ -409,25 +398,28 @@ function EventsSurface({ roleId }: { roleId: number }) {
       {formEvent ? (
         <EventForm key={formEvent === "create" ? "create" : `${formEvent.id}-${formEvent.version}`} roleId={roleId} event={formEvent === "create" ? null : formEvent} onSaved={saved} onCancel={() => setFormEvent(null)} />
       ) : selectedEvent ? (
-        <section className="space-y-2" aria-label="Event detail">
-          <InfoCard>{selectedEvent.description || "No description"}</InfoCard>
-          <GoldRow>Status: {selectedEvent.status}</GoldRow>
-          <GoldRow>Starts: {selectedEvent.startsAt || "Not set"}</GoldRow>
-          <GoldRow>Ends: {selectedEvent.endsAt || "Not set"}</GoldRow>
-          <div className="space-y-1">
-            <p style={fieldLabel}>Participants</p>
+        <section className="lag-role-section" aria-label="Event detail">
+          <h4>{selectedEvent.title}</h4>
+          <div className="lag-role-section-body">
+            <p className="lag-role-description">{selectedEvent.description || "No description"}</p>
+            <dl>
+              <RoleDataRow label="Status">{selectedEvent.status}</RoleDataRow>
+              <RoleDataRow label="Starts">{selectedEvent.startsAt || "Not set"}</RoleDataRow>
+              <RoleDataRow label="Ends">{selectedEvent.endsAt || "Not set"}</RoleDataRow>
+            </dl>
+            <h5 className="lag-role-subheading">Participants</h5>
             {selectedEvent.participants.length ? selectedEvent.participants.map((participant) => (
-              <GoldRow key={participant.participantLinkId}>{participant.participantType} #{participant.participantId}</GoldRow>
+              <div className="lag-role-record" key={participant.participantLinkId} data-kind="participant"><strong>{participant.participantType} #{participant.participantId}</strong></div>
             )) : <InfoCard>No participants.</InfoCard>}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" style={secondaryButton} onClick={() => setFormEvent(selectedEvent)}>Edit Event</button>
+          <div className="lag-role-actions">
+            <button type="button" className="lag-role-button" onClick={() => setFormEvent(selectedEvent)}>Edit Event</button>
             {selectedEvent.status === "PLANNED" ? (
               <>
-                <button type="button" disabled={pending} style={secondaryButton} onClick={() => void transition("complete")}>Complete Event</button>
-                <button type="button" disabled={pending} style={secondaryButton} onClick={() => void transition("cancel")}>Cancel Event</button>
+                <button type="button" disabled={pending} className="lag-role-action" onClick={() => void transition("complete")}>Complete Event</button>
+                <button type="button" disabled={pending} className="lag-role-button" data-variant="destructive" onClick={() => void transition("cancel")}>Cancel Event</button>
               </>
             ) : null}
+          </div>
           </div>
         </section>
       ) : <InfoCard>Select an Event to load its detail.</InfoCard>}
@@ -438,19 +430,14 @@ function EventsSurface({ roleId }: { roleId: number }) {
 export default function RoleShell({
   roles,
   selectedRoleId,
-  isLoading,
-  error,
   onSelectRole,
   onRefresh,
 }: {
   roles: RoleDetail[];
   selectedRoleId: number | null;
-  isLoading: boolean;
-  error: string | null;
   onSelectRole: (roleId: number | null) => void;
   onRefresh: () => Promise<void>;
 }) {
-  const router = useRouter();
   const [surface, setSurface] = useState<RoleSurface | null>(null);
   const [surfaceRoleId, setSurfaceRoleId] = useState<number | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
@@ -463,7 +450,23 @@ export default function RoleShell({
     setSurface(null);
     setSurfaceRoleId(null);
     setEditingRoleId((current) => current === selectedRoleId ? current : null);
+    setActionError(null);
   }, [selectedRoleId]);
+
+  const closeDetail = () => {
+    setSurface(null);
+    setSurfaceRoleId(null);
+    setEditingRoleId(null);
+    requestStageFocus("role-summary", "nearest");
+  };
+
+  const closeSummary = () => {
+    setSurface(null);
+    setSurfaceRoleId(null);
+    setEditingRoleId(null);
+    onSelectRole(null);
+    requestStageFocus("left-context", "nearest");
+  };
 
   const archiveRole = async (role: RoleDetail) => {
     if (!window.confirm(`Archive Role ${role.name}?`)) return;
@@ -478,48 +481,34 @@ export default function RoleShell({
   };
 
   return (
-    <div className="lag-panel-rail relative" data-testid="role-shell">
-      <PanelStage stageKey="role-list">
-        <PanelFrame title="Roles" depth={2}>
-        <div className="space-y-3">
-          <div className="px-3"><button type="button" style={actionBtnStyle} onClick={() => router.push("/roles/create")}>Create Role</button></div>
-          {isLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
-          {error ? <ErrorState message={error} onRetry={() => void onRefresh()} /> : null}
-          {actionError ? <p role="alert" className="px-3 text-xs" style={{ color: "var(--lag-state-error)" }}>{actionError}</p> : null}
-          {!isLoading && !error && roles.length === 0 ? <InfoCard>No Roles yet. Create your first Role.</InfoCard> : null}
-          {roles.map((role, index) => (
-            <PanelCard
-              key={role.id}
-              label={role.name}
-              slotLabel={role.roleType.slice(0, 2).toUpperCase()}
-              subtitle={`${role.roleType} · ${role.status}`}
-              selected={selectedRoleId === role.id}
-              index={index}
-              actions={[{ type: "edit", label: "Edit" }, { type: "delete", label: "Archive" }]}
-              onClick={() => onSelectRole(role.id)}
-              onAction={(action) => {
-                if (action === "edit") {
-                  onSelectRole(role.id);
-                  setEditingRoleId(role.id);
-                } else {
-                  void archiveRole(role);
-                }
-              }}
-            />
-          ))}
-        </div>
-        </PanelFrame>
-      </PanelStage>
-
+    <div className="lag-panel-rail lag-role-shell relative" data-testid="role-shell">
       <AnimatePresence initial={false}>
         {selectedRole ? (
-          <PanelStage key="role-surfaces" stageKey="role-surfaces" focusKey={selectedRole.id} index={1}>
-            <PanelFrame title={selectedRole.name} depth={1} contentKey={selectedRole.id}>
-              <div className="grid gap-1">
-                {ROLE_SURFACES.map((item, index) => (
-                  <PanelCard key={item.id} label={item.label} slotLabel={item.slotLabel} selected={activeSurface === item.id} index={index} onClick={() => { setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }} />
-                ))}
-              </div>
+          <PanelStage stageKey="role-summary" focusKey={selectedRole.id} index={1}>
+            <PanelFrame title={selectedRole.name} depth={1} contentKey={selectedRole.id} backButton={<BackButton label="Back to Role selector" onClick={closeSummary} />}>
+              <article className="lag-role-summary">
+                {actionError ? <p role="alert" className="lag-role-feedback" data-state="error">{actionError}</p> : null}
+                <header className="lag-role-hero">
+                  <span>Selected Role</span>
+                  <h4>{selectedRole.name}</h4>
+                  <div className="lag-role-badges"><span>{selectedRole.roleType}</span><span>{selectedRole.status}</span></div>
+                  <p>{selectedRole.description}</p>
+                </header>
+                <section className="lag-role-surface-grid" aria-label="Role surfaces">
+                  {ROLE_SURFACES.map((item) => (
+                    <button key={item.id} type="button" className="lag-role-surface-card" aria-pressed={activeSurface === item.id} data-selected={activeSurface === item.id} onClick={() => { setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }}>
+                      <span aria-hidden>{item.slotLabel}</span>
+                      <strong>{item.label}</strong>
+                      <small>{item.id === "overview" ? "Real Role identity" : item.id === "relations" ? "Persons and Role Relations" : "RoleEvent lifecycle"}</small>
+                      <span aria-hidden>→</span>
+                    </button>
+                  ))}
+                </section>
+                <div className="lag-role-actions">
+                  <button type="button" className="lag-role-button" onClick={() => { setEditingRoleId(selectedRole.id); setSurface(null); setSurfaceRoleId(null); }}>Edit Role</button>
+                  <button type="button" className="lag-role-button" data-variant="destructive" onClick={() => void archiveRole(selectedRole)}>Archive Role</button>
+                </div>
+              </article>
             </PanelFrame>
           </PanelStage>
         ) : null}
@@ -527,10 +516,10 @@ export default function RoleShell({
 
       <AnimatePresence initial={false} mode="popLayout">
         {selectedRole && (editingRole || activeSurface) ? (
-          <PanelStage key="role-detail" stageKey="role-detail" focusKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} index={2}>
-            <PanelFrame title={editingRole ? "Edit Role" : ROLE_SURFACES.find(({ id }) => id === activeSurface)?.label ?? "Role"} depth={0} contentKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`}>
+          <PanelStage stageKey="role-detail" focusKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} index={2}>
+            <PanelFrame title={editingRole ? "Edit Role" : ROLE_SURFACES.find(({ id }) => id === activeSurface)?.label ?? "Role"} depth={0} contentKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} backButton={<BackButton label={`Back to ${selectedRole.name}`} onClick={closeDetail} />}>
               {editingRole ? (
-                <RoleEditForm role={selectedRole} onSaved={async () => { await onRefresh(); setEditingRoleId(null); }} onCancel={() => setEditingRoleId(null)} />
+                <RoleEditForm role={selectedRole} onSaved={async () => { await onRefresh(); closeDetail(); }} onCancel={closeDetail} />
               ) : activeSurface === "overview" ? <Overview role={selectedRole} />
                 : activeSurface === "relations" ? <RelationsSurface roleId={selectedRole.id} />
                   : <EventsSurface roleId={selectedRole.id} />}

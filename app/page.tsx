@@ -804,6 +804,7 @@ export default function Home() {
           selectedRoleId={selectedRoleId}
           socialContext={socialContext}
           onRoleSelect={handleRoleSelect}
+          onRoleRetry={() => void roleState.refresh()}
           onFocus={() => bringSurfaceToFront("left-context")}
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
@@ -857,8 +858,6 @@ export default function Home() {
               <RoleShell
                 roles={roleState.roles}
                 selectedRoleId={selectedRoleId}
-                isLoading={roleState.isLoading}
-                error={roleState.error}
                 onSelectRole={setSelectedRoleId}
                 onRefresh={roleState.refresh}
               />

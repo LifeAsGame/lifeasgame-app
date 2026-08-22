@@ -24,6 +24,7 @@ type LeftContextProps = {
   selectedRoleId?: number | null;
   socialContext: SocialContextData | null;
   onRoleSelect?: (roleId: number) => void;
+  onRoleRetry?: () => void;
   zIndex?: number;
   onFocus?: () => void;
 };
@@ -39,6 +40,7 @@ export default function LeftContext({
   selectedRoleId,
   socialContext,
   onRoleSelect,
+  onRoleRetry,
   zIndex,
   onFocus,
 }: LeftContextProps) {
@@ -104,6 +106,7 @@ export default function LeftContext({
                   isLoading={rolesLoading}
                   error={rolesError}
                   onRoleSelect={onRoleSelect}
+                  onRetry={onRoleRetry}
                 />
               ) : (
                 <SocialPanel socialContext={socialContext} />
