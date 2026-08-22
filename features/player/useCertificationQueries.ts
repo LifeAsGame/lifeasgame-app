@@ -73,6 +73,11 @@ export function useCertificationQueries() {
     setSelectedId(certificationId);
   };
 
+  const clearSelection = useCallback(() => {
+    selectedIdRef.current = null;
+    setSelectedId(null);
+  }, []);
+
   const mutate = async <T,>(
     key: string,
     request: () => Promise<T>,
@@ -131,6 +136,7 @@ export function useCertificationQueries() {
     selectedId,
     selected: owned.find((item) => item.certificationId === selectedId) ?? null,
     select,
+    clearSelection,
     pendingMutation,
     mutationError,
     register,

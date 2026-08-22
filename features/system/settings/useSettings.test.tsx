@@ -79,15 +79,15 @@ describe("feature-owned Settings state", () => {
     expect(result.current.saveError).toBeNull();
   });
 
-  it("lets a supported server theme override the local bootstrap cache after Settings loads", async () => {
+  it("loads the canonical form theme without changing runtime merely because Options mounted", async () => {
     localStorage.setItem(THEME_STORAGE_KEY, "ASTRAL");
     api.getSettingsApi.mockResolvedValue(response({ flagsJson: JSON.stringify({ themePreference: "WARM_BEIGE", futureFlag: "preserve" }) }));
     const { result } = renderHook(() => useSettings(), { wrapper });
 
     await waitFor(() => expect(result.current.canonical).not.toBeNull());
     expect(result.current.themePreference).toBe("WARM_BEIGE");
-    expect(document.documentElement.dataset.theme).toBe("warm-beige");
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("WARM_BEIGE");
+    expect(document.documentElement.dataset.theme).toBe("astral");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("ASTRAL");
   });
 
   it("preserves a valid local preference when server flags omit themePreference", async () => {
@@ -102,5 +102,24 @@ describe("feature-owned Settings state", () => {
     expect(result.current.themePreference).toBe("ASTRAL");
     expect(result.current.canonical?.view.themePreference).toBe("ASTRAL");
     expect(document.documentElement.dataset.theme).toBe("astral");
+  });
+
+  it("applies a user theme choice immediately while its Settings PATCH is pending", async () => {
+    localStorage.setItem(THEME_STORAGE_KEY, "ASTRAL");
+    api.getSettingsApi.mockResolvedValue(response({ flagsJson: JSON.stringify({ themePreference: "ASTRAL" }) }));
+    let finishSave!: (settings: UserSettingsResponse) => void;
+    api.updateSettingsApi.mockReturnValue(new Promise((resolve) => { finishSave = resolve; }));
+    const { result } = renderHook(() => useSettings(), { wrapper });
+    await waitFor(() => expect(result.current.canonical).not.toBeNull());
+
+    let saving!: Promise<boolean>;
+    act(() => { saving = result.current.setThemePreference("WARM_BEIGE"); });
+    expect(document.documentElement.dataset.theme).toBe("warm-beige");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("WARM_BEIGE");
+
+    await act(async () => {
+      finishSave(response({ flagsJson: JSON.stringify({ themePreference: "WARM_BEIGE" }) }));
+      expect(await saving).toBe(true);
+    });
   });
 });

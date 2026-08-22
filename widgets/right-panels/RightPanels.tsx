@@ -1,8 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import type { MainNavId, PanelStackItem } from "@/entities/nav";
-import { MOTION } from "@/shared/lib/motion";
 import { reorderToCenter } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
@@ -12,14 +11,13 @@ import PanelStage from "@/shared/ui/PanelStage";
 
 import { NAV_ICONS, actionBtnStyle } from "./ui/styles";
 import { GoldRow, InfoCard } from "./ui/Rows";
-import { PanelFrame } from "./ui/PanelFrame";
+import { BackButton, PanelFrame } from "./ui/PanelFrame";
 import { FormPanel } from "./ui/FormPanel";
 import { GiftPanel } from "./ui/GiftPanel";
 
 type RightPanelsProps = {
   selectedMain: MainNavId;
   panelStack: PanelStackItem[];
-  panelStackKey: string;
   onPanelFocus?: (panelIndex: number, panelId: string) => void;
   getPanelZIndex?: (panelIndex: number, panelId: string) => number;
   onPanelItemSelect: (panelIndex: number, itemId: string) => void;
@@ -44,6 +42,8 @@ function PanelContent({
   onPanelFormFieldChange,
   onPanelBack,
   onPanelActionClick,
+  showBack,
+  parentTitle,
 }: {
   panel: PanelStackItem;
   panelIndex: number;
@@ -55,6 +55,8 @@ function PanelContent({
   onPanelFormFieldChange?: (formKey: string, fieldKey: string, value: string) => void;
   onPanelBack?: (panelIndex: number) => void;
   onPanelActionClick?: (panelIndex: number) => void;
+  showBack?: boolean;
+  parentTitle?: string;
 }) {
   if (panel.kind === "form") {
     return (
@@ -128,6 +130,8 @@ function PanelContent({
       iconSrc={navIconSrc}
       depth={depth}
       fixedScrollHeight={categoryScrollHeight}
+      contentKey={panel.id}
+      backButton={showBack ? <BackButton label={`Back to ${parentTitle ?? "previous panel"}`} onClick={() => onPanelBack?.(panelIndex)} /> : undefined}
     >
       {panel.kind === "menu" ? (
         <div style={{ width: "100%", display: "grid", rowGap: 4 }}>
@@ -221,7 +225,6 @@ function PanelContent({
 export default function RightPanels({
   selectedMain,
   panelStack,
-  panelStackKey,
   onPanelFocus,
   getPanelZIndex,
   onPanelItemSelect,
@@ -233,14 +236,8 @@ export default function RightPanels({
   onPanelActionClick,
 }: RightPanelsProps) {
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {panelStack.length > 0 ? (
-        <motion.div
-          key={panelStackKey}
-          initial={MOTION.hologramIn.initial}
-          animate={MOTION.hologramIn.animate}
-          exit={MOTION.hologramIn.exit}
-          transition={MOTION.hologramIn.transition}
+      panelStack.length > 0 ? (
+        <div
           className="lag-panel-rail relative overflow-x-visible"
           data-main={selectedMain}
           style={{
@@ -254,8 +251,10 @@ export default function RightPanels({
               const depth = panelStack.length - 1 - panelIndex;
               return (
                 <PanelStage
-                  key={panel.id}
-                  stageKey={panel.id}
+                  key={`${selectedMain}-stage-${panelIndex}`}
+                  stageKey={`${selectedMain}-stage-${panelIndex}`}
+                  focusKey={panel.id}
+                  autoFocus={panelIndex > 0}
                   index={panelIndex}
                   onPointerDownCapture={() => onPanelFocus?.(panelIndex, panel.id)}
                   zIndex={getPanelZIndex?.(panelIndex, panel.id) ?? panelIndex + 1}
@@ -271,13 +270,14 @@ export default function RightPanels({
                     onPanelFormFieldChange={onPanelFormFieldChange}
                     onPanelBack={onPanelBack}
                     onPanelActionClick={onPanelActionClick}
+                    showBack={selectedMain === "skills" && panelIndex > 0}
+                    parentTitle={panelStack[panelIndex - 1]?.title}
                   />
                 </PanelStage>
               );
             })}
           </AnimatePresence>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+        </div>
+      ) : null
   );
 }

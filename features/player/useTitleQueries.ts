@@ -58,6 +58,8 @@ export function useTitleQueries() {
     if (titles.some((title) => title.titleId === titleId)) setSelectedId(titleId);
   };
 
+  const clearSelection = () => setSelectedId(null);
+
   const setRepresentative = async (titleId: number): Promise<boolean> => {
     if (mutationLocked.current || player?.representativeTitleId === titleId || !titles.some((title) => title.titleId === titleId)) return false;
     mutationLocked.current = true;
@@ -87,6 +89,7 @@ export function useTitleQueries() {
     selectedId,
     selected: titles.find((title) => title.titleId === selectedId) ?? null,
     select,
+    clearSelection,
     pendingMutation,
     mutationError,
     setRepresentative,

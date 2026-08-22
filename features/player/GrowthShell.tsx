@@ -1,7 +1,8 @@
 "use client";
 
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
+import PanelStage from "@/shared/ui/PanelStage";
 import { useGrowthQuery } from "./useGrowthQuery";
 
 const CORE_STATS = [
@@ -9,14 +10,15 @@ const CORE_STATS = [
   ["INT", "intel"], ["VIT", "vit"], ["LUC", "luc"],
 ] as const;
 
-export default function GrowthShell() {
+export default function GrowthShell({ onBack }: { onBack?: () => void }) {
   const growth = useGrowthQuery();
   const current = growth.data?.current;
   const changes = growth.data?.recentExpChanges ?? [];
 
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="growth-shell">
-      <PanelFrame title="Current Growth" depth={1}>
+    <div className="lag-panel-rail relative" data-testid="growth-shell">
+      <PanelStage stageKey="player-growth-current">
+        <PanelFrame title="Current Growth" depth={1} backButton={onBack ? <BackButton label="Back to Player" onClick={onBack} /> : undefined}>
         <div className="space-y-2 px-3">
           {growth.loading && !growth.data ? <InfoCard>Loading Growth...</InfoCard> : null}
           {growth.error ? <><p role="alert" className="text-xs text-red-400">{growth.error}</p><button type="button" onClick={() => void growth.retry()}>Retry</button></> : null}
@@ -28,9 +30,11 @@ export default function GrowthShell() {
             {Object.entries(current.extraStats).map(([name, value]) => <GoldRow key={name}>{name}: {value}</GoldRow>)}
           </> : null}
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title="Recent EXP Changes" depth={0}>
+      <PanelStage stageKey="player-growth-history" index={1}>
+        <PanelFrame title="Recent EXP Changes" depth={0}>
         <div className="space-y-3 px-3">
           {growth.data && changes.length === 0 ? <InfoCard>No recent EXP changes.</InfoCard> : null}
           {changes.map((change) => (
@@ -48,7 +52,8 @@ export default function GrowthShell() {
             </InfoCard>
           ))}
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
     </div>
   );
 }

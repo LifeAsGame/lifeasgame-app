@@ -60,6 +60,15 @@ export function useAchievementQueries() {
     void loadDetail(achievementId);
   }, [loadDetail]);
 
+  const clearSelection = () => {
+    detailRequestId.current += 1;
+    selectedIdRef.current = null;
+    setSelectedId(null);
+    setDetail(null);
+    setDetailError(null);
+    setDetailLoading(false);
+  };
+
   return {
     list: { items, loading: listLoading, error: listError, reload },
     detail: {
@@ -70,5 +79,6 @@ export function useAchievementQueries() {
     },
     selectedId,
     select,
+    clearSelection,
   };
 }

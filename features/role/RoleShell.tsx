@@ -452,13 +452,16 @@ export default function RoleShell({
 }) {
   const router = useRouter();
   const [surface, setSurface] = useState<RoleSurface | null>(null);
+  const [surfaceRoleId, setSurfaceRoleId] = useState<number | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const selectedRole = roles.find(({ id }) => id === selectedRoleId) ?? null;
   const editingRole = selectedRole?.id === editingRoleId;
+  const activeSurface = selectedRole?.id === surfaceRoleId ? surface : null;
 
   useEffect(() => {
     setSurface(null);
+    setSurfaceRoleId(null);
     setEditingRoleId((current) => current === selectedRoleId ? current : null);
   }, [selectedRoleId]);
 
@@ -510,11 +513,11 @@ export default function RoleShell({
 
       <AnimatePresence initial={false}>
         {selectedRole ? (
-          <PanelStage key={`role-surfaces-${selectedRole.id}`} stageKey={`role-surfaces-${selectedRole.id}`} index={1}>
-            <PanelFrame title={selectedRole.name} depth={1}>
+          <PanelStage key="role-surfaces" stageKey="role-surfaces" focusKey={selectedRole.id} index={1}>
+            <PanelFrame title={selectedRole.name} depth={1} contentKey={selectedRole.id}>
               <div className="grid gap-1">
                 {ROLE_SURFACES.map((item, index) => (
-                  <PanelCard key={item.id} label={item.label} slotLabel={item.slotLabel} selected={surface === item.id} index={index} onClick={() => { setSurface(item.id); setEditingRoleId(null); }} />
+                  <PanelCard key={item.id} label={item.label} slotLabel={item.slotLabel} selected={activeSurface === item.id} index={index} onClick={() => { setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }} />
                 ))}
               </div>
             </PanelFrame>
@@ -523,13 +526,13 @@ export default function RoleShell({
       </AnimatePresence>
 
       <AnimatePresence initial={false} mode="popLayout">
-        {selectedRole && (editingRole || surface) ? (
-          <PanelStage key={editingRole ? `role-edit-${selectedRole.id}` : `role-${selectedRole.id}-${surface}`} stageKey={editingRole ? `role-edit-${selectedRole.id}` : `role-${selectedRole.id}-${surface}`} index={2}>
-            <PanelFrame title={editingRole ? "Edit Role" : ROLE_SURFACES.find(({ id }) => id === surface)?.label ?? "Role"} depth={0}>
+        {selectedRole && (editingRole || activeSurface) ? (
+          <PanelStage key="role-detail" stageKey="role-detail" focusKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} index={2}>
+            <PanelFrame title={editingRole ? "Edit Role" : ROLE_SURFACES.find(({ id }) => id === activeSurface)?.label ?? "Role"} depth={0} contentKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`}>
               {editingRole ? (
                 <RoleEditForm role={selectedRole} onSaved={async () => { await onRefresh(); setEditingRoleId(null); }} onCancel={() => setEditingRoleId(null)} />
-              ) : surface === "overview" ? <Overview role={selectedRole} />
-                : surface === "relations" ? <RelationsSurface roleId={selectedRole.id} />
+              ) : activeSurface === "overview" ? <Overview role={selectedRole} />
+                : activeSurface === "relations" ? <RelationsSurface roleId={selectedRole.id} />
                   : <EventsSurface roleId={selectedRole.id} />}
             </PanelFrame>
           </PanelStage>

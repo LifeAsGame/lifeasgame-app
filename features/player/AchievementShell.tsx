@@ -4,7 +4,8 @@ import { AnimatePresence } from "framer-motion";
 
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useAchievementQueries } from "./useAchievementQueries";
 
@@ -27,14 +28,14 @@ function ErrorState({ message, retry }: { message: string; retry: () => void }) 
   );
 }
 
-export default function AchievementShell() {
+export default function AchievementShell({ onBack }: { onBack?: () => void }) {
   const achievements = useAchievementQueries();
   const detail = achievements.detail.data;
 
   return (
     <div className="lag-panel-rail relative" data-testid="achievement-shell">
       <PanelStage stageKey="player-achievement-list">
-        <PanelFrame title="Acquired Achievements" depth={1}>
+        <PanelFrame title="Acquired Achievements" depth={1} backButton={onBack ? <BackButton label="Back to Player" onClick={onBack} /> : undefined}>
         <div className="space-y-3">
           {achievements.list.loading && achievements.list.items.length === 0 ? <InfoCard>Loading Achievements...</InfoCard> : null}
           {achievements.list.error ? <ErrorState message={achievements.list.error} retry={() => void achievements.list.reload()} /> : null}
@@ -58,8 +59,11 @@ export default function AchievementShell() {
 
       <AnimatePresence initial={false} mode="popLayout">
         {achievements.selectedId ? (
-          <PanelStage key={`player-achievement-detail-${achievements.selectedId}`} stageKey={`player-achievement-detail-${achievements.selectedId}`} index={1}>
-            <PanelFrame title="Achievement Detail" depth={0}>
+          <PanelStage key="player-achievement-detail" stageKey="player-achievement-detail" focusKey={achievements.selectedId} index={1}>
+            <PanelFrame title="Achievement Detail" depth={0} contentKey={achievements.selectedId} backButton={<BackButton label="Back to Acquired Achievements" onClick={() => {
+              achievements.clearSelection();
+              requestStageFocus("player-achievement-list", "center");
+            }} />}>
               {achievements.detail.loading && !detail ? <InfoCard>Loading Achievement...</InfoCard> : null}
               {achievements.detail.error ? <ErrorState message={achievements.detail.error} retry={() => void achievements.detail.retry()} /> : null}
               {detail ? (

@@ -22,7 +22,7 @@ describe("Current Player Achievement surface를 사용할 때", () => {
     api.getPlayerAchievementApi.mockResolvedValue(detail);
   });
 
-  it("선택 전에는 detail stage가 없고 선택 replacement identity를 바꾼다", async () => {
+  it("선택 전에는 detail stage가 없고 선택 replacement 때 frame identity를 유지한다", async () => {
     api.getPlayerAchievementsApi.mockResolvedValue([listItem, secondListItem]);
     api.getPlayerAchievementApi.mockImplementation(async (id: number) => ({ ...detail, achievementId: id }));
     render(<AchievementShell />);
@@ -31,10 +31,11 @@ describe("Current Player Achievement surface를 사용할 때", () => {
     expect(screen.queryByText("Achievement Detail")).not.toBeInTheDocument();
 
     fireEvent.click(entries[0]);
-    expect(document.querySelector('[data-stage-key="player-achievement-detail-31"]')).toBeInTheDocument();
+    const detailStage = document.querySelector('[data-stage-key="player-achievement-detail"]');
+    expect(detailStage).toBeInTheDocument();
 
     fireEvent.click(entries[1]);
-    expect(document.querySelector('[data-stage-key="player-achievement-detail-32"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="player-achievement-detail"]')).toBe(detailStage);
   });
 
   it("acquired list/detail fields와 empty state만 렌더하고 fabricated rows는 만들지 않는다", async () => {

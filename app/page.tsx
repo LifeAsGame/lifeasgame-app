@@ -28,7 +28,7 @@ import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
-import { useStageCamera } from "@/shared/hooks/useStageCamera";
+import { requestStageFocus, useStageCamera } from "@/shared/hooks/useStageCamera";
 import { MOCK_CHARACTER_SHEET } from "@/features/player/mock";
 import {
   DEFAULT_SUB_SELECTIONS,
@@ -560,6 +560,14 @@ export default function Home() {
     }
   };
 
+  const closeFeatureSubmenu = (main: "player" | "inventory") => {
+    setSelectedSubByMain((prev) => ({ ...prev, [main]: null }));
+    clearDetailSelectionsForMain(main);
+    setActiveFormPanel(null);
+    setEditingItemId(null);
+    requestStageFocus(`${main}-stage-0`, "center");
+  };
+
   // ─── Form panel helpers ────────────────────────────────────────────────────
 
   const openForm = (
@@ -582,7 +590,17 @@ export default function Home() {
     });
   };
 
-  const handlePanelBack = () => {
+  const handlePanelBack = (panelIndex: number) => {
+    if (selectedMain === "skills" && !activeFormPanel) {
+      if (panelIndex > 1) updateDetailSelections({ skills: null });
+      else {
+        setSelectedSubByMain((prev) => ({ ...prev, skills: null }));
+        updateDetailSelections({ skills: null });
+      }
+      requestStageFocus(`skills-stage-${Math.max(0, panelIndex - 1)}`, "center");
+      return;
+    }
+
     const wasEditing = editingItemId !== null;
     setActiveFormPanel(null);
     setEditingItemId(null);
@@ -744,18 +762,33 @@ export default function Home() {
 
   if (isLoading || !isAuthenticated || !playerId) return null;
 
+  const playerSurface = selectedSubByMain.player === "growth"
+    ? <GrowthShell onBack={() => closeFeatureSubmenu("player")} />
+    : selectedSubByMain.player === "achievement"
+      ? <AchievementShell onBack={() => closeFeatureSubmenu("player")} />
+      : selectedSubByMain.player === "credentials"
+        ? <CertificationShell onBack={() => closeFeatureSubmenu("player")} />
+        : selectedSubByMain.player === "title"
+          ? <TitleShell onBack={() => closeFeatureSubmenu("player")} />
+          : selectedSubByMain.player === "interests"
+            ? <HobbyShell onBack={() => closeFeatureSubmenu("player")} />
+            : null;
+  const inventorySurface = selectedSubByMain.inventory === "gear"
+    ? <GearShell onBack={() => closeFeatureSubmenu("inventory")} />
+    : selectedSubByMain.inventory === "items" || selectedSubByMain.inventory === "inbox"
+      ? <InventoryShell onBack={() => closeFeatureSubmenu("inventory")} surface={selectedSubByMain.inventory} />
+      : null;
+
   return (
     <div
       ref={viewportRef}
       className="lag-app-surface h-screen overflow-auto"
     >
       <main
-        className="lag-app-shell mx-auto flex w-full min-w-max items-center"
+        className="lag-app-shell mx-auto flex w-full min-w-max items-start"
         style={{
           minHeight: "100vh",
           gap: UI_CONSTS.layout.columnGap,
-          paddingTop: UI_CONSTS.layout.pagePaddingY + UI_CONSTS.layout.visualCenterOffsetY,
-          paddingBottom: UI_CONSTS.layout.pagePaddingY,
           paddingLeft: UI_CONSTS.layout.pagePaddingX,
           paddingRight: UI_CONSTS.layout.canvasEndPaddingX,
         }}
@@ -775,7 +808,7 @@ export default function Home() {
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
 
-        <div className="lag-orb-column shrink-0" style={{ width: UI_CONSTS.layout.centerWidth, position: "relative" }}>
+        <div className="lag-orb-column shrink-0" style={{ width: UI_CONSTS.layout.centerWidth }}>
           <div className="lag-utility-cluster" style={{ zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
             <SocialUtilityHub />
             <NotificationBell />
@@ -810,55 +843,14 @@ export default function Home() {
               }}
               onOpenRole={handleRoleSelect}
             />
-          ) : selectedMain === "player" && selectedSubByMain.player === "growth" ? (
+          ) : selectedMain === "player" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
                 selectedMain="player"
                 panelStack={panelStack.slice(0, 1)}
-                panelStackKey="player-growth-menu"
                 onPanelItemSelect={handlePanelItemSelect}
               />
-              <GrowthShell />
-            </div>
-          ) : selectedMain === "player" && selectedSubByMain.player === "achievement" ? (
-            <div className="flex w-fit items-center gap-3">
-              <RightPanels
-                selectedMain="player"
-                panelStack={panelStack.slice(0, 1)}
-                panelStackKey="player-achievement-menu"
-                onPanelItemSelect={handlePanelItemSelect}
-              />
-              <AchievementShell />
-            </div>
-          ) : selectedMain === "player" && selectedSubByMain.player === "credentials" ? (
-            <div className="flex w-fit items-center gap-3">
-              <RightPanels
-                selectedMain="player"
-                panelStack={panelStack.slice(0, 1)}
-                panelStackKey="player-certification-menu"
-                onPanelItemSelect={handlePanelItemSelect}
-              />
-              <CertificationShell />
-            </div>
-          ) : selectedMain === "player" && selectedSubByMain.player === "title" ? (
-            <div className="flex w-fit items-center gap-3">
-              <RightPanels
-                selectedMain="player"
-                panelStack={panelStack.slice(0, 1)}
-                panelStackKey="player-title-menu"
-                onPanelItemSelect={handlePanelItemSelect}
-              />
-              <TitleShell />
-            </div>
-          ) : selectedMain === "player" && selectedSubByMain.player === "interests" ? (
-            <div className="flex w-fit items-center gap-3">
-              <RightPanels
-                selectedMain="player"
-                panelStack={panelStack.slice(0, 1)}
-                panelStackKey="player-hobby-menu"
-                onPanelItemSelect={handlePanelItemSelect}
-              />
-              <HobbyShell />
+              {playerSurface}
             </div>
           ) : selectedMain === "role" ? (
             <div className="flex w-fit items-center gap-3">
@@ -873,24 +865,20 @@ export default function Home() {
             </div>
           ) : selectedMain === "quests" ? (
             <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} />
-          ) : selectedMain === "inventory" && selectedSubByMain.inventory ? (
+          ) : selectedMain === "inventory" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
                 selectedMain="inventory"
                 panelStack={panelStack.slice(0, 1)}
-                panelStackKey="inventory-real-menu"
                 onPanelItemSelect={handlePanelItemSelect}
               />
-              {selectedSubByMain.inventory === "gear"
-                ? <GearShell />
-                : <InventoryShell surface={selectedSubByMain.inventory === "items" ? "items" : "inbox"} />}
+              {inventorySurface}
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
                 selectedMain="lifelog"
                 panelStack={panelStack.slice(0, 1)}
-                panelStackKey="lifelog-journal-menu"
                 onPanelItemSelect={handlePanelItemSelect}
               />
               <JournalShell roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} />
@@ -900,7 +888,6 @@ export default function Home() {
               <RightPanels
                 selectedMain="lifelog"
                 panelStack={panelStack.slice(0, 1)}
-                panelStackKey="lifelog-collection-menu"
                 onPanelItemSelect={handlePanelItemSelect}
               />
               <CollectionShell />
@@ -910,26 +897,24 @@ export default function Home() {
               <RightPanels
                 selectedMain="lifelog"
                 panelStack={panelStack.slice(0, 1)}
-                panelStackKey="lifelog-exercise-menu"
                 onPanelItemSelect={handlePanelItemSelect}
               />
               <ExerciseShell />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "media" ? (
             <div className="flex w-fit items-center gap-3">
-              <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} panelStackKey="lifelog-media-menu" onPanelItemSelect={handlePanelItemSelect} />
+              <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} />
               <MediaShell />
             </div>
           ) : selectedMain === "system" && selectedSubByMain.system === "options" ? (
             <div className="lag-settings-route flex w-fit items-center gap-3">
-              <RightPanels selectedMain="system" panelStack={panelStack.slice(0, 1)} panelStackKey="system-settings-menu" onPanelItemSelect={handlePanelItemSelect} />
+              <RightPanels selectedMain="system" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} />
               <SettingsShell />
             </div>
           ) : (
             <RightPanels
               selectedMain={selectedMain}
               panelStack={panelStack}
-              panelStackKey={selectedMain}
               onPanelFocus={(panelIndex) => bringSurfaceToFront(`panel-slot-${panelIndex}`)}
               getPanelZIndex={(panelIndex) =>
                 getSurfaceZIndex(`panel-slot-${panelIndex}`, SURFACE_GROUP_BASE_Z.panels, panelIndex * 10)

@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useRef, useState } from "react";
 
 import { useLongPress } from "@/shared/hooks/useLongPress";
@@ -62,10 +62,10 @@ export default function PanelCard({
   onClick,
   onDoubleClick,
   disabled = false,
-  index = 0,
   actions,
   onAction,
 }: PanelCardProps) {
+  const reducedMotion = useReducedMotion();
   const isInteractive = Boolean(onClick) && !disabled;
   const hasActions = Boolean(actions?.length && onAction);
   const hasDelete = actions?.some((a) => a.type === "delete");
@@ -204,14 +204,12 @@ export default function PanelCard({
       data-drag-scroll-allow
       data-scroll-center-target={centerTarget ? "true" : undefined}
       className="relative overflow-hidden"
-      initial={MOTION.listItem.initial}
+      initial={reducedMotion ? false : MOTION.listItem.initial}
       animate={MOTION.listItem.animate}
-      exit={MOTION.listItem.exit}
-      transition={{
-        ...MOTION.listItem.transition,
-        delay: index * 0.045,
-        layout: { type: "tween", duration: 0.34, ease: [0.22, 1, 0.36, 1] },
-      }}
+      exit={reducedMotion ? { opacity: 0 } : MOTION.listItem.exit}
+      transition={reducedMotion
+        ? { duration: 0, layout: { duration: 0 } }
+        : { ...MOTION.listItem.transition, layout: { type: "tween", duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
     >
       {/* Swipe-left delete hint — revealed behind the card */}
       {hasDelete ? (

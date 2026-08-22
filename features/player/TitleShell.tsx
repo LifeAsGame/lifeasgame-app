@@ -4,7 +4,8 @@ import { AnimatePresence } from "framer-motion";
 
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useTitleQueries } from "./useTitleQueries";
 
@@ -27,7 +28,7 @@ function ErrorState({ message, retry }: { message: string; retry: () => void }) 
   );
 }
 
-export default function TitleShell() {
+export default function TitleShell({ onBack }: { onBack?: () => void }) {
   const titles = useTitleQueries();
   const selected = titles.selected;
   const representative = titles.representativeTitleId;
@@ -36,7 +37,7 @@ export default function TitleShell() {
   return (
     <div className="lag-panel-rail relative" data-testid="title-shell">
       <PanelStage stageKey="player-title-list">
-        <PanelFrame title="Acquired Titles" depth={1}>
+        <PanelFrame title="Acquired Titles" depth={1} backButton={onBack ? <BackButton label="Back to Player" onClick={onBack} /> : undefined}>
         <div className="space-y-3">
           {titles.player.loading && !titles.player.data ? <InfoCard>Loading Current Player...</InfoCard> : null}
           {titles.player.error ? <ErrorState message={titles.player.error} retry={() => void titles.player.reload()} /> : null}
@@ -64,8 +65,11 @@ export default function TitleShell() {
 
       <AnimatePresence initial={false} mode="popLayout">
         {selected ? (
-          <PanelStage key={`player-title-detail-${selected.titleId}`} stageKey={`player-title-detail-${selected.titleId}`} index={1}>
-            <PanelFrame title="Title Detail" depth={0}>
+          <PanelStage key="player-title-detail" stageKey="player-title-detail" focusKey={selected.titleId} index={1}>
+            <PanelFrame title="Title Detail" depth={0} contentKey={selected.titleId} backButton={<BackButton label="Back to Acquired Titles" onClick={() => {
+              titles.clearSelection();
+              requestStageFocus("player-title-list", "center");
+            }} />}>
               <div className="space-y-3 px-3">
                 <InfoCard>{selected.name}</InfoCard>
                 <GoldRow>Code: {selected.code}</GoldRow>

@@ -1,9 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { NotificationInfo, NotificationType } from "@/shared/api/types";
+import { notificationPopupPosition, type FloatingPosition } from "@/shared/lib/viewport";
+import UtilityPortal from "@/shared/ui/UtilityPortal";
 import { useNotifications } from "./useNotifications";
 
 const TYPE_META: Record<NotificationType, { color: string; icon: string; label: string }> = {
@@ -60,11 +62,40 @@ export function NotificationBell() {
   const state = useNotifications();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [popupPosition, setPopupPosition] = useState<FloatingPosition | null>(null);
+
+  const placePopup = useCallback(() => {
+    const anchor = triggerRef.current?.getBoundingClientRect();
+    const popup = popupRef.current?.getBoundingClientRect();
+    if (!anchor || !popup) return;
+    setPopupPosition(notificationPopupPosition(
+      anchor,
+      { width: popup.width, height: popup.height },
+      { width: window.innerWidth, height: window.innerHeight },
+    ));
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    placePopup();
+    const observer = typeof ResizeObserver === "undefined" || !popupRef.current
+      ? null
+      : new ResizeObserver(placePopup);
+    if (popupRef.current) observer?.observe(popupRef.current);
+    window.addEventListener("resize", placePopup);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", placePopup);
+    };
+  }, [open, placePopup]);
 
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!panelRef.current?.contains(target) && !popupRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -78,6 +109,7 @@ export function NotificationBell() {
   return (
     <div ref={panelRef} style={{ position: "relative" }}>
       <motion.button
+        ref={triggerRef}
         type="button"
         onClick={toggle}
         whileHover={{ scale: 1.08 }}
@@ -85,7 +117,7 @@ export function NotificationBell() {
         aria-label={`알림 ${state.unreadCount}건`}
         aria-expanded={open}
         title="Notifications"
-        className="lag-utility-button"
+        className="lag-utility-button lag-notification-trigger"
         style={{
           borderColor: state.unreadCount > 0 || open ? "var(--lag-focus)" : "var(--lag-control-border)",
           background: open ? "var(--lag-selected-surface)" : "var(--lag-control-bg)",
@@ -101,9 +133,11 @@ export function NotificationBell() {
         </AnimatePresence>
       </motion.button>
 
-      <AnimatePresence>
-        {open ? (
+      <UtilityPortal>
+        <AnimatePresence>
+          {open ? (
           <motion.div
+            ref={popupRef}
             role="dialog"
             aria-label="Notifications"
             key="notification-dropdown"
@@ -112,9 +146,21 @@ export function NotificationBell() {
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 400, damping: 32 }}
             className="lag-notification-dropdown"
-            style={{ position: "absolute", top: 42, right: 0, width: 320, borderRadius: "var(--lag-radius-md)", zIndex: 9990, overflow: "hidden" }}
+            style={{
+              position: "fixed",
+              left: popupPosition?.x ?? 16,
+              top: popupPosition?.y ?? 16,
+              width: "min(320px, calc(100vw - 32px))",
+              borderRadius: "var(--lag-radius-md)",
+              zIndex: 600100,
+              overflow: "hidden",
+              maxHeight: "calc(100dvh - 32px)",
+              display: "flex",
+              flexDirection: "column",
+              visibility: popupPosition ? "visible" : "hidden",
+            }}
           >
-            <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 14px 8px", background: "var(--lag-panel-2)", borderBottom: "1px solid var(--lag-divider)" }}>
+            <header style={{ display: "flex", flexShrink: 0, alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 14px 8px", background: "var(--lag-panel-2)", borderBottom: "1px solid var(--lag-divider)" }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: "var(--lag-text)", letterSpacing: "0.1em" }}>NOTIFICATIONS</span>
               <button type="button" disabled={state.markAllPending} onClick={() => void state.markAllRead()} style={{ fontSize: 9, color: "var(--lag-text-2)", background: "none", border: 0, cursor: "pointer", opacity: state.markAllPending ? 0.45 : 1 }}>{state.markAllPending ? "Saving..." : "모두 읽음"}</button>
             </header>
@@ -123,7 +169,7 @@ export function NotificationBell() {
             {state.inboxError ? <div style={{ padding: "8px 14px" }}><p role="alert" style={{ fontSize: 10, color: "var(--lag-state-error)" }}>{state.inboxError}</p><button type="button" className="lag-button-secondary" onClick={() => void state.inboxRetry()} style={{ fontSize: 9 }}>Retry</button></div> : null}
             {state.mutationError ? <p role="alert" style={{ padding: "8px 14px", fontSize: 10, color: "var(--lag-state-error)" }}>{state.mutationError}</p> : null}
 
-            <div style={{ maxHeight: 360, overflowY: "auto" }}>
+            <div className="lag-notification-list" style={{ maxHeight: 360, minHeight: 0, flex: 1, overflowY: "auto" }}>
               {state.inboxLoading ? <p style={{ padding: "24px 14px", textAlign: "center", fontSize: 11, color: "var(--lag-text-2)" }}>Loading...</p> : null}
               {!state.inboxLoading && state.inboxLoaded && state.inbox.length === 0 ? <p style={{ padding: "24px 14px", textAlign: "center", fontSize: 11, color: "var(--lag-text-2)" }}>알림이 없습니다</p> : null}
               {state.inbox.map((notification) => <NotificationRow key={notification.id} notification={notification} pending={state.pendingId === notification.id} onMarkRead={(id) => void state.markRead(id)} />)}
@@ -131,8 +177,9 @@ export function NotificationBell() {
             </div>
             <div style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--lag-focus), transparent)" }} />
           </motion.div>
-        ) : null}
-      </AnimatePresence>
+          ) : null}
+        </AnimatePresence>
+      </UtilityPortal>
     </div>
   );
 }

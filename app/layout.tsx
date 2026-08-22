@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { AuthProvider } from "@/features/auth/AuthContext";
+import { AuthenticatedThemeBootstrap } from "@/features/theme/AuthenticatedThemeBootstrap";
 import { ThemeProvider } from "@/features/theme/ThemeProvider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/features/theme/theme";
 import { ToastProvider } from "@/context/ToastContext";
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
           <ThemeProvider>
+            <AuthenticatedThemeBootstrap />
             <ToastProvider>{children}</ToastProvider>
           </ThemeProvider>
         </AuthProvider>

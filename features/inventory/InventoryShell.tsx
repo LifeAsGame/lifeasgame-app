@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 
 import type { InventoryEntry, MailEntry } from "@/shared/api/types";
 import { SAO } from "@/shared/design/tokens";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelCard from "@/shared/ui/PanelCard";
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import PanelStage from "@/shared/ui/PanelStage";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
 import { useInventoryQueries } from "./useInventoryQueries";
@@ -79,18 +82,24 @@ function MailDetail({ mail, pending, onClaim, onDelete }: { mail: MailEntry; pen
   );
 }
 
-export default function InventoryShell({ surface }: { surface: InventorySurface }) {
+export default function InventoryShell({ surface, onBack }: { surface: InventorySurface; onBack?: () => void }) {
   const queries = useInventoryQueries();
   const [selectedItemInstanceId, setSelectedItemInstanceId] = useState<number | null>(null);
   const [selectedMailId, setSelectedMailId] = useState<number | null>(null);
-  const selectedItem = queries.inventory.data.entries.find(({ itemInstanceId }) => itemInstanceId === selectedItemInstanceId) ?? null;
-  const selectedMail = queries.mailbox.data.entries.find(({ mailId }) => mailId === selectedMailId) ?? null;
   const items = surface === "items";
+  const selectedItem = items ? queries.inventory.data.entries.find(({ itemInstanceId }) => itemInstanceId === selectedItemInstanceId) ?? null : null;
+  const selectedMail = items ? null : queries.mailbox.data.entries.find(({ mailId }) => mailId === selectedMailId) ?? null;
   const query = items ? queries.inventory : queries.mailbox;
 
+  useEffect(() => {
+    setSelectedItemInstanceId(null);
+    setSelectedMailId(null);
+  }, [surface]);
+
   return (
-    <div className="relative flex min-w-0 w-fit flex-row flex-nowrap items-center gap-3" data-testid="inventory-shell">
-      <PanelFrame title={items ? "Items" : "Inbox"} depth={1}>
+    <div className="lag-panel-rail relative" data-testid="inventory-shell">
+      <PanelStage stageKey={`inventory-${surface}-list`}>
+        <PanelFrame title={items ? "Items" : "Inbox"} depth={1} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
         <div className="space-y-3">
           {query.loading && query.data.entries.length === 0 ? <InfoCard>Loading {items ? "Items" : "Inbox"}...</InfoCard> : null}
           {query.error ? <ErrorState text={query.error} retry={() => void query.reload()} /> : null}
@@ -122,25 +131,34 @@ export default function InventoryShell({ surface }: { surface: InventorySurface 
               ))}
           </div>
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
 
-      <PanelFrame title={items ? "Item Detail" : "Mail Detail"} depth={0}>
-        {items && !selectedItem ? <InfoCard>Select an Item.</InfoCard> : null}
-        {!items && !selectedMail ? <InfoCard>Select mail.</InfoCard> : null}
-        {items && selectedItem ? <ItemDetail item={selectedItem} /> : null}
-        {!items && selectedMail ? (
-          <MailDetail
-            mail={selectedMail}
-            pending={queries.pendingKey !== null}
-            onClaim={() => {
-              if (window.confirm(`Claim ${selectedMail.itemName} x${selectedMail.quantity}?`)) void queries.claimMail(selectedMail);
-            }}
-            onDelete={() => {
-              if (window.confirm(`Delete ${selectedMail.itemName} mail?`)) void queries.deleteMail(selectedMail);
-            }}
-          />
+      <AnimatePresence initial={false}>
+        {selectedItem || selectedMail ? (
+          <PanelStage stageKey={`inventory-${surface}-detail`} focusKey={selectedItemInstanceId ?? selectedMailId} index={1}>
+            <PanelFrame title={items ? "Item Detail" : "Mail Detail"} depth={0} contentKey={selectedItemInstanceId ?? selectedMailId ?? undefined} backButton={<BackButton label={`Back to ${items ? "Items" : "Inbox"}`} onClick={() => {
+              setSelectedItemInstanceId(null);
+              setSelectedMailId(null);
+              requestStageFocus(`inventory-${surface}-list`, "center");
+            }} />}>
+              {items && selectedItem ? <ItemDetail item={selectedItem} /> : null}
+              {!items && selectedMail ? (
+                <MailDetail
+                  mail={selectedMail}
+                  pending={queries.pendingKey !== null}
+                  onClaim={() => {
+                    if (window.confirm(`Claim ${selectedMail.itemName} x${selectedMail.quantity}?`)) void queries.claimMail(selectedMail);
+                  }}
+                  onDelete={() => {
+                    if (window.confirm(`Delete ${selectedMail.itemName} mail?`)) void queries.deleteMail(selectedMail);
+                  }}
+                />
+              ) : null}
+            </PanelFrame>
+          </PanelStage>
         ) : null}
-      </PanelFrame>
+      </AnimatePresence>
     </div>
   );
 }

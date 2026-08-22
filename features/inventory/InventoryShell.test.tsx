@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { InventoryEntriesResponse, InventoryEntry, MailboxEntriesResponse, MailEntry } from "@/shared/api/types";
+import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import InventoryShell from "./InventoryShell";
 
 const api = vi.hoisted(() => ({
@@ -33,6 +34,7 @@ const item: InventoryEntry = {
   durability: 0,
   instanceAttrs: { atk: 12 },
 };
+const secondItem: InventoryEntry = { ...item, itemInstanceId: 502, slotIndex: 3, itemId: 102, itemName: "Second Sword" };
 
 const mail: MailEntry = {
   mailId: 701,
@@ -75,6 +77,8 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       api.getInventoryApi.mockReturnValue(response.promise);
       render(<InventoryShell surface="items" />);
       expect(screen.getByText("Loading Items...")).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-items-list"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).not.toBeInTheDocument();
 
       await act(async () => {
         response.resolve(inventory);
@@ -82,6 +86,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       });
       fireEvent.click(await screen.findByRole("button", { name: /Server Sword/ }));
 
+      expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBeInTheDocument();
       expect(screen.getByText("Item instance ID: 501")).toBeInTheDocument();
       expect(screen.getByText("Durability: 0")).toBeInTheDocument();
       expect(screen.getByText(/Instance attrs:.*"atk":12/)).toBeInTheDocument();
@@ -96,6 +101,36 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
       expect(await screen.findByText("No Items.")).toBeInTheDocument();
+    });
+
+    it("item 교체는 detail frame을 유지하고 Back은 list를 focus하며 submenu 전환은 stale detail을 닫는다", async () => {
+      api.getInventoryApi.mockResolvedValue({ entries: [item, secondItem] });
+      const focus = vi.fn();
+      const onBack = vi.fn();
+      window.addEventListener(STAGE_FOCUS_EVENT, focus);
+      const view = render(<InventoryShell surface="items" onBack={onBack} />);
+      const entries = await screen.findAllByTestId("inventory-entry");
+
+      fireEvent.click(entries[0]);
+      const detail = document.querySelector('[data-stage-key="inventory-items-detail"]');
+      expect(detail).toBeInTheDocument();
+      fireEvent.click(entries[1]);
+      expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBe(detail);
+      expect(screen.getByText("Item instance ID: 502")).toBeInTheDocument();
+
+      focus.mockClear();
+      fireEvent.click(screen.getByRole("button", { name: "Back to Items" }));
+      await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).not.toBeInTheDocument());
+      expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "inventory-items-list", align: "center" } });
+      fireEvent.click(screen.getByRole("button", { name: "Back to Inventory" }));
+      expect(onBack).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(entries[0]);
+      view.rerender(<InventoryShell surface="inbox" onBack={onBack} />);
+      expect(document.querySelector('[data-stage-key="inventory-inbox-detail"]:not([aria-hidden="true"])')).not.toBeInTheDocument();
+      view.rerender(<InventoryShell surface="items" onBack={onBack} />);
+      expect(document.querySelector('[data-stage-key="inventory-items-detail"]:not([aria-hidden="true"])')).not.toBeInTheDocument();
+      window.removeEventListener(STAGE_FOCUS_EVENT, focus);
     });
   });
 

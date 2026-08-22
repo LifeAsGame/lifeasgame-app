@@ -2,34 +2,35 @@ export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 // Spring configs — 스프링 물리 기반으로 "실재감" 부여
 const SNAP   = { type: "spring", stiffness: 500, damping: 30 } as const;
-const FLOAT  = { type: "spring", stiffness: 360, damping: 28 } as const;
 const GENTLE = { type: "spring", stiffness: 280, damping: 26 } as const;
+const STAGE = { type: "tween", duration: 0.2, ease: EASE_OUT } as const;
+const CONTENT = { type: "tween", duration: 0.16, ease: EASE_OUT } as const;
 
 export const MOTION = {
-  // ── 패널 진입 (우→좌 슬라이드, 스프링으로 리바운드) ──────────────────
+  // ── 패널 진입 — 짧은 SAO-style reveal, 누적 delay 없음 ───────────────
   panelReset: {
-    initial:    { opacity: 0, x: 28, scale: 0.97 },
-    animate:    { opacity: 1, x: 0,  scale: 1    },
-    exit:       { opacity: 0, x: -14, scale: 0.97 },
-    transition: FLOAT,
+    initial:    { opacity: 0, x: 24 },
+    animate:    { opacity: 1, x: 0  },
+    exit:       { opacity: 0, x: -12 },
+    transition: STAGE,
   },
   panelSwap: {
-    initial:    { opacity: 0, x: 32, scale: 0.97 },
-    animate:    { opacity: 1, x: 0,  scale: 1    },
-    exit:       { opacity: 0, x: -14, scale: 0.97 },
-    transition: FLOAT,
+    initial:    { opacity: 0, x: 24 },
+    animate:    { opacity: 1, x: 0  },
+    exit:       { opacity: 0, x: -12 },
+    transition: STAGE,
   },
   panelSlot: {
-    initial:    { opacity: 0, x: 24, scale: 0.97 },
-    animate:    { opacity: 1, x: 0,  scale: 1    },
-    exit:       { opacity: 0, x: -10, scale: 0.97 },
-    transition: FLOAT,
+    initial:    { opacity: 0, x: 24 },
+    animate:    { opacity: 1, x: 0  },
+    exit:       { opacity: 0, x: -12 },
+    transition: STAGE,
   },
   panelContentSwap: {
-    initial:    { opacity: 0, x: 22, scale: 0.98 },
-    animate:    { opacity: 1, x: 0,  scale: 1    },
-    exit:       { opacity: 0, x: -10, scale: 0.97 },
-    transition: FLOAT,
+    initial:    { opacity: 0, x: 8 },
+    animate:    { opacity: 1, x: 0 },
+    exit:       { opacity: 0, x: -6 },
+    transition: CONTENT,
   },
 
   // ── 리스트 아이템 — 스태거와 함께 쓸 때 delay를 index*0.04 로 ────────

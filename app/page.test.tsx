@@ -101,6 +101,13 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     expect(css).toContain("flex: 0 0 auto");
     expect(css).toContain("width: clamp(280px, calc(100vw - 32px), 344px)");
     expect(css).toContain("text-overflow: ellipsis");
+    expect(css).toMatch(/\.lag-left-anchor,[\s\S]*\.lag-orb-column\s*{[^}]*position:\s*sticky;[^}]*top:\s*0;[^}]*height:\s*100svh;[^}]*align-items:\s*center;/);
+    expect(css).not.toContain("translateY(-50%)");
+    expect(css).not.toContain("display: contents");
+    expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*\.lag-orb-column\s*{[^}]*position:\s*fixed !important;[^}]*top:\s*auto !important;[^}]*bottom:\s*calc\(var\(--lag-space-4\) \+ env\(safe-area-inset-bottom\)\)/);
+    expect(css).toMatch(/\.lag-left-context\s*{[^}]*height:\s*min\(680px, calc\(100svh[^}]*max-height:\s*calc\(100svh/);
+    expect(css).toMatch(/\.lag-left-context-content\s*{[^}]*overflow-y:\s*auto/);
+    expect(page).toContain('className="lag-app-shell mx-auto flex w-full min-w-max items-start"');
   });
 
   describe("인증된 player가 처음 진입하면", () => {
@@ -205,6 +212,21 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     });
   });
 
+  describe("Player child stage를 전환하거나 내부 detail을 선택하면", () => {
+    it("Player root/menu DOM instance를 계속 유지한다", () => {
+      render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      const root = screen.getByTestId("right-panels");
+
+      fireEvent.click(screen.getByRole("button", { name: "Title" }));
+      expect(screen.getByTestId("right-panels")).toBe(root);
+      fireEvent.click(screen.getByRole("button", { name: "Select Mock Title" }));
+      expect(screen.getByTestId("right-panels")).toBe(root);
+      fireEvent.click(screen.getByRole("button", { name: "Credentials" }));
+      expect(screen.getByTestId("right-panels")).toBe(root);
+    });
+  });
+
   describe("인증된 player가 Growth를 선택하면", () => {
     it("첫 Player submenu에서 backend-owned overview와 ordered history를 렌더한다", async () => {
       render(<Home />);
@@ -289,6 +311,12 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Options" }));
 
       expect(screen.getByTestId("settings-shell")).toHaveTextContent("Canonical Settings");
+    });
+
+    it("mobile CSS가 parent System stage를 삭제하지 않는다", () => {
+      const css = readFileSync("app/globals.css", "utf8");
+      expect(css).not.toMatch(/\.lag-settings-route\s*>\s*:first-child\s*{[\s\S]*?display:\s*none/);
+      expect(css).toContain("width: max-content !important");
     });
   });
 

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as api from "./api";
@@ -9,6 +10,8 @@ describe("Connections utility drawer surface", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     connectionsMock.reset();
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1200 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
   });
 
   it("opens outside OrbNav and renders only canonical peer fields and directional actions", async () => {
@@ -44,5 +47,46 @@ describe("Connections utility drawer surface", () => {
     await waitFor(() => expect(screen.queryByText("followings failed")).not.toBeInTheDocument());
     expect(followings).toHaveBeenCalledTimes(2);
     expect(followers).toHaveBeenCalledTimes(1);
+  });
+
+  it("drags by the shared header handle and re-clamps after viewport resize", () => {
+    render(<ConnectionsDrawer />);
+    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
+    const dialog = screen.getByRole("dialog", { name: "Current Player Connections" });
+    dialog.getBoundingClientRect = () => ({ left: 0, right: 420, top: 0, bottom: 500, width: 420, height: 500, x: 0, y: 0, toJSON: () => ({}) });
+    const handle = dialog.querySelector("header")!;
+
+    fireEvent.pointerDown(handle, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(window, { clientX: -2000, clientY: 1200 });
+    expect(dialog).toHaveStyle({ left: "16px", top: "284px" });
+
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 900 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 650 });
+    fireEvent.resize(window);
+    expect(dialog).toHaveStyle({ left: "16px", top: "134px" });
+  });
+
+  it("initializes the first desktop portal position after the dialog ref mounts", async () => {
+    const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ left: 0, right: 420, top: 0, bottom: 500, width: 420, height: 500, x: 0, y: 0, toJSON: () => ({}) });
+    render(<ConnectionsDrawer />);
+    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
+
+    await waitFor(() => expect(screen.getByRole("dialog", { name: "Current Player Connections" })).toHaveStyle({ left: "756px", top: "24px" }));
+    rect.mockRestore();
+  });
+
+  it("keeps the mobile header above OrbNav within a dynamic viewport bound", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 520 });
+    render(<ConnectionsDrawer />);
+    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
+    const dialog = screen.getByRole("dialog", { name: "Current Player Connections" });
+
+    await waitFor(() => expect(dialog.style.bottom).toContain("safe-area-inset-bottom"));
+    expect(dialog.style.maxHeight).toContain("100dvh");
+    expect(dialog.style.maxHeight).toContain("safe-area-inset-top");
+    expect(dialog.querySelector("header")).toBeInTheDocument();
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toContain("max-height: calc(100dvh - 112px - env(safe-area-inset-bottom) - max(16px, env(safe-area-inset-top)))");
   });
 });

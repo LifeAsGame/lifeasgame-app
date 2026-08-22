@@ -159,18 +159,21 @@ export function useJournalQueries() {
   };
 
   const changeRoleFilter = (primaryRoleId?: number) => {
+    clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { ...paramsRef.current, primaryRoleId, page: 0 };
     setParams(paramsRef.current);
   };
 
   const changeSubtypeFilter = (subtype?: JournalSubtype) => {
+    clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { ...paramsRef.current, subtype, page: 0 };
     setParams(paramsRef.current);
   };
 
   const changePage = (page: number) => {
+    clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { ...paramsRef.current, page };
     setParams(paramsRef.current);

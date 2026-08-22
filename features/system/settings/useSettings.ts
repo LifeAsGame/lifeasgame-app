@@ -41,7 +41,6 @@ export function useSettings() {
     setError(null);
     try {
       const parsed = withTheme(parseUserSettings(await getSettingsApi()), themePreferenceRef.current);
-      setRuntimePreference(parsed.view.themePreference);
       setCanonical(parsed);
       setDraft(parsed.view);
       setSaveError(null);
@@ -50,7 +49,7 @@ export function useSettings() {
     } finally {
       setLoading(false);
     }
-  }, [setRuntimePreference]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -124,7 +123,7 @@ export function useSettings() {
     updateDraft,
     save,
     cancel,
-    themePreference: runtimePreference,
+    themePreference: draft?.themePreference ?? runtimePreference,
     themeSaving,
     themeSaveError,
     setThemePreference,

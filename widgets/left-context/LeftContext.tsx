@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
 import { MOTION } from "@/shared/lib/motion";
@@ -42,21 +42,23 @@ export default function LeftContext({
   zIndex,
   onFocus,
 }: LeftContextProps) {
+  const reducedMotion = useReducedMotion();
+  const visible = mode !== "hidden";
   return (
-    <AnimatePresence initial={false}>
-      {mode !== "hidden" ? (
+    <div className="lag-left-anchor" data-context-present={visible}>
+      <AnimatePresence initial={false}>
+        {visible ? (
         <motion.div
-          key={`left-context-${mode}`}
-          initial={MOTION.panelReset.initial}
+          key="left-context-frame"
+          initial={reducedMotion ? false : MOTION.panelReset.initial}
           animate={MOTION.panelReset.animate}
-          exit={MOTION.panelReset.exit}
-          transition={MOTION.panelReset.transition}
-          className="lag-left-context lag-panel-stage relative h-full min-h-[420px] overflow-hidden"
-          data-stage-key={`left-context-${mode}`}
+          exit={reducedMotion ? { opacity: 0 } : MOTION.panelReset.exit}
+          transition={reducedMotion ? { duration: 0 } : MOTION.panelReset.transition}
+          className="lag-left-context lag-panel-stage relative overflow-hidden"
+          data-stage-key="left-context"
           onPointerDownCapture={onFocus}
           style={{
             width: UI_CONSTS.leftContext.width,
-            minHeight: UI_CONSTS.leftContext.minHeight,
             willChange: "transform, opacity",
             zIndex,
           }}
@@ -84,21 +86,33 @@ export default function LeftContext({
               pointerEvents: "none",
             }}
           />
-          {mode === "player" ? (
-            <PlayerPanel playerInfo={playerInfo} equipments={equipments} guildName={guildName} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} />
-          ) : mode === "role" ? (
-            <RoleContextPanel
-              roles={roles}
-              selectedRoleId={selectedRoleId ?? null}
-              isLoading={rolesLoading}
-              error={rolesError}
-              onRoleSelect={onRoleSelect}
-            />
-          ) : (
-            <SocialPanel socialContext={socialContext} />
-          )}
+          <AnimatePresence initial={false} mode="wait">
+            <motion.div
+              key={mode}
+              className="lag-left-context-content scrollbar-hide"
+              initial={reducedMotion ? false : MOTION.panelContentSwap.initial}
+              animate={MOTION.panelContentSwap.animate}
+              exit={reducedMotion ? { opacity: 0 } : MOTION.panelContentSwap.exit}
+              transition={reducedMotion ? { duration: 0 } : MOTION.panelContentSwap.transition}
+            >
+              {mode === "player" ? (
+                <PlayerPanel playerInfo={playerInfo} equipments={equipments} guildName={guildName} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} />
+              ) : mode === "role" ? (
+                <RoleContextPanel
+                  roles={roles}
+                  selectedRoleId={selectedRoleId ?? null}
+                  isLoading={rolesLoading}
+                  error={rolesError}
+                  onRoleSelect={onRoleSelect}
+                />
+              ) : (
+                <SocialPanel socialContext={socialContext} />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
-      ) : null}
-    </AnimatePresence>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }

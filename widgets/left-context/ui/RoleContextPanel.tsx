@@ -47,7 +47,7 @@ export function RoleContextPanel({
   onRoleSelect?: (roleId: number) => void;
 }) {
   return (
-    <div className="relative z-10 overflow-y-auto p-7 scrollbar-hide" style={{ maxHeight: "100%" }}>
+    <div className="relative p-7">
       <div className="text-center">
         <p className="uppercase" style={{ fontSize: 11, letterSpacing: "0.24em", color: "var(--lag-text-2)" }}>ROLE CONTEXT</p>
         <h2 className="mt-2 text-2xl font-semibold" style={{ letterSpacing: "0.08em", color: "var(--lag-text)" }}>My Roles</h2>

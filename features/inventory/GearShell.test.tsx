@@ -61,7 +61,10 @@ describe("Gear surface를 사용할 때", () => {
   describe("여러 Weapon slot 중 target을 선택해 교체하면", () => {
     it("명시한 empty slot과 candidate를 확인한 뒤 실제 slotId로 equip한다", () => {
       render(<GearShell />);
+      expect(document.querySelector('[data-stage-key="inventory-gear-parts"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-gear-slots"]')).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Weapon/ }));
+      expect(document.querySelector('[data-stage-key="inventory-gear-slots"]')).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Main Hand/ }));
       fireEvent.click(screen.getByRole("button", { name: /New Blade/ }));
       fireEvent.click(screen.getByRole("button", { name: "Equip" }));
@@ -78,6 +81,7 @@ describe("Gear surface를 사용할 때", () => {
       expect(hook.current.equip).not.toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole("button", { name: /Off Hand/ }));
+      fireEvent.click(screen.getByRole("button", { name: /New Blade/ }));
       fireEvent.click(screen.getByRole("button", { name: "Equip" }));
 
       expect(window.confirm).toHaveBeenCalledWith("Replace Current Blade in Off Hand with New Blade?");

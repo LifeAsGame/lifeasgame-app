@@ -7,7 +7,8 @@ import type { HobbyStatus, PlayerHobbyMutationRequest } from "@/shared/api/types
 import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useHobbyQueries } from "./useHobbyQueries";
 
@@ -41,7 +42,7 @@ function ErrorState({ message, retry }: { message: string; retry: () => void }) 
   return <div className="space-y-2 px-3"><p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{message}</p><button type="button" style={buttonStyle} onClick={retry}>Retry</button></div>;
 }
 
-export default function HobbyShell() {
+export default function HobbyShell({ onBack }: { onBack?: () => void }) {
   const hobbies = useHobbyQueries();
   const [catalogId, setCatalogId] = useState("");
   const pending = hobbies.pendingMutation !== null;
@@ -51,7 +52,7 @@ export default function HobbyShell() {
   return (
     <div className="lag-panel-rail relative" data-testid="hobby-shell">
       <PanelStage stageKey="player-hobby-catalog">
-        <PanelFrame title="Hobby Catalog" depth={2}>
+        <PanelFrame title="Hobby Catalog" depth={2} backButton={onBack ? <BackButton label="Back to Player" onClick={onBack} /> : undefined}>
         <div className="space-y-3 px-3">
           {hobbies.catalog.loading && hobbies.catalog.items.length === 0 ? <InfoCard>Loading Hobby catalog...</InfoCard> : null}
           {hobbies.catalog.error ? <ErrorState message={hobbies.catalog.error} retry={() => void hobbies.catalog.retry()} /> : null}
@@ -76,7 +77,7 @@ export default function HobbyShell() {
       </PanelStage>
 
       <PanelStage stageKey="player-hobby-list" index={1}>
-        <PanelFrame title="My Hobbies" depth={1}>
+        <PanelFrame title="My Hobbies" depth={1} backButton={onBack ? <BackButton label="Back to Player" onClick={onBack} /> : undefined}>
         <div className="space-y-3">
           {hobbies.owned.loading && hobbies.owned.items.length === 0 ? <InfoCard>Loading Hobbies...</InfoCard> : null}
           {hobbies.owned.error ? <ErrorState message={hobbies.owned.error} retry={() => void hobbies.owned.reload()} /> : null}
@@ -89,8 +90,11 @@ export default function HobbyShell() {
 
       <AnimatePresence initial={false} mode="popLayout">
         {selected ? (
-          <PanelStage key={`player-hobby-detail-${selected.hobbyId}`} stageKey={`player-hobby-detail-${selected.hobbyId}`} index={2}>
-            <PanelFrame title="Hobby Detail" depth={0}>
+          <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" focusKey={selected.hobbyId} index={2}>
+            <PanelFrame title="Hobby Detail" depth={0} contentKey={selected.hobbyId} backButton={<BackButton label="Back to My Hobbies" onClick={() => {
+              hobbies.clearSelection();
+              requestStageFocus("player-hobby-list", "center");
+            }} />}>
               <div className="space-y-3 px-3">
             <InfoCard>{selected.customName}</InfoCard>
             <GoldRow>Hobby: {selected.name}</GoldRow><GoldRow>Category: {selected.category}</GoldRow><GoldRow>Status: {selected.status}</GoldRow><GoldRow>Proficiency: {selected.proficiency}/100</GoldRow><GoldRow>Started: {selected.startedOn ?? "Not recorded"}</GoldRow><GoldRow>XP: {selected.xp}</GoldRow><InfoCard label="Detail">{selected.detail ?? "Not recorded"}</InfoCard>

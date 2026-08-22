@@ -41,6 +41,24 @@ describe("Media query/mutation state를 관리할 때", () => {
     expect(result.current.list.items).toEqual([first]);
   });
 
+  it("ignores a stale server-backed search response", async () => {
+    let resolveStale!: (items: MediaInfo[]) => void;
+    const stale = new Promise<MediaInfo[]>((resolve) => { resolveStale = resolve; });
+    api.searchMediaApi.mockReset()
+      .mockResolvedValueOnce([first])
+      .mockReturnValueOnce(stale)
+      .mockResolvedValueOnce([created]);
+    const { result } = renderHook(() => useMediaQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+
+    act(() => result.current.search("ANIME", undefined, "old"));
+    act(() => result.current.search("ANIME", undefined, "new"));
+    await waitFor(() => expect(result.current.list.items).toEqual([created]));
+    await act(async () => { resolveStale([first]); await stale; });
+
+    expect(result.current.list.items).toEqual([created]);
+  });
+
   it("create ID는 reload row만 선택하고 PATCH response/reload를 적용하며 selected delete를 clear한다", async () => {
     const { result } = renderHook(() => useMediaQueries());
     await waitFor(() => expect(result.current.list.items).toEqual([first]));

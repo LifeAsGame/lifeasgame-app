@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MEDIA_CATEGORIES, MEDIA_STATUSES, type MediaInfo } from "@/shared/api/types";
@@ -58,5 +59,30 @@ describe("Media source surface를 사용할 때", () => {
     await waitFor(() => expect(api.updateMediaApi).toHaveBeenLastCalledWith(51, { tags: [] }));
     fireEvent.click(completeEntry);
     expect(screen.getByRole("button", { name: "Advance +1" })).toBeDisabled();
+  });
+
+  it("select filter는 즉시, title query는 debounce하고 filter 변경 시 detail을 닫는다", async () => {
+    render(<MediaShell />);
+    const entry = (await screen.findAllByTestId("media-entry"))[0];
+    expect(document.querySelector('[data-stage-key="lifelog-media-detail"]')).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Search" })).not.toBeInTheDocument();
+
+    fireEvent.click(entry);
+    expect(document.querySelector('[data-stage-key="lifelog-media-detail"]')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Category filter"), { target: { value: "BOOK" } });
+    await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-media-detail"]')).not.toBeInTheDocument());
+    await waitFor(() => expect(api.searchMediaApi).toHaveBeenLastCalledWith({ category: "BOOK", page: 0, size: 20 }));
+
+    const calls = api.searchMediaApi.mock.calls.length;
+    fireEvent.change(screen.getByLabelText("Title search"), { target: { value: "Architecture" } });
+    expect(api.searchMediaApi).toHaveBeenCalledTimes(calls);
+    await waitFor(() => expect(api.searchMediaApi).toHaveBeenLastCalledWith({ category: "BOOK", titleLike: "Architecture", page: 0, size: 20 }));
+  });
+
+  it("uses semantic controls for Add Media without a new theme palette", () => {
+    const source = readFileSync("features/lifelog/MediaShell.tsx", "utf8");
+    expect(source).toContain("SEMANTIC_CONTROL_STYLE");
+    expect(source).toContain("lag-add-control");
+    expect(source).not.toContain("INPUT_STYLE");
   });
 });

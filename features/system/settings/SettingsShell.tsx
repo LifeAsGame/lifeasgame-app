@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { useToast } from "@/context/ToastContext";
 import type { GraphicsQuality, InputPreset, SettingsView, ThemePreference, UiScale, VoiceChatMode } from "@/shared/api/types";
+import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
@@ -84,7 +85,8 @@ export default function SettingsShell() {
 
   return (
     <div className="lag-settings-shell">
-      <PanelFrame title="Settings" depth={1}>
+      <PanelStage stageKey="system-options" focusKey={editing ? "edit" : "summary"}>
+        <PanelFrame title="Settings" depth={1} contentKey={editing ? "edit" : "summary"}>
         <div className="space-y-3 px-3" data-testid="settings-shell">
         {settings.loading && !settings.canonical ? <InfoCard>Loading Settings...</InfoCard> : null}
         {settings.error ? (
@@ -173,7 +175,8 @@ export default function SettingsShell() {
           </form>
         ) : null}
         </div>
-      </PanelFrame>
+        </PanelFrame>
+      </PanelStage>
     </div>
   );
 }
