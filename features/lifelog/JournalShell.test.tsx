@@ -76,6 +76,9 @@ describe("LifeLog Journal v7 surface", () => {
     expect(css).toContain("var(--lag-control-bg)");
     expect(css).toContain("@media (max-width: 767px)");
     expect(css).toContain(".lag-orb-column");
+    const timestampStyles = css.match(/\.lag-journal-entry time\s*\{([^}]*)\}/)?.[1];
+    expect(timestampStyles).toContain("color: var(--lag-text-2)");
+    expect(timestampStyles).not.toContain("var(--lag-meta)");
   });
 
   it("renders the real server order as structured record cards", async () => {

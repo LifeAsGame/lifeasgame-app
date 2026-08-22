@@ -792,7 +792,7 @@ textarea.lag-journal-control {
 
 .lag-journal-entry time {
   align-self: end;
-  color: var(--lag-meta);
+  color: var(--lag-text-2);
   font-size: 0.66rem;
   white-space: nowrap;
 }
