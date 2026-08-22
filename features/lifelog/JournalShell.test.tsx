@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { JournalPage, QuickRecordResult, RoleDetail } from "@/shared/api/types";
@@ -12,11 +13,6 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock("./api", () => api);
-vi.mock("@/shared/ui/PanelCard", () => ({
-  default: ({ label, slotLabel, subtitle, onClick }: { label: string; slotLabel: string; subtitle?: string; onClick?: () => void }) => (
-    <button type="button" data-testid="journal-entry" onClick={onClick}>{label} · {slotLabel} · {subtitle}</button>
-  ),
-}));
 
 const roles: RoleDetail[] = [
   { id: 1, roleType: "PROFESSIONAL", name: "Backend Engineer", description: "Build systems", status: "ACTIVE", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 },
@@ -40,7 +36,29 @@ function deferred<T>() {
   return { promise, reject, resolve };
 }
 
-describe("LifeLog Journal surface를 사용할 때", () => {
+async function renderJournal() {
+  const view = render(<JournalShell roles={roles} />);
+  await screen.findAllByTestId("journal-entry");
+  return view;
+}
+
+async function openQuickRecord() {
+  await renderJournal();
+  expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Quick Record" }));
+  return document.querySelector('[data-stage-key="lifelog-quick-record"]')!;
+}
+
+function selectQuickType(type: "COLLECTION" | "EXERCISE" | "MEDIA") {
+  fireEvent.click(screen.getByRole("radio", { name: type }));
+}
+
+function expectDetail(name: string, value: string) {
+  const term = screen.getByText(name);
+  expect(term.nextElementSibling).toHaveTextContent(value);
+}
+
+describe("LifeLog Journal v7 surface", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.listJournalApi.mockResolvedValue(mixedPage);
@@ -48,255 +66,254 @@ describe("LifeLog Journal surface를 사용할 때", () => {
     api.quickRecordApi.mockResolvedValue(quickResult);
   });
 
-  describe("Quick Record form을 제출하면", () => {
-    it("Collection payload 하나와 optional top-level metadata만 전송한다", async () => {
-      render(<JournalShell roles={roles} />);
-      fireEvent.click(screen.getByText("Quick Record"));
+  it("uses semantic Journal classes without legacy local styling", () => {
+    const source = readFileSync("features/lifelog/JournalShell.tsx", "utf8");
+    expect(source).toContain("lag-journal-surface");
+    expect(source).not.toMatch(/INPUT_STYLE|\bSAO\b|GoldRow|<details/);
 
-      const type = screen.getByLabelText("Quick Record type") as HTMLSelectElement;
-      expect(Array.from(type.options, ({ value }) => value)).toEqual(["COLLECTION", "EXERCISE", "MEDIA"]);
-      expect(screen.queryByLabelText(/event/i)).not.toBeInTheDocument();
-      fireEvent.change(screen.getByLabelText("Quick Record subtype"), { target: { value: "PROJECT" } });
-      fireEvent.change(screen.getByLabelText("Quick Record role"), { target: { value: "2" } });
-      fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
-      fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "The Pragmatic Programmer" } });
-      fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
-      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toContain('[data-stage-key="lifelog-journal"]');
+    expect(css).toContain("var(--lag-control-bg)");
+    expect(css).toContain("@media (max-width: 767px)");
+    expect(css).toContain(".lag-orb-column");
+  });
 
-      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
-      expect(api.quickRecordApi).toHaveBeenCalledWith({
-        type: "COLLECTION",
-        lifeLogSubtype: "PROJECT",
-        primaryRoleId: 2,
-        collection: { category: "BOOK", title: "The Pragmatic Programmer", quantity: 1 },
-      }, expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i));
-      expect(screen.queryByLabelText(/rating|player|user/i)).not.toBeInTheDocument();
+  it("renders the real server order as structured record cards", async () => {
+    await renderJournal();
+
+    const entries = screen.getAllByTestId("journal-entry");
+    expect(entries.map((entry) => entry.querySelector("strong")?.textContent)).toEqual([
+      "Architecture Notes",
+      "RUNNING · 2026-08-12",
+      "Designing Data-Intensive Applications",
+      "Legacy Collection",
+    ]);
+    expect(within(entries[0]).getByText("COLLECTION")).toBeInTheDocument();
+    expect(within(entries[0]).getByText("Backend Engineer")).toBeInTheDocument();
+    expect(within(entries[0]).getByText("Event #11")).toBeInTheDocument();
+    expect(within(entries[1]).getByText("Quick")).toBeInTheDocument();
+  });
+
+  it("keeps nullable metrics absent while preserving real zero values", async () => {
+    api.listJournalApi.mockResolvedValue({
+      content: [{
+        ...MOCK_JOURNAL_ENTRIES[1],
+        preview: { ...MOCK_JOURNAL_ENTRIES[1].preview, durationMinutes: 0, distanceKm: null, calories: 240 },
+      }],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    } satisfies JournalPage);
+    await renderJournal();
+
+    const entry = screen.getByTestId("journal-entry");
+    expect(entry).toHaveTextContent("0 min · 240 kcal");
+    expect(entry).not.toHaveTextContent("km");
+  });
+
+  it("changes Role/subtype query immediately and preserves bounded pagination", async () => {
+    api.listJournalApi.mockImplementation(async (params: { primaryRoleId?: number; subtype?: string; page: number; size: number }): Promise<JournalPage> => ({
+      content: MOCK_JOURNAL_ENTRIES.filter((entry) =>
+        (params.primaryRoleId === undefined || entry.primaryRoleId === params.primaryRoleId)
+        && (params.subtype === undefined || entry.subtype === params.subtype)
+      ),
+      page: params.page,
+      size: params.size,
+      totalElements: 40,
+      totalPages: 2,
+    }));
+    await renderJournal();
+
+    expect(screen.getByText("Page 1 / 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Role filter"), { target: { value: "2" } });
+    await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, page: 0, size: 20 }));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, page: 1, size: 20 }));
+    expect(await screen.findByText("Page 2 / 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Subtype filter"), { target: { value: "REFLECTION" } });
+    await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, subtype: "REFLECTION", page: 0, size: 20 }));
+  });
+
+  it("opens detail only after selection, keeps its stage stable across entries, and Back closes it", async () => {
+    await renderJournal();
+    expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument();
+    const entries = screen.getAllByTestId("journal-entry");
+
+    fireEvent.click(entries[0]);
+    await screen.findByText("Annotated");
+    const detailStage = document.querySelector('[data-stage-key="lifelog-journal-detail"]');
+    expect(detailStage).toBeInTheDocument();
+    expectDetail("Condition", "Annotated");
+
+    fireEvent.click(entries[1]);
+    await screen.findByText("Morning run");
+    expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).toBe(detailStage);
+    expectDetail("Entry mode", "QUICK");
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to Journal" }));
+    await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument());
+  });
+
+  it("renders all current detail fields in semantic common/source sections", async () => {
+    await renderJournal();
+    const entries = screen.getAllByTestId("journal-entry");
+
+    fireEvent.click(entries[3]);
+    await screen.findByText("Collection");
+    expectDetail("Original title", "Not recorded");
+    expectDetail("Quantity", "Not recorded");
+    expectDetail("Condition", "Not recorded");
+    expectDetail("Acquired from", "Not recorded");
+    expectDetail("Tags", "Not recorded");
+
+    fireEvent.click(entries[2]);
+    await screen.findByText("Rewatch count");
+    expectDetail("Rewatch count", "0");
+    expect(screen.queryByRole("button", { name: /edit|delete|complete event/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps detail loading/error retry on the selected lifeLogId", async () => {
+    const first = deferred<ReturnType<typeof journalMock.detail>>();
+    api.getJournalDetailApi.mockReturnValueOnce(first.promise).mockResolvedValueOnce(journalMock.detail(104));
+    await renderJournal();
+    fireEvent.click(screen.getAllByTestId("journal-entry")[0]);
+    expect(screen.getByText("Loading Journal detail...")).toBeInTheDocument();
+
+    await act(async () => {
+      first.reject(new Error("Detail unavailable"));
+      await first.promise.catch(() => undefined);
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("Detail unavailable");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await screen.findByText("Annotated");
+    expect(api.getJournalDetailApi).toHaveBeenNthCalledWith(1, 104);
+    expect(api.getJournalDetailApi).toHaveBeenNthCalledWith(2, 104);
+  });
+
+  it("does not reopen stale detail after leaving and returning", async () => {
+    const view = await renderJournal();
+    fireEvent.click(screen.getAllByTestId("journal-entry")[0]);
+    await screen.findByText("Annotated");
+    view.unmount();
+
+    await renderJournal();
+    expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument();
+  });
+
+  it("opens Quick Record explicitly, keeps its frame stable across real types, and Back returns", async () => {
+    const stage = await openQuickRecord();
+    const frame = stage.querySelector(".lag-panel-frame");
+    expect(screen.getByRole("radio", { name: "COLLECTION" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByLabelText("Collection category")).toBeInTheDocument();
+
+    selectQuickType("EXERCISE");
+    expect(screen.getByLabelText("Duration minutes")).toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="lifelog-quick-record"] .lag-panel-frame')).toBe(frame);
+    selectQuickType("MEDIA");
+    expect(screen.getByLabelText("Media status")).toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="lifelog-quick-record"] .lag-panel-frame')).toBe(frame);
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to Journal" }));
+    await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument());
+  });
+
+  it("represents every current Quick Record type-specific field", async () => {
+    await openQuickRecord();
+    expect(screen.getByLabelText("Collection category")).toBeInTheDocument();
+    expect(screen.getByLabelText("Collection title")).toBeInTheDocument();
+    expect(screen.getByLabelText("Quantity")).toBeInTheDocument();
+
+    selectQuickType("EXERCISE");
+    for (const name of ["Exercise category", "Duration minutes", "Exercised on", "Distance km", "Calories", "Memo"]) {
+      expect(screen.getByLabelText(name)).toBeInTheDocument();
+    }
+
+    selectQuickType("MEDIA");
+    for (const name of ["Media category", "Media title", "Media status", "Current episode", "Total episodes"]) {
+      expect(screen.getByLabelText(name)).toBeInTheDocument();
+    }
+  });
+
+  it("submits the exact Collection contract and shows success", async () => {
+    await openQuickRecord();
+    fireEvent.change(screen.getByLabelText("Quick Record subtype"), { target: { value: "PROJECT" } });
+    fireEvent.change(screen.getByLabelText("Quick Record role"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
+    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "The Pragmatic Programmer" } });
+    fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+
+    await screen.findByText("✓ Quick Record saved.");
+    expect(api.quickRecordApi).toHaveBeenCalledWith({
+      type: "COLLECTION",
+      lifeLogSubtype: "PROJECT",
+      primaryRoleId: 2,
+      collection: { category: "BOOK", title: "The Pragmatic Programmer", quantity: 1 },
+    }, expect.stringMatching(/^[0-9a-f-]{36}$/i));
+  });
+
+  it("preserves Exercise zero/optional semantics and Media partial progress", async () => {
+    await openQuickRecord();
+    selectQuickType("EXERCISE");
+    fireEvent.change(screen.getByLabelText("Exercise category"), { target: { value: "RUNNING" } });
+    fireEvent.change(screen.getByLabelText("Duration minutes"), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText("Exercised on"), { target: { value: "2026-08-14" } });
+    fireEvent.change(screen.getByLabelText("Distance km"), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText("Calories"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+    expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
+      type: "EXERCISE",
+      exercise: { category: "RUNNING", durationMinutes: 30, exercisedOn: "2026-08-14", distanceKm: 0, calories: 0 },
     });
 
-    it("Exercise optional zero를 보존하고 비어 있는 optional field는 생략한다", async () => {
-      render(<JournalShell roles={roles} />);
-      fireEvent.click(screen.getByText("Quick Record"));
-      fireEvent.change(screen.getByLabelText("Quick Record type"), { target: { value: "EXERCISE" } });
-      fireEvent.change(screen.getByLabelText("Exercise category"), { target: { value: "RUNNING" } });
-      fireEvent.change(screen.getByLabelText("Duration minutes"), { target: { value: "30" } });
-      fireEvent.change(screen.getByLabelText("Exercised on"), { target: { value: "2026-08-14" } });
-      fireEvent.change(screen.getByLabelText("Distance km"), { target: { value: "0" } });
-      fireEvent.change(screen.getByLabelText("Calories"), { target: { value: "0" } });
-      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
-
-      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
-      expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
-        type: "EXERCISE",
-        exercise: {
-          category: "RUNNING",
-          durationMinutes: 30,
-          exercisedOn: "2026-08-14",
-          distanceKm: 0,
-          calories: 0,
-        },
-      });
-    });
-
-    it("Media currentEpisode zero를 보존하고 partial episode payload를 허용한다", async () => {
-      render(<JournalShell roles={roles} />);
-      fireEvent.click(screen.getByText("Quick Record"));
-      fireEvent.change(screen.getByLabelText("Quick Record type"), { target: { value: "MEDIA" } });
-      fireEvent.change(screen.getByLabelText("Media category"), { target: { value: "ANIME" } });
-      fireEvent.change(screen.getByLabelText("Media title"), { target: { value: "Frieren" } });
-      fireEvent.change(screen.getByLabelText("Media status"), { target: { value: "WATCHING" } });
-      fireEvent.change(screen.getByLabelText("Current episode"), { target: { value: "0" } });
-      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
-
-      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
-      expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
-        type: "MEDIA",
-        media: { category: "ANIME", title: "Frieren", status: "WATCHING", currentEpisode: 0 },
-      });
-    });
-
-    it("Media episode input을 비워 두면 request에서도 둘 다 생략한다", async () => {
-      render(<JournalShell roles={roles} />);
-      fireEvent.click(screen.getByText("Quick Record"));
-      fireEvent.change(screen.getByLabelText("Quick Record type"), { target: { value: "MEDIA" } });
-      fireEvent.change(screen.getByLabelText("Media category"), { target: { value: "ANIME" } });
-      fireEvent.change(screen.getByLabelText("Media title"), { target: { value: "Frieren" } });
-      fireEvent.change(screen.getByLabelText("Media status"), { target: { value: "WATCHING" } });
-      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
-
-      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
-      expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
-        type: "MEDIA",
-        media: { category: "ANIME", title: "Frieren", status: "WATCHING" },
-      });
-    });
-
-    it("ambiguous failure 뒤 edit 전에는 Retry만 노출하고 edit 후 새 logical Submit을 만든다", async () => {
-      api.quickRecordApi.mockRejectedValueOnce(new Error("Outcome unknown")).mockResolvedValueOnce(quickResult);
-      render(<JournalShell roles={roles} />);
-      fireEvent.click(screen.getByText("Quick Record"));
-      fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
-      fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Retry me" } });
-      fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
-      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
-
-      await screen.findByRole("button", { name: "Retry same record" });
-      expect(screen.queryByRole("button", { name: "Save Quick Record" })).not.toBeInTheDocument();
-      const firstCall = api.quickRecordApi.mock.calls[0];
-      fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Edited retry" } });
-
-      expect(screen.queryByRole("button", { name: "Retry same record" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
-      await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledTimes(2));
-      expect(api.quickRecordApi.mock.calls[1][0]).toEqual({
-        type: "COLLECTION",
-        collection: { category: "BOOK", title: "Edited retry", quantity: 1 },
-      });
-      expect(api.quickRecordApi.mock.calls[1][1]).not.toBe(firstCall[1]);
+    api.quickRecordApi.mockClear();
+    selectQuickType("MEDIA");
+    fireEvent.change(screen.getByLabelText("Media category"), { target: { value: "ANIME" } });
+    fireEvent.change(screen.getByLabelText("Media title"), { target: { value: "Frieren" } });
+    fireEvent.change(screen.getByLabelText("Media status"), { target: { value: "WATCHING" } });
+    fireEvent.change(screen.getByLabelText("Current episode"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+    expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
+      type: "MEDIA",
+      media: { category: "ANIME", title: "Frieren", status: "WATCHING", currentEpisode: 0 },
     });
   });
 
-  describe("mixed physical source 목록을 읽으면", () => {
-    it("server order와 source/QUICK/Role/Event context를 그대로 표시한다", async () => {
-      render(<JournalShell roles={roles} />);
+  it("keeps failure retry available and edit creates a new logical submission", async () => {
+    api.quickRecordApi.mockRejectedValueOnce(new Error("Outcome unknown")).mockResolvedValueOnce(quickResult);
+    await openQuickRecord();
+    fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
+    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Retry me" } });
+    fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
 
-      const entries = await screen.findAllByTestId("journal-entry");
-      expect(entries.map((entry) => entry.textContent?.split(" · ")[0])).toEqual([
-        "Architecture Notes",
-        "RUNNING",
-        "Designing Data-Intensive Applications",
-        "Legacy Collection",
-      ]);
-      expect(entries[0]).toHaveTextContent("COLLECTION");
-      expect(entries[0]).toHaveTextContent("Role context: Backend Engineer");
-      expect(entries[0]).toHaveTextContent("Event context #11");
-      expect(entries[1]).toHaveTextContent("EXERCISE");
-      expect(entries[1]).toHaveTextContent("QUICK");
-      expect(entries[2]).toHaveTextContent("MEDIA");
+    await screen.findByRole("button", { name: "Retry same record" });
+    expect(screen.getByRole("alert")).toHaveTextContent("Outcome unknown");
+    const firstKey = api.quickRecordApi.mock.calls[0][1];
+    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Edited retry" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledTimes(2));
+    expect(api.quickRecordApi.mock.calls[1][0]).toEqual({
+      type: "COLLECTION",
+      collection: { category: "BOOK", title: "Edited retry", quantity: 1 },
     });
-
-    it("nullable Exercise metric은 생략하고 실제 zero/non-null 값은 보존한다", async () => {
-      api.listJournalApi.mockResolvedValue({
-        content: [{
-          ...MOCK_JOURNAL_ENTRIES[1],
-          preview: {
-            ...MOCK_JOURNAL_ENTRIES[1].preview,
-            durationMinutes: 0,
-            distanceKm: null,
-            calories: 240,
-          },
-        }],
-        page: 0,
-        size: 20,
-        totalElements: 1,
-        totalPages: 1,
-      } satisfies JournalPage);
-      render(<JournalShell roles={roles} />);
-
-      const entry = await screen.findByTestId("journal-entry");
-      expect(entry).toHaveTextContent("EXERCISE · RUNNING · 0 min · 240 kcal · ACTIVITY · QUICK");
-      expect(entry).not.toHaveTextContent("— min");
-      expect(entry).not.toHaveTextContent("— km");
-      expect(entry).not.toHaveTextContent("— kcal");
-    });
+    expect(api.quickRecordApi.mock.calls[1][1]).not.toBe(firstKey);
   });
 
-  describe("Role/subtype filter와 server page를 변경하면", () => {
-    it("filter를 보존하고 filter 변경마다 page를 0으로 reset하며 pagination bounds를 적용한다", async () => {
-      api.listJournalApi.mockImplementation(async (params: { primaryRoleId?: number; subtype?: string; page: number; size: number }): Promise<JournalPage> => ({
-        content: MOCK_JOURNAL_ENTRIES.filter((entry) =>
-          (params.primaryRoleId === undefined || entry.primaryRoleId === params.primaryRoleId)
-          && (params.subtype === undefined || entry.subtype === params.subtype)
-        ),
-        page: params.page,
-        size: params.size,
-        totalElements: 40,
-        totalPages: 2,
-      }));
-      render(<JournalShell roles={roles} />);
+  it("does not reopen stale Quick Record after leaving and returning", async () => {
+    const view = await renderJournal();
+    fireEvent.click(screen.getByRole("button", { name: "Quick Record" }));
+    expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).toBeInTheDocument();
+    view.unmount();
 
-      expect(await screen.findByText("Page 1 / 2")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
-      fireEvent.change(screen.getByLabelText("Role filter"), { target: { value: "2" } });
-      await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, page: 0, size: 20 }));
-      fireEvent.click(screen.getByRole("button", { name: "Next" }));
-      await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, page: 1, size: 20 }));
-      expect(await screen.findByText("Page 2 / 2")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Previous" })).toBeEnabled();
-
-      fireEvent.change(screen.getByLabelText("Subtype filter"), { target: { value: "REFLECTION" } });
-      await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, subtype: "REFLECTION", page: 0, size: 20 }));
-    });
-  });
-
-  describe("목록 request가 실패하거나 비어 있으면", () => {
-    it("loading과 error/retry를 거쳐 authoritative empty state를 표시한다", async () => {
-      const first = deferred<JournalPage>();
-      api.listJournalApi.mockReturnValueOnce(first.promise).mockResolvedValueOnce({ ...mixedPage, content: [], totalElements: 0, totalPages: 0 });
-      render(<JournalShell roles={roles} />);
-
-      expect(screen.getByText("Loading Journal...")).toBeInTheDocument();
-      await act(async () => {
-        first.reject(new Error("Journal unavailable"));
-        await first.promise.catch(() => undefined);
-      });
-      expect(screen.getByRole("alert")).toHaveTextContent("Journal unavailable");
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-
-      expect(await screen.findByText("No Journal entries.")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
-    });
-  });
-
-  describe("lifeLogId로 Journal detail을 선택하면", () => {
-    it("Collection/Exercise/Media source를 명시적으로 렌더하고 mutation action을 노출하지 않는다", async () => {
-      render(<JournalShell roles={roles} />);
-      const entries = await screen.findAllByTestId("journal-entry");
-
-      fireEvent.click(entries[0]);
-      expect(await screen.findByText("Condition: Annotated")).toBeInTheDocument();
-      expect(api.getJournalDetailApi).toHaveBeenLastCalledWith(104);
-
-      fireEvent.click(entries[1]);
-      expect(await screen.findByText("Memo: Morning run")).toBeInTheDocument();
-      expect(screen.getByText("Entry mode: QUICK")).toBeInTheDocument();
-
-      fireEvent.click(entries[2]);
-      expect(await screen.findByText("Rewatch count: 0")).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: /edit|delete|complete event/i })).not.toBeInTheDocument();
-      expect(screen.queryByText(/Created by this RoleEvent|Completed event record/)).not.toBeInTheDocument();
-    });
-
-    it("legacy Collection nullable detail을 Not recorded로 표시한다", async () => {
-      render(<JournalShell roles={roles} />);
-      fireEvent.click((await screen.findAllByTestId("journal-entry"))[3]);
-
-      expect(await screen.findByText("Original title: Not recorded")).toBeInTheDocument();
-      expect(screen.getByText("Quantity: Not recorded")).toBeInTheDocument();
-      expect(screen.getByText("Condition: Not recorded")).toBeInTheDocument();
-      expect(screen.getByText("Acquired from: Not recorded")).toBeInTheDocument();
-      expect(screen.getByText("Tags: Not recorded")).toBeInTheDocument();
-      expect(screen.queryByText(/—/)).not.toBeInTheDocument();
-    });
-
-    it("detail loading/error를 표시하고 같은 lifeLogId로 retry한다", async () => {
-      const first = deferred<ReturnType<typeof journalMock.detail>>();
-      api.getJournalDetailApi.mockReturnValueOnce(first.promise).mockResolvedValueOnce(journalMock.detail(104));
-      render(<JournalShell roles={roles} />);
-      fireEvent.click((await screen.findAllByTestId("journal-entry"))[0]);
-      expect(screen.getByText("Loading Journal detail...")).toBeInTheDocument();
-
-      await act(async () => {
-        first.reject(new Error("Detail unavailable"));
-        await first.promise.catch(() => undefined);
-      });
-      expect(screen.getByRole("alert")).toHaveTextContent("Detail unavailable");
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-
-      expect(await screen.findByText("Condition: Annotated")).toBeInTheDocument();
-      expect(api.getJournalDetailApi).toHaveBeenNthCalledWith(1, 104);
-      expect(api.getJournalDetailApi).toHaveBeenNthCalledWith(2, 104);
-    });
+    await renderJournal();
+    expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument();
   });
 });
