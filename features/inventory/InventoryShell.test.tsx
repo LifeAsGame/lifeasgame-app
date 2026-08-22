@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,11 +14,6 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/api/endpoints/inventory.api", () => api);
-vi.mock("@/shared/ui/PanelCard", () => ({
-  default: ({ label, slotLabel, subtitle, onClick }: { label: string; slotLabel: string; subtitle?: string; onClick?: () => void }) => (
-    <button type="button" data-testid="inventory-entry" onClick={onClick}>{label} · {slotLabel} · {subtitle}</button>
-  ),
-}));
 
 const item: InventoryEntry = {
   itemInstanceId: 501,
@@ -35,6 +31,7 @@ const item: InventoryEntry = {
   instanceAttrs: { atk: 12 },
 };
 const secondItem: InventoryEntry = { ...item, itemInstanceId: 502, slotIndex: 3, itemId: 102, itemName: "Second Sword" };
+const utilityItem: InventoryEntry = { ...item, itemInstanceId: 503, slotIndex: 4, itemId: 103, itemName: "Server Utility", category: "CONSUMABLE", type: "ETC", rarity: "COMMON", instanceAttrs: { active: false, nested: { source: "server" }, tags: ["a", "b"] } };
 
 const mail: MailEntry = {
   mailId: 701,
@@ -61,6 +58,10 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+function expectData(label: string, value: string) {
+  expect(screen.getByText(label).nextElementSibling).toHaveTextContent(value);
+}
+
 describe("Inventory Items와 Inbox surface를 사용할 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -71,7 +72,47 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
     api.deleteMailApi.mockResolvedValue(undefined);
   });
 
+  it("uses semantic Inventory/Gear classes without screenshot-only data or theme branches", () => {
+    const inventorySource = readFileSync("features/inventory/InventoryShell.tsx", "utf8");
+    const gearSource = readFileSync("features/inventory/GearShell.tsx", "utf8");
+    expect(`${inventorySource}\n${gearSource}`).not.toMatch(/SAO|PanelCard|GoldRow|MK300|Telecaster|Notebook|Owned Lv\.|MEMORY filter|LETTER filter|data-theme/i);
+
+    const css = readFileSync("app/globals.css", "utf8");
+    const fidelityCss = css.slice(css.indexOf("/* v7 Inventory/Gear"), css.indexOf(".lag-semantic-controls"));
+    expect(fidelityCss).toContain("repeat(auto-fill, minmax(150px, 1fr))");
+    expect(fidelityCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
+  });
+
   describe("Items를 조회하고 itemInstanceId로 선택하면", () => {
+    it("real category에서 filter를 만들고 즉시 적용하며 제외된 detail을 닫는다", async () => {
+      api.getInventoryApi.mockResolvedValue({ entries: [item, secondItem, utilityItem] });
+      render(<InventoryShell surface="items" />);
+
+      expect(await screen.findAllByTestId("inventory-entry")).toHaveLength(3);
+      expect(screen.getByRole("button", { name: "ALL" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "CONSUMABLE" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "WEAPON" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "MEMORY" })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /Server Sword/ }));
+      expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "CONSUMABLE" }));
+
+      expect(screen.getAllByTestId("inventory-entry")).toHaveLength(1);
+      expect(screen.getByRole("button", { name: /Server Utility/ })).toBeInTheDocument();
+      await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).not.toBeInTheDocument());
+    });
+
+    it("primitive와 nested instanceAttrs를 안전한 key/value로 표시한다", async () => {
+      api.getInventoryApi.mockResolvedValue({ entries: [utilityItem] });
+      render(<InventoryShell surface="items" />);
+      fireEvent.click(await screen.findByRole("button", { name: /Server Utility/ }));
+
+      expectData("active", "false");
+      expectData("nested", '{"source":"server"}');
+      expectData("tags", '["a","b"]');
+    });
+
     it("loading 후 server list/detail을 표시하고 generic sell/remove action은 노출하지 않는다", async () => {
       const response = deferred<InventoryEntriesResponse>();
       api.getInventoryApi.mockReturnValue(response.promise);
@@ -87,9 +128,9 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /Server Sword/ }));
 
       expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBeInTheDocument();
-      expect(screen.getByText("Item instance ID: 501")).toBeInTheDocument();
-      expect(screen.getByText("Durability: 0")).toBeInTheDocument();
-      expect(screen.getByText(/Instance attrs:.*"atk":12/)).toBeInTheDocument();
+      expectData("Item instance ID", "501");
+      expectData("Durability", "0");
+      expectData("atk", "12");
       expect(screen.queryByRole("button", { name: /sell|remove/i })).not.toBeInTheDocument();
     });
 
@@ -116,7 +157,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       expect(detail).toBeInTheDocument();
       fireEvent.click(entries[1]);
       expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBe(detail);
-      expect(screen.getByText("Item instance ID: 502")).toBeInTheDocument();
+      expectData("Item instance ID", "502");
 
       focus.mockClear();
       fireEvent.click(screen.getByRole("button", { name: "Back to Items" }));
@@ -135,6 +176,19 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
   });
 
   describe("Inbox를 조회하고 mailId로 선택하면", () => {
+    it("mail 교체는 stable detail frame 안의 content만 바꾼다", async () => {
+      const secondMail = { ...mail, mailId: 702, slotIndex: 5, itemId: 302, itemName: "Second Server Mail" };
+      api.getMailboxApi.mockResolvedValue({ entries: [mail, secondMail] });
+      render(<InventoryShell surface="inbox" />);
+
+      fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
+      const detail = document.querySelector('[data-stage-key="inventory-inbox-detail"]');
+      fireEvent.click(screen.getByRole("button", { name: /Second Server Mail/ }));
+
+      expect(document.querySelector('[data-stage-key="inventory-inbox-detail"]')).toBe(detail);
+      expectData("Mail ID", "702");
+    });
+
     it("loading 후 server list/detail과 nullable durability를 표시한다", async () => {
       const response = deferred<MailboxEntriesResponse>();
       api.getMailboxApi.mockReturnValue(response.promise);
@@ -147,9 +201,9 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       });
       fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
 
-      expect(screen.getByText("Mail ID: 701")).toBeInTheDocument();
-      expect(screen.getByText("Slot index: 4")).toBeInTheDocument();
-      expect(screen.getByText("Durability: Not recorded")).toBeInTheDocument();
+      expectData("Mail ID", "701");
+      expectData("Slot index", "4");
+      expectData("Durability", "Not recorded");
     });
 
     it("error의 Retry가 authoritative empty Inbox state를 표시한다", async () => {

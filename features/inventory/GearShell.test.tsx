@@ -8,11 +8,6 @@ import GearShell from "./GearShell";
 const hook = vi.hoisted(() => ({ current: {} as ReturnType<typeof makeState> }));
 
 vi.mock("./useEquipmentQueries", () => ({ useEquipmentQueries: () => hook.current }));
-vi.mock("@/shared/ui/PanelCard", () => ({
-  default: ({ label, slotLabel, subtitle, disabled, onClick }: { label: string; slotLabel: string; subtitle?: string; disabled?: boolean; onClick?: () => void }) => (
-    <button type="button" disabled={disabled} onClick={onClick}>{label} · {slotLabel} · {subtitle}</button>
-  ),
-}));
 
 const currentBlade: InventoryEntry = {
   itemInstanceId: 501,
@@ -32,6 +27,7 @@ const currentBlade: InventoryEntry = {
 const newBlade: InventoryEntry = { ...currentBlade, itemInstanceId: 502, slotIndex: 2, itemId: 102, itemName: "New Blade", rarity: "EPIC" };
 const armor: InventoryEntry = { ...currentBlade, itemInstanceId: 601, slotIndex: 3, itemId: 201, itemName: "Chest Armor", category: "ARMOR", type: "CHEST" };
 const boots: InventoryEntry = { ...armor, itemInstanceId: 602, itemName: "Windrunner Boots", type: "ETC" };
+const incompatibleArmor: InventoryEntry = { ...armor, itemInstanceId: 603, itemName: "Wrong Armor", type: "RING" };
 const equipment: EquipmentSlotInfo[] = [
   { slotId: 21, slotCode: "MAIN_HAND", slotName: "Main Hand", slotCategory: "WEAPON", slotRole: "MAIN", itemInstanceId: null },
   { slotId: 22, slotCode: "OFF_HAND", slotName: "Off Hand", slotCategory: "WEAPON", slotRole: "OFFHAND", itemInstanceId: 501 },
@@ -51,6 +47,10 @@ function makeState(slotData = equipment, entries = [currentBlade, newBlade, armo
   };
 }
 
+function expectData(label: string, value: string) {
+  expect(screen.getByText(label).nextElementSibling).toHaveTextContent(value);
+}
+
 describe("Gear surface를 사용할 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -58,13 +58,44 @@ describe("Gear surface를 사용할 때", () => {
     hook.current = makeState();
   });
 
+  it("keeps Parts -> combined workspace -> Action within three stable stages and honors Back/reset", async () => {
+    render(<GearShell />);
+    expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /Weapon/ }));
+    const workspace = document.querySelector('[data-stage-key="inventory-gear-workspace"]');
+    expect(workspace).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: /Main Hand/ }));
+    expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole("button", { name: /New Blade/ }));
+    const action = document.querySelector('[data-stage-key="inventory-gear-action"]');
+    fireEvent.click(screen.getByRole("button", { name: /Current Blade.*itemInstanceId 501/ }));
+    expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).toBe(action);
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to Weapon Workspace" }));
+    await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).not.toBeInTheDocument());
+    expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).toBe(workspace);
+
+    fireEvent.click(screen.getByRole("button", { name: /Armor/ }));
+    expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).toBe(workspace);
+    expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Gear Parts" }));
+    await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).not.toBeInTheDocument());
+  });
+
   describe("여러 Weapon slot 중 target을 선택해 교체하면", () => {
     it("명시한 empty slot과 candidate를 확인한 뒤 실제 slotId로 equip한다", () => {
       render(<GearShell />);
       expect(document.querySelector('[data-stage-key="inventory-gear-parts"]')).toBeInTheDocument();
-      expect(document.querySelector('[data-stage-key="inventory-gear-slots"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Weapon/ }));
-      expect(document.querySelector('[data-stage-key="inventory-gear-slots"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-gear-slots"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="inventory-gear-candidates"]')).not.toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Equipment Slots" })).toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Inventory Candidates" })).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Main Hand/ }));
       fireEvent.click(screen.getByRole("button", { name: /New Blade/ }));
       fireEvent.click(screen.getByRole("button", { name: "Equip" }));
@@ -98,7 +129,7 @@ describe("Gear surface를 사용할 때", () => {
       expect(slot).not.toHaveTextContent("Empty");
       fireEvent.click(slot);
 
-      expect(screen.getByText("Equipped: Item details unavailable · itemInstanceId 999")).toBeInTheDocument();
+      expectData("Equipped", "Item details unavailable · itemInstanceId 999");
       fireEvent.click(screen.getByRole("button", { name: "Unequip" }));
 
       expect(window.confirm).toHaveBeenCalledWith("Unequip itemInstanceId 999 from Chest?");
@@ -112,7 +143,7 @@ describe("Gear surface를 사용할 때", () => {
       render(<GearShell />);
       fireEvent.click(screen.getByRole("button", { name: /Boots/ }));
       fireEvent.click(screen.getByRole("button", { name: /Feet/ }));
-      fireEvent.click(screen.getByRole("button", { name: /^Windrunner Boots · x1/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Windrunner Boots.*itemInstanceId 602/ }));
 
       expect(screen.getByRole("alert")).toHaveTextContent("Compatibility is not available for this slot in the current item contract.");
       expect(screen.getByRole("button", { name: "Equip" })).toBeDisabled();
@@ -121,6 +152,17 @@ describe("Gear surface를 사용할 때", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Unequip" }));
       expect(hook.current.unequip).toHaveBeenCalledWith(41);
+    });
+
+    it("INCOMPATIBLE reason을 표시하고 Equip을 비활성화한다", () => {
+      hook.current = makeState(equipment, [currentBlade, newBlade, armor, incompatibleArmor]);
+      render(<GearShell />);
+      fireEvent.click(screen.getByRole("button", { name: /Armor/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Chest.*itemInstanceId 999/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Wrong Armor.*itemInstanceId 603/ }));
+
+      expect(screen.getByRole("alert")).toHaveTextContent("INCOMPATIBLE: This item is incompatible with the selected Equipment slot.");
+      expect(screen.getByRole("button", { name: "Equip" })).toBeDisabled();
     });
   });
 
@@ -157,16 +199,16 @@ describe("Gear surface를 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /Weapon/ }));
       fireEvent.click(screen.getByRole("button", { name: /Off Hand/ }));
       fireEvent.click(screen.getByRole("button", { name: /New Blade/ }));
-      expect(screen.getByText(/Candidate: New Blade/)).toBeInTheDocument();
+      expectData("Candidate", "New Blade");
 
       hook.current = makeState(equipment, [currentBlade, armor]);
       rerender(<GearShell />);
-      await waitFor(() => expect(screen.getByText("Select an Inventory candidate to equip.")).toBeInTheDocument());
+      await waitFor(() => expectData("Candidate", "Select an Inventory candidate to equip."));
       expect(screen.getByRole("button", { name: "Equip" })).toBeDisabled();
 
       hook.current = makeState([equipment[0], equipment[2]], [currentBlade, armor]);
       rerender(<GearShell />);
-      await waitFor(() => expect(screen.queryByText("Slot ID: 22")).not.toBeInTheDocument());
+      await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).not.toBeInTheDocument());
     });
   });
 });
