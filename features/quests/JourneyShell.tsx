@@ -5,12 +5,16 @@ import { AnimatePresence } from "framer-motion";
 
 import { SUBMENUS_BY_MAIN } from "@/entities/nav";
 import type { QuestsSubId } from "@/entities/nav";
-import type { PlayerQuestDetail, QuestRoute, QuestRouteStepDetail } from "@/shared/api/types";
-import PanelCard from "@/shared/ui/PanelCard";
+import type {
+  PlayerQuestDetail,
+  QuestAcceptance,
+  QuestRoute,
+  QuestRouteStepDetail,
+} from "@/shared/api/types";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
-import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
-import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import {
   acceptQuestApi,
   advanceQuestRouteApi,
@@ -32,26 +36,128 @@ import {
 } from "./model";
 import { useJourneyQueries } from "./useJourneyQueries";
 
-const secondaryButton = {
-  border: "1px solid var(--lag-control-border)",
-  background: "var(--lag-control-bg)",
-  color: "var(--lag-control-text)",
-  borderRadius: "var(--lag-radius-sm)",
-  padding: "7px 10px",
-  fontSize: "0.68rem",
-  letterSpacing: "0.08em",
-} as const;
+const SURFACE_COPY: Record<QuestsSubId, string> = {
+  current: "Review accepted Quests and their canonical progress.",
+  catalog: "Explore available Quest blueprints and acceptance rules.",
+  routes: "Choose and advance independent long-term directions.",
+};
 
 function message(caught: unknown, fallback: string): string {
   return caught instanceof Error ? caught.message : fallback;
 }
 
+function humanize(value: string) {
+  return value.replaceAll("_", " ");
+}
+
 function ErrorState({ text, retry }: { text: string; retry: () => void }) {
   return (
-    <div className="space-y-2 px-3">
-      <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{text}</p>
-      <button type="button" style={secondaryButton} onClick={retry}>Retry</button>
+    <div className="lag-journey-state">
+      <p role="alert" className="lag-journey-feedback" data-state="error">Load failed: {text}</p>
+      <button type="button" className="lag-journey-button" onClick={retry}>Retry</button>
     </div>
+  );
+}
+
+function ProgressBar({ label, percent, valueText }: { label: string; percent: number; valueText: string }) {
+  return (
+    <div className="lag-journey-progress">
+      <div><span>{label}</span><strong>{valueText}</strong></div>
+      <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={valueText}>
+        <span style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function JourneyCard({
+  badge,
+  badges = [],
+  progress,
+  selected,
+  supporting,
+  title,
+  onClick,
+}: {
+  badge: string;
+  badges?: string[];
+  progress?: { percent: number; valueText: string };
+  selected: boolean;
+  supporting: string;
+  title: string;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className="lag-journey-card" data-selected={selected} aria-pressed={selected} onClick={onClick}>
+      <span className="lag-journey-card-mark" aria-hidden>{badge}</span>
+      <span className="lag-journey-card-copy">
+        <strong>{title}</strong>
+        <span>{supporting}</span>
+        {badges.length > 0 ? <span className="lag-journey-badges">{badges.map((item) => <span key={item}>{item}</span>)}</span> : null}
+        {progress ? <ProgressBar label={`${title} progress`} percent={progress.percent} valueText={progress.valueText} /> : null}
+      </span>
+      <span className="lag-journey-card-arrow" aria-hidden>→</span>
+    </button>
+  );
+}
+
+function DetailRow({ name, value }: { name: string; value: React.ReactNode }) {
+  return <div className="lag-journey-detail-row"><dt>{name}</dt><dd>{value}</dd></div>;
+}
+
+function DetailSection({ children, title }: { children: React.ReactNode; title: string }) {
+  return <section className="lag-journey-detail-section"><h4>{title}</h4><dl>{children}</dl></section>;
+}
+
+function StatusBadge({ children, state }: { children: React.ReactNode; state: string }) {
+  return <span className="lag-journey-status" data-state={state}>{children}</span>;
+}
+
+function orderedSteps(route: QuestRoute) {
+  return route.steps.slice().sort((left, right) => left.stepOrder - right.stepOrder);
+}
+
+function currentStepPosition(route: QuestRoute) {
+  const currentStepId = route.playerProgress?.currentStepId;
+  if (!currentStepId) return null;
+  const steps = orderedSteps(route);
+  const index = steps.findIndex(({ id }) => id === currentStepId);
+  return index < 0 ? null : `Step ${index + 1} of ${steps.length}`;
+}
+
+function RouteThread({ route, quests }: { route: QuestRoute; quests: QuestAcceptance[] }) {
+  const steps = orderedSteps(route);
+  return (
+    <section className="lag-route-thread" aria-label="Ordered Route Steps">
+      <div className="lag-route-thread-track">
+        <ol>
+          {steps.map((step) => {
+            const current = step.id === route.playerProgress?.currentStepId;
+            return (
+              <li key={step.id} data-state={step.state} data-current={current}>
+                <span className="lag-route-node" aria-hidden>{step.stepOrder}</span>
+                <article>
+                  <div>
+                    <strong>{step.stepOrder}. {step.title}</strong>
+                    <StatusBadge state={step.state}>{humanize(step.state)}{current ? " · Current step" : ""}</StatusBadge>
+                  </div>
+                  <p>{step.description ?? "No Step description."}</p>
+                  <p>Criteria: {step.criteriaSatisfied ? "Satisfied" : "Not satisfied"}</p>
+                  {step.questLinks.length > 0 ? (
+                    <ul aria-label={`Quest requirements for ${step.title}`}>
+                      {step.questLinks.map((link) => {
+                        const quest = quests.find((item) => item.questId === link.questId);
+                        return <li key={link.questId}>Requirement: {quest?.title ?? `Quest #${link.questId}`} · {humanize(link.requirementType)}</li>;
+                      })}
+                    </ul>
+                  ) : <p>No linked Quest requirements.</p>}
+                </article>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
   );
 }
 
@@ -70,7 +176,7 @@ type RouteDetailState = {
   error: string | null;
 };
 
-export default function JourneyShell({ initialSurface = "current" }: { initialSurface?: QuestsSubId | null }) {
+export default function JourneyShell({ initialSurface = null }: { initialSurface?: QuestsSubId | null }) {
   const queries = useJourneyQueries(true);
   const [surface, setSurface] = useState<QuestsSubId | null>(initialSurface);
   const [selectedAcceptanceId, setSelectedAcceptanceId] = useState<number | null>(null);
@@ -84,8 +190,7 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
   const questDetailRequestId = useRef(0);
   const routeDetailRequestId = useRef(0);
 
-  const selectSurface = (next: QuestsSubId) => {
-    setSurface(next);
+  const clearDetail = () => {
     setSelectedAcceptanceId(null);
     setSelectedCatalogCode(null);
     setSelectedRouteId(null);
@@ -94,6 +199,22 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
     setMutationError(null);
     questDetailRequestId.current += 1;
     routeDetailRequestId.current += 1;
+  };
+
+  const selectSurface = (next: QuestsSubId) => {
+    clearDetail();
+    setSurface(next);
+  };
+
+  const closeDetail = () => {
+    clearDetail();
+    requestStageFocus("journey-list", "nearest");
+  };
+
+  const closeList = () => {
+    clearDetail();
+    setSurface(null);
+    requestStageFocus("journey-root", "nearest");
   };
 
   const mineById = new Map(queries.routes.data.mine.map((route) => [route.id, route]));
@@ -190,42 +311,47 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
   };
 
   const renderCurrentList = () => (
-    <div className="space-y-3">
+    <div className="lag-journey-list">
       {queries.current.loading && queries.current.data.length === 0 ? <InfoCard>Loading current Quests...</InfoCard> : null}
       {queries.current.error ? <ErrorState text={queries.current.error} retry={() => void queries.current.reload()} /> : null}
       {!queries.current.loading && !queries.current.error && queries.current.data.length === 0 ? <InfoCard>No Quest acceptances yet.</InfoCard> : null}
-      {queries.current.data.map((quest, index) => (
-        <PanelCard
-          key={quest.id}
-          label={quest.title}
-          slotLabel={quest.status === "GOAL_REACHED" ? "GR" : quest.status.slice(0, 2)}
-          subtitle={`${QUEST_STATUS_LABEL[quest.status]} · ${quest.progressValue}/${quest.targetValue}`}
-          selected={selectedAcceptanceId === quest.id}
-          index={index}
-          onClick={() => {
-            setSelectedAcceptanceId(quest.id);
-            void loadQuestDetail(quest.code);
-          }}
-        />
-      ))}
+      {queries.current.data.map((quest) => {
+        const percent = questProgressPercent(quest);
+        return (
+          <JourneyCard
+            key={quest.id}
+            badge={quest.status === "GOAL_REACHED" ? "GR" : quest.status.slice(0, 2)}
+            title={quest.title}
+            supporting={`${QUEST_STATUS_LABEL[quest.status]} · ${quest.progressValue}/${quest.targetValue}`}
+            badges={[QUEST_STATUS_LABEL[quest.status], humanize(quest.completionPolicy)]}
+            progress={{ percent, valueText: `${quest.progressValue} / ${quest.targetValue} (${percent}%)` }}
+            selected={selectedAcceptanceId === quest.id}
+            onClick={() => {
+              setSelectedAcceptanceId(quest.id);
+              void loadQuestDetail(quest.code);
+            }}
+          />
+        );
+      })}
     </div>
   );
 
   const renderCatalogList = () => (
-    <div className="space-y-3">
+    <div className="lag-journey-list">
       {queries.catalog.loading && queries.catalog.data.length === 0 ? <InfoCard>Loading Quest catalog...</InfoCard> : null}
       {queries.catalog.error ? <ErrorState text={queries.catalog.error} retry={() => void queries.catalog.reload()} /> : null}
       {!queries.catalog.loading && !queries.catalog.error && queries.catalog.data.length === 0 ? <InfoCard>No active Quest blueprints.</InfoCard> : null}
-      {queries.catalog.data.map((quest, index) => {
+      {queries.catalog.data.map((quest) => {
         const acceptance = latestAcceptance(queries.current.data, quest.code);
+        const category = quest.semanticCategory ?? quest.category;
         return (
-          <PanelCard
+          <JourneyCard
             key={quest.code}
-            label={quest.title}
-            slotLabel={(quest.semanticCategory ?? quest.category ?? "QU").slice(0, 2)}
-            subtitle={acceptance ? QUEST_STATUS_LABEL[acceptance.status] : `${quest.targetType} × ${quest.targetValue}`}
+            badge={(category ?? "QU").slice(0, 2)}
+            title={quest.title}
+            supporting={acceptance ? `Acceptance: ${QUEST_STATUS_LABEL[acceptance.status]}` : `${humanize(quest.targetType)} × ${quest.targetValue}`}
+            badges={[...(category ? [humanize(category)] : []), humanize(quest.completionPolicy), humanize(quest.repeatPolicy ?? quest.repeatRule)]}
             selected={selectedCatalogCode === quest.code}
-            index={index}
             onClick={() => {
               setSelectedCatalogCode(quest.code);
               void loadQuestDetail(quest.code);
@@ -237,59 +363,76 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
   );
 
   const renderRouteList = () => (
-    <div className="space-y-3">
+    <div className="lag-journey-list">
       {queries.routes.loading && routes.length === 0 ? <InfoCard>Loading Quest Routes...</InfoCard> : null}
       {queries.routes.error ? <ErrorState text={queries.routes.error} retry={() => void queries.routes.reload()} /> : null}
       {!queries.routes.loading && !queries.routes.error && routes.length === 0 ? <InfoCard>No active Quest Routes.</InfoCard> : null}
-      {routes.map((route, index) => (
-        <PanelCard
-          key={route.id}
-          label={route.title}
-          slotLabel={route.playerProgress?.status === "COMPLETED" ? "CP" : route.playerProgress ? "IP" : "NS"}
-          subtitle={route.playerProgress ? route.playerProgress.status : "Not selected"}
-          selected={selectedRouteId === route.id}
-          index={index}
-          onClick={() => {
-            setSelectedRouteId(route.id);
-            void loadRouteDetail(route.id, Boolean(route.playerProgress));
-          }}
-        />
-      ))}
+      {routes.map((route) => {
+        const position = currentStepPosition(route);
+        const status = route.playerProgress?.status ?? "NOT_SELECTED";
+        return (
+          <JourneyCard
+            key={route.id}
+            badge={status === "COMPLETED" ? "CP" : route.playerProgress ? "IP" : "NS"}
+            title={route.title}
+            supporting={[humanize(status), position].filter(Boolean).join(" · ")}
+            badges={[route.playerProgress ? "Selected" : "Not selected", `${route.steps.length} steps`]}
+            selected={selectedRouteId === route.id}
+            onClick={() => {
+              setSelectedRouteId(route.id);
+              void loadRouteDetail(route.id, Boolean(route.playerProgress));
+            }}
+          />
+        );
+      })}
     </div>
   );
 
   const questDetailFor = (code: string) => questDetail.code === code ? questDetail : null;
 
   const renderCurrentDetail = () => {
-    if (!selectedAcceptance) return <InfoCard>Select a Quest acceptance.</InfoCard>;
+    if (!selectedAcceptance) return null;
     const detail = questDetailFor(selectedAcceptance.code);
     if (detail?.loading && !detail.data) return <InfoCard>Loading Quest detail...</InfoCard>;
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedAcceptance.code)} />;
+    const percent = questProgressPercent(selectedAcceptance);
     return (
-      <div className="space-y-3 px-3">
-        {detail?.error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{detail.error}</p> : null}
-        {mutationError ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{mutationError}</p> : null}
-        <InfoCard>{detail?.data?.descriptionMd ?? selectedAcceptance.descriptionMd}</InfoCard>
-        <GoldRow>Status: {QUEST_STATUS_LABEL[selectedAcceptance.status]}</GoldRow>
-        <GoldRow>Progress: {selectedAcceptance.progressValue} / {selectedAcceptance.targetValue} ({questProgressPercent(selectedAcceptance)}%)</GoldRow>
-        <GoldRow>Completion policy: {selectedAcceptance.completionPolicy}</GoldRow>
-        {selectedAcceptance.status === "GOAL_REACHED" ? <InfoCard>Goal reached. This is not the same as Completed.</InfoCard> : null}
-        <div className="flex flex-wrap gap-2">
-          {canManualCheckQuest(selectedAcceptance) ? (
-            <button type="button" disabled={Boolean(pending)} style={secondaryButton} onClick={() => void runMutation(`manual-${selectedAcceptance.code}`, () => manualCheckQuestApi(selectedAcceptance.code), () => recoverQuest(selectedAcceptance.code))}>Manual Check</button>
-          ) : null}
-          {canCancelQuest(selectedAcceptance) ? (
-            <button type="button" disabled={Boolean(pending)} style={secondaryButton} onClick={() => {
-              if (window.confirm(`Cancel Quest ${selectedAcceptance.title}?`)) void runMutation(`cancel-${selectedAcceptance.code}`, () => cancelQuestApi(selectedAcceptance.code), () => recoverQuest(selectedAcceptance.code));
-            }}>Cancel Quest</button>
-          ) : null}
-        </div>
-      </div>
+      <article className="lag-journey-detail">
+        {detail?.error ? <p role="alert" className="lag-journey-feedback" data-state="error">{detail.error}</p> : null}
+        {mutationError ? <p role="alert" className="lag-journey-feedback" data-state="error">{mutationError}</p> : null}
+        <header className="lag-journey-detail-hero">
+          <span>Current Quest</span>
+          <h4>{selectedAcceptance.title}</h4>
+          <StatusBadge state={selectedAcceptance.status}>Status: {QUEST_STATUS_LABEL[selectedAcceptance.status]}</StatusBadge>
+          <p>{detail?.data?.descriptionMd ?? selectedAcceptance.descriptionMd}</p>
+        </header>
+        <DetailSection title="Progress">
+          <div className="lag-journey-detail-progress"><ProgressBar label="Quest progress" percent={percent} valueText={`${selectedAcceptance.progressValue} / ${selectedAcceptance.targetValue} (${percent}%)`} /></div>
+        </DetailSection>
+        <DetailSection title="Completion rule">
+          <DetailRow name="Completion policy" value={humanize(selectedAcceptance.completionPolicy)} />
+          <DetailRow name="Progress source" value={selectedAcceptance.progressSource ? humanize(selectedAcceptance.progressSource) : "Not recorded"} />
+          <DetailRow name="Repeat" value={humanize(selectedAcceptance.repeatPolicy ?? selectedAcceptance.repeatRule)} />
+        </DetailSection>
+        {selectedAcceptance.status === "GOAL_REACHED" ? <p className="lag-journey-feedback" data-state="warning">Goal reached. This is not the same as Completed.</p> : null}
+        {(canManualCheckQuest(selectedAcceptance) || canCancelQuest(selectedAcceptance)) ? (
+          <section className="lag-journey-actions" aria-label="Available Quest actions">
+            {canManualCheckQuest(selectedAcceptance) ? (
+              <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void runMutation(`manual-${selectedAcceptance.code}`, () => manualCheckQuestApi(selectedAcceptance.code), () => recoverQuest(selectedAcceptance.code))}>Manual Check</button>
+            ) : null}
+            {canCancelQuest(selectedAcceptance) ? (
+              <button type="button" className="lag-journey-button" data-variant="destructive" disabled={Boolean(pending)} onClick={() => {
+                if (window.confirm(`Cancel Quest ${selectedAcceptance.title}?`)) void runMutation(`cancel-${selectedAcceptance.code}`, () => cancelQuestApi(selectedAcceptance.code), () => recoverQuest(selectedAcceptance.code));
+              }}>Cancel Quest</button>
+            ) : null}
+          </section>
+        ) : null}
+      </article>
     );
   };
 
   const renderCatalogDetail = () => {
-    if (!selectedBlueprint) return <InfoCard>Select a Quest blueprint.</InfoCard>;
+    if (!selectedBlueprint) return null;
     const detail = questDetailFor(selectedBlueprint.code);
     const acceptance = latestAcceptance(queries.current.data, selectedBlueprint.code);
     const acceptanceKnown = !queries.current.loading && !queries.current.error;
@@ -298,58 +441,66 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
     if (detail?.loading && !detail.data) return <InfoCard>Loading Quest detail...</InfoCard>;
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedBlueprint.code)} />;
     return (
-      <div className="space-y-3 px-3">
-        {mutationError ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{mutationError}</p> : null}
-        <InfoCard>{detail?.data?.descriptionMd ?? selectedBlueprint.descriptionMd}</InfoCard>
-        <GoldRow>Target: {selectedBlueprint.targetType} × {selectedBlueprint.targetValue}</GoldRow>
-        <GoldRow>Completion policy: {selectedBlueprint.completionPolicy}</GoldRow>
-        <GoldRow>Repeat: {selectedBlueprint.repeatPolicy ?? selectedBlueprint.repeatRule}</GoldRow>
-        <GoldRow>Reward profile: {selectedBlueprint.rewardProfileCode ?? "None"}</GoldRow>
-        {acceptance ? <GoldRow>Acceptance: {QUEST_STATUS_LABEL[acceptance.status]}</GoldRow> : null}
-        {!acceptanceKnown ? <InfoCard>Acceptance state unavailable. Accept is disabled until Current reloads.</InfoCard> : null}
+      <article className="lag-journey-detail">
+        {mutationError ? <p role="alert" className="lag-journey-feedback" data-state="error">{mutationError}</p> : null}
+        <header className="lag-journey-detail-hero">
+          <span>Quest Blueprint</span>
+          <h4>{selectedBlueprint.title}</h4>
+          {acceptance ? <StatusBadge state={acceptance.status}>Acceptance: {QUEST_STATUS_LABEL[acceptance.status]}</StatusBadge> : null}
+          <p>{detail?.data?.descriptionMd ?? selectedBlueprint.descriptionMd}</p>
+        </header>
+        <DetailSection title="Target and completion">
+          <DetailRow name="Target" value={`${humanize(selectedBlueprint.targetType)} × ${selectedBlueprint.targetValue}`} />
+          <DetailRow name="Completion policy" value={humanize(selectedBlueprint.completionPolicy)} />
+          <DetailRow name="Repeat" value={humanize(selectedBlueprint.repeatPolicy ?? selectedBlueprint.repeatRule)} />
+          <DetailRow name="Reward profile" value={selectedBlueprint.rewardProfileCode ?? "None"} />
+        </DetailSection>
+        {!acceptanceKnown ? <p className="lag-journey-feedback" data-state="warning">Acceptance state unavailable. Accept is disabled until Current reloads.</p> : null}
         {acceptAction ? (
-          <button type="button" disabled={Boolean(pending)} style={actionBtnStyle} onClick={() => {
+          <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => {
             if (window.confirm(`${acceptLabel} ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), () => recoverQuest(selectedBlueprint.code));
           }}>{acceptLabel}</button>
         ) : null}
-      </div>
+      </article>
     );
   };
 
   const renderRouteDetail = () => {
-    if (!selectedRoute) return <InfoCard>Select a Quest Route.</InfoCard>;
+    if (!selectedRoute) return null;
     const detailState = routeDetail.routeId === selectedRoute.id ? routeDetail : null;
     const route = detailState?.data ?? selectedRoute;
     if (detailState?.loading && !detailState.data) return <InfoCard>Loading Route detail...</InfoCard>;
     if (detailState?.error && !detailState.data) return <ErrorState text={detailState.error} retry={() => void loadRouteDetail(selectedRoute.id, Boolean(selectedRoute.playerProgress))} />;
     const progress = route.playerProgress;
-    const currentStep = progress ? route.steps.find((step) => step.id === progress.currentStepId) ?? null : null;
+    const steps = orderedSteps(route);
+    const currentStep = progress ? steps.find((step) => step.id === progress.currentStepId) ?? null : null;
     const canAdvance = progress?.status === "IN_PROGRESS" && currentStep?.state === "READY_TO_ADVANCE";
+    const completedSteps = steps.filter((step) => step.state === "COMPLETED").length;
+    const percent = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : null;
     return (
-      <div className="space-y-3 px-3">
-        {detailState?.error ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{detailState.error}</p> : null}
-        {mutationError ? <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{mutationError}</p> : null}
-        <InfoCard>{route.description ?? "No Route description."}</InfoCard>
-        <GoldRow>Status: {progress?.status ?? "NOT_SELECTED"}</GoldRow>
-        {progress ? <GoldRow>Current Step ID: {progress.currentStepId}</GoldRow> : null}
-        <section className="space-y-2" aria-label="Ordered Route Steps">
-          {route.steps.slice().sort((left, right) => left.stepOrder - right.stepOrder).map((step) => (
-            <div key={step.id} className="rounded-sm px-3 py-2" style={{ background: "var(--lag-muted-surface)", border: `1px solid ${step.id === progress?.currentStepId ? "var(--lag-focus)" : "var(--lag-divider)"}` }}>
-              <p className="text-sm font-semibold" style={{ color: "var(--lag-text)" }}>{step.stepOrder}. {step.title}</p>
-              <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>{step.state} · criteria {step.criteriaSatisfied ? "satisfied" : "not satisfied"}</p>
-              <p className="text-xs" style={{ color: "var(--lag-text-2)" }}>{step.description ?? "No Step description."}</p>
-              {step.questLinks.map((link) => {
-                const acceptedQuest = queries.current.data.find((quest) => quest.questId === link.questId);
-                return <p key={link.questId} className="text-xs" style={{ color: "var(--lag-text-2)" }}>Requirement: {acceptedQuest?.title ?? `Quest #${link.questId}`} · {link.requirementType}</p>;
-              })}
-            </div>
-          ))}
-        </section>
+      <article className="lag-journey-detail lag-route-detail">
+        {detailState?.error ? <p role="alert" className="lag-journey-feedback" data-state="error">{detailState.error}</p> : null}
+        {mutationError ? <p role="alert" className="lag-journey-feedback" data-state="error">{mutationError}</p> : null}
+        <header className="lag-journey-detail-hero">
+          <span>Quest Route · Long-term direction</span>
+          <h4>{route.title}</h4>
+          <StatusBadge state={progress?.status ?? "NOT_SELECTED"}>Status: {progress?.status ?? "NOT_SELECTED"}</StatusBadge>
+          <p>{route.description ?? "No Route description."}</p>
+        </header>
+        {progress ? (
+          <DetailSection title="Route progress">
+            <DetailRow name="Current step" value={`${currentStepPosition(route) ?? `Step #${progress.currentStepId}`} · ID ${progress.currentStepId}`} />
+            {percent !== null ? <div className="lag-journey-detail-progress"><ProgressBar label="Completed Route steps" percent={percent} valueText={`${completedSteps} / ${steps.length} completed (${percent}%)`} /></div> : null}
+          </DetailSection>
+        ) : null}
+        <RouteThread route={route} quests={queries.current.data} />
         {detailState?.step ? <InfoCard>Current Step Detail: {detailState.step.step.title} · {detailState.step.step.state}</InfoCard> : null}
-        {!progress ? <button type="button" disabled={Boolean(pending)} style={actionBtnStyle} onClick={() => void selectRoute(route)}>Select Route</button> : null}
-        {canAdvance ? <button type="button" disabled={Boolean(pending)} style={actionBtnStyle} onClick={() => void advanceRoute(route)}>Advance Current Step</button> : null}
-        {progress?.status === "COMPLETED" ? <InfoCard>Route completed by an explicit final Step advance.</InfoCard> : null}
-      </div>
+        <section className="lag-journey-actions" aria-label="Available Route actions">
+          {!progress ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void selectRoute(route)}>Select Route</button> : null}
+          {canAdvance ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void advanceRoute(route)}>Advance Current Step</button> : null}
+        </section>
+        {progress?.status === "COMPLETED" ? <p className="lag-journey-feedback" data-state="success">✓ Route completed by an explicit final Step advance.</p> : null}
+      </article>
     );
   };
 
@@ -361,23 +512,43 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
         ? `journey-route-detail-${selectedRoute.id}`
         : null;
 
+  const listTitle = SUBMENUS_BY_MAIN.quests.find((item) => item.id === surface)?.label ?? "Journey";
+  const detailTitle = surface === "current" ? "Quest Detail" : surface === "catalog" ? "Blueprint Detail" : "Route Detail";
+
   return (
-    <div className="lag-panel-rail relative" data-testid="journey-shell">
+    <div className="lag-panel-rail lag-journey-shell relative" data-testid="journey-shell">
       <PanelStage stageKey="journey-root">
-        <PanelFrame title="Journey" depth={2}>
-          <div className="grid gap-1">
-            {SUBMENUS_BY_MAIN.quests.map((item, index) => (
-              <PanelCard key={item.id} label={item.label} slotLabel={item.slotLabel} selected={surface === item.id} index={index} onClick={() => selectSurface(item.id as QuestsSubId)} />
-            ))}
+        <PanelFrame title="Journey / Quest Route" depth={2}>
+          <div className="lag-journey-root">
+            <header>
+              <p className="lag-journey-eyebrow">Journey</p>
+              <h4>Choose your next depth.</h4>
+              <p>Quests are actionable units. Routes remain independent long-term directions.</p>
+            </header>
+            <div className="lag-journey-root-grid">
+              {SUBMENUS_BY_MAIN.quests.map((item) => (
+                <JourneyCard
+                  key={item.id}
+                  badge={item.slotLabel}
+                  title={item.label}
+                  supporting={SURFACE_COPY[item.id as QuestsSubId]}
+                  selected={surface === item.id}
+                  onClick={() => selectSurface(item.id as QuestsSubId)}
+                />
+              ))}
+            </div>
           </div>
         </PanelFrame>
       </PanelStage>
 
       <AnimatePresence initial={false}>
         {surface ? (
-          <PanelStage key="journey-list" stageKey="journey-list" focusKey={surface} index={1}>
-            <PanelFrame title={SUBMENUS_BY_MAIN.quests.find((item) => item.id === surface)?.label ?? "Journey"} depth={1} contentKey={surface}>
-              {surface === "current" ? renderCurrentList() : surface === "catalog" ? renderCatalogList() : renderRouteList()}
+          <PanelStage stageKey="journey-list" focusKey={surface}>
+            <PanelFrame title={listTitle} depth={1} contentKey={surface} backButton={<BackButton label="Back to Journey" onClick={closeList} />}>
+              <section className="lag-journey-list-surface" aria-label={`${listTitle} list`}>
+                <header><p className="lag-journey-eyebrow">Journey child surface</p><h4>{listTitle}</h4><p>{SURFACE_COPY[surface]}</p></header>
+                {surface === "current" ? renderCurrentList() : surface === "catalog" ? renderCatalogList() : renderRouteList()}
+              </section>
             </PanelFrame>
           </PanelStage>
         ) : null}
@@ -385,8 +556,8 @@ export default function JourneyShell({ initialSurface = "current" }: { initialSu
 
       <AnimatePresence initial={false} mode="popLayout">
         {detailContentKey ? (
-          <PanelStage key="journey-detail" stageKey="journey-detail" focusKey={detailContentKey} index={2}>
-            <PanelFrame title={surface === "current" ? selectedAcceptance?.title ?? "Quest Detail" : surface === "catalog" ? selectedBlueprint?.title ?? "Catalog Detail" : selectedRoute?.title ?? "Route Detail"} depth={0} contentKey={detailContentKey}>
+          <PanelStage stageKey="journey-detail" focusKey={detailContentKey}>
+            <PanelFrame title={detailTitle} depth={0} contentKey={detailContentKey} backButton={<BackButton label={`Back to ${listTitle}`} onClick={closeDetail} />}>
               {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
             </PanelFrame>
           </PanelStage>
