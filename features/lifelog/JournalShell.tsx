@@ -17,11 +17,10 @@ import type {
   QuickRecordType,
   RoleDetail,
 } from "@/shared/api/types";
-import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
-import PanelCard from "@/shared/ui/PanelCard";
-import PanelStage from "@/shared/ui/PanelStage";
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
-import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import PanelStage, { StageContentTransition } from "@/shared/ui/PanelStage";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useJournalQueries } from "./useJournalQueries";
 
 export const JOURNAL_SUBTYPES: JournalSubtype[] = [
@@ -35,16 +34,6 @@ export const JOURNAL_SUBTYPES: JournalSubtype[] = [
   "HEALTH_NOTE",
 ];
 
-const secondaryButton = {
-  border: `1px solid ${SAO.color.border.panel}`,
-  background: SAO.color.bg.inset,
-  color: SAO.color.text.secondary,
-  borderRadius: SAO.radius.panel,
-  padding: "7px 10px",
-  fontSize: "0.68rem",
-  letterSpacing: "0.08em",
-} as const;
-
 const EXERCISE_CATEGORIES = ["RUNNING", "WALKING", "CYCLING", "SWIMMING", "GYM", "YOGA", "OTHER"] as const;
 const MEDIA_CATEGORIES = ["ANIME", "MOVIE", "SERIES", "BOOK", "WEBTOON", "GAME", "MUSIC"] as const;
 const MEDIA_STATUSES = ["PLANNED", "WATCHING", "COMPLETED", "DROPPED", "ON_HOLD"] as const;
@@ -56,6 +45,44 @@ function text(form: FormData, key: string) {
 function optionalNumber(form: FormData, key: string) {
   const raw = text(form, key);
   return raw === "" ? undefined : Number(raw);
+}
+
+function label(value: string) {
+  return value.replaceAll("_", " ");
+}
+
+function displayTimestamp(value: string) {
+  return value.replace("T", " ").replace("Z", " UTC");
+}
+
+function Field({ children, title }: { children: React.ReactNode; title: string }) {
+  return (
+    <label className="lag-journal-field">
+      <span>{title}</span>
+      {children}
+    </label>
+  );
+}
+
+function SelectField({
+  disabled,
+  name,
+  title,
+  values,
+}: {
+  disabled: boolean;
+  name: string;
+  title: string;
+  values: readonly string[];
+}) {
+  return (
+    <Field title={title}>
+      <select className="lag-journal-control" name={name} required defaultValue="" disabled={disabled}>
+        <option value="" disabled>Select...</option>
+        {values.map((value) => <option key={value} value={value}>{label(value)}</option>)}
+      </select>
+    </Field>
+  );
 }
 
 function QuickRecordForm({
@@ -148,94 +175,104 @@ function QuickRecordForm({
     resetAfter(await onSubmit(body));
   };
 
-  const select = (name: string, label: string, values: readonly string[]) => (
-    <label className="block text-xs" style={{ color: SAO.color.text.label }}>
-      {label}
-      <select name={name} required defaultValue="" style={INPUT_STYLE} disabled={pending}>
-        <option value="" disabled>Select...</option>
-        {values.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
-      </select>
-    </label>
-  );
+  const chooseType = (next: QuickRecordType) => {
+    onEdit();
+    setType(next);
+  };
 
   return (
-    <form ref={formRef} className="space-y-2" onSubmit={submit} onChangeCapture={onEdit}>
-      <label className="block text-xs" style={{ color: SAO.color.text.label }}>
-        Quick Record type
-        <select
-          name="type"
-          aria-label="Quick Record type"
-          value={type}
-          style={INPUT_STYLE}
-          disabled={pending}
-          onChange={(event) => setType(event.target.value as QuickRecordType)}
-        >
-          <option value="COLLECTION">Collection</option>
-          <option value="EXERCISE">Exercise</option>
-          <option value="MEDIA">Media</option>
-        </select>
-      </label>
-
-      <label className="block text-xs" style={{ color: SAO.color.text.label }}>
-        Quick Record subtype
-        <select name="lifeLogSubtype" aria-label="Quick Record subtype" defaultValue="" style={INPUT_STYLE} disabled={pending}>
-          <option value="">None</option>
-          {JOURNAL_SUBTYPES.map((subtype) => <option key={subtype} value={subtype}>{subtype.replaceAll("_", " ")}</option>)}
-        </select>
-      </label>
-
-      <label className="block text-xs" style={{ color: SAO.color.text.label }}>
-        Quick Record role
-        <select name="primaryRoleId" aria-label="Quick Record role" defaultValue="" style={INPUT_STYLE} disabled={pending || rolesLoading}>
-          <option value="">No Role</option>
-          {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
-        </select>
-      </label>
-      {rolesLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
-      {rolesError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>Role selection unavailable: {rolesError}</p> : null}
-
-      {type === "COLLECTION" ? (
-        <>
-          {select("collectionCategory", "Collection category", COLLECTION_CATEGORIES)}
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Collection title<input name="collectionTitle" required style={INPUT_STYLE} disabled={pending} /></label>
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Quantity<input name="quantity" type="number" min={1} required style={INPUT_STYLE} disabled={pending} /></label>
-        </>
-      ) : type === "EXERCISE" ? (
-        <>
-          {select("exerciseCategory", "Exercise category", EXERCISE_CATEGORIES)}
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Duration minutes<input name="durationMinutes" type="number" min={1} required style={INPUT_STYLE} disabled={pending} /></label>
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Exercised on<input name="exercisedOn" type="date" required style={INPUT_STYLE} disabled={pending} /></label>
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Distance km<input name="distanceKm" type="number" min={0} step="any" style={INPUT_STYLE} disabled={pending} /></label>
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Calories<input name="calories" type="number" min={0} style={INPUT_STYLE} disabled={pending} /></label>
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Memo<textarea name="memo" rows={2} style={{ ...INPUT_STYLE, resize: "vertical" }} disabled={pending} /></label>
-        </>
-      ) : (
-        <>
-          {select("mediaCategory", "Media category", MEDIA_CATEGORIES)}
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Media title<input name="mediaTitle" required style={INPUT_STYLE} disabled={pending} /></label>
-          {select("mediaStatus", "Media status", MEDIA_STATUSES)}
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Current episode<input name="currentEpisode" type="number" min={0} style={INPUT_STYLE} disabled={pending} /></label>
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>Total episodes<input name="totalEpisode" type="number" min={1} style={INPUT_STYLE} disabled={pending} /></label>
-        </>
-      )}
-
-      {error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{error}</p> : null}
-      {result ? <p role="status" className="text-xs" style={{ color: SAO.color.text.gold }}>{result.replay ? "Quick Record replay confirmed." : "Quick Record saved."}</p> : null}
-      {refreshError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{refreshError}</p> : null}
-      <div className="flex gap-2">
-        {canRetry
-          ? <button type="button" disabled={pending} style={{ ...secondaryButton, flex: 1 }} onClick={() => void onRetry().then(resetAfter)}>Retry same record</button>
-          : <button type="submit" disabled={pending} style={{ ...secondaryButton, flex: 1 }}>{pending ? "Saving..." : "Save Quick Record"}</button>}
+    <form ref={formRef} className="lag-quick-record-form" onSubmit={submit} onChangeCapture={onEdit}>
+      <div>
+        <p className="lag-journal-eyebrow">Record type</p>
+        <div className="lag-journal-segments" role="radiogroup" aria-label="Quick Record type">
+          {(["COLLECTION", "EXERCISE", "MEDIA"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={type === value}
+              className="lag-journal-chip"
+              data-selected={type === value}
+              disabled={pending}
+              onClick={() => chooseType(value)}
+            >
+              {label(value)}
+            </button>
+          ))}
+        </div>
       </div>
+
+      <div className="lag-journal-form-grid">
+        <Field title="Quick Record subtype">
+          <select className="lag-journal-control" name="lifeLogSubtype" aria-label="Quick Record subtype" defaultValue="" disabled={pending}>
+            <option value="">None</option>
+            {JOURNAL_SUBTYPES.map((subtype) => <option key={subtype} value={subtype}>{label(subtype)}</option>)}
+          </select>
+        </Field>
+        <Field title="Quick Record role">
+          <select className="lag-journal-control" name="primaryRoleId" aria-label="Quick Record role" defaultValue="" disabled={pending || rolesLoading}>
+            <option value="">No Role</option>
+            {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+          </select>
+        </Field>
+      </div>
+
+      {rolesLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
+      {rolesError ? <p role="alert" className="lag-journal-feedback" data-state="error">Role selection unavailable: {rolesError}</p> : null}
+
+      <div className="lag-quick-record-fields" data-testid="quick-record-fields">
+        <StageContentTransition identity={type}>
+          <fieldset className="lag-journal-form-grid" disabled={pending}>
+            <legend className="sr-only">{label(type)} fields</legend>
+            {type === "COLLECTION" ? (
+              <>
+                <SelectField name="collectionCategory" title="Collection category" values={COLLECTION_CATEGORIES} disabled={pending} />
+                <Field title="Collection title"><input className="lag-journal-control" name="collectionTitle" required /></Field>
+                <Field title="Quantity"><input className="lag-journal-control" name="quantity" type="number" min={1} required /></Field>
+              </>
+            ) : type === "EXERCISE" ? (
+              <>
+                <SelectField name="exerciseCategory" title="Exercise category" values={EXERCISE_CATEGORIES} disabled={pending} />
+                <Field title="Duration minutes"><input className="lag-journal-control" name="durationMinutes" type="number" min={1} required /></Field>
+                <Field title="Exercised on"><input className="lag-journal-control" name="exercisedOn" type="date" required /></Field>
+                <Field title="Distance km"><input className="lag-journal-control" name="distanceKm" type="number" min={0} step="any" /></Field>
+                <Field title="Calories"><input className="lag-journal-control" name="calories" type="number" min={0} /></Field>
+                <Field title="Memo"><textarea className="lag-journal-control" name="memo" rows={3} /></Field>
+              </>
+            ) : (
+              <>
+                <SelectField name="mediaCategory" title="Media category" values={MEDIA_CATEGORIES} disabled={pending} />
+                <Field title="Media title"><input className="lag-journal-control" name="mediaTitle" required /></Field>
+                <SelectField name="mediaStatus" title="Media status" values={MEDIA_STATUSES} disabled={pending} />
+                <Field title="Current episode"><input className="lag-journal-control" name="currentEpisode" type="number" min={0} /></Field>
+                <Field title="Total episodes"><input className="lag-journal-control" name="totalEpisode" type="number" min={1} /></Field>
+              </>
+            )}
+          </fieldset>
+        </StageContentTransition>
+      </div>
+
+      {error ? <p role="alert" className="lag-journal-feedback" data-state="error">Save failed: {error}</p> : null}
+      {result ? <p role="status" className="lag-journal-feedback" data-state="success">✓ {result.replay ? "Quick Record replay confirmed." : "Quick Record saved."}</p> : null}
+      {refreshError ? <p role="alert" className="lag-journal-feedback" data-state="error">Refresh failed: {refreshError}</p> : null}
+      {canRetry ? (
+        <button type="button" className="lag-journal-action" data-variant="retry" disabled={pending} onClick={() => void onRetry().then(resetAfter)}>
+          {pending ? "Retrying..." : "Retry same record"}
+        </button>
+      ) : (
+        <button type="submit" className="lag-journal-action" disabled={pending}>
+          {pending ? "Saving..." : "Save Quick Record"}
+        </button>
+      )}
     </form>
   );
 }
 
-function ErrorState({ text, retry }: { text: string; retry: () => void }) {
+function ErrorState({ message, retry }: { message: string; retry: () => void }) {
   return (
-    <div className="space-y-2 px-3">
-      <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{text}</p>
-      <button type="button" style={secondaryButton} onClick={retry}>Retry</button>
+    <div className="lag-journal-state">
+      <p role="alert" className="lag-journal-feedback" data-state="error">Load failed: {message}</p>
+      <button type="button" className="lag-journal-button" onClick={retry}>Retry</button>
     </div>
   );
 }
@@ -245,191 +282,265 @@ function entryPresentation(entry: JournalEntry) {
     case "COLLECTION":
       return {
         title: entry.preview.title,
-        summary: [
-          entry.preview.category,
-          entry.preview.quantity !== null ? `Quantity ${entry.preview.quantity}` : null,
-        ].filter((value): value is string => value !== null).join(" · "),
+        summary: [entry.preview.category, entry.preview.quantity !== null ? `Quantity ${entry.preview.quantity}` : null].filter(Boolean).join(" · "),
       };
     case "EXERCISE":
       return {
-        title: `${entry.preview.category} · ${entry.preview.exercisedOn}`,
+        title: `${label(entry.preview.category)} · ${entry.preview.exercisedOn}`,
         summary: [
-          entry.preview.category,
           entry.preview.durationMinutes !== null ? `${entry.preview.durationMinutes} min` : null,
           entry.preview.distanceKm !== null ? `${entry.preview.distanceKm} km` : null,
           entry.preview.calories !== null ? `${entry.preview.calories} kcal` : null,
-        ].filter((value): value is string => value !== null).join(" · "),
+        ].filter(Boolean).join(" · "),
       };
     case "MEDIA":
-      return { title: entry.preview.title, summary: `${entry.preview.category} · ${entry.preview.status} · ${entry.preview.currentEpisode}/${entry.preview.totalEpisode}` };
+      return { title: entry.preview.title, summary: `${label(entry.preview.category)} · ${label(entry.preview.status)} · ${entry.preview.currentEpisode}/${entry.preview.totalEpisode}` };
   }
 }
 
-function roleContext(primaryRoleId: number | null, roles: RoleDetail[]) {
+function roleName(primaryRoleId: number | null, roles: RoleDetail[]) {
   if (primaryRoleId === null) return null;
-  return `Role context: ${roles.find(({ id }) => id === primaryRoleId)?.name ?? `#${primaryRoleId}`}`;
+  return roles.find(({ id }) => id === primaryRoleId)?.name ?? `Role #${primaryRoleId}`;
+}
+
+function DetailItem({ name, value }: { name: string; value: React.ReactNode }) {
+  return (
+    <div className="lag-journal-detail-item">
+      <dt>{name}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
+function DetailSection({ children, title }: { children: React.ReactNode; title: string }) {
+  return (
+    <section className="lag-journal-detail-section">
+      <h4>{title}</h4>
+      <dl>{children}</dl>
+    </section>
+  );
 }
 
 function SourceDetail({ detail }: { detail: JournalDetail }) {
   switch (detail.sourceType) {
     case "COLLECTION":
       return (
-        <div className="space-y-1.5">
-          <GoldRow>Category: {detail.source.category}</GoldRow>
-          <GoldRow>Title: {detail.source.title}</GoldRow>
-          <GoldRow>Original title: {detail.source.originalTitle ?? "Not recorded"}</GoldRow>
-          <GoldRow>Quantity: {detail.source.quantity ?? "Not recorded"}</GoldRow>
-          <GoldRow>Condition: {detail.source.conditionNote ?? "Not recorded"}</GoldRow>
-          <GoldRow>Acquired from: {detail.source.acquiredFrom ?? "Not recorded"}</GoldRow>
-          <GoldRow>Tags: {detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "Not recorded"}</GoldRow>
-          <GoldRow>Created: {detail.source.createdAt}</GoldRow>
-          <GoldRow>Updated: {detail.source.updatedAt}</GoldRow>
-        </div>
+        <DetailSection title="Collection">
+          <DetailItem name="Category" value={label(detail.source.category)} />
+          <DetailItem name="Title" value={detail.source.title} />
+          <DetailItem name="Original title" value={detail.source.originalTitle ?? "Not recorded"} />
+          <DetailItem name="Quantity" value={detail.source.quantity ?? "Not recorded"} />
+          <DetailItem name="Condition" value={detail.source.conditionNote ?? "Not recorded"} />
+          <DetailItem name="Acquired from" value={detail.source.acquiredFrom ?? "Not recorded"} />
+          <DetailItem name="Tags" value={detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "Not recorded"} />
+          <DetailItem name="Created" value={displayTimestamp(detail.source.createdAt)} />
+          <DetailItem name="Updated" value={displayTimestamp(detail.source.updatedAt)} />
+        </DetailSection>
       );
     case "EXERCISE":
       return (
-        <div className="space-y-1.5">
-          <GoldRow>Category: {detail.source.category}</GoldRow>
-          <GoldRow>Duration: {detail.source.durationMinutes === null ? "Not recorded" : `${detail.source.durationMinutes} min`}</GoldRow>
-          <GoldRow>Distance: {detail.source.distanceKm === null ? "Not recorded" : `${detail.source.distanceKm} km`}</GoldRow>
-          <GoldRow>Calories: {detail.source.calories === null ? "Not recorded" : `${detail.source.calories} kcal`}</GoldRow>
-          <GoldRow>Exercised on: {detail.source.exercisedOn}</GoldRow>
-          <GoldRow>Memo: {detail.source.memo ?? "Not recorded"}</GoldRow>
-          <GoldRow>Created: {detail.source.createdAt}</GoldRow>
-          <GoldRow>Updated: {detail.source.updatedAt}</GoldRow>
-        </div>
+        <DetailSection title="Exercise">
+          <DetailItem name="Category" value={label(detail.source.category)} />
+          <DetailItem name="Duration" value={detail.source.durationMinutes === null ? "Not recorded" : `${detail.source.durationMinutes} min`} />
+          <DetailItem name="Distance" value={detail.source.distanceKm === null ? "Not recorded" : `${detail.source.distanceKm} km`} />
+          <DetailItem name="Calories" value={detail.source.calories === null ? "Not recorded" : `${detail.source.calories} kcal`} />
+          <DetailItem name="Exercised on" value={detail.source.exercisedOn} />
+          <DetailItem name="Memo" value={detail.source.memo ?? "Not recorded"} />
+          <DetailItem name="Created" value={displayTimestamp(detail.source.createdAt)} />
+          <DetailItem name="Updated" value={displayTimestamp(detail.source.updatedAt)} />
+        </DetailSection>
       );
     case "MEDIA":
       return (
-        <div className="space-y-1.5">
-          <GoldRow>Category: {detail.source.category}</GoldRow>
-          <GoldRow>Title: {detail.source.title}</GoldRow>
-          <GoldRow>Original title: {detail.source.originalTitle ?? "Not recorded"}</GoldRow>
-          <GoldRow>Progress: {detail.source.currentEpisode}/{detail.source.totalEpisode}</GoldRow>
-          <GoldRow>Status: {detail.source.status}</GoldRow>
-          <GoldRow>Rating: {detail.source.rating ?? "Not recorded"}</GoldRow>
-          <GoldRow>Tags: {detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "Not recorded"}</GoldRow>
-          <GoldRow>Rewatch count: {detail.source.rewatchCount}</GoldRow>
-          <GoldRow>Started: {detail.source.startedOn ?? "Not recorded"}</GoldRow>
-          <GoldRow>Finished: {detail.source.finishedOn ?? "Not recorded"}</GoldRow>
-          <GoldRow>Created: {detail.source.createdAt}</GoldRow>
-          <GoldRow>Updated: {detail.source.updatedAt}</GoldRow>
-        </div>
+        <DetailSection title="Media">
+          <DetailItem name="Category" value={label(detail.source.category)} />
+          <DetailItem name="Title" value={detail.source.title} />
+          <DetailItem name="Original title" value={detail.source.originalTitle ?? "Not recorded"} />
+          <DetailItem name="Progress" value={`${detail.source.currentEpisode}/${detail.source.totalEpisode}`} />
+          <DetailItem name="Status" value={label(detail.source.status)} />
+          <DetailItem name="Rating" value={detail.source.rating ?? "Not recorded"} />
+          <DetailItem name="Tags" value={detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "Not recorded"} />
+          <DetailItem name="Rewatch count" value={detail.source.rewatchCount} />
+          <DetailItem name="Started" value={detail.source.startedOn ?? "Not recorded"} />
+          <DetailItem name="Finished" value={detail.source.finishedOn ?? "Not recorded"} />
+          <DetailItem name="Created" value={displayTimestamp(detail.source.createdAt)} />
+          <DetailItem name="Updated" value={displayTimestamp(detail.source.updatedAt)} />
+        </DetailSection>
       );
   }
 }
 
 export default function JournalShell({ roles, rolesLoading = false, rolesError = null }: { roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null }) {
   const journal = useJournalQueries();
+  const [quickRecordOpen, setQuickRecordOpen] = useState(false);
   const { data: page, loading, error } = journal.list;
   const detail = journal.detail.data;
   const previousDisabled = loading || journal.params.page === 0;
   const nextDisabled = loading || page.totalPages === 0 || journal.params.page + 1 >= page.totalPages;
 
-  return (
-    <div className="lag-panel-rail relative" data-testid="journal-shell">
-      <PanelStage stageKey="lifelog-journal-filters">
-        <PanelFrame title="Journal Filters" depth={2}>
-        <div className="space-y-3 px-3">
-          <details>
-            <summary className="cursor-pointer text-xs" style={{ color: SAO.color.text.gold }}>Quick Record</summary>
-            <div className="mt-3">
-              <QuickRecordForm
-                roles={roles}
-                rolesLoading={rolesLoading}
-                rolesError={rolesError}
-                pending={journal.quickRecord.pending}
-                error={journal.quickRecord.error}
-                result={journal.quickRecord.result}
-                refreshError={journal.quickRecord.refreshError}
-                canRetry={journal.quickRecord.canRetry}
-                onSubmit={journal.quickRecord.submit}
-                onRetry={journal.quickRecord.retry}
-                onEdit={journal.quickRecord.invalidateRetry}
-              />
-            </div>
-          </details>
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>
-            Role
-            <select aria-label="Role filter" value={journal.params.primaryRoleId ?? ""} style={INPUT_STYLE} onChange={(event) => journal.changeRoleFilter(event.target.value ? Number(event.target.value) : undefined)}>
-              <option value="">All Roles</option>
-              {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
-            </select>
-          </label>
-          <label className="block text-xs" style={{ color: SAO.color.text.label }}>
-            Subtype
-            <select aria-label="Subtype filter" value={journal.params.subtype ?? ""} style={INPUT_STYLE} onChange={(event) => journal.changeSubtypeFilter(event.target.value ? event.target.value as JournalSubtype : undefined)}>
-              <option value="">All Subtypes</option>
-              {JOURNAL_SUBTYPES.map((subtype) => <option key={subtype} value={subtype}>{subtype.replaceAll("_", " ")}</option>)}
-            </select>
-          </label>
-          {rolesLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
-          {rolesError ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>Role filter unavailable: {rolesError}</p> : null}
-        </div>
-        </PanelFrame>
-      </PanelStage>
+  const returnToJournal = () => requestStageFocus("lifelog-journal", "nearest");
+  const openQuickRecord = () => {
+    journal.clearSelection();
+    setQuickRecordOpen(true);
+  };
+  const closeQuickRecord = () => {
+    setQuickRecordOpen(false);
+    journal.clearSelection();
+    returnToJournal();
+  };
+  const closeDetail = () => {
+    journal.clearSelection();
+    returnToJournal();
+  };
 
-      <PanelStage stageKey="lifelog-journal-list" index={1}>
-        <PanelFrame title="Journal" depth={1}>
-        <div className="space-y-3">
-          {loading ? <InfoCard>Loading Journal...</InfoCard> : null}
-          {error ? <ErrorState text={error} retry={() => void journal.list.reload()} /> : null}
-          {!loading && !error && page.content.length === 0 ? <InfoCard>No Journal entries.</InfoCard> : null}
-          <div className="space-y-2">
-            {page.content.map((entry, index) => {
-              const presentation = entryPresentation(entry);
-              const context = [
-                entry.sourceType,
-                presentation.summary,
-                entry.subtype,
-                entry.entryMode === "QUICK" ? "QUICK" : null,
-                roleContext(entry.primaryRoleId, roles),
-                entry.roleEventId === null ? null : `Event context #${entry.roleEventId}`,
-                entry.recordedAt,
-              ].filter(Boolean).join(" · ");
-              return (
-                <PanelCard
-                  key={entry.lifeLogId}
-                  label={presentation.title}
-                  slotLabel={entry.sourceType.slice(0, 2)}
-                  subtitle={context}
-                  selected={journal.selectedLifeLogId === entry.lifeLogId}
-                  index={index}
-                  onClick={() => journal.selectEntry(entry.lifeLogId)}
-                />
-              );
-            })}
+  return (
+    <div className="lag-panel-rail lag-journal-shell relative" data-testid="journal-shell">
+      <PanelStage stageKey="lifelog-journal">
+        <PanelFrame title="Journal / LifeLog" depth={1}>
+          <div className="lag-journal-surface">
+            <div className="lag-journal-toolbar">
+              <div>
+                <p className="lag-journal-eyebrow">Archive</p>
+                <p className="lag-journal-intro">Browse your recorded collections, exercise, and media.</p>
+              </div>
+              <button type="button" className="lag-journal-action" onClick={openQuickRecord}>Quick Record</button>
+            </div>
+
+            <div className="lag-journal-filters" aria-label="Journal filters">
+              <Field title="Role">
+                <select
+                  className="lag-journal-control"
+                  aria-label="Role filter"
+                  value={journal.params.primaryRoleId ?? ""}
+                  onChange={(event) => journal.changeRoleFilter(event.target.value ? Number(event.target.value) : undefined)}
+                >
+                  <option value="">All Roles</option>
+                  {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+                </select>
+              </Field>
+              <Field title="Subtype">
+                <select
+                  className="lag-journal-control"
+                  aria-label="Subtype filter"
+                  value={journal.params.subtype ?? ""}
+                  onChange={(event) => journal.changeSubtypeFilter(event.target.value ? event.target.value as JournalSubtype : undefined)}
+                >
+                  <option value="">All Subtypes</option>
+                  {JOURNAL_SUBTYPES.map((subtype) => <option key={subtype} value={subtype}>{label(subtype)}</option>)}
+                </select>
+              </Field>
+            </div>
+            {rolesLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
+            {rolesError ? <p role="alert" className="lag-journal-feedback" data-state="error">Role filter unavailable: {rolesError}</p> : null}
+
+            <section className="lag-journal-archive" aria-label="Journal archive">
+              <div className="lag-journal-section-heading">
+                <h4>Records</h4>
+                <span>{page.totalElements} total</span>
+              </div>
+              {loading ? <InfoCard>Loading Journal...</InfoCard> : null}
+              {error ? <ErrorState message={error} retry={() => void journal.list.reload()} /> : null}
+              {!loading && !error && page.content.length === 0 ? <InfoCard>No Journal entries.</InfoCard> : null}
+              <div className="lag-journal-list">
+                {page.content.map((entry) => {
+                  const presentation = entryPresentation(entry);
+                  const role = roleName(entry.primaryRoleId, roles);
+                  return (
+                    <button
+                      key={entry.lifeLogId}
+                      type="button"
+                      className="lag-journal-entry"
+                      data-testid="journal-entry"
+                      data-selected={journal.selectedLifeLogId === entry.lifeLogId}
+                      aria-pressed={journal.selectedLifeLogId === entry.lifeLogId}
+                      onClick={() => journal.selectEntry(entry.lifeLogId)}
+                    >
+                      <span className="lag-journal-source" aria-hidden>{entry.sourceType.slice(0, 2)}</span>
+                      <span className="lag-journal-entry-copy">
+                        <strong>{presentation.title}</strong>
+                        <span className="lag-journal-entry-summary">{presentation.summary}</span>
+                        <span className="lag-journal-entry-chips">
+                          <span>{label(entry.sourceType)}</span>
+                          {entry.subtype ? <span>{label(entry.subtype)}</span> : null}
+                          {entry.entryMode === "QUICK" ? <span>Quick</span> : null}
+                          {role ? <span>{role}</span> : null}
+                          {entry.roleEventId !== null ? <span>Event #{entry.roleEventId}</span> : null}
+                        </span>
+                      </span>
+                      <time dateTime={entry.recordedAt}>{displayTimestamp(entry.recordedAt)}</time>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="lag-journal-pagination" aria-label="Journal pages">
+                <button type="button" className="lag-journal-button" disabled={previousDisabled} onClick={() => journal.changePage(journal.params.page - 1)}>Previous</button>
+                <span>Page {page.totalPages === 0 ? 0 : page.page + 1} / {page.totalPages}</span>
+                <button type="button" className="lag-journal-button" disabled={nextDisabled} onClick={() => journal.changePage(journal.params.page + 1)}>Next</button>
+              </div>
+            </section>
           </div>
-          <div className="flex items-center justify-between gap-2 px-3">
-            <button type="button" style={secondaryButton} disabled={previousDisabled} onClick={() => journal.changePage(journal.params.page - 1)}>Previous</button>
-            <span className="text-xs" style={{ color: SAO.color.text.label }}>Page {page.totalPages === 0 ? 0 : page.page + 1} / {page.totalPages}</span>
-            <button type="button" style={secondaryButton} disabled={nextDisabled} onClick={() => journal.changePage(journal.params.page + 1)}>Next</button>
-          </div>
-          <p className="px-3 text-xs" style={{ color: SAO.color.text.label }}>{page.totalElements} total</p>
-        </div>
         </PanelFrame>
       </PanelStage>
 
       <AnimatePresence initial={false}>
-        {journal.selectedLifeLogId ? (
-          <PanelStage stageKey="lifelog-journal-detail" focusKey={journal.selectedLifeLogId} index={2}>
-            <PanelFrame title={detail ? `${detail.sourceType} Journal Detail` : "Journal Detail"} depth={0} contentKey={journal.selectedLifeLogId}>
-              {journal.detail.loading && !detail ? <InfoCard>Loading Journal detail...</InfoCard> : null}
-              {journal.detail.error && !detail ? <ErrorState text={journal.detail.error} retry={journal.detail.retry} /> : null}
-              {detail ? (
-                <div className="space-y-3 px-3">
-                  {journal.detail.error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{journal.detail.error}</p> : null}
-                  <InfoCard>Journal entry #{detail.lifeLogId}</InfoCard>
-                  <GoldRow>Source type: {detail.sourceType}</GoldRow>
-                  <GoldRow>Recorded at: {detail.recordedAt}</GoldRow>
-                  {detail.subtype ? <GoldRow>Subtype: {detail.subtype}</GoldRow> : null}
-                  {detail.entryMode ? <GoldRow>Entry mode: {detail.entryMode}</GoldRow> : null}
-                  {detail.reflectionScope ? <GoldRow>Reflection scope: {detail.reflectionScope}</GoldRow> : null}
-                  {detail.periodKey ? <GoldRow>Period: {detail.periodKey}</GoldRow> : null}
-                  {detail.primaryRoleId !== null ? <GoldRow>{roleContext(detail.primaryRoleId, roles)}</GoldRow> : null}
-                  {detail.roleEventId !== null ? <GoldRow>Event context #{detail.roleEventId}</GoldRow> : null}
-                  <SourceDetail detail={detail} />
+        {quickRecordOpen ? (
+          <PanelStage stageKey="lifelog-quick-record">
+            <PanelFrame title="Quick Record" depth={0} backButton={<BackButton label="Back to Journal" onClick={closeQuickRecord} />}>
+              <div className="lag-quick-record-surface">
+                <div>
+                  <p className="lag-journal-eyebrow">Journal child surface</p>
+                  <h4>Record what matters now.</h4>
+                  <p>Choose a real record type, then add its current supported details.</p>
                 </div>
+                <QuickRecordForm
+                  roles={roles}
+                  rolesLoading={rolesLoading}
+                  rolesError={rolesError}
+                  pending={journal.quickRecord.pending}
+                  error={journal.quickRecord.error}
+                  result={journal.quickRecord.result}
+                  refreshError={journal.quickRecord.refreshError}
+                  canRetry={journal.quickRecord.canRetry}
+                  onSubmit={journal.quickRecord.submit}
+                  onRetry={journal.quickRecord.retry}
+                  onEdit={journal.quickRecord.invalidateRetry}
+                />
+              </div>
+            </PanelFrame>
+          </PanelStage>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence initial={false}>
+        {!quickRecordOpen && journal.selectedLifeLogId ? (
+          <PanelStage stageKey="lifelog-journal-detail" focusKey={journal.selectedLifeLogId}>
+            <PanelFrame
+              title="Journal Detail"
+              depth={0}
+              contentKey={journal.selectedLifeLogId}
+              backButton={<BackButton label="Back to Journal" onClick={closeDetail} />}
+            >
+              {journal.detail.loading && !detail ? <InfoCard>Loading Journal detail...</InfoCard> : null}
+              {journal.detail.error && !detail ? <ErrorState message={journal.detail.error} retry={journal.detail.retry} /> : null}
+              {detail ? (
+                <article className="lag-journal-detail">
+                  {journal.detail.error ? <p role="alert" className="lag-journal-feedback" data-state="error">Refresh failed: {journal.detail.error}</p> : null}
+                  <div className="lag-journal-detail-hero">
+                    <span>{label(detail.sourceType)}</span>
+                    <strong>Journal entry #{detail.lifeLogId}</strong>
+                  </div>
+                  <DetailSection title="Record context">
+                    <DetailItem name="Source type" value={label(detail.sourceType)} />
+                    <DetailItem name="Recorded at" value={displayTimestamp(detail.recordedAt)} />
+                    {detail.subtype ? <DetailItem name="Subtype" value={label(detail.subtype)} /> : null}
+                    {detail.entryMode ? <DetailItem name="Entry mode" value={label(detail.entryMode)} /> : null}
+                    {detail.reflectionScope ? <DetailItem name="Reflection scope" value={label(detail.reflectionScope)} /> : null}
+                    {detail.periodKey ? <DetailItem name="Period" value={detail.periodKey} /> : null}
+                    {detail.primaryRoleId !== null ? <DetailItem name="Role context" value={roleName(detail.primaryRoleId, roles)} /> : null}
+                    {detail.roleEventId !== null ? <DetailItem name="RoleEvent context" value={`#${detail.roleEventId}`} /> : null}
+                  </DetailSection>
+                  <SourceDetail detail={detail} />
+                </article>
               ) : null}
             </PanelFrame>
           </PanelStage>

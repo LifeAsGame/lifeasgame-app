@@ -195,6 +195,7 @@ export function useJournalQueries() {
     },
     selectedLifeLogId,
     selectEntry,
+    clearSelection,
     changeRoleFilter,
     changeSubtypeFilter,
     changePage,
