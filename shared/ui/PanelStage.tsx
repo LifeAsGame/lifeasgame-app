@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useIsPresent, useReducedMotion } from "framer-motion";
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 import { MOTION } from "@/shared/lib/motion";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
@@ -9,12 +9,14 @@ import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 export default function PanelStage({
   stageKey,
   focusKey,
+  autoFocus = true,
   children,
   onPointerDownCapture,
   zIndex,
 }: {
   stageKey: string;
   focusKey?: string | number | null;
+  autoFocus?: boolean;
   index?: number;
   children: React.ReactNode;
   onPointerDownCapture?: () => void;
@@ -23,9 +25,10 @@ export default function PanelStage({
   const reducedMotion = useReducedMotion();
   const isPresent = useIsPresent();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (!autoFocus) return;
     requestStageFocus(stageKey, "nearest");
-  }, [focusKey, stageKey]);
+  }, [autoFocus, focusKey, stageKey]);
 
   return (
     <motion.div

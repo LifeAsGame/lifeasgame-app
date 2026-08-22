@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PlayerTitleInfo } from "@/shared/api/types";
@@ -31,7 +31,7 @@ describe("Title surface와 routing을 사용할 때", () => {
     render(<TitleShell />);
 
     const entries = await screen.findAllByTestId("title-entry");
-    expect(screen.queryByText("Title Detail")).not.toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="player-title-detail"]')).not.toBeInTheDocument();
 
     fireEvent.click(entries[0]);
     const detailStage = document.querySelector('[data-stage-key="player-title-detail"]');
@@ -39,7 +39,7 @@ describe("Title surface와 routing을 사용할 때", () => {
 
     fireEvent.click(entries[1]);
     expect(document.querySelector('[data-stage-key="player-title-detail"]')).toBe(detailStage);
-    expect(screen.getByText("Beater")).toBeInTheDocument();
+    expect(within(detailStage as HTMLElement).getByText("Beater")).toBeInTheDocument();
   });
 
   it("acquired fields와 representative marker를 표시하고 fabricated state는 만들지 않는다", async () => {

@@ -123,12 +123,12 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       expect(screen.getByRole("button", { name: /Current/ })).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="journey-root"]')).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="journey-list"]')).not.toBeInTheDocument();
-      expect(document.querySelector('[data-stage-key*="detail-"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: /Current/ }));
       expect(await screen.findByText(/In Progress · 1\/3/)).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="journey-list"]')).toBeInTheDocument();
-      expect(document.querySelector('[data-stage-key*="detail-"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument();
     });
   });
 

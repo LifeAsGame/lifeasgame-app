@@ -102,6 +102,9 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     expect(css).toContain("width: clamp(280px, calc(100vw - 32px), 344px)");
     expect(css).toContain("text-overflow: ellipsis");
     expect(css).toMatch(/\.lag-left-anchor,[\s\S]*\.lag-orb-column\s*{[^}]*position:\s*sticky;[^}]*top:\s*50svh;/);
+    expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*\.lag-orb-column\s*{[^}]*position:\s*fixed !important;[^}]*top:\s*auto !important;[^}]*bottom:\s*calc\(var\(--lag-space-4\) \+ env\(safe-area-inset-bottom\)\)/);
+    expect(css).toMatch(/\.lag-left-context\s*{[^}]*height:\s*min\(680px, calc\(100svh - 120px\)\);[^}]*max-height:\s*calc\(100svh - 120px\)/);
+    expect(css).toMatch(/\.lag-left-context > :last-child\s*{[^}]*overflow-y:\s*auto/);
     expect(page).toContain('className="lag-app-shell mx-auto flex w-full min-w-max items-start"');
   });
 
@@ -204,6 +207,21 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
       expect(screen.getByTestId("certification-shell")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Cloud" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Player child stage를 전환하거나 내부 detail을 선택하면", () => {
+    it("Player root/menu DOM instance를 계속 유지한다", () => {
+      render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      const root = screen.getByTestId("right-panels");
+
+      fireEvent.click(screen.getByRole("button", { name: "Title" }));
+      expect(screen.getByTestId("right-panels")).toBe(root);
+      fireEvent.click(screen.getByRole("button", { name: "Select Mock Title" }));
+      expect(screen.getByTestId("right-panels")).toBe(root);
+      fireEvent.click(screen.getByRole("button", { name: "Credentials" }));
+      expect(screen.getByTestId("right-panels")).toBe(root);
     });
   });
 

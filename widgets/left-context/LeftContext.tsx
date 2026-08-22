@@ -53,12 +53,11 @@ export default function LeftContext({
           animate={MOTION.panelReset.animate}
           exit={reducedMotion ? { opacity: 0 } : MOTION.panelReset.exit}
           transition={reducedMotion ? { duration: 0 } : MOTION.panelReset.transition}
-          className="lag-left-context lag-panel-stage relative h-full min-h-[420px] overflow-hidden"
+          className="lag-left-context lag-panel-stage relative overflow-hidden"
           data-stage-key={`left-context-${mode}`}
           onPointerDownCapture={onFocus}
           style={{
             width: UI_CONSTS.leftContext.width,
-            minHeight: UI_CONSTS.leftContext.minHeight,
             willChange: "transform, opacity",
             zIndex,
           }}

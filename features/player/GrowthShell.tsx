@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import PanelStage from "@/shared/ui/PanelStage";
 import { useGrowthQuery } from "./useGrowthQuery";
@@ -10,7 +10,7 @@ const CORE_STATS = [
   ["INT", "intel"], ["VIT", "vit"], ["LUC", "luc"],
 ] as const;
 
-export default function GrowthShell() {
+export default function GrowthShell({ onBack }: { onBack?: () => void }) {
   const growth = useGrowthQuery();
   const current = growth.data?.current;
   const changes = growth.data?.recentExpChanges ?? [];
@@ -18,7 +18,7 @@ export default function GrowthShell() {
   return (
     <div className="lag-panel-rail relative" data-testid="growth-shell">
       <PanelStage stageKey="player-growth-current">
-        <PanelFrame title="Current Growth" depth={1}>
+        <PanelFrame title="Current Growth" depth={1} backButton={onBack ? <BackButton label="Back to Player" onClick={onBack} /> : undefined}>
         <div className="space-y-2 px-3">
           {growth.loading && !growth.data ? <InfoCard>Loading Growth...</InfoCard> : null}
           {growth.error ? <><p role="alert" className="text-xs text-red-400">{growth.error}</p><button type="button" onClick={() => void growth.retry()}>Retry</button></> : null}

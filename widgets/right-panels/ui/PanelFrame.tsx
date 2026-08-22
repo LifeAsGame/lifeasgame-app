@@ -5,13 +5,14 @@ import EdgeFadeScrollArea from "@/shared/ui/EdgeFadeScrollArea";
 import { StageContentTransition } from "@/shared/ui/PanelStage";
 import { getFrameBackground, getFrameStyle, D, cellStyle } from "./styles";
 
-export function BackButton({ onClick }: { onClick: () => void }) {
+export function BackButton({ onClick, label = "Back to previous panel" }: { onClick: () => void; label?: string }) {
   return (
     <button
       type="button"
       className="flex h-7 w-7 flex-shrink-0 items-center justify-center transition-opacity hover:opacity-70"
       style={{ ...cellStyle, borderRadius: "50%", flexShrink: 0 }}
       onClick={onClick}
+      aria-label={label}
     >
       <span style={{ fontSize: "14px", color: D.textSub }}>←</span>
     </button>

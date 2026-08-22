@@ -45,7 +45,6 @@ export const SEMANTIC_CONTROL_STYLE: React.CSSProperties = {
   border: '1px solid var(--lag-control-border)',
   borderRadius: 'var(--lag-radius-sm)',
   padding: '8px 12px',
-  outline: 'none',
   fontSize: '0.875rem',
   letterSpacing: '0.04em',
   color: 'var(--lag-control-text)',

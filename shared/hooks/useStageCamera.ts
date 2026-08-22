@@ -6,10 +6,16 @@ type StageFocusPlan = { key: string; align: "center" | "nearest" } | null;
 type StageFocusDetail = NonNullable<StageFocusPlan>;
 
 export const STAGE_FOCUS_EVENT = "lag:stage-focus";
+let pendingFocus: StageFocusDetail | null = null;
 
 export function requestStageFocus(key: string, align: StageFocusDetail["align"] = "nearest") {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent<StageFocusDetail>(STAGE_FOCUS_EVENT, { detail: { key, align } }));
+  pendingFocus = { key, align };
+  window.dispatchEvent(new CustomEvent<StageFocusDetail>(STAGE_FOCUS_EVENT, { detail: pendingFocus }));
+}
+
+export function pendingStageFocus(): StageFocusDetail | null {
+  return pendingFocus;
 }
 
 export function stageFocusPlan(previous: string[], next: string[]): StageFocusPlan {
@@ -87,10 +93,29 @@ export function useStageCamera(
     if (!owner) return;
     let previous = stages(owner).map((stage) => stage.dataset.stageKey!);
     let frame = 0;
+    const focus = (detail: StageFocusDetail) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const target = stages(owner).find((stage) => stage.dataset.stageKey === detail.key);
+        if (!target) return;
+        focusStage(owner, target, detail.align, prefersReducedMotion());
+        if (pendingFocus?.key === detail.key) pendingFocus = null;
+      });
+    };
     const observer = new MutationObserver(() => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const nextStages = stages(owner);
+        if (pendingFocus) {
+          const target = nextStages.find((stage) => stage.dataset.stageKey === pendingFocus?.key);
+          if (target) {
+            const detail = pendingFocus;
+            focusStage(owner, target, detail.align, prefersReducedMotion());
+            if (pendingFocus?.key === detail.key) pendingFocus = null;
+          }
+          previous = nextStages.map((stage) => stage.dataset.stageKey!);
+          return;
+        }
         const plan = stageFocusPlan(previous, nextStages.map((stage) => stage.dataset.stageKey!));
         previous = nextStages.map((stage) => stage.dataset.stageKey!);
         const target = plan && nextStages.find((stage) => stage.dataset.stageKey === plan.key);
@@ -98,15 +123,11 @@ export function useStageCamera(
       });
     });
     const focusRequested = (event: Event) => {
-      const { key, align } = (event as CustomEvent<StageFocusDetail>).detail;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        const target = stages(owner).find((stage) => stage.dataset.stageKey === key);
-        if (target) focusStage(owner, target, align, prefersReducedMotion());
-      });
+      focus((event as CustomEvent<StageFocusDetail>).detail);
     };
     observer.observe(owner, { childList: true, subtree: true });
     window.addEventListener(STAGE_FOCUS_EVENT, focusRequested);
+    if (pendingFocus) focus(pendingFocus);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
@@ -117,7 +138,7 @@ export function useStageCamera(
   useEffect(() => {
     const owner = mobile ? viewportRef.current : workspaceRef.current;
     const target = owner && stages(owner)[0];
-    if (!owner || !target) return;
+    if (!owner || !target || pendingFocus) return;
     const frame = requestAnimationFrame(() => focusStage(owner, target, mobile ? "nearest" : "center", prefersReducedMotion()));
     return () => cancelAnimationFrame(frame);
   }, [mainSelectionKey, mobile, viewportRef, workspaceRef]);

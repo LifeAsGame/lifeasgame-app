@@ -75,6 +75,9 @@ describe("NotificationBell canonical surface", () => {
     expect(source).toContain("notificationPopupPosition");
     expect(source).toContain("var(--lag-control-bg)");
     expect(css).toMatch(/\.lag-notification-trigger\s*{[\s\S]*?overflow:\s*visible/);
+    expect(source).toContain('maxHeight: "calc(100dvh - 32px)"');
+    expect(source).toContain('className="lag-notification-list"');
+    expect(source).toContain("minHeight: 0, flex: 1, overflowY: \"auto\"");
     expect(source).not.toMatch(/rgba\(|#[0-9a-fA-F]{3,8}/);
   });
 });

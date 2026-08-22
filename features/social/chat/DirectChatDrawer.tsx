@@ -58,7 +58,7 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
           className="lag-utility-drawer flex h-[min(680px,calc(100vh-3rem))] w-[min(720px,calc(100vw-3rem))] flex-col overflow-hidden p-4"
           style={floating.windowStyle}
         >
-          <header className="lag-utility-drag-handle flex items-center justify-between gap-3" {...floating.dragHandleProps}>
+          <header className="lag-utility-drag-handle flex shrink-0 items-center justify-between gap-3" {...floating.dragHandleProps}>
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: "var(--lag-text-2)" }}>Current Player</p>
               <h2 className="text-lg font-semibold tracking-[0.08em]" style={{ color: "var(--lag-text)" }}>Direct Chat</h2>

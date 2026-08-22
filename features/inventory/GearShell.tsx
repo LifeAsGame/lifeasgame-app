@@ -6,9 +6,10 @@ import { AnimatePresence } from "framer-motion";
 import { INVENTORY_GEAR_PARTS } from "@/entities/nav";
 import type { InventoryGearPartId } from "@/entities/nav";
 import { SAO } from "@/shared/design/tokens";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
-import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
+import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { actionBtnStyle } from "@/widgets/right-panels/ui/styles";
 import { candidatesForGearPart, getEquipCompatibility, slotsForGearPart } from "./model";
@@ -33,7 +34,7 @@ function ErrorState({ text, retry }: { text: string; retry: () => void }) {
   );
 }
 
-export default function GearShell() {
+export default function GearShell({ onBack }: { onBack?: () => void }) {
   const queries = useEquipmentQueries();
   const [part, setPart] = useState<InventoryGearPartId | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
@@ -61,7 +62,7 @@ export default function GearShell() {
   return (
     <div className="lag-panel-rail relative" data-testid="gear-shell">
       <PanelStage stageKey="inventory-gear-parts">
-        <PanelFrame title="Gear Parts" depth={3}>
+        <PanelFrame title="Gear Parts" depth={3} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
         <div className="space-y-2">
           {INVENTORY_GEAR_PARTS.map((item, index) => (
             <PanelCard
@@ -84,7 +85,12 @@ export default function GearShell() {
       <AnimatePresence initial={false}>
         {part ? (
           <PanelStage stageKey="inventory-gear-slots" focusKey={part} index={1}>
-            <PanelFrame title="Equipment Slots" depth={2} contentKey={part}>
+            <PanelFrame title="Equipment Slots" depth={2} contentKey={part} backButton={<BackButton label="Back to Gear Parts" onClick={() => {
+              setPart(null);
+              setSelectedSlotId(null);
+              setSelectedItemInstanceId(null);
+              requestStageFocus("inventory-gear-parts", "center");
+            }} />}>
           <div className="space-y-3">
             {queries.equipment.loading && queries.equipment.data.length === 0 ? <InfoCard>Loading Equipment...</InfoCard> : null}
             {queries.equipment.error ? <ErrorState text={queries.equipment.error} retry={() => void queries.equipment.reload()} /> : null}
@@ -118,7 +124,12 @@ export default function GearShell() {
       <AnimatePresence initial={false}>
         {part ? (
           <PanelStage stageKey="inventory-gear-candidates" focusKey={part} index={2}>
-            <PanelFrame title="Inventory Candidates" depth={1} contentKey={part}>
+            <PanelFrame title="Inventory Candidates" depth={1} contentKey={part} backButton={<BackButton label="Back to Gear Parts" onClick={() => {
+              setPart(null);
+              setSelectedSlotId(null);
+              setSelectedItemInstanceId(null);
+              requestStageFocus("inventory-gear-parts", "center");
+            }} />}>
           <div className="space-y-3">
             {queries.inventory.loading && queries.inventory.data.entries.length === 0 ? <InfoCard>Loading Inventory candidates...</InfoCard> : null}
             {queries.inventory.error ? <ErrorState text={queries.inventory.error} retry={() => void queries.inventory.reload()} /> : null}
@@ -145,7 +156,11 @@ export default function GearShell() {
       <AnimatePresence initial={false}>
         {selectedSlot ? (
           <PanelStage stageKey="inventory-gear-action" focusKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} index={3}>
-            <PanelFrame title="Gear Action" depth={0} contentKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`}>
+            <PanelFrame title="Gear Action" depth={0} contentKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} backButton={<BackButton label="Back to Inventory Candidates" onClick={() => {
+              setSelectedSlotId(null);
+              setSelectedItemInstanceId(null);
+              requestStageFocus("inventory-gear-candidates", "center");
+            }} />}>
           <div className="space-y-2 px-3">
             <InfoCard>{selectedSlot.slot.slotName}</InfoCard>
             <GoldRow>Slot ID: {selectedSlot.slot.slotId}</GoldRow>

@@ -8,15 +8,16 @@ const MOBILE_BREAKPOINT = 768;
 const WINDOW_PADDING = 16;
 
 export function useDraggableWindow(open: boolean) {
-  const windowRef = useRef<HTMLElement>(null);
+  const elementRef = useRef<HTMLElement | null>(null);
+  const [element, setElement] = useState<HTMLElement | null>(null);
   const drag = useRef<{ pointerX: number; pointerY: number; origin: FloatingPosition } | null>(null);
   const [position, setPosition] = useState<FloatingPosition | null>(null);
   const [mobile, setMobile] = useState(false);
 
   const clampPosition = useCallback((candidate: FloatingPosition) => {
-    const element = windowRef.current;
-    if (!element) return candidate;
-    const rect = element.getBoundingClientRect();
+    const current = elementRef.current;
+    if (!current) return candidate;
+    const rect = current.getBoundingClientRect();
     return clampFloatingPosition(
       candidate,
       { width: rect.width, height: rect.height },
@@ -25,13 +26,18 @@ export function useDraggableWindow(open: boolean) {
     );
   }, []);
 
+  const windowRef = useCallback((node: HTMLElement | null) => {
+    elementRef.current = node;
+    setElement(node);
+  }, []);
+
   useLayoutEffect(() => {
     const nextMobile = window.innerWidth < MOBILE_BREAKPOINT;
     setMobile(nextMobile);
     if (!open || nextMobile) return;
-    const rect = windowRef.current?.getBoundingClientRect();
+    const rect = element?.getBoundingClientRect();
     if (rect) setPosition((current) => clampPosition(current ?? { x: window.innerWidth - rect.width - 24, y: 24 }));
-  }, [clampPosition, open]);
+  }, [clampPosition, element, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -64,7 +70,7 @@ export function useDraggableWindow(open: boolean) {
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
     if (event.button !== 0 || window.innerWidth < MOBILE_BREAKPOINT) return;
     if ((event.target as HTMLElement).closest("button, a, input, select, textarea")) return;
-    const rect = windowRef.current?.getBoundingClientRect();
+    const rect = elementRef.current?.getBoundingClientRect();
     if (!rect) return;
     event.preventDefault();
     const origin = position ?? { x: rect.left, y: rect.top };
@@ -76,7 +82,7 @@ export function useDraggableWindow(open: boolean) {
     windowRef,
     dragHandleProps: { onPointerDown, style: { cursor: "move", touchAction: "none" } as const },
     windowStyle: mobile
-      ? { position: "fixed", left: 16, right: 16, bottom: 112, top: "auto", zIndex: 600000 } as const
+      ? { position: "fixed", left: 16, right: 16, bottom: "calc(112px + env(safe-area-inset-bottom))", top: "auto", zIndex: 600000 } as const
       : { position: "fixed", left: position?.x, top: position?.y, right: position ? "auto" : 24, zIndex: 600000 } as const,
   };
 }

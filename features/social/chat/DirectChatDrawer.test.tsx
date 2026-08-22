@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
@@ -97,4 +97,38 @@ it("uses the same bounded shared drag behavior as Connections", () => {
   fireEvent.pointerMove(window, { clientX: 2000, clientY: 2000 });
 
   expect(dialog).toHaveStyle({ left: "464px", top: "104px" });
+});
+
+it("initializes the first desktop portal position after the Chat dialog mounts", async () => {
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1200 });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: 800 });
+  const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ left: 0, right: 720, top: 0, bottom: 680, width: 720, height: 680, x: 0, y: 0, toJSON: () => ({}) });
+  const chat = {
+    open: true,
+    setOpen: vi.fn(),
+    channels: [],
+    channelsLoading: false,
+    channelsError: null,
+    channelsRetry: vi.fn(),
+    selectedChannelId: null,
+    selectChannel: vi.fn(),
+    messages: [],
+    messagesLoading: false,
+    messagesError: null,
+    loadLatest: vi.fn(),
+    hasMore: false,
+    olderLoading: false,
+    loadOlder: vi.fn(),
+    draft: "",
+    setDraft: vi.fn(),
+    sending: false,
+    sendError: null,
+    send: vi.fn(),
+    openError: null,
+  } as unknown as DirectChatState;
+
+  render(<DirectChatDrawer chat={chat} />);
+
+  await waitFor(() => expect(screen.getByRole("dialog", { name: "Direct Friend Chat" })).toHaveStyle({ left: "456px", top: "24px" }));
+  rect.mockRestore();
 });

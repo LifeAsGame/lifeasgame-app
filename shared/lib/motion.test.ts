@@ -17,5 +17,6 @@ describe("shared staged motion grammar", () => {
     expect(source).toContain('initial={reducedMotion ? false : MOTION.panelSlot.initial}');
     expect(source).toContain('exit={reducedMotion ? { opacity: 0 } : MOTION.panelSlot.exit}');
     expect(source).toContain('transition={reducedMotion ? { duration: 0 }');
+    expect(source).toContain("useLayoutEffect");
   });
 });

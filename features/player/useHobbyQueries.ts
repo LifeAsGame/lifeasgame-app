@@ -67,6 +67,11 @@ export function useHobbyQueries() {
     setSelectedId(hobbyId);
   };
 
+  const clearSelection = () => {
+    selectedIdRef.current = null;
+    setSelectedId(null);
+  };
+
   const mutate = async (key: string, request: () => Promise<unknown>, afterReload?: (next: PlayerHobbyInfo[]) => void): Promise<boolean> => {
     if (mutationLocked.current) return false;
     mutationLocked.current = true;
@@ -132,6 +137,7 @@ export function useHobbyQueries() {
     selectedId,
     selected: owned.find((item) => item.hobbyId === selectedId) ?? null,
     select,
+    clearSelection,
     pendingMutation,
     mutationError,
     register,

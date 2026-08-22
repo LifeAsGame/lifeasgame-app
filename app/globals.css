@@ -270,8 +270,18 @@ body {
 
 .lag-left-context {
   flex: 0 0 auto;
+  display: flex;
+  height: min(680px, calc(100svh - 120px));
+  min-height: min(420px, calc(100svh - 120px));
+  max-height: calc(100svh - 120px);
+  flex-direction: column;
   border-radius: var(--lag-radius-md);
   backdrop-filter: blur(16px);
+}
+
+.lag-left-context > :last-child {
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .lag-left-anchor,
@@ -538,18 +548,20 @@ body {
     min-width: 100% !important;
     align-items: center;
     gap: var(--lag-space-3) !important;
-    padding: var(--lag-space-4) var(--lag-space-4) 140px !important;
+    padding: var(--lag-space-4) var(--lag-space-4) calc(140px + env(safe-area-inset-bottom)) !important;
   }
 
   .lag-orb-column {
     display: block;
     position: fixed !important;
+    top: auto !important;
     right: var(--lag-space-4);
-    bottom: var(--lag-space-4);
+    bottom: calc(var(--lag-space-4) + env(safe-area-inset-bottom));
     left: var(--lag-space-4);
+    align-self: auto;
     z-index: 500000;
     width: auto !important;
-    transform: none;
+    transform: none !important;
   }
 
   .lag-orb-nav {
@@ -646,14 +658,14 @@ body {
 
   .lag-left-context {
     width: clamp(280px, calc(100vw - 32px), 344px) !important;
-    min-height: 420px !important;
+    min-height: min(420px, calc(100svh - 156px)) !important;
     height: calc(100svh - 156px) !important;
   }
 
   .lag-utility-drawer {
     width: calc(100vw - 32px) !important;
     height: auto !important;
-    max-height: calc(100svh - 128px) !important;
+    max-height: calc(100dvh - 112px - env(safe-area-inset-bottom) - max(16px, env(safe-area-inset-top))) !important;
   }
 
   .lag-notification-dropdown {

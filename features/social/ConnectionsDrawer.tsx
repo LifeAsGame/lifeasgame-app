@@ -76,7 +76,7 @@ export default function ConnectionsDrawer({ open: controlledOpen, onOpenChange, 
           className="lag-utility-drawer flex max-h-[calc(100vh-3rem)] w-[min(420px,calc(100vw-3rem))] flex-col overflow-hidden p-4"
           style={floating.windowStyle}
         >
-          <header className="lag-utility-drag-handle flex items-center justify-between gap-3" {...floating.dragHandleProps}>
+          <header className="lag-utility-drag-handle flex shrink-0 items-center justify-between gap-3" {...floating.dragHandleProps}>
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: "var(--lag-text-2)" }}>Current Player</p>
               <h2 className="text-lg font-semibold tracking-[0.08em]" style={{ color: "var(--lag-text)" }}>Connections</h2>
@@ -144,7 +144,7 @@ export default function ConnectionsDrawer({ open: controlledOpen, onOpenChange, 
             })}
           </div>
 
-          <footer className="mt-3 flex items-center justify-between gap-3 border-t pt-3" style={{ borderColor: "var(--lag-divider)" }}>
+          <footer className="mt-3 flex shrink-0 items-center justify-between gap-3 border-t pt-3" style={{ borderColor: "var(--lag-divider)" }}>
             <button type="button" disabled={pageIndex === 0} onClick={() => setPage((current) => current - 1)} className="px-3 py-1.5 text-xs disabled:opacity-40" style={buttonStyle}>Previous</button>
             <span className="text-xs" style={{ color: "var(--lag-text-2)" }}>Page {page.totalPages === 0 ? 0 : page.page + 1} of {page.totalPages}</span>
             <button type="button" disabled={pageIndex + 1 >= page.totalPages} onClick={() => setPage((current) => current + 1)} className="px-3 py-1.5 text-xs disabled:opacity-40" style={buttonStyle}>Next</button>
