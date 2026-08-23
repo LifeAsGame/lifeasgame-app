@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
 import { renderToString } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
@@ -22,7 +23,10 @@ it("renders canonical identity fields and opens an existing read-only channel wi
     channelsRetry: vi.fn(),
     selectedChannelId: 20,
     selectChannel,
-    messages: [{ id: 1, channelId: 20, senderId: 6, content: "canonical", edited: false, createdAt: "2026-08-18T00:00:00Z" }],
+    messages: [
+      { id: 1, channelId: 20, senderId: 80, content: "peer canonical", edited: true, createdAt: "2026-08-17T00:00:00Z" },
+      { id: 2, channelId: 20, senderId: 6, content: "my canonical", edited: false, createdAt: "2026-08-18T00:00:00Z" },
+    ],
     messagesLoading: false,
     messagesError: null,
     loadLatest: vi.fn(),
@@ -42,14 +46,27 @@ it("renders canonical identity fields and opens an existing read-only channel wi
 
   render(<DirectChatDrawer chat={chat} />);
   expect(screen.getByRole("dialog", { name: "Direct Friend Chat" })).toBeInTheDocument();
-  expect(screen.getByText("Mage · Level 2")).toBeInTheDocument();
+  expect(screen.getAllByText("Mage · Level 2")).toHaveLength(2);
   expect(screen.getByText("You")).toBeInTheDocument();
+  expect(screen.getByLabelText("Message from you")).toHaveAttribute("data-owner", "mine");
+  expect(screen.getByLabelText("Message from B")).toHaveAttribute("data-owner", "peer");
+  expect(screen.getByText("Edited")).toBeInTheDocument();
   expect(screen.getByRole("textbox", { name: "Message" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+  expect(screen.getByText("This channel is read-only.")).toHaveAttribute("role", "status");
   expect(screen.queryByText(/presence|typing|unread/i)).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: /A\s*Level 1/i }));
   expect(selectChannel).toHaveBeenCalledWith(10);
   expect(openFriendChat).not.toHaveBeenCalled();
+
+  const source = readFileSync("features/social/chat/DirectChatDrawer.tsx", "utf8");
+  expect(source).not.toMatch(/group|guild|party|Role Relation|presence|unread|read receipt|data-theme/i);
+  const css = readFileSync("app/globals.css", "utf8");
+  const socialCss = css.slice(css.indexOf("/* v7 Social utilities"), css.indexOf(".lag-semantic-controls"));
+  expect(socialCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
+  expect(css).toContain("grid-template-rows: auto minmax(0, 1fr)");
+  expect(css).toContain("height: calc(100dvh - 112px - env(safe-area-inset-bottom)");
 });
 
 it("renders an authoritative deterministic timestamp before client localization", () => {

@@ -22,7 +22,7 @@ describe("Connections utility drawer surface", () => {
     expect(screen.getByRole("dialog", { name: "Current Player Connections" })).toBeInTheDocument();
     expect(await screen.findByText("Asuna")).toBeInTheDocument();
     expect(screen.getByText("Fencer · Level 76")).toBeInTheDocument();
-    expect(screen.queryByText(/online|last seen/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/online|last seen|presence|unread|group/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /message|gift/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Followers" }));
@@ -34,6 +34,12 @@ describe("Connections utility drawer surface", () => {
     expect(screen.queryByRole("button", { name: /^mute|unmute|block|unblock$/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Follow back" })[0]);
     await waitFor(() => expect(screen.getAllByRole("button", { name: "Unfollow" }).length).toBeGreaterThan(1));
+
+    const source = readFileSync("features/social/ConnectionsDrawer.tsx", "utf8");
+    expect(source).not.toMatch(/data-theme|민준|서연|현우|밴드 선배|가족 그룹|Backend Study/);
+    const css = readFileSync("app/globals.css", "utf8");
+    const socialCss = css.slice(css.indexOf("/* v7 Social utilities"), css.indexOf(".lag-semantic-controls"));
+    expect(socialCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
   });
 
   it("active-tab read failure exposes a direction-specific Retry", async () => {
