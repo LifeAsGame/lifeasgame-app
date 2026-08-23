@@ -603,7 +603,7 @@ export default function AdminPage() {
       .finally(() => { if (!cancelled) setIsDataLoading(false); });
 
     return () => { cancelled = true; };
-  }, [selectedMenu, currentUser]);
+  }, [selectedMenu, currentUser, router]);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -845,8 +845,8 @@ export default function AdminPage() {
               [
                 { key: "amount",   label: "Amount",   type: "number", required: true },
                 { key: "currency", label: "Currency", type: "select", required: true, options: [
-                  { value: "col", label: "Col" },
-                  { value: "gem", label: "Gem" },
+                  { value: "GOLD", label: "Gold" },
+                  { value: "GEM", label: "Gem" },
                 ]},
                 { key: "debit",  label: "Type",     type: "select", required: true, options: [
                   { value: "false", label: "Credit (add)" },
@@ -1656,8 +1656,8 @@ export default function AdminPage() {
             { key: "itemId",               label: "Item ID",             type: "number", required: true },
             { key: "price",                label: "Price",               type: "number", required: true },
             { key: "currency",             label: "Currency",            type: "select", required: true, options: [
-              { value: "col", label: "Col" },
-              { value: "gem", label: "Gem" },
+              { value: "GOLD", label: "Gold" },
+              { value: "GEM", label: "Gem" },
             ]},
             { key: "globalLimit",          label: "Global Stock Limit",  type: "number", placeholder: "Unlimited" },
             { key: "perPlayerLimit",       label: "Per Player Limit",    type: "number", placeholder: "Unlimited" },

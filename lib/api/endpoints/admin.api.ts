@@ -146,9 +146,9 @@ export async function adminDeleteUserApi(userId: number): Promise<void> {
 export async function adminGetListingsApi() {
   if (USE_MOCK) {
     return [
-      { id: 201, itemId: 1001, sellerId: 6, price: 35000, currency: "col", status: "ACTIVE" },
-      { id: 202, itemId: 2001, sellerId: 12, price: 62000, currency: "col", status: "ACTIVE" },
-      { id: 203, itemId: 3001, sellerId: 24, price: 1200, currency: "col", status: "RESERVED" },
+      { id: 201, itemId: 1001, sellerId: 6, price: 35000, currency: "GOLD", status: "ACTIVE" },
+      { id: 202, itemId: 2001, sellerId: 12, price: 62000, currency: "GOLD", status: "ACTIVE" },
+      { id: 203, itemId: 3001, sellerId: 24, price: 1200, currency: "GEM", status: "RESERVED" },
     ];
   }
   return apiGet("/api/v1/admin/economy/listings");
@@ -634,9 +634,9 @@ export async function adminChangeQuestStatusApi(
 
 // ===== Admin Economy Shop =====
 const MOCK_SHOP_ITEMS = [
-  { id: 1, itemId: 101, itemName: "Elucidator",    price: 15000, currency: "col", available: true,  globalStockLimit: null, perPlayerLimit: 3,  reservationTtlSec: 300 },
-  { id: 2, itemId: 201, itemName: "Healing Potion",price: 500,   currency: "col", available: true,  globalStockLimit: 100, perPlayerLimit: 10, reservationTtlSec: 60  },
-  { id: 3, itemId: 301, itemName: "Wind Fleuret",   price: 8000,  currency: "col", available: false, globalStockLimit: 5,   perPlayerLimit: 1,  reservationTtlSec: 600 },
+  { id: 1, itemId: 101, itemName: "Elucidator",    price: 15000, currency: "GOLD", available: true,  globalStockLimit: null, perPlayerLimit: 3,  reservationTtlSec: 300 },
+  { id: 2, itemId: 201, itemName: "Healing Potion",price: 500,   currency: "GOLD", available: true,  globalStockLimit: 100, perPlayerLimit: 10, reservationTtlSec: 60  },
+  { id: 3, itemId: 301, itemName: "Wind Fleuret",   price: 8000,  currency: "GEM", available: false, globalStockLimit: 5,   perPlayerLimit: 1,  reservationTtlSec: 600 },
 ];
 
 export async function adminGetShopItemsApi(): Promise<typeof MOCK_SHOP_ITEMS> {
