@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { EXCHANGE_CURRENCIES, recoverShopPurchase, tradePresentation } from "./model";
+import { EXCHANGE_CURRENCIES, recoverLatestReservedShopPurchase, recoverShopPurchase, tradePresentation } from "./model";
 
 describe("Exchange presentation helpers", () => {
   it("only offers canonical currencies and recovers reservation state by purchase id", () => {
@@ -16,5 +16,18 @@ describe("Exchange presentation helpers", () => {
 
     expect(bought).toEqual({ direction: "Bought", counterparty: "Player #9" });
     expect(sold).toEqual({ direction: "Sold", counterparty: "Player #11" });
+  });
+
+  it("recovers only the highest-id confirmable reservation for a Shop item", () => {
+    const purchases = [
+      { id: 44, shopItemId: 3, quantity: 1, status: "RESERVED", reservationToken: "older", reservationExpiresAt: "2026-08-23T01:00:00Z" },
+      { id: 47, shopItemId: 3, quantity: 1, status: "COMPLETED", reservationToken: "completed", reservationExpiresAt: null },
+      { id: 48, shopItemId: 3, quantity: 1, status: "RESERVED", reservationToken: null, reservationExpiresAt: "2026-08-23T02:00:00Z" },
+      { id: 46, shopItemId: 4, quantity: 1, status: "RESERVED", reservationToken: "other-item", reservationExpiresAt: "2026-08-23T02:00:00Z" },
+      { id: 45, shopItemId: 3, quantity: 1, status: "RESERVED", reservationToken: "latest-confirmable", reservationExpiresAt: "2026-08-23T03:00:00Z" },
+    ];
+
+    expect(recoverLatestReservedShopPurchase(purchases, 3)?.id).toBe(45);
+    expect(recoverLatestReservedShopPurchase(purchases, 99)).toBeNull();
   });
 });

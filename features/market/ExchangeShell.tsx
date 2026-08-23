@@ -22,6 +22,7 @@ import {
   type ExchangeShopSurface,
   formatCurrency,
   itemIdentity,
+  recoverLatestReservedShopPurchase,
   tradePresentation,
 } from "./model";
 import { useExchangeMutations } from "./useExchangeMutations";
@@ -85,7 +86,7 @@ function WalletPanel({ query, onBack }: { query: ExchangeQuery<WalletBalance | n
     <PanelStage stageKey="market-stage-1">
       <PanelFrame title="Wallet" depth={0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
         <section className="lag-exchange-surface">
-          <SurfaceHeader eyebrow="Canonical balance" title="Wallet" description="Current backend-owned balance. No generated ledger or split balance." accent="cyan" />
+          <SurfaceHeader eyebrow="Balance" title="Wallet" description="Your current Exchange balance." accent="cyan" />
           {query.loading && !wallet ? <Feedback state="info" role="status">Loading Wallet...</Feedback> : null}
           {query.error ? <div className="lag-exchange-state"><Feedback>{query.error}</Feedback><button type="button" className="lag-exchange-button" onClick={() => void query.reload()}>Retry</button></div> : null}
           {wallet ? (
@@ -115,7 +116,7 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onStart, 
   return (
     <article className="lag-exchange-detail">
       <SurfaceHeader eyebrow="System Shop item" title={itemIdentity(item.itemId)} description={`Shop item #${item.id}`} accent="amber" />
-      <DetailSection title="Canonical terms">
+      <DetailSection title="Purchase Details">
         <DataRow label="Price">{formatCurrency(item.price, item.currency)}</DataRow>
         <DataRow label="Available">{item.available ? "Available" : "Unavailable"}</DataRow>
         <DataRow label="Global stock limit">{item.globalStockLimit ?? "None"}</DataRow>
@@ -123,7 +124,7 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onStart, 
         <DataRow label="Reservation TTL">{item.reservationTtlSec ? `${item.reservationTtlSec} seconds` : "Direct purchase"}</DataRow>
       </DetailSection>
       {purchase ? (
-        <DetailSection title="Purchase history state">
+        <DetailSection title="Purchase Status">
           <DataRow label="Purchase ID">{purchase.id}</DataRow>
           <DataRow label="Status">{purchase.status}</DataRow>
           <DataRow label="Reservation expiry">{purchase.reservationExpiresAt ? new Date(purchase.reservationExpiresAt).toLocaleString() : "Not reserved"}</DataRow>
@@ -133,7 +134,7 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onStart, 
         {purchaseId === null ? <button type="button" className="lag-exchange-action" disabled={pending || !item.available} onClick={onStart}>{pending ? "Working..." : item.reservationTtlSec ? "Reserve / Start purchase" : "Purchase"}</button> : null}
         {purchaseId !== null && !purchase ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onRefresh}>{pending ? "Working..." : "Refresh Purchase Status"}</button> : null}
         {reserved ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onConfirm}>{pending ? "Working..." : "Confirm Purchase"}</button> : null}
-        {purchase?.status === "COMPLETED" ? <Feedback state="info" role="status">Purchase completed in canonical history.</Feedback> : null}
+        {purchase?.status === "COMPLETED" ? <Feedback state="info" role="status">Purchase completed.</Feedback> : null}
         {!item.available ? <Feedback state="info" role="status">This item is unavailable.</Feedback> : null}
         <button type="button" className="lag-exchange-button" onClick={onBack}>Back to System Shop</button>
       </div>
@@ -179,7 +180,7 @@ function ListingDetail({ listing, playerId, reservation, pending, onBack, onRese
 function MyListingDetail({ listing, pending, onBack, onCancel }: { listing: ListingSummary; pending: boolean; onBack: () => void; onCancel: () => void }) {
   return (
     <article className="lag-exchange-detail">
-      <SurfaceHeader eyebrow={`My listing #${listing.id}`} title={itemIdentity(listing.itemId)} description="Canonical whole-entry listing summary" accent="violet" />
+      <SurfaceHeader eyebrow={`My listing #${listing.id}`} title={itemIdentity(listing.itemId)} description="Listing details for the complete item or stack." accent="violet" />
       <DetailSection title="Listing state">
         <DataRow label="Total price">{formatCurrency(listing.price, listing.currency)}</DataRow>
         <DataRow label="Status">{listing.status}</DataRow>
@@ -208,9 +209,9 @@ function CreateListingForm({ entries, pending, onBack, onSubmit }: {
       event.preventDefault();
       if (selectedEntry && Number(price) >= 1) onSubmit(selectedEntry, Number(price), currency);
     }}>
-      <SurfaceHeader eyebrow="PD-01 · whole entry" title="Create Listing" description="Select one owned InventoryEntry. The complete entry or stack is listed." accent="amber" />
+      <SurfaceHeader eyebrow="Sell Item" title="Create Listing" description="Select an inventory item. The complete item or stack will be listed." accent="amber" />
       <fieldset className="lag-exchange-entry-picker">
-        <legend>Owned InventoryEntry</legend>
+        <legend>Inventory Item</legend>
         {entries.length === 0 ? <Feedback state="info" role="status">No owned entries available.</Feedback> : null}
         {entries.map((entry) => (
           <button
@@ -224,13 +225,13 @@ function CreateListingForm({ entries, pending, onBack, onSubmit }: {
           >
             <strong>{entry.itemName}</strong>
             <span>{entry.rarity} · {entry.category}</span>
-            <small>Whole entry · x{entry.quantity}{entry.bound ? " · Bound · unavailable" : ""}</small>
+            <small>Complete item or stack · x{entry.quantity}{entry.bound ? " · Bound · unavailable" : ""}</small>
           </button>
         ))}
       </fieldset>
       <label className="lag-exchange-field">Total Price<input aria-label="Total Price" type="number" min={1} required value={price} onChange={(event) => setPrice(event.target.value)} /></label>
       <label className="lag-exchange-field">Currency<select aria-label="Currency" value={currency} onChange={(event) => setCurrency(event.target.value as EconomyCurrency)}>{EXCHANGE_CURRENCIES.map((value) => <option key={value}>{value}</option>)}</select></label>
-      {selectedEntry ? <Feedback state="info" role="status">Selected: {selectedEntry.itemName} · whole stack x{selectedEntry.quantity}</Feedback> : null}
+      {selectedEntry ? <Feedback state="info" role="status">Selected: {selectedEntry.itemName} · complete stack x{selectedEntry.quantity}</Feedback> : null}
       <div className="lag-exchange-actions">
         <button type="submit" className="lag-exchange-action" disabled={pending || !selectedEntry || Number(price) < 1}>{pending ? "Working..." : "Create Listing"}</button>
         <button type="button" className="lag-exchange-button" onClick={onBack}>Cancel</button>
@@ -244,7 +245,7 @@ function TradePanel({ query, playerId, onBack }: { query: ExchangeQuery<TradeSum
     <PanelStage stageKey="market-stage-1">
       <PanelFrame title="Trade History" depth={0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
         <section className="lag-exchange-surface">
-          <SurfaceHeader eyebrow="Canonical settlements" title="Trade History" description="Completed marketplace trades for the current player." accent="violet" />
+          <SurfaceHeader eyebrow="Trade History" title="Trade History" description="Your completed Marketplace purchases and sales." accent="violet" />
           <QueryState query={query} empty="No Trade history.">
             <div className="lag-exchange-list">
               {query.data.map((trade) => {
@@ -284,13 +285,19 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
   if (surface === "trade") return <div className="lag-panel-rail lag-exchange-shell"><TradePanel query={queries.trades} playerId={playerId} onBack={onBack} /></div>;
 
   const selectedShopItem = queries.shopItems.data.find((item) => item.id === selectedShopItemId) ?? null;
-  const activePurchase = activePurchaseId === null ? null : queries.shopPurchases.data.find((purchase) => purchase.id === activePurchaseId) ?? null;
+  const recoveredPurchase = selectedShopItemId === null
+    ? null
+    : recoverLatestReservedShopPurchase(queries.shopPurchases.data, selectedShopItemId);
+  const activePurchase = activePurchaseId === null
+    ? recoveredPurchase
+    : queries.shopPurchases.data.find((purchase) => purchase.id === activePurchaseId) ?? null;
+  const effectivePurchaseId = activePurchaseId ?? recoveredPurchase?.id ?? null;
   const listingSource = shopSurface === "marketplace" ? queries.openListings.data : queries.myListings.data;
   const selectedListing = listingSource.find((listing) => listing.id === selectedListingId) ?? null;
   const detailIdentity = creatingListing
     ? "create-listing"
     : selectedShopItem
-      ? `shop-${selectedShopItem.id}-${activePurchase?.status ?? (activePurchaseId === null ? "new" : `pending-${activePurchaseId}`)}`
+      ? `shop-${selectedShopItem.id}-${activePurchase?.status ?? (effectivePurchaseId === null ? "new" : `pending-${effectivePurchaseId}`)}`
       : selectedListing
         ? `${shopSurface}-${selectedListing.id}-${listingReservation?.reservationToken ?? "new"}`
         : null;
@@ -309,7 +316,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
       <PanelStage stageKey="market-stage-1">
         <PanelFrame title="Shop" depth={detailIdentity ? 1 : 0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
           <section className="lag-exchange-surface">
-            <SurfaceHeader eyebrow="Canonical exchange" title="Shop" description="System inventory, player listings, and whole-entry selling." accent="cyan" />
+            <SurfaceHeader eyebrow="Exchange Shop" title="Shop" description="Browse System Shop items and player listings, or sell an inventory item." accent="cyan" />
             <div className="lag-exchange-tabs" aria-label="Shop surfaces">
               {([
                 ["system-shop", "System Shop"],
@@ -352,7 +359,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
           <PanelStage key="market-stage-2" stageKey="market-stage-2" index={1}>
             <PanelFrame title={creatingListing ? "New Listing" : "Exchange Detail"} depth={0} contentKey={detailIdentity} backButton={<BackButton label="Back to Shop" onClick={closeDetail} />}>
               {mutations.error ? <div className="lag-exchange-state"><Feedback>{mutations.error}</Feedback></div> : null}
-              {selectedShopItem ? <ShopItemDetail item={selectedShopItem} purchase={activePurchase} purchaseId={activePurchaseId} pending={mutations.pendingKey !== null} onBack={closeDetail} onStart={() => void mutations.startShopPurchase(selectedShopItem).then((result) => setActivePurchaseId(result?.purchaseId ?? null))} onRefresh={() => { if (activePurchaseId !== null) void mutations.refreshShopPurchase(activePurchaseId); }} onConfirm={() => { if (activePurchase) void mutations.confirmShopPurchase(activePurchase); }} /> : null}
+              {selectedShopItem ? <ShopItemDetail item={selectedShopItem} purchase={activePurchase} purchaseId={effectivePurchaseId} pending={mutations.pendingKey !== null} onBack={closeDetail} onStart={() => void mutations.startShopPurchase(selectedShopItem).then((result) => setActivePurchaseId(result?.purchaseId ?? null))} onRefresh={() => { if (effectivePurchaseId !== null) void mutations.refreshShopPurchase(effectivePurchaseId); }} onConfirm={() => { if (activePurchase) void mutations.confirmShopPurchase(activePurchase).then((completed) => { if (completed) closeDetail(); }); }} /> : null}
               {shopSurface === "marketplace" && selectedListing ? <ListingDetail listing={selectedListing} playerId={playerId} reservation={listingReservation} pending={mutations.pendingKey !== null} onBack={closeDetail} onReserve={() => void mutations.reserveListing(selectedListing).then((reservation) => setListingReservation(reservation ?? null))} onPurchase={() => { if (listingReservation) void mutations.purchaseListing(selectedListing, listingReservation.reservationToken).then((trade) => { if (trade) closeDetail(); }); }} /> : null}
               {shopSurface === "my-listings" && selectedListing ? <MyListingDetail listing={selectedListing} pending={mutations.pendingKey !== null} onBack={closeDetail} onCancel={() => { if (window.confirm(`Cancel listing #${selectedListing.id}?`)) void mutations.cancelListing(selectedListing).then((done) => { if (done) closeDetail(); }); }} /> : null}
               {shopSurface === "my-listings" && creatingListing ? <CreateListingForm entries={queries.inventory.data} pending={mutations.pendingKey !== null} onBack={closeDetail} onSubmit={(entry, price, currency) => void mutations.createListing(entry, price, currency).then((listing) => { if (listing) closeDetail(); })} /> : null}

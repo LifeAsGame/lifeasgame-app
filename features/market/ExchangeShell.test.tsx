@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { InventoryEntry, ListingSummary, ShopItem, TradeSummary } from "@/shared/api/types";
+import type { InventoryEntry, ListingSummary, ShopItem, ShopPurchaseSummary, TradeSummary } from "@/shared/api/types";
 import ExchangeShell from "./ExchangeShell";
 
 const api = vi.hoisted(() => ({
@@ -28,6 +28,7 @@ const shopItems: ShopItem[] = [
   { id: 1, itemId: 1010, price: 45_000, currency: "GOLD", available: true, globalStockLimit: null, perPlayerLimit: 1, reservationTtlSec: 300 },
   { id: 3, itemId: 5010, price: 4_200, currency: "GOLD", available: false, globalStockLimit: null, perPlayerLimit: null, reservationTtlSec: null },
 ];
+const reservedPurchase: ShopPurchaseSummary = { id: 41, shopItemId: 1, quantity: 1, status: "RESERVED", reservationToken: "canonical-shop-token", reservationExpiresAt: "2026-08-23T01:00:00Z" };
 const openListings: ListingSummary[] = [
   { id: 101, itemId: 1003, sellerId: 7, price: 35_000, currency: "GOLD", status: "OPEN" },
   { id: 201, itemId: 3011, sellerId: 24, price: 1_800, currency: "GEM", status: "OPEN" },
@@ -45,7 +46,10 @@ describe("canonical Exchange surfaces", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue("00000000-0000-4000-8000-000000000068");
+    vi.spyOn(globalThis.crypto, "randomUUID")
+      .mockReturnValueOnce("00000000-0000-4000-8000-000000000001")
+      .mockReturnValueOnce("00000000-0000-4000-8000-000000000002")
+      .mockReturnValue("00000000-0000-4000-8000-000000000003");
     api.getWalletApi.mockResolvedValue({ amount: 284_500, currency: "GOLD" });
     api.getShopItemsApi.mockResolvedValue(shopItems);
     api.getShopPurchasesApi.mockResolvedValue([]);
@@ -90,7 +94,7 @@ describe("canonical Exchange surfaces", () => {
   it("recovers a reserved purchase by returned id and explicitly confirms its canonical history token", async () => {
     api.getShopPurchasesApi
       .mockResolvedValueOnce([])
-      .mockResolvedValue([{ id: 41, shopItemId: 1, quantity: 1, status: "RESERVED", reservationToken: "canonical-shop-token", reservationExpiresAt: "2026-08-23T01:00:00Z" }]);
+      .mockResolvedValue([reservedPurchase]);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
@@ -99,6 +103,81 @@ describe("canonical Exchange surfaces", () => {
 
     await waitFor(() => expect(api.confirmShopPurchaseApi).toHaveBeenCalledWith("canonical-shop-token", expect.any(String)));
     expect(api.initiateShopPurchaseApi).toHaveBeenCalledWith(expect.objectContaining({ shopItemId: 1, quantity: 1, reserveOnly: true }));
+  });
+
+  it("restores an existing RESERVED purchase when its matching System Shop item opens", async () => {
+    api.getShopPurchasesApi.mockResolvedValue([reservedPurchase]);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+
+    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(screen.getByText("Purchase ID").nextElementSibling).toHaveTextContent("41");
+    expect(screen.getByText("Reservation expiry").nextElementSibling).not.toHaveTextContent("Not reserved");
+    expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Purchase" }));
+    await waitFor(() => expect(api.confirmShopPurchaseApi).toHaveBeenCalledWith("canonical-shop-token", expect.any(String)));
+  });
+
+  it("keeps a started reservation recoverable after Back and reopening the same item", async () => {
+    api.getShopPurchasesApi.mockResolvedValueOnce([]).mockResolvedValue([reservedPurchase]);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Reserve / Start purchase" }));
+    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back to System Shop" }));
+    fireEvent.click(screen.getByRole("button", { name: /Item #1010/ }));
+
+    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(api.initiateShopPurchaseApi).toHaveBeenCalledTimes(1);
+  });
+
+  it("reloads purchase history and restores the reservation after Shop surface re-entry", async () => {
+    api.getShopPurchasesApi.mockResolvedValue([reservedPurchase]);
+    const view = render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+
+    view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
+    expect(await screen.findByText("284,500")).toBeInTheDocument();
+    view.rerender(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+    await waitFor(() => expect(api.getShopPurchasesApi).toHaveBeenCalledTimes(2));
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+
+    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
+  });
+
+  it("does not restore COMPLETED, CANCELED, or EXPIRED purchases as pending", async () => {
+    api.getShopPurchasesApi.mockResolvedValue([
+      { ...reservedPurchase, id: 51, status: "COMPLETED" },
+      { ...reservedPurchase, id: 52, status: "CANCELED" },
+      { ...reservedPurchase, id: 53, status: "EXPIRED" },
+    ]);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+
+    expect(await screen.findByRole("button", { name: "Reserve / Start purchase" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
+  });
+
+  it("deterministically restores the highest-id RESERVED purchase", async () => {
+    api.getShopPurchasesApi.mockResolvedValue([
+      { ...reservedPurchase, id: 45, reservationToken: "latest-token" },
+      { ...reservedPurchase, id: 43, reservationToken: "older-token" },
+      { ...reservedPurchase, id: 44, reservationToken: "middle-token" },
+    ]);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(screen.getByText("Purchase ID").nextElementSibling).toHaveTextContent("45");
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Purchase" }));
+
+    await waitFor(() => expect(api.confirmShopPurchaseApi).toHaveBeenCalledWith("latest-token", expect.any(String)));
   });
 
   it("guards self purchase and performs explicit Marketplace reserve/purchase", async () => {
@@ -115,14 +194,14 @@ describe("canonical Exchange surfaces", () => {
     expect(api.reserveListingApi).toHaveBeenCalledWith(201, 300);
   });
 
-  it("creates a PD-01 listing from a real whole InventoryEntry with only total price and GOLD/GEM", async () => {
+  it("creates a whole-entry listing from a real InventoryEntry with only total price and GOLD/GEM", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: "My Listings" }));
     fireEvent.click(screen.getByRole("button", { name: "Create Listing" }));
 
     expect(screen.getByRole("button", { name: /Bound Boots/ })).toBeDisabled();
     const stack = screen.getByRole("button", { name: /Owned Potion Stack/ });
-    expect(stack).toHaveTextContent("Whole entry · x42");
+    expect(stack).toHaveTextContent("Complete item or stack · x42");
     expect(screen.queryByLabelText(/quantity|item id|inventory entry id|item name/i)).not.toBeInTheDocument();
     expect(within(screen.getByLabelText("Currency")).getAllByRole("option").map(({ textContent }) => textContent)).toEqual(["GOLD", "GEM"]);
 
@@ -169,6 +248,26 @@ describe("canonical Exchange surfaces", () => {
     expect(screen.getByText("Player #24")).toBeInTheDocument();
     expect(screen.getByText("Player #13")).toBeInTheDocument();
     expect(screen.queryByText(/friend|barter|offered|received/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps internal implementation jargon out of rendered Exchange copy", async () => {
+    const renderedCopy: string[] = [];
+    const view = render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
+    await screen.findByText("284,500");
+    renderedCopy.push(document.body.textContent ?? "");
+
+    view.rerender(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+    await screen.findByRole("button", { name: "My Listings" });
+    fireEvent.click(screen.getByRole("button", { name: "My Listings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create Listing" }));
+    await screen.findByText("Sell Item");
+    renderedCopy.push(document.body.textContent ?? "");
+
+    view.rerender(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
+    await screen.findByText("Bought");
+    renderedCopy.push(document.body.textContent ?? "");
+
+    expect(renderedCopy.join(" ")).not.toMatch(/Canonical|backend-owned|PD-01/i);
   });
 
   it("keeps Exchange at two feature stages and translates the dual-theme hierarchy semantically", () => {
