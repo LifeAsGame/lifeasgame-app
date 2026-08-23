@@ -15,11 +15,10 @@ export function recoverShopPurchase(purchases: ShopPurchaseSummary[], purchaseId
   return purchases.find((purchase) => purchase.id === purchaseId) ?? null;
 }
 
-export function recoverLatestReservedShopPurchase(purchases: ShopPurchaseSummary[], shopItemId: number) {
+export function recoverLatestPendingShopPurchase(purchases: ShopPurchaseSummary[], shopItemId: number) {
   return purchases.reduce<ShopPurchaseSummary | null>((latest, purchase) => (
     purchase.shopItemId === shopItemId
-    && purchase.status === "RESERVED"
-    && purchase.reservationToken
+    && (purchase.status === "REQUESTED" || purchase.status === "RESERVED")
     && (!latest || purchase.id > latest.id)
       ? purchase
       : latest

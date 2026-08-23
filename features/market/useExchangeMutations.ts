@@ -16,6 +16,7 @@ import type { ExchangeQueries } from "./useExchangeQueries";
 
 const message = (caught: unknown) => caught instanceof Error ? caught.message : "Request failed.";
 const intentKey = () => globalThis.crypto.randomUUID();
+const fullyReloaded = (results: PromiseSettledResult<unknown>[]) => results.every((result) => result.status === "fulfilled" && result.value !== undefined);
 
 export function useExchangeMutations(queries: ExchangeQueries) {
   // ponytail: one Exchange command at a time; split by action only if concurrent commands become a product requirement.
@@ -56,15 +57,17 @@ export function useExchangeMutations(queries: ExchangeQueries) {
       reserveOnly: (item.reservationTtlSec ?? 0) > 0,
       idempotencyKey: keyFor(intent),
     });
-    intentKeys.current.delete(intent);
-    const [history] = await Promise.all([
+    const refreshes = await Promise.allSettled([
       queries.shopPurchases.reload(),
       queries.shopItems.reload(),
       queries.wallet.reload(),
       queries.inventory.reload(),
     ]);
+    const history = refreshes[0].status === "fulfilled" ? refreshes[0].value : undefined;
     const purchase = history && recoverShopPurchase(history, initiated.id);
+    if (purchase) intentKeys.current.delete(intent);
     if (!purchase) setError(`Purchase #${initiated.id} was accepted, but purchase history is not available yet.`);
+    else if (!fullyReloaded(refreshes)) setError("Purchase accepted, but some Exchange data could not be refreshed.");
     return { purchaseId: initiated.id, purchase: purchase ?? null };
   });
 
@@ -72,6 +75,7 @@ export function useExchangeMutations(queries: ExchangeQueries) {
     const history = await queries.shopPurchases.reload();
     const purchase = history && recoverShopPurchase(history, purchaseId);
     if (!purchase) throw new Error(`Purchase #${purchaseId} is not available in purchase history yet.`);
+    intentKeys.current.delete(`shop-start:${purchase.shopItemId}`);
     return purchase;
   });
 
@@ -86,7 +90,10 @@ export function useExchangeMutations(queries: ExchangeQueries) {
       queries.inventory.reload(),
     ]);
     const current = history && recoverShopPurchase(history, purchase.id);
-    if (current && current.status !== "REQUESTED" && current.status !== "RESERVED") intentKeys.current.delete(intent);
+    if (current && current.status !== "REQUESTED" && current.status !== "RESERVED") {
+      intentKeys.current.delete(intent);
+      intentKeys.current.delete(`shop-start:${purchase.shopItemId}`);
+    }
     if (current?.status === "COMPLETED") return true;
     setError(current?.status === "CANCELED" || current?.status === "EXPIRED"
       ? "This reservation can no longer be confirmed."
@@ -103,14 +110,15 @@ export function useExchangeMutations(queries: ExchangeQueries) {
   const purchaseListing = (listing: ListingSummary, reservationToken: string) => run(`listing-purchase-${listing.id}`, async () => {
     const intent = `listing-purchase:${listing.id}:${reservationToken}`;
     const trade = await purchaseListingApi(listing.id, reservationToken, keyFor(intent));
-    intentKeys.current.delete(intent);
-    await Promise.all([
+    const refreshes = await Promise.allSettled([
       queries.openListings.reload(),
       queries.myListings.reload(),
       queries.trades.reload(),
       queries.wallet.reload(),
       queries.inventory.reload(),
     ]);
+    if (fullyReloaded(refreshes)) intentKeys.current.delete(intent);
+    else setError("Purchase completed, but some Exchange data could not be refreshed.");
     return trade;
   });
 

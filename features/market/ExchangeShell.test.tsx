@@ -29,6 +29,7 @@ const shopItems: ShopItem[] = [
   { id: 3, itemId: 5010, price: 4_200, currency: "GOLD", available: false, globalStockLimit: null, perPlayerLimit: null, reservationTtlSec: null },
 ];
 const reservedPurchase: ShopPurchaseSummary = { id: 41, shopItemId: 1, quantity: 1, status: "RESERVED", reservationToken: "canonical-shop-token", reservationExpiresAt: "2026-08-23T01:00:00Z" };
+const requestedPurchase: ShopPurchaseSummary = { id: 40, shopItemId: 1, quantity: 1, status: "REQUESTED", reservationToken: null, reservationExpiresAt: null };
 const openListings: ListingSummary[] = [
   { id: 101, itemId: 1003, sellerId: 7, price: 35_000, currency: "GOLD", status: "OPEN" },
   { id: 201, itemId: 3011, sellerId: 24, price: 1_800, currency: "GEM", status: "OPEN" },
@@ -120,6 +121,22 @@ describe("canonical Exchange surfaces", () => {
     await waitFor(() => expect(api.confirmShopPurchaseApi).toHaveBeenCalledWith("canonical-shop-token", expect.any(String)));
   });
 
+  it("restores REQUESTED as pending and refreshes it into a confirmable reservation", async () => {
+    api.getShopPurchasesApi.mockResolvedValueOnce([requestedPurchase]).mockResolvedValue([reservedPurchase]);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+
+    expect(await screen.findByRole("button", { name: "Refresh Purchase Status" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reserve / Start purchase" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
+    expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh Purchase Status" }));
+
+    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+  });
+
   it("keeps a started reservation recoverable after Back and reopening the same item", async () => {
     api.getShopPurchasesApi.mockResolvedValueOnce([]).mockResolvedValue([reservedPurchase]);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
@@ -164,20 +181,18 @@ describe("canonical Exchange surfaces", () => {
     expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
   });
 
-  it("deterministically restores the highest-id RESERVED purchase", async () => {
+  it("deterministically restores the highest-id nonterminal purchase", async () => {
     api.getShopPurchasesApi.mockResolvedValue([
       { ...reservedPurchase, id: 45, reservationToken: "latest-token" },
       { ...reservedPurchase, id: 43, reservationToken: "older-token" },
-      { ...reservedPurchase, id: 44, reservationToken: "middle-token" },
+      { ...requestedPurchase, id: 46 },
     ]);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
-    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
-    expect(screen.getByText("Purchase ID").nextElementSibling).toHaveTextContent("45");
-    fireEvent.click(screen.getByRole("button", { name: "Confirm Purchase" }));
-
-    await waitFor(() => expect(api.confirmShopPurchaseApi).toHaveBeenCalledWith("latest-token", expect.any(String)));
+    expect(await screen.findByRole("button", { name: "Refresh Purchase Status" })).toBeInTheDocument();
+    expect(screen.getByText("Purchase ID").nextElementSibling).toHaveTextContent("46");
+    expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
   });
 
   it("guards self purchase and performs explicit Marketplace reserve/purchase", async () => {
@@ -206,9 +221,14 @@ describe("canonical Exchange surfaces", () => {
     expect(within(screen.getByLabelText("Currency")).getAllByRole("option").map(({ textContent }) => textContent)).toEqual(["GOLD", "GEM"]);
 
     fireEvent.click(stack);
+    expect(screen.getByLabelText("Total Price")).toHaveAttribute("step", "1");
+    fireEvent.change(screen.getByLabelText("Total Price"), { target: { value: "1.5" } });
+    const form = screen.getByLabelText("Total Price").closest("form")!;
+    expect(within(form).getByRole("button", { name: "Create Listing" })).toBeDisabled();
+    fireEvent.submit(form);
+    expect(api.createListingApi).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Total Price"), { target: { value: "12000" } });
     fireEvent.change(screen.getByLabelText("Currency"), { target: { value: "GEM" } });
-    const form = screen.getByLabelText("Total Price").closest("form")!;
     fireEvent.click(within(form).getByRole("button", { name: "Create Listing" }));
 
     await waitFor(() => expect(api.createListingApi).toHaveBeenCalledWith({ inventoryEntryId: 5, price: 12_000, currency: "GEM" }));
@@ -278,6 +298,8 @@ describe("canonical Exchange surfaces", () => {
     expect(new Set(source.match(/market-stage-[12]/g))).toEqual(new Set(["market-stage-1", "market-stage-2"]));
     expect(source).not.toMatch(/MARKET_|friend|barter|Wishlist|Plan & Rhythm|Income|Asset Trace/);
     expect(exchangeCss).toContain("var(--lag-control-bg)");
+    expect(exchangeCss).toContain(".lag-exchange-row:not(:disabled):hover");
+    expect(exchangeCss).toContain(".lag-exchange-entry:not(:disabled):hover");
     expect(exchangeCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
     expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*\.lag-exchange-tabs\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
   });

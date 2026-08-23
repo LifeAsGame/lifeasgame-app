@@ -2568,7 +2568,7 @@ body {
   text-align: left;
 }
 
-.lag-exchange-row:hover,
+.lag-exchange-row:not(:disabled):hover,
 .lag-exchange-row[data-selected="true"] {
   border-color: var(--lag-focus);
   background: var(--lag-control-hover-bg);
@@ -2706,7 +2706,7 @@ body {
   margin-bottom: var(--lag-space-2);
 }
 
-.lag-exchange-entry:hover,
+.lag-exchange-entry:not(:disabled):hover,
 .lag-exchange-entry[data-selected="true"] {
   border-color: var(--lag-focus);
   background: var(--lag-control-hover-bg);

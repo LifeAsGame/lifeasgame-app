@@ -22,7 +22,7 @@ import {
   type ExchangeShopSurface,
   formatCurrency,
   itemIdentity,
-  recoverLatestReservedShopPurchase,
+  recoverLatestPendingShopPurchase,
   tradePresentation,
 } from "./model";
 import { useExchangeMutations } from "./useExchangeMutations";
@@ -112,7 +112,8 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onStart, 
   onRefresh: () => void;
   onConfirm: () => void;
 }) {
-  const reserved = purchase?.status === "RESERVED" && Boolean(purchase.reservationToken);
+  const confirmable = purchase?.status === "RESERVED" && Boolean(purchase.reservationToken);
+  const refreshable = purchaseId !== null && (!purchase || purchase.status === "REQUESTED" || (purchase.status === "RESERVED" && !purchase.reservationToken));
   return (
     <article className="lag-exchange-detail">
       <SurfaceHeader eyebrow="System Shop item" title={itemIdentity(item.itemId)} description={`Shop item #${item.id}`} accent="amber" />
@@ -132,8 +133,8 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onStart, 
       ) : null}
       <div className="lag-exchange-actions">
         {purchaseId === null ? <button type="button" className="lag-exchange-action" disabled={pending || !item.available} onClick={onStart}>{pending ? "Working..." : item.reservationTtlSec ? "Reserve / Start purchase" : "Purchase"}</button> : null}
-        {purchaseId !== null && !purchase ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onRefresh}>{pending ? "Working..." : "Refresh Purchase Status"}</button> : null}
-        {reserved ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onConfirm}>{pending ? "Working..." : "Confirm Purchase"}</button> : null}
+        {refreshable ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onRefresh}>{pending ? "Working..." : "Refresh Purchase Status"}</button> : null}
+        {confirmable ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onConfirm}>{pending ? "Working..." : "Confirm Purchase"}</button> : null}
         {purchase?.status === "COMPLETED" ? <Feedback state="info" role="status">Purchase completed.</Feedback> : null}
         {!item.available ? <Feedback state="info" role="status">This item is unavailable.</Feedback> : null}
         <button type="button" className="lag-exchange-button" onClick={onBack}>Back to System Shop</button>
@@ -203,11 +204,13 @@ function CreateListingForm({ entries, pending, onBack, onSubmit }: {
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState<EconomyCurrency>("GOLD");
   const selectedEntry = entries.find((entry) => entry.itemInstanceId === selectedEntryId) ?? null;
+  const priceValue = Number(price);
+  const priceValid = Number.isInteger(priceValue) && priceValue >= 1;
 
   return (
     <form className="lag-exchange-detail" onSubmit={(event) => {
       event.preventDefault();
-      if (selectedEntry && Number(price) >= 1) onSubmit(selectedEntry, Number(price), currency);
+      if (selectedEntry && priceValid) onSubmit(selectedEntry, priceValue, currency);
     }}>
       <SurfaceHeader eyebrow="Sell Item" title="Create Listing" description="Select an inventory item. The complete item or stack will be listed." accent="amber" />
       <fieldset className="lag-exchange-entry-picker">
@@ -229,11 +232,11 @@ function CreateListingForm({ entries, pending, onBack, onSubmit }: {
           </button>
         ))}
       </fieldset>
-      <label className="lag-exchange-field">Total Price<input aria-label="Total Price" type="number" min={1} required value={price} onChange={(event) => setPrice(event.target.value)} /></label>
+      <label className="lag-exchange-field">Total Price<input aria-label="Total Price" type="number" min={1} step={1} required value={price} onChange={(event) => setPrice(event.target.value)} /></label>
       <label className="lag-exchange-field">Currency<select aria-label="Currency" value={currency} onChange={(event) => setCurrency(event.target.value as EconomyCurrency)}>{EXCHANGE_CURRENCIES.map((value) => <option key={value}>{value}</option>)}</select></label>
       {selectedEntry ? <Feedback state="info" role="status">Selected: {selectedEntry.itemName} · complete stack x{selectedEntry.quantity}</Feedback> : null}
       <div className="lag-exchange-actions">
-        <button type="submit" className="lag-exchange-action" disabled={pending || !selectedEntry || Number(price) < 1}>{pending ? "Working..." : "Create Listing"}</button>
+        <button type="submit" className="lag-exchange-action" disabled={pending || !selectedEntry || !priceValid}>{pending ? "Working..." : "Create Listing"}</button>
         <button type="button" className="lag-exchange-button" onClick={onBack}>Cancel</button>
       </div>
     </form>
@@ -287,7 +290,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
   const selectedShopItem = queries.shopItems.data.find((item) => item.id === selectedShopItemId) ?? null;
   const recoveredPurchase = selectedShopItemId === null
     ? null
-    : recoverLatestReservedShopPurchase(queries.shopPurchases.data, selectedShopItemId);
+    : recoverLatestPendingShopPurchase(queries.shopPurchases.data, selectedShopItemId);
   const activePurchase = activePurchaseId === null
     ? recoveredPurchase
     : queries.shopPurchases.data.find((purchase) => purchase.id === activePurchaseId) ?? null;

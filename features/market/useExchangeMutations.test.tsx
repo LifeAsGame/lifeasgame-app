@@ -41,16 +41,20 @@ describe("Exchange command ownership", () => {
     vi.spyOn(globalThis.crypto, "randomUUID").mockImplementation(() => UUIDS[index++] ?? UUIDS[2]);
   });
 
-  it("reuses one Shop start key while unresolved and creates a new key after success", async () => {
+  it("keeps the Shop start key when the command succeeds but purchase history reload rejects", async () => {
     api.initiateShopPurchaseApi
-      .mockRejectedValueOnce(new Error("response lost"))
+      .mockResolvedValueOnce({ id: 41 })
       .mockResolvedValueOnce({ id: 41 })
       .mockResolvedValueOnce({ id: 42 });
     const state = queries();
-    vi.mocked(state.shopPurchases.reload).mockResolvedValue([
-      { id: 41, shopItemId: 2, quantity: 1, status: "RESERVED", reservationToken: "token-41", reservationExpiresAt: "2026-08-23T01:00:00Z" },
-      { id: 42, shopItemId: 2, quantity: 1, status: "RESERVED", reservationToken: "token-42", reservationExpiresAt: "2026-08-23T02:00:00Z" },
-    ]);
+    vi.mocked(state.shopPurchases.reload)
+      .mockRejectedValueOnce(new Error("history unavailable"))
+      .mockResolvedValueOnce([
+        { id: 41, shopItemId: 2, quantity: 1, status: "RESERVED", reservationToken: "token-41", reservationExpiresAt: "2026-08-23T01:00:00Z" },
+      ])
+      .mockResolvedValueOnce([
+        { id: 42, shopItemId: 2, quantity: 1, status: "RESERVED", reservationToken: "token-42", reservationExpiresAt: "2026-08-23T02:00:00Z" },
+      ]);
     const { result } = renderHook(() => useExchangeMutations(state));
     const item = { id: 2, itemId: 9, price: 30, currency: "GEM" as const, available: true, globalStockLimit: null, perPlayerLimit: 2, reservationTtlSec: 60 };
 
@@ -61,6 +65,7 @@ describe("Exchange command ownership", () => {
     const keys = api.initiateShopPurchaseApi.mock.calls.map(([request]) => request.idempotencyKey);
     expect(keys).toEqual([UUIDS[0], UUIDS[0], UUIDS[1]]);
     expect(globalThis.crypto.randomUUID).toHaveBeenCalledTimes(2);
+    expect(state.shopPurchases.reload).toHaveBeenCalledTimes(3);
   });
 
   it("reuses one Shop confirm key while unresolved and clears it after completed history", async () => {
@@ -84,12 +89,13 @@ describe("Exchange command ownership", () => {
     expect(globalThis.crypto.randomUUID).toHaveBeenCalledTimes(2);
   });
 
-  it("reuses one Marketplace purchase key while unresolved and creates a new key after trade success", async () => {
+  it("keeps the Marketplace purchase key when the command succeeds but an authoritative reload rejects", async () => {
     api.purchaseListingApi
-      .mockRejectedValueOnce(new Error("response lost"))
+      .mockResolvedValueOnce({ id: 9, listingId: 8, buyerId: 7, sellerId: 4, price: 70, currency: "GOLD" })
       .mockResolvedValueOnce({ id: 9, listingId: 8, buyerId: 7, sellerId: 4, price: 70, currency: "GOLD" })
       .mockResolvedValueOnce({ id: 10, listingId: 8, buyerId: 7, sellerId: 4, price: 70, currency: "GOLD" });
     const state = queries();
+    vi.mocked(state.openListings.reload).mockRejectedValueOnce(new Error("listings unavailable")).mockResolvedValue([]);
     const { result } = renderHook(() => useExchangeMutations(state));
     const listing = { id: 8, itemId: 90, sellerId: 4, price: 70, currency: "GOLD" as const, status: "OPEN" };
 
@@ -100,10 +106,10 @@ describe("Exchange command ownership", () => {
     const keys = api.purchaseListingApi.mock.calls.map(([, , key]) => key);
     expect(keys).toEqual([UUIDS[0], UUIDS[0], UUIDS[1]]);
     expect(globalThis.crypto.randomUUID).toHaveBeenCalledTimes(2);
-    expect(state.openListings.reload).toHaveBeenCalledTimes(2);
-    expect(state.trades.reload).toHaveBeenCalledTimes(2);
-    expect(state.wallet.reload).toHaveBeenCalledTimes(2);
-    expect(state.inventory.reload).toHaveBeenCalledTimes(2);
+    expect(state.openListings.reload).toHaveBeenCalledTimes(3);
+    expect(state.trades.reload).toHaveBeenCalledTimes(3);
+    expect(state.wallet.reload).toHaveBeenCalledTimes(3);
+    expect(state.inventory.reload).toHaveBeenCalledTimes(3);
   });
 
   it("keeps an accepted purchase id when history has not caught up instead of starting again", async () => {
