@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import type { NotificationInfo, NotificationType } from "@/shared/api/types";
@@ -8,19 +8,23 @@ import { notificationPopupPosition, type FloatingPosition } from "@/shared/lib/v
 import UtilityPortal from "@/shared/ui/UtilityPortal";
 import { useNotifications } from "./useNotifications";
 
-const TYPE_META: Record<NotificationType, { color: string; icon: string; label: string }> = {
-  MAIL_RECEIVED: { color: "var(--lag-state-info)", icon: "✉", label: "Mail received" },
-  QUEST_PROGRESS: { color: "var(--lag-state-pending)", icon: "⚔", label: "Quest progress" },
-  QUEST_COMPLETED: { color: "var(--lag-state-success)", icon: "✓", label: "Quest completed" },
-  QUEST_REWARD_READY: { color: "var(--lag-amber)", icon: "★", label: "Quest reward ready" },
-  LISTING_SOLD: { color: "var(--lag-state-success)", icon: "◆", label: "Listing sold" },
-  ACHIEVEMENT_UNLOCK: { color: "var(--lag-state-selected)", icon: "★", label: "Achievement unlocked" },
-  SYSTEM_NOTICE: { color: "var(--lag-text-2)", icon: "!", label: "System notice" },
+const TYPE_META: Record<NotificationType, { icon: string; label: string; tone: string }> = {
+  MAIL_RECEIVED: { icon: "✉", label: "Mail received", tone: "info" },
+  QUEST_PROGRESS: { icon: "⚔", label: "Quest progress", tone: "pending" },
+  QUEST_COMPLETED: { icon: "✓", label: "Quest completed", tone: "success" },
+  QUEST_REWARD_READY: { icon: "★", label: "Quest reward ready", tone: "pending" },
+  LISTING_SOLD: { icon: "◆", label: "Listing sold", tone: "success" },
+  ACHIEVEMENT_UNLOCK: { icon: "★", label: "Achievement unlocked", tone: "selected" },
+  SYSTEM_NOTICE: { icon: "!", label: "System notice", tone: "neutral" },
 };
-const UNKNOWN_TYPE_META = { color: "var(--lag-text-2)", icon: "!", label: "Notification" };
+const UNKNOWN_TYPE_META = { icon: "!", label: "Notification", tone: "neutral" };
 
 function isKnownNotificationType(type: string): type is NotificationType {
   return Object.prototype.hasOwnProperty.call(TYPE_META, type);
+}
+
+function metaFor(type: string) {
+  return isKnownNotificationType(type) ? TYPE_META[type] : UNKNOWN_TYPE_META;
 }
 
 export function NotificationTimestamp({ occurredAt }: { occurredAt: string }) {
@@ -28,61 +32,63 @@ export function NotificationTimestamp({ occurredAt }: { occurredAt: string }) {
   return <time dateTime={occurredAt}>{label}</time>;
 }
 
-function NotificationRow({ notification, pending, onMarkRead }: {
+function TypeMark({ notification }: { notification: NotificationInfo }) {
+  const meta = metaFor(notification.type);
+  return <span role="img" aria-label={meta.label} title={meta.label} className="lag-notification-type-mark" data-tone={meta.tone}>{meta.icon}</span>;
+}
+
+function NotificationRow({ notification, pending, selected, onSelect, onMarkRead }: {
   notification: NotificationInfo;
   pending: boolean;
+  selected: boolean;
+  onSelect: (id: number) => void;
   onMarkRead: (id: number) => void;
 }) {
-  const meta = isKnownNotificationType(notification.type) ? TYPE_META[notification.type] : UNKNOWN_TYPE_META;
+  const meta = metaFor(notification.type);
   return (
-    <motion.article
-      initial={{ opacity: 0, x: -6 }}
-      animate={{ opacity: 1, x: 0 }}
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10,
-        padding: "9px 14px",
-        borderBottom: "1px solid var(--lag-divider)",
-        background: notification.read ? "transparent" : "var(--lag-selected-surface)",
-      }}
-    >
-      <span role="img" aria-label={meta.label} title={meta.label} style={{ width: 22, height: 22, borderRadius: "50%", border: `1.5px solid ${meta.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: meta.color, flexShrink: 0, marginTop: 1 }}>{meta.icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <strong style={{ display: "block", fontSize: 11, fontWeight: notification.read ? 400 : 600, color: notification.read ? "var(--lag-text-2)" : "var(--lag-text)", lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{notification.title}</strong>
-        <p style={{ fontSize: 10, color: "var(--lag-text-2)", marginTop: 2, lineHeight: 1.3 }}>{notification.body}</p>
-        <div style={{ marginTop: 4, fontSize: 9, color: "var(--lag-meta)" }}><NotificationTimestamp occurredAt={notification.occurredAt} /></div>
-      </div>
-      {!notification.read ? <button type="button" className="lag-button-secondary" disabled={pending} onClick={() => onMarkRead(notification.id)} style={{ padding: "3px 6px", fontSize: 9, cursor: pending ? "default" : "pointer", opacity: pending ? 0.5 : 1 }}>{pending ? "Saving..." : "Mark read"}</button> : null}
-    </motion.article>
+    <article className="lag-notification-row" data-read={notification.read} data-selected={selected}>
+      <button type="button" className="lag-notification-select" aria-pressed={selected} onClick={() => onSelect(notification.id)}>
+        <TypeMark notification={notification} />
+        <span className="lag-notification-copy">
+          <span className="lag-notification-row-meta"><span>{meta.label}</span><span>{notification.read ? "Read" : "Unread"}</span></span>
+          <strong>{notification.title}</strong>
+          <span className="lag-notification-body">{notification.body}</span>
+          <span className="lag-notification-time"><NotificationTimestamp occurredAt={notification.occurredAt} /></span>
+        </span>
+        <span className="lag-notification-arrow" aria-hidden>→</span>
+      </button>
+      {!notification.read ? <button type="button" className="lag-notification-action" disabled={pending} onClick={() => onMarkRead(notification.id)}>{pending ? "Saving..." : "Mark read"}</button> : null}
+    </article>
   );
 }
 
 export function NotificationBell() {
   const state = useNotifications();
+  const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const [popupPosition, setPopupPosition] = useState<FloatingPosition | null>(null);
+  const selected = state.inbox.find(({ id }) => id === selectedId) ?? null;
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setSelectedId(null);
+  }, []);
 
   const placePopup = useCallback(() => {
     const anchor = triggerRef.current?.getBoundingClientRect();
     const popup = popupRef.current?.getBoundingClientRect();
     if (!anchor || !popup) return;
-    setPopupPosition(notificationPopupPosition(
-      anchor,
-      { width: popup.width, height: popup.height },
-      { width: window.innerWidth, height: window.innerHeight },
-    ));
+    setPopupPosition(notificationPopupPosition(anchor, { width: popup.width, height: popup.height }, { width: window.innerWidth, height: window.innerHeight }));
   }, []);
 
   useLayoutEffect(() => {
     if (!open) return;
     placePopup();
-    const observer = typeof ResizeObserver === "undefined" || !popupRef.current
-      ? null
-      : new ResizeObserver(placePopup);
+    const observer = typeof ResizeObserver === "undefined" || !popupRef.current ? null : new ResizeObserver(placePopup);
     if (popupRef.current) observer?.observe(popupRef.current);
     window.addEventListener("resize", placePopup);
     return () => {
@@ -93,90 +99,96 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!open) return;
-    const close = (event: MouseEvent) => {
+    const closeOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (!panelRef.current?.contains(target) && !popupRef.current?.contains(target)) setOpen(false);
+      if (!panelRef.current?.contains(target) && !popupRef.current?.contains(target)) close();
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [open]);
+    document.addEventListener("mousedown", closeOutside);
+    return () => document.removeEventListener("mousedown", closeOutside);
+  }, [close, open]);
 
   const toggle = () => {
     if (!open && !state.inboxLoaded && !state.inboxLoading) void state.loadInbox();
-    setOpen((current) => !current);
+    if (open) close();
+    else setOpen(true);
   };
 
   return (
-    <div ref={panelRef} style={{ position: "relative" }}>
+    <div ref={panelRef} className="lag-notification-anchor">
       <motion.button
         ref={triggerRef}
         type="button"
         onClick={toggle}
-        whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.9 }}
-        aria-label={`알림 ${state.unreadCount}건`}
+        whileHover={reducedMotion ? undefined : { scale: 1.06 }}
+        whileTap={reducedMotion ? undefined : { scale: 0.94 }}
+        aria-label={`Notifications, ${state.unreadCount} unread`}
         aria-expanded={open}
         title="Notifications"
         className="lag-utility-button lag-notification-trigger"
-        style={{
-          borderColor: state.unreadCount > 0 || open ? "var(--lag-focus)" : "var(--lag-control-border)",
-          background: open ? "var(--lag-selected-surface)" : "var(--lag-control-bg)",
-          boxShadow: state.unreadCount > 0 ? "0 0 10px color-mix(in srgb, var(--lag-focus) 24%, transparent)" : "none",
-          cursor: "pointer",
-          fontSize: 14,
-          position: "relative",
-        }}
+        data-active={open}
+        data-unread={state.unreadCount > 0}
       >
-        ◈
+        <span aria-hidden>◈</span>
         <AnimatePresence>
-          {state.unreadCount > 0 ? <motion.span key="badge" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} style={{ position: "absolute", top: -3, right: -3, minWidth: 16, height: 16, borderRadius: 8, background: "var(--lag-state-error)", color: "var(--lag-text)", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", lineHeight: 1 }}>{state.unreadCount > 9 ? "9+" : state.unreadCount}</motion.span> : null}
+          {state.unreadCount > 0 ? <motion.span className="lag-notification-badge" key="badge" initial={reducedMotion ? false : { scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: reducedMotion ? 0 : 0.12 }}>{state.unreadCount > 9 ? "9+" : state.unreadCount}</motion.span> : null}
         </AnimatePresence>
       </motion.button>
 
       <UtilityPortal>
         <AnimatePresence>
           {open ? (
-          <motion.div
-            ref={popupRef}
-            role="dialog"
-            aria-label="Notifications"
-            key="notification-dropdown"
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 400, damping: 32 }}
-            className="lag-notification-dropdown"
-            style={{
-              position: "fixed",
-              left: popupPosition?.x ?? 16,
-              top: popupPosition?.y ?? 16,
-              width: "min(320px, calc(100vw - 32px))",
-              borderRadius: "var(--lag-radius-md)",
-              zIndex: 600100,
-              overflow: "hidden",
-              maxHeight: "calc(100dvh - 32px)",
-              display: "flex",
-              flexDirection: "column",
-              visibility: popupPosition ? "visible" : "hidden",
-            }}
-          >
-            <header style={{ display: "flex", flexShrink: 0, alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 14px 8px", background: "var(--lag-panel-2)", borderBottom: "1px solid var(--lag-divider)" }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--lag-text)", letterSpacing: "0.1em" }}>NOTIFICATIONS</span>
-              <button type="button" disabled={state.markAllPending} onClick={() => void state.markAllRead()} style={{ fontSize: 9, color: "var(--lag-text-2)", background: "none", border: 0, cursor: "pointer", opacity: state.markAllPending ? 0.45 : 1 }}>{state.markAllPending ? "Saving..." : "모두 읽음"}</button>
-            </header>
+            <motion.div
+              ref={popupRef}
+              role="dialog"
+              aria-label="Notifications"
+              key="notification-dropdown"
+              initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ duration: reducedMotion ? 0 : 0.16, ease: "easeOut" }}
+              className="lag-notification-dropdown"
+              data-detail={selected !== null}
+              data-view={selected ? "detail" : "inbox"}
+              style={{ position: "fixed", left: popupPosition?.x ?? 16, top: popupPosition?.y ?? 16, zIndex: 600100, visibility: popupPosition ? "visible" : "hidden" }}
+            >
+              <header className="lag-notification-header">
+                <div><span>Current Player</span><h2>Notifications</h2></div>
+                <div>
+                  <button type="button" disabled={state.markAllPending} onClick={() => void state.markAllRead()} className="lag-notification-action">{state.markAllPending ? "Saving..." : "Mark all read"}</button>
+                  <button type="button" aria-label="Close Notifications" onClick={close} className="lag-notification-action">Close</button>
+                </div>
+              </header>
 
-            {state.unreadError ? <div style={{ padding: "8px 14px" }}><p role="alert" style={{ fontSize: 10, color: "var(--lag-state-error)" }}>{state.unreadError}</p><button type="button" className="lag-button-secondary" onClick={() => void state.unreadRetry()} style={{ fontSize: 9 }}>Retry count</button></div> : null}
-            {state.inboxError ? <div style={{ padding: "8px 14px" }}><p role="alert" style={{ fontSize: 10, color: "var(--lag-state-error)" }}>{state.inboxError}</p><button type="button" className="lag-button-secondary" onClick={() => void state.inboxRetry()} style={{ fontSize: 9 }}>Retry</button></div> : null}
-            {state.mutationError ? <p role="alert" style={{ padding: "8px 14px", fontSize: 10, color: "var(--lag-state-error)" }}>{state.mutationError}</p> : null}
+              {state.unreadError ? <div className="lag-notification-feedback-row"><p role="alert" className="lag-notification-feedback" data-state="error">{state.unreadError}</p><button type="button" className="lag-notification-action" onClick={() => void state.unreadRetry()}>Retry count</button></div> : null}
+              {state.inboxError ? <div className="lag-notification-feedback-row"><p role="alert" className="lag-notification-feedback" data-state="error">{state.inboxError}</p><button type="button" className="lag-notification-action" onClick={() => void state.inboxRetry()}>Retry</button></div> : null}
+              {state.mutationError ? <p role="alert" className="lag-notification-feedback" data-state="error">{state.mutationError}</p> : null}
 
-            <div className="lag-notification-list" style={{ maxHeight: 360, minHeight: 0, flex: 1, overflowY: "auto" }}>
-              {state.inboxLoading ? <p style={{ padding: "24px 14px", textAlign: "center", fontSize: 11, color: "var(--lag-text-2)" }}>Loading...</p> : null}
-              {!state.inboxLoading && state.inboxLoaded && state.inbox.length === 0 ? <p style={{ padding: "24px 14px", textAlign: "center", fontSize: 11, color: "var(--lag-text-2)" }}>알림이 없습니다</p> : null}
-              {state.inbox.map((notification) => <NotificationRow key={notification.id} notification={notification} pending={state.pendingId === notification.id} onMarkRead={(id) => void state.markRead(id)} />)}
-              {state.hasMore ? <button type="button" className="lag-button-secondary" disabled={state.olderLoading} onClick={() => void state.loadOlder()} style={{ display: "block", margin: "8px auto", padding: "4px 8px", fontSize: 9 }}>{state.olderLoading ? "Loading..." : "Load older"}</button> : null}
-            </div>
-            <div style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--lag-focus), transparent)" }} />
-          </motion.div>
+              <div className="lag-notification-composition">
+                <section className="lag-notification-inbox" aria-label="Notification inbox">
+                  <div className="lag-notification-summary"><span>Durable inbox</span><strong>{state.unreadCount} unread</strong></div>
+                  <div className="lag-notification-list">
+                    {state.inboxLoading ? <p role="status" className="lag-notification-empty">Loading notifications...</p> : null}
+                    {!state.inboxLoading && state.inboxLoaded && state.inbox.length === 0 ? <p className="lag-notification-empty">No notifications</p> : null}
+                    {state.inbox.map((notification) => <NotificationRow key={notification.id} notification={notification} pending={state.pendingId === notification.id} selected={selectedId === notification.id} onSelect={setSelectedId} onMarkRead={(id) => void state.markRead(id)} />)}
+                    {state.hasMore ? <button type="button" className="lag-notification-load-older" disabled={state.olderLoading} onClick={() => void state.loadOlder()}>{state.olderLoading ? "Loading..." : "Load older"}</button> : null}
+                  </div>
+                </section>
+
+                {selected ? (
+                  <section className="lag-notification-detail" aria-label="Notification detail">
+                    <header><button type="button" className="lag-notification-action" onClick={() => setSelectedId(null)}>← Back to inbox</button><span>{selected.read ? "Read" : "Unread"}</span></header>
+                    <div className="lag-notification-detail-content">
+                      <TypeMark notification={selected} />
+                      <span>{metaFor(selected.type).label}</span>
+                      <h3>{selected.title}</h3>
+                      <p>{selected.body}</p>
+                      <div><NotificationTimestamp occurredAt={selected.occurredAt} /></div>
+                      {!selected.read ? <button type="button" className="lag-notification-action" disabled={state.pendingId === selected.id} onClick={() => void state.markRead(selected.id)}>{state.pendingId === selected.id ? "Saving..." : "Mark read"}</button> : <span className="lag-notification-read-state">Read</span>}
+                    </div>
+                  </section>
+                ) : null}
+              </div>
+            </motion.div>
           ) : null}
         </AnimatePresence>
       </UtilityPortal>

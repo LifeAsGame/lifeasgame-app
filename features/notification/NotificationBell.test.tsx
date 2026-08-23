@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -35,26 +35,73 @@ vi.mock("./useNotifications", () => ({ useNotifications: () => state }));
 describe("NotificationBell canonical surface", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("uses unread authority, loads inbox on open without auto-reading, and exposes no clear/delete", () => {
+  it("uses unread authority and opens inbox without an implicit read mutation", () => {
     render(<NotificationBell />);
-    expect(screen.getByRole("button", { name: "알림 7건" })).toHaveTextContent("7");
+    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    expect(trigger).toHaveTextContent("7");
     expect(state.loadInbox).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "알림 7건" }));
+    fireEvent.click(trigger);
     expect(state.loadInbox).toHaveBeenCalledTimes(1);
+    expect(state.markRead).not.toHaveBeenCalled();
     expect(state.markAllRead).not.toHaveBeenCalled();
-    expect(screen.getAllByRole("button", { name: "Mark read" })).toHaveLength(1);
-    expect(screen.getByRole("button", { name: "모두 읽음" })).toBeEnabled();
+    expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mark all read" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Load older" })).toBeInTheDocument();
-    expect(screen.queryByText(/전체 삭제|clear|delete/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/clear|delete/i)).not.toBeInTheDocument();
+  });
+
+  it("selects a stable local detail without marking read, then reads only through explicit actions", () => {
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+
+    fireEvent.click(screen.getByText("Canonical body").closest("button")!);
+    const detail = screen.getByLabelText("Notification detail");
+    expect(detail).toBeInTheDocument();
+    expect(within(detail).getByText("System notice")).toBeInTheDocument();
+    expect(within(detail).getByText("Canonical body")).toBeInTheDocument();
+    expect(state.markRead).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText("Future body").closest("button")!);
+    expect(screen.getByLabelText("Notification detail")).toBe(detail);
+    expect(within(detail).getByRole("img", { name: "Notification" })).toHaveTextContent("!");
+    expect(state.markRead).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText("Canonical body").closest("button")!);
+    fireEvent.click(within(detail).getByRole("button", { name: "Mark read" }));
+    expect(state.markRead).toHaveBeenCalledWith(2);
+    fireEvent.click(screen.getByRole("button", { name: "Mark all read" }));
+    expect(state.markAllRead).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(detail).getByRole("button", { name: /Back to inbox/ }));
+    expect(screen.queryByLabelText("Notification detail")).not.toBeInTheDocument();
+  });
+
+  it("renders canonical known/unknown rows with structural read state and readable timestamps", () => {
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+
     expect(screen.getByText("Future title")).toBeInTheDocument();
     expect(screen.getByText("Future body")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Notification" })).toHaveTextContent("!");
+    expect(screen.getByRole("img", { name: "Mail received" })).toHaveTextContent("✉");
+    expect(screen.getByText("Canonical body").closest("article")).toHaveAttribute("data-read", "false");
+    expect(screen.getByText("Older body").closest("article")).toHaveAttribute("data-read", "true");
+    expect(screen.getByText("2026-08-18 12:34 UTC").closest("time")).toHaveAttribute("dateTime", "2026-08-18T12:34:56Z");
+  });
 
-    fireEvent.click(screen.getByRole("button", { name: "Mark read" }));
-    expect(state.markRead).toHaveBeenCalledWith(2);
-    fireEvent.click(screen.getByRole("button", { name: "모두 읽음" }));
-    expect(state.markAllRead).toHaveBeenCalledTimes(1);
+  it("closes on outside click while retaining viewport placement wiring", async () => {
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+    expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+
+    const source = readFileSync("features/notification/NotificationBell.tsx", "utf8");
+    expect(source).toContain("notificationPopupPosition");
+    expect(source).toContain("ResizeObserver");
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toContain("max-height: calc(100dvh - 112px - env(safe-area-inset-bottom)");
   });
 
   it("renders deterministic initial timestamp text without render-time Date.now", () => {
@@ -66,18 +113,17 @@ describe("NotificationBell canonical surface", () => {
     expect(now).not.toHaveBeenCalled();
   });
 
-  it("uses dual-theme semantic surfaces without the fixed dark/gold container", () => {
+  it("uses local semantic styling without filters, screenshot content, or theme branches", () => {
     const source = readFileSync("features/notification/NotificationBell.tsx", "utf8");
     const css = readFileSync("app/globals.css", "utf8");
+    const notificationCss = css.slice(css.indexOf("/* Notification inbox utility"), css.indexOf(".lag-semantic-controls"));
 
-    expect(source).toContain("lag-utility-button");
-    expect(source).toContain("lag-notification-dropdown");
-    expect(source).toContain("notificationPopupPosition");
-    expect(source).toContain("var(--lag-control-bg)");
-    expect(css).toMatch(/\.lag-notification-trigger\s*{[\s\S]*?overflow:\s*visible/);
-    expect(source).toContain('maxHeight: "calc(100dvh - 32px)"');
-    expect(source).toContain('className="lag-notification-list"');
-    expect(source).toContain("minHeight: 0, flex: 1, overflowY: \"auto\"");
-    expect(source).not.toMatch(/rgba\(|#[0-9a-fA-F]{3,8}/);
+    expect(source).not.toMatch(/RoleEvent|Archive Trace|Focus \/ Depth|Wish|data-theme|category filter|unread filter/i);
+    expect(source).not.toContain("--lag-meta");
+    expect(notificationCss).toContain(".lag-notification-time");
+    expect(notificationCss).toContain("color: var(--lag-text-2)");
+    expect(notificationCss).not.toContain("--lag-meta");
+    expect(notificationCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
+    expect(css).toContain('.lag-notification-dropdown[data-view="detail"] .lag-notification-inbox');
   });
 });
