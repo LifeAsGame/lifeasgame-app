@@ -76,6 +76,11 @@ vi.mock("@/shared/ui/SaoAlert", () => ({ default: () => null }));
 vi.mock("@/features/notification/NotificationBell", () => ({ NotificationBell: () => null }));
 vi.mock("@/features/social/SocialUtilityHub", () => ({ default: () => <div data-testid="social-utility" /> }));
 vi.mock("@/features/system/settings/SettingsShell", () => ({ default: () => <div data-testid="settings-shell">Canonical Settings</div> }));
+vi.mock("@/features/market/ExchangeShell", () => ({
+  default: ({ surface, playerId }: { surface: string | null; playerId: number }) => surface
+    ? <div data-testid="exchange-shell">Exchange · {surface} · Player #{playerId}</div>
+    : null,
+}));
 
 describe("Home shell에서 feature surface를 routing할 때", () => {
   beforeEach(() => {
@@ -320,6 +325,27 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       const css = readFileSync("app/globals.css", "utf8");
       expect(css).not.toMatch(/\.lag-settings-route\s*>\s*:first-child\s*{[\s\S]*?display:\s*none/);
       expect(css).toContain("width: max-content !important");
+    });
+  });
+
+  describe("인증된 player가 Exchange를 선택하면", () => {
+    it("market internal key는 유지하고 feature-owned canonical surface로 routing한다", () => {
+      render(<Home />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Exchange" }));
+      expect(screen.getByRole("button", { name: "Wallet" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Shop" }));
+
+      expect(screen.getByTestId("exchange-shell")).toHaveTextContent("Exchange · shop · Player #7");
+    });
+
+    it("page orchestration에서 generated Market presentation과 Economy mutations를 소유하지 않는다", () => {
+      const page = readFileSync("app/page.tsx", "utf8");
+
+      expect(page).toContain('selectedMain === "market"');
+      expect(page).toContain("<ExchangeShell");
+      expect(page).not.toContain("MARKET_");
+      expect(page).not.toMatch(/(?:getWallet|createListing|reserveListing|purchaseListing|confirmShopPurchase)Api/);
     });
   });
 

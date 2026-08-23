@@ -32,4 +32,11 @@ describe("primary Orb navigation을 구성할 때", () => {
       expect(SUBMENUS_BY_MAIN.lifelog.map(({ id }) => id)).toEqual(["journal", "collection", "media", "exercise"]);
     });
   });
+
+  describe("Exchange IA를 노출하면", () => {
+    it("market internal key를 유지하고 Wallet/Shop/Trade만 표시한다", () => {
+      expect(MAIN_NAV_ITEMS.find(({ id }) => id === "market")).toEqual({ id: "market", label: "Exchange", slotLabel: "EX" });
+      expect(SUBMENUS_BY_MAIN.market.map(({ id }) => id)).toEqual(["wallet", "shop", "trade"]);
+    });
+  });
 });

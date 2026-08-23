@@ -24,6 +24,7 @@ import CertificationShell from "@/features/player/CertificationShell";
 import TitleShell from "@/features/player/TitleShell";
 import HobbyShell from "@/features/player/HobbyShell";
 import GrowthShell from "@/features/player/GrowthShell";
+import ExchangeShell from "@/features/market/ExchangeShell";
 import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
@@ -34,13 +35,12 @@ import {
   DEFAULT_SUB_SELECTIONS,
   MAIN_NAV_ITEMS,
   MAIN_PANEL_TITLES,
-  MARKET_SHOP_SECTIONS,
-  MARKET_TRADE_WINDOW_ACTIONS,
   SUBMENUS_BY_MAIN,
 } from "@/entities/nav";
 import type {
   FormFieldSpec,
   MainNavId,
+  MarketSubId,
   PanelDataItem,
   PanelStackItem,
   QuestsSubId,
@@ -51,13 +51,6 @@ import {
   PARTY_FORM_FIELDS,
   SOCIAL_LISTS,
 } from "@/features/social/model";
-import { LISTING_FORM_FIELDS } from "@/features/market/model";
-import {
-  MARKET_SHOP_CATALOG_LIST,
-  MARKET_SHOP_MY_LISTINGS,
-  MARKET_TRADE_FRIENDS,
-  MARKET_WALLET_SUMMARY_LIST,
-} from "@/features/market/model";
 import { SKILLS_LISTS } from "@/features/skills/model";
 import { SYSTEM_PANEL_ROWS } from "@/features/system/model";
 import { bringToFrontStable } from "@/shared/lib/reorder";
@@ -65,8 +58,6 @@ import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { useToast } from "@/context/ToastContext";
 import { NotificationBell } from "@/features/notification/NotificationBell";
 import { requestJoinPartyApi, requestJoinGuildApi } from "@/lib/api/endpoints/social.api";
-import { reserveShopItemApi, confirmShopPurchaseApi, cancelListingApi, createListingApi } from "@/lib/api/endpoints/market.api";
-import { MOCK_SHOP_ITEMS } from "@/lib/api/mock/market.mock";
 
 type SurfaceFocusState = {
   counter: number;
@@ -77,12 +68,7 @@ type DetailSelectionKey =
   | "player"
   | "skills"
   | "social"
-  | "lifelog"
-  | "marketWallet"
-  | "marketCatalog"
-  | "marketMyListings"
-  | "marketTradeFriend"
-  | "marketTradeAction";
+  | "lifelog";
 
 const SURFACE_GROUP_BASE_Z = {
   left: 100000,
@@ -96,11 +82,6 @@ function createDefaultDetailSelections(): Record<DetailSelectionKey, string | nu
     skills: null,
     social: null,
     lifelog: null,
-    marketWallet: null,
-    marketCatalog: null,
-    marketMyListings: null,
-    marketTradeFriend: null,
-    marketTradeAction: null,
   };
 }
 
@@ -119,7 +100,6 @@ function selectedSubForMain(selectedMain: MainNavId, selectedSubByMain: Record<M
 function buildPanels(
   selectedMain: MainNavId,
   selectedSubByMain: Record<MainNavId, string | null>,
-  selectedMarketShopSectionId: string | null,
   selectedDetailByKey: Record<DetailSelectionKey, string | null>,
 ): { panelStack: PanelStackItem[]; socialContext: SocialContextData | null } {
   const mainItems = SUBMENUS_BY_MAIN[selectedMain];
@@ -207,138 +187,6 @@ function buildPanels(
   }
 
   if (selectedMain === "market") {
-    if (selectedMainSub === "wallet") {
-      const selectedItem = findById(MARKET_WALLET_SUMMARY_LIST, selectedDetailByKey.marketWallet);
-
-      panelStack.push({
-        id: "market-wallet-summary",
-        kind: "list",
-        title: "Summary",
-        items: MARKET_WALLET_SUMMARY_LIST,
-        selectedId: selectedDetailByKey.marketWallet ?? undefined,
-        context: { main: "market", route: "market-wallet-summary" },
-      });
-
-      if (selectedItem) {
-        panelStack.push({
-          id: `market-wallet-detail-${selectedItem.id}`,
-          kind: "placeholder",
-          title: "Wallet Detail",
-          description: selectedItem.detailDescription,
-          rows: selectedItem.detailRows,
-        });
-      }
-
-      return { panelStack, socialContext: null };
-    }
-
-    if (selectedMainSub === "shop") {
-      const selectedShopSub =
-        MARKET_SHOP_SECTIONS.find((item) => item.id === selectedMarketShopSectionId)?.id ?? null;
-
-      panelStack.push({
-        id: "market-shop-menu",
-        kind: "menu",
-        title: "Shop",
-        items: MARKET_SHOP_SECTIONS,
-        selectedId: selectedShopSub ?? undefined,
-        context: { main: "market", route: "market-shop-menu" },
-      });
-
-      if (!selectedShopSub) {
-        return { panelStack, socialContext: null };
-      }
-
-      if (selectedShopSub === "catalog") {
-        const selectedItem = findById(MARKET_SHOP_CATALOG_LIST, selectedDetailByKey.marketCatalog);
-        panelStack.push({
-          id: "market-shop-catalog-list",
-          kind: "list",
-          title: "Listing",
-          items: MARKET_SHOP_CATALOG_LIST,
-          selectedId: selectedDetailByKey.marketCatalog ?? undefined,
-          context: { main: "market", route: "market-shop-catalog-list" },
-        });
-
-        if (selectedItem) {
-          panelStack.push({
-            id: `market-shop-catalog-detail-${selectedItem.id}`,
-            kind: "placeholder",
-            title: "Item Detail / Buy",
-            description: selectedItem.detailDescription,
-            rows: selectedItem.detailRows,
-            primaryActionLabel: "Buy",
-          });
-        }
-      } else {
-        const selectedItem = findById(MARKET_SHOP_MY_LISTINGS, selectedDetailByKey.marketMyListings);
-        panelStack.push({
-          id: "market-shop-my-listings",
-          kind: "list",
-          title: "My Selling List",
-          items: MARKET_SHOP_MY_LISTINGS,
-          selectedId: selectedDetailByKey.marketMyListings ?? undefined,
-          context: { main: "market", route: "market-shop-my-listings" },
-        });
-
-        if (selectedItem) {
-          panelStack.push({
-            id: `market-shop-my-listings-detail-${selectedItem.id}`,
-            kind: "placeholder",
-            title: "Listing Detail",
-            description: selectedItem.detailDescription,
-            rows: selectedItem.detailRows,
-          });
-        }
-      }
-
-      return { panelStack, socialContext: null };
-    }
-
-    const selectedTradeFriend = findById(MARKET_TRADE_FRIENDS, selectedDetailByKey.marketTradeFriend);
-    panelStack.push({
-      id: "market-trade-friends",
-      kind: "list",
-      title: "Friend List",
-      items: MARKET_TRADE_FRIENDS,
-      selectedId: selectedDetailByKey.marketTradeFriend ?? undefined,
-      context: { main: "market", route: "market-trade-friends" },
-    });
-
-    if (selectedTradeFriend) {
-      panelStack.push({
-        id: `market-trade-window-${selectedTradeFriend.id}`,
-        kind: "placeholder",
-        title: "Trade Window",
-        description: selectedTradeFriend.detailDescription,
-        rows: selectedTradeFriend.detailRows,
-      });
-
-      panelStack.push({
-        id: "market-trade-action-menu",
-        kind: "menu",
-        title: "Trade Action",
-        items: MARKET_TRADE_WINDOW_ACTIONS,
-        selectedId: selectedDetailByKey.marketTradeAction ?? undefined,
-        context: { main: "market", route: "market-trade-action-menu" },
-      });
-
-      if (selectedDetailByKey.marketTradeAction === "confirm") {
-        panelStack.push({
-          id: `market-trade-confirm-${selectedTradeFriend.id}`,
-          kind: "modal",
-          title: "Confirm Modal",
-          description: `Confirm trade with ${selectedTradeFriend.label}.`,
-          rows: [
-            "Validation: Slot limits checked",
-            "Validation: Partner online",
-            "Validation: Fee rule applied",
-          ],
-          confirmLabel: "Confirm Trade",
-        });
-      }
-    }
-
     return { panelStack, socialContext: null };
   }
 
@@ -396,7 +244,6 @@ export default function Home() {
   const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
     ...DEFAULT_SUB_SELECTIONS,
   });
-  const [selectedMarketShopSectionId, setSelectedMarketShopSectionId] = useState<string | null>(null);
   const [selectedDetailByKey, setSelectedDetailByKey] = useState<
     Record<DetailSelectionKey, string | null>
   >(() => createDefaultDetailSelections());
@@ -425,15 +272,6 @@ export default function Home() {
     if (main === "lifelog") {
       updateDetailSelections({ lifelog: null });
     }
-    if (main === "market") {
-      updateDetailSelections({
-        marketWallet: null,
-        marketCatalog: null,
-        marketMyListings: null,
-        marketTradeFriend: null,
-        marketTradeAction: null,
-      });
-    }
   };
 
   const { panelStack: basePanelStack, socialContext } = useMemo(
@@ -441,14 +279,12 @@ export default function Home() {
       ? buildPanels(
         selectedMain,
         selectedSubByMain,
-        selectedMarketShopSectionId,
         selectedDetailByKey,
       )
       : { panelStack: [], socialContext: null },
     [
       selectedMain,
       selectedSubByMain,
-      selectedMarketShopSectionId,
       selectedDetailByKey,
     ],
   );
@@ -479,7 +315,6 @@ export default function Home() {
 
   const clearFeatureState = () => {
     setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS });
-    setSelectedMarketShopSectionId(null);
     setSelectedDetailByKey(createDefaultDetailSelections());
     setActiveFormPanel(null);
     setEditingItemId(null);
@@ -521,26 +356,15 @@ export default function Home() {
         const next = tog(current);
         setSelectedSubByMain((prev) => ({ ...prev, [panel.context.main]: next }));
         clearDetailSelectionsForMain(panel.context.main);
-        if (panel.context.main === "market") setSelectedMarketShopSectionId(null);
         setActiveFormPanel(null);
         setEditingItemId(null);
         return;
-      }
-
-      if (panel.context.route === "market-shop-menu") {
-        setSelectedMarketShopSectionId(tog(selectedMarketShopSectionId));
-        updateDetailSelections({ marketCatalog: null, marketMyListings: null });
-        return;
-      }
-
-      if (panel.context.route === "market-trade-action-menu") {
-        updateDetailSelections({ marketTradeAction: tog(selectedDetailByKey.marketTradeAction) });
       }
       return;
     }
 
     if (panel.kind === "list") {
-      const { player, skills, social, marketWallet, marketCatalog, marketMyListings, marketTradeFriend } = selectedDetailByKey;
+      const { player, skills, social } = selectedDetailByKey;
 
       if (panel.context.route === "player-list") {
         setActiveFormPanel(null); setEditingItemId(null);
@@ -548,19 +372,10 @@ export default function Home() {
       }
       if (panel.context.route === "skills-list") updateDetailSelections({ skills: tog(skills) });
       if (panel.context.route === "social-list") updateDetailSelections({ social: tog(social) });
-      if (panel.context.route === "market-wallet-summary") updateDetailSelections({ marketWallet: tog(marketWallet) });
-      if (panel.context.route === "market-shop-catalog-list") updateDetailSelections({ marketCatalog: tog(marketCatalog) });
-      if (panel.context.route === "market-shop-my-listings") updateDetailSelections({ marketMyListings: tog(marketMyListings) });
-      if (panel.context.route === "market-trade-friends") {
-        updateDetailSelections({
-          marketTradeFriend: tog(marketTradeFriend),
-          marketTradeAction: null,
-        });
-      }
     }
   };
 
-  const closeFeatureSubmenu = (main: "player" | "inventory") => {
+  const closeFeatureSubmenu = (main: "player" | "inventory" | "market") => {
     setSelectedSubByMain((prev) => ({ ...prev, [main]: null }));
     clearDetailSelectionsForMain(main);
     setActiveFormPanel(null);
@@ -624,8 +439,6 @@ export default function Home() {
       openForm("party-create", "Create Party", PARTY_FORM_FIELDS, "파티 생성");
     } else if (route === "social-list" && sub === "guild") {
       openForm("guild-create", "Create Guild", GUILD_FORM_FIELDS, "길드 생성");
-    } else if (route === "market-shop-my-listings") {
-      openForm("listing-create", "New Listing", LISTING_FORM_FIELDS, "등록하기");
     }
   };
 
@@ -665,58 +478,7 @@ export default function Home() {
             }
           },
         });
-      } else if (selectedMain === "market") {
-        // Shop purchase: reserve → confirm flow
-        const shopItemId = Number(itemId);
-        const shopItem = MOCK_SHOP_ITEMS.find((s) => s.id === shopItemId);
-        const catalogItem = MARKET_SHOP_CATALOG_LIST.find((c) => c.id === itemId);
-        const itemName = catalogItem?.label ?? `Item #${shopItemId}`;
-        const price = shopItem?.price ?? 0;
-
-        setPendingAction({
-          title: "구매 예약",
-          message: `${itemName}\n${price.toLocaleString()} col — 5분간 예약합니다.`,
-          onConfirm: async () => {
-            try {
-              const { reservationToken, expiresAt } = await reserveShopItemApi(shopItemId);
-              const expiryStr = new Date(expiresAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-              setPendingAction({
-                title: "구매 확정",
-                message: `${itemName}\n${price.toLocaleString()} col\n예약 만료: ${expiryStr}`,
-                onConfirm: async () => {
-                  try {
-                    await confirmShopPurchaseApi(reservationToken);
-                    showToast({ variant: "success", title: "구매 완료", body: `${itemName} — ${price.toLocaleString()} col` });
-                  } catch {
-                    showToast({ variant: "error", title: "구매 실패", body: "다시 시도해주세요." });
-                  }
-                },
-              });
-            } catch {
-              showToast({ variant: "error", title: "예약 실패", body: "다시 시도해주세요." });
-            }
-          },
-        });
       }
-
-    } else if (actionType === "cancel") {
-      if (selectedMain === "market") {
-        const listingId = Number(itemId);
-        const listingItem = MARKET_SHOP_MY_LISTINGS.find((l) => l.id === itemId);
-        setPendingAction({
-          title: "리스팅 취소",
-          message: `${listingItem?.label ?? `리스팅 #${listingId}`} 판매를 취소하시겠습니까?`,
-          onConfirm: async () => {
-            try {
-              await cancelListingApi(listingId);
-              showToast({ variant: "info", title: "리스팅 취소됨", body: listingItem?.label ?? `#${listingId}` });
-            } catch {
-              showToast({ variant: "error", title: "취소 실패", body: "다시 시도해주세요." });
-            }
-          },
-        });
-      }
-
     } else if (actionType === "delete") {
       setPendingAction({
         title: "삭제",
@@ -727,25 +489,7 @@ export default function Home() {
   };
 
   // Called when form panel submit is confirmed
-  const handlePanelFormSubmit = (formKey: string, values: Record<string, string>) => {
-    if (formKey === "listing-create") {
-      const itemInstanceId = Number(values._itemInstanceId);
-      const itemId = Number(values._itemId);
-      const price = Number(values.price);
-      const itemName = values.itemName ?? `Item #${itemInstanceId}`;
-      if (!itemInstanceId || !price) {
-        showToast({ variant: "error", title: "입력 오류", body: "가격을 입력해주세요." });
-        return;
-      }
-      createListingApi({ itemInstanceId, itemId, price }).then(() => {
-        showToast({ variant: "success", title: "리스팅 등록됨", body: `${itemName} — ${price.toLocaleString()} col` });
-        setActiveFormPanel(null);
-      }).catch(() => {
-        showToast({ variant: "error", title: "등록 실패", body: "다시 시도해주세요." });
-      });
-      return;
-    }
-
+  const handlePanelFormSubmit = () => {
     const wasEditing = editingItemId !== null;
     setActiveFormPanel(null);
     setEditingItemId(null);
@@ -872,6 +616,19 @@ export default function Home() {
                 onPanelItemSelect={handlePanelItemSelect}
               />
               {inventorySurface}
+            </div>
+          ) : selectedMain === "market" ? (
+            <div className="lag-exchange-route flex w-fit items-center gap-3">
+              <RightPanels
+                selectedMain="market"
+                panelStack={panelStack.slice(0, 1)}
+                onPanelItemSelect={handlePanelItemSelect}
+              />
+              <ExchangeShell
+                surface={selectedSubByMain.market as MarketSubId | null}
+                playerId={playerId}
+                onBack={() => closeFeatureSubmenu("market")}
+              />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
             <div className="flex w-fit items-center gap-3">

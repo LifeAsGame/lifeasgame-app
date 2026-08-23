@@ -12,13 +12,13 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
   { id: "quests",    label: "Journey",   slotLabel: "QU" },
   { id: "role",      label: "Role",      slotLabel: "RL" },
   { id: "lifelog",   label: "Lifelog",   slotLabel: "LI" },
-  { id: "market",    label: "Market",    slotLabel: "MK" },
+  { id: "market",    label: "Exchange",  slotLabel: "EX" },
   { id: "system",    label: "System",    slotLabel: "SY" },
 ];
 
 export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {
   player: "Player", skills: "Skills", inventory: "Inventory", quests: "Journey",
-  role: "Role", social: "Social", lifelog: "Lifelog", market: "Market", system: "System",
+  role: "Role", social: "Social", lifelog: "Lifelog", market: "Exchange", system: "System",
 };
 
 export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
@@ -80,14 +80,4 @@ export const INVENTORY_GEAR_PARTS: PanelMenuItem[] = [
   { id: "armor",     label: "Armor",     slotLabel: "AR" },
   { id: "accessory", label: "Accessory", slotLabel: "AC" },
   { id: "boots",     label: "Boots",     slotLabel: "BT" },
-];
-
-export const MARKET_SHOP_SECTIONS: PanelMenuItem[] = [
-  { id: "catalog",    label: "Catalog",     slotLabel: "CA" },
-  { id: "myListings", label: "My Listings", slotLabel: "ML" },
-];
-
-export const MARKET_TRADE_WINDOW_ACTIONS: PanelMenuItem[] = [
-  { id: "review",  label: "Review Offer",  slotLabel: "RV" },
-  { id: "confirm", label: "Confirm Trade", slotLabel: "CF" },
 ];

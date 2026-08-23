@@ -187,7 +187,13 @@ body {
 .lag-notification-action,
 .lag-notification-row,
 .lag-notification-detail,
-.lag-notification-load-older {
+.lag-notification-load-older,
+.lag-exchange-row,
+.lag-exchange-entry,
+.lag-exchange-action,
+.lag-exchange-button,
+.lag-exchange-section,
+.lag-exchange-tabs button {
   transition:
     background-color var(--lag-motion-normal) ease,
     border-color var(--lag-motion-normal) ease,
@@ -2411,6 +2417,360 @@ body {
   transition: color var(--lag-motion-normal) ease;
 }
 
+/* Exchange uses the reference material hierarchy without its personal-finance samples. */
+.lag-exchange-shell [data-stage-key="market-stage-1"] .lag-panel-frame {
+  width: min(620px, calc(100vw - 32px)) !important;
+}
+
+.lag-exchange-shell [data-stage-key="market-stage-2"] .lag-panel-frame {
+  width: min(560px, calc(100vw - 32px)) !important;
+}
+
+.lag-exchange-surface,
+.lag-exchange-detail,
+.lag-exchange-state {
+  display: grid;
+  gap: var(--lag-space-4);
+  min-width: 0;
+  padding: 0 var(--lag-space-4);
+}
+
+.lag-exchange-header {
+  display: grid;
+  gap: var(--lag-space-1);
+  padding: var(--lag-space-3) var(--lag-space-4);
+  border: 1px solid var(--lag-divider);
+  border-left: 4px solid var(--lag-cyan);
+  border-radius: var(--lag-radius-sm);
+  background: var(--lag-raised-surface);
+}
+
+.lag-exchange-header[data-accent="amber"] {
+  border-left-color: var(--lag-amber);
+}
+
+.lag-exchange-header[data-accent="violet"] {
+  border-left-color: var(--lag-violet);
+}
+
+.lag-exchange-header > span {
+  color: var(--lag-text-2);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lag-exchange-header h4 {
+  color: var(--lag-text);
+  font-size: 1.1rem;
+  font-weight: 750;
+}
+
+.lag-exchange-header p {
+  color: var(--lag-text-2);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.lag-exchange-balance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--lag-space-2) var(--lag-space-4);
+  align-items: end;
+  padding: var(--lag-space-6);
+  border: 1px solid var(--lag-control-border);
+  border-radius: var(--lag-radius-md);
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--lag-cyan) 12%, transparent), transparent 58%),
+    var(--lag-panel-2);
+}
+
+.lag-exchange-balance span {
+  grid-column: 1 / -1;
+  color: var(--lag-text-2);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lag-exchange-balance strong {
+  color: var(--lag-text);
+  font-size: clamp(2rem, 7vw, 3.8rem);
+  font-weight: 300;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.lag-exchange-balance em,
+.lag-exchange-value,
+.lag-exchange-trade em {
+  color: var(--lag-amber);
+  font-style: normal;
+  font-weight: 750;
+}
+
+.lag-exchange-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--lag-space-2);
+}
+
+.lag-exchange-tabs button,
+.lag-exchange-action,
+.lag-exchange-button,
+.lag-exchange-field :where(input, select) {
+  min-height: 44px;
+  border: 1px solid var(--lag-control-border);
+  border-radius: var(--lag-radius-sm);
+  background: var(--lag-control-bg);
+  color: var(--lag-control-text);
+}
+
+.lag-exchange-tabs button,
+.lag-exchange-action,
+.lag-exchange-button {
+  padding: var(--lag-space-2) var(--lag-space-3);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.lag-exchange-tabs button:hover,
+.lag-exchange-tabs button[data-selected="true"],
+.lag-exchange-action:not(:disabled):hover,
+.lag-exchange-button:not(:disabled):hover {
+  border-color: var(--lag-focus);
+  background: var(--lag-control-hover-bg);
+}
+
+.lag-exchange-tabs button[data-selected="true"] {
+  box-shadow: inset 0 -3px 0 var(--lag-violet);
+}
+
+.lag-exchange-list,
+.lag-exchange-entry-picker {
+  display: grid;
+  gap: var(--lag-space-2);
+  min-width: 0;
+}
+
+.lag-exchange-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: var(--lag-space-3);
+  align-items: center;
+  min-height: 68px;
+  padding: var(--lag-space-3);
+  border: 1px solid var(--lag-divider);
+  border-radius: var(--lag-radius-sm);
+  background: var(--lag-muted-surface);
+  color: var(--lag-text);
+  text-align: left;
+}
+
+.lag-exchange-row:not(:disabled):hover,
+.lag-exchange-row[data-selected="true"] {
+  border-color: var(--lag-focus);
+  background: var(--lag-control-hover-bg);
+}
+
+.lag-exchange-row[data-selected="true"] {
+  box-shadow: inset 4px 0 0 var(--lag-violet);
+}
+
+.lag-exchange-row-mark {
+  color: var(--lag-violet);
+}
+
+.lag-exchange-row-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.lag-exchange-row-copy strong,
+.lag-exchange-row-copy small,
+.lag-exchange-row-copy em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lag-exchange-row-copy small {
+  color: var(--lag-text-2);
+  font-size: 0.7rem;
+}
+
+.lag-exchange-row-copy em {
+  color: var(--lag-state-info);
+  font-size: 0.65rem;
+  font-style: normal;
+}
+
+.lag-exchange-section {
+  overflow: hidden;
+  border: 1px solid var(--lag-divider);
+  border-radius: var(--lag-radius-sm);
+  background: var(--lag-panel);
+}
+
+.lag-exchange-section h5,
+.lag-exchange-entry-picker legend {
+  width: 100%;
+  padding: var(--lag-space-2) var(--lag-space-3);
+  background: var(--lag-panel-2);
+  color: var(--lag-text);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lag-exchange-section dl {
+  padding: 0 var(--lag-space-3);
+}
+
+.lag-exchange-data-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--lag-space-3);
+  padding: var(--lag-space-3) 0;
+  border-bottom: 1px solid var(--lag-divider);
+}
+
+.lag-exchange-data-row:last-child {
+  border-bottom: 0;
+}
+
+.lag-exchange-data-row dt,
+.lag-exchange-trade small {
+  color: var(--lag-text-2);
+}
+
+.lag-exchange-data-row dd {
+  overflow-wrap: anywhere;
+  color: var(--lag-text);
+  text-align: right;
+}
+
+.lag-exchange-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lag-space-2);
+}
+
+.lag-exchange-action {
+  border-color: color-mix(in srgb, var(--lag-amber) 62%, var(--lag-control-border));
+  background: color-mix(in srgb, var(--lag-amber) 12%, var(--lag-control-bg));
+}
+
+.lag-exchange-button[data-variant="destructive"] {
+  border-color: var(--lag-state-error);
+}
+
+.lag-exchange-feedback {
+  padding: var(--lag-space-2) var(--lag-space-3);
+  border-left: 3px solid var(--lag-state-error);
+  color: var(--lag-text);
+  font-size: 0.76rem;
+}
+
+.lag-exchange-feedback[data-state="info"] {
+  border-left-color: var(--lag-state-info);
+}
+
+.lag-exchange-entry-picker {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--lag-divider);
+  border-radius: var(--lag-radius-sm);
+}
+
+.lag-exchange-entry-picker legend {
+  float: left;
+  margin-bottom: var(--lag-space-2);
+}
+
+.lag-exchange-entry {
+  display: grid;
+  gap: 2px;
+  margin-inline: var(--lag-space-2);
+  padding: var(--lag-space-3);
+  border: 1px solid var(--lag-divider);
+  border-radius: var(--lag-radius-sm);
+  background: var(--lag-muted-surface);
+  color: var(--lag-text);
+  text-align: left;
+}
+
+.lag-exchange-entry:last-child {
+  margin-bottom: var(--lag-space-2);
+}
+
+.lag-exchange-entry:not(:disabled):hover,
+.lag-exchange-entry[data-selected="true"] {
+  border-color: var(--lag-focus);
+  background: var(--lag-control-hover-bg);
+}
+
+.lag-exchange-entry[data-selected="true"] {
+  box-shadow: inset 4px 0 0 var(--lag-amber);
+}
+
+.lag-exchange-entry span,
+.lag-exchange-entry small {
+  color: var(--lag-text-2);
+  font-size: 0.7rem;
+}
+
+.lag-exchange-field {
+  display: grid;
+  gap: var(--lag-space-1);
+  color: var(--lag-text-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.lag-exchange-field :where(input, select) {
+  width: 100%;
+  padding: var(--lag-space-2) var(--lag-space-3);
+}
+
+.lag-exchange-trade {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--lag-space-2) var(--lag-space-3);
+  align-items: center;
+  padding: var(--lag-space-3);
+  border: 1px solid var(--lag-divider);
+  border-left: 4px solid var(--lag-violet);
+  border-radius: var(--lag-radius-sm);
+  background: var(--lag-muted-surface);
+}
+
+.lag-exchange-trade > span {
+  color: var(--lag-state-info);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lag-exchange-trade strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lag-exchange-trade small {
+  grid-column: 2;
+}
+
+.lag-exchange-trade em {
+  grid-column: 3;
+  grid-row: 1 / 3;
+}
+
 @media (min-width: 768px) and (max-width: 1199px) {
   .lag-app-shell {
     min-width: max-content;
@@ -3313,6 +3673,65 @@ textarea.lag-journal-control {
     padding: var(--lag-space-4) var(--lag-space-4) calc(140px + env(safe-area-inset-bottom)) !important;
   }
 
+  .lag-exchange-route {
+    align-items: center;
+  }
+
+  .lag-exchange-shell [data-stage-key="market-stage-1"] .lag-panel-frame,
+  .lag-exchange-shell [data-stage-key="market-stage-2"] .lag-panel-frame {
+    width: clamp(280px, calc(100vw - 32px), 344px) !important;
+  }
+
+  .lag-exchange-surface,
+  .lag-exchange-detail,
+  .lag-exchange-state {
+    padding-inline: var(--lag-space-3);
+  }
+
+  .lag-exchange-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lag-exchange-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .lag-exchange-row .lag-exchange-value {
+    grid-column: 2;
+  }
+
+  .lag-exchange-row > span:last-child {
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
+
+  .lag-exchange-data-row {
+    grid-template-columns: minmax(96px, 0.85fr) minmax(0, 1.15fr);
+  }
+
+  .lag-exchange-action,
+  .lag-exchange-button {
+    width: 100%;
+  }
+
+  .lag-exchange-trade {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .lag-exchange-trade > span {
+    grid-column: 1;
+  }
+
+  .lag-exchange-trade strong,
+  .lag-exchange-trade small {
+    grid-column: 1;
+  }
+
+  .lag-exchange-trade em {
+    grid-column: 2;
+    grid-row: 1 / 4;
+  }
+
   .lag-orb-column {
     display: block;
     position: fixed !important;
@@ -3821,7 +4240,13 @@ textarea.lag-journal-control {
   .lag-notification-action,
   .lag-notification-row,
   .lag-notification-detail,
-  .lag-notification-load-older {
+  .lag-notification-load-older,
+  .lag-exchange-row,
+  .lag-exchange-entry,
+  .lag-exchange-action,
+  .lag-exchange-button,
+  .lag-exchange-section,
+  .lag-exchange-tabs button {
     transition-duration: 0s;
   }
 
