@@ -193,7 +193,7 @@ export default function ExerciseShell() {
 
       <AnimatePresence initial={false}>
         {exercises.selectedId ? (
-          <PanelStage stageKey="lifelog-exercise-detail" focusKey={exercises.selectedId} index={2}>
+          <PanelStage stageKey="lifelog-exercise-detail" index={2}>
             <PanelFrame title="Exercise Detail" depth={0} contentKey={exercises.selectedId}>
               {exercises.detail.loading && !exercises.detail.data ? <InfoCard>Loading Exercise...</InfoCard> : null}
               {exercises.detail.error ? <ErrorState message={exercises.detail.error} retry={() => void exercises.detail.retry()} /> : null}

@@ -59,10 +59,10 @@ export default function AchievementShell({ onBack }: { onBack?: () => void }) {
 
       <AnimatePresence initial={false} mode="popLayout">
         {achievements.selectedId ? (
-          <PanelStage key="player-achievement-detail" stageKey="player-achievement-detail" focusKey={achievements.selectedId} index={1}>
+          <PanelStage key="player-achievement-detail" stageKey="player-achievement-detail" index={1}>
             <PanelFrame title="Achievement Detail" depth={0} contentKey={achievements.selectedId} backButton={<BackButton label="Back to Acquired Achievements" onClick={() => {
               achievements.clearSelection();
-              requestStageFocus("player-achievement-list", "center");
+              requestStageFocus("player-achievement-list", "back");
             }} />}>
               {achievements.detail.loading && !detail ? <InfoCard>Loading Achievement...</InfoCard> : null}
               {achievements.detail.error ? <ErrorState message={achievements.detail.error} retry={() => void achievements.detail.retry()} /> : null}

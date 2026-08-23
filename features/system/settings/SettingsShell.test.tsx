@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { UserSettingsResponse } from "@/shared/api/types";
 import { ThemeProvider } from "@/features/theme/ThemeProvider";
+import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import SettingsShell from "./SettingsShell";
 
 const api = vi.hoisted(() => ({ getSettingsApi: vi.fn(), updateSettingsApi: vi.fn() }));
@@ -43,6 +44,20 @@ describe("System Options surface save timing", () => {
     await waitFor(() => expect(screen.queryByRole("spinbutton", { name: "Master Volume" })).not.toBeInTheDocument());
     expect(screen.getByText("25%")).toBeInTheDocument();
     expect(toast.showToast).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the Settings camera stable between summary and edit content", async () => {
+    const focus = vi.fn();
+    window.addEventListener(STAGE_FOCUS_EVENT, focus);
+    render(<ThemeProvider><SettingsShell /></ThemeProvider>);
+    expect(await screen.findByText("70%")).toBeInTheDocument();
+    focus.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Settings" }));
+
+    expect(screen.getByRole("button", { name: "Save Settings" })).toBeInTheDocument();
+    expect(focus).not.toHaveBeenCalled();
+    window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
   it("applies theme selection immediately and keeps it applied when focused persistence fails", async () => {

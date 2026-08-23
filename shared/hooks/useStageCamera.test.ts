@@ -1,7 +1,49 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { cameraInsets, cameraProfileForWidth, focusStage, requestStageFocus, stageFocusPlan, useStageCamera } from "./useStageCamera";
+import {
+  cameraInsets,
+  cameraProfileForWidth,
+  cameraScrollTarget,
+  focusStage,
+  requestStageFocus,
+  stageFocusPlan,
+  useStageCamera,
+} from "./useStageCamera";
+
+const domRect = (left: number, width: number) => ({
+  left,
+  right: left + width,
+  top: 0,
+  bottom: 600,
+  width,
+  height: 600,
+  x: left,
+  y: 0,
+  toJSON: () => ({}),
+});
+
+function cameraOwner(clientWidth = 400, scrollWidth = 1200) {
+  const owner = document.createElement("div");
+  const scrollTo = vi.fn(({ left }: { left: number }) => { owner.scrollLeft = left; });
+  Object.defineProperties(owner, {
+    scrollLeft: { configurable: true, writable: true, value: 0 },
+    scrollTo: { configurable: true, value: scrollTo },
+    clientWidth: { configurable: true, value: clientWidth },
+    scrollWidth: { configurable: true, value: scrollWidth },
+  });
+  owner.getBoundingClientRect = () => domRect(0, clientWidth);
+  return { owner, scrollTo };
+}
+
+function appendStage(owner: HTMLElement, key: string, left: number, width = 300, autoFocus = true) {
+  const stage = document.createElement("div");
+  stage.dataset.stageKey = key;
+  if (!autoFocus) stage.dataset.stageAutoFocus = "false";
+  stage.getBoundingClientRect = () => domRect(left - owner.scrollLeft, width);
+  owner.append(stage);
+  return stage;
+}
 
 describe("stage camera contract", () => {
   beforeEach(() => {
@@ -11,9 +53,10 @@ describe("stage camera contract", () => {
     vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
   });
 
-  it("targets a newly opened stage while stable detail replacement uses explicit intent", () => {
-    expect(stageFocusPlan(["root"], ["root", "detail-a"])).toEqual({ key: "detail-a", align: "nearest" });
+  it("targets only genuine stage topology changes and returns to the immediate parent", () => {
+    expect(stageFocusPlan(["root"], ["root", "detail"])).toEqual({ key: "detail", align: "forward" });
     expect(stageFocusPlan(["root", "detail"], ["root", "detail"])).toBeNull();
+    expect(stageFocusPlan(["root", "list", "detail"], ["root", "list"])).toEqual({ key: "list", align: "back" });
   });
 
   it("selects wide, compact, and mobile policy from viewport width", () => {
@@ -22,113 +65,116 @@ describe("stage camera contract", () => {
     expect(cameraProfileForWidth(390)).toBe("mobile");
   });
 
-  it("returns focus to the parent when a stage closes", () => {
-    expect(stageFocusPlan(["root", "list", "detail"], ["root", "list"])).toEqual({ key: "list", align: "center" });
+  it("clamps both scroll bounds and aligns an over-wide target from its readable start", () => {
+    const base = { scrollLeft: 0, scrollWidth: 900, clientWidth: 400, targetWidth: 300, profile: "mobile" as const, align: "forward" as const, insets: { leading: 24, trailing: 24 } };
+    expect(cameraScrollTarget({ ...base, targetLeft: -80 })).toBe(0);
+    expect(cameraScrollTarget({ ...base, targetLeft: 1_200 })).toBe(500);
+    expect(cameraScrollTarget({ ...base, targetLeft: 500, targetWidth: 460 })).toBe(500);
+  });
+
+  it.each([
+    ["wide", 164],
+    ["compact", 628],
+    ["mobile", 676],
+  ] as const)("uses the %s forward composition policy", (profile, expected) => {
+    expect(cameraScrollTarget({
+      scrollLeft: 0,
+      scrollWidth: 2_000,
+      clientWidth: 1_000,
+      targetLeft: 700,
+      targetWidth: 344,
+      profile,
+      align: "forward",
+      insets: profile === "wide" ? { leading: 32, trailing: 120 } : profile === "compact" ? { leading: 72, trailing: 32 } : { leading: 24, trailing: 24 },
+    })).toBe(expected);
+  });
+
+  it.each([
+    ["wide", 164],
+    ["compact", 628],
+    ["mobile", 676],
+  ] as const)("uses the %s Back composition policy", (profile, expected) => {
+    expect(cameraScrollTarget({
+      scrollLeft: 900,
+      scrollWidth: 2_000,
+      clientWidth: 1_000,
+      targetLeft: 700,
+      targetWidth: 344,
+      profile,
+      align: "back",
+      insets: profile === "wide" ? { leading: 32, trailing: 120 } : profile === "compact" ? { leading: 72, trailing: 32 } : { leading: 24, trailing: 24 },
+    })).toBe(expected);
+  });
+
+  it("centers a mobile near-viewport-width stage instead of preserving a desktop-style parent peek", () => {
+    expect(cameraScrollTarget({
+      scrollLeft: 0,
+      scrollWidth: 1_200,
+      clientWidth: 400,
+      targetLeft: 500,
+      targetWidth: 368,
+      profile: "mobile",
+      align: "forward",
+      insets: { leading: 48, trailing: 24 },
+    })).toBe(484);
   });
 
   it("uses non-animated scrolling for reduced motion", () => {
-    const owner = document.createElement("div");
-    const target = document.createElement("div");
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 400 },
-      scrollWidth: { configurable: true, value: 900 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) });
-    target.getBoundingClientRect = () => ({ left: 500, right: 800, top: 100, bottom: 500, width: 300, height: 400, x: 500, y: 100, toJSON: () => ({}) });
+    const { owner, scrollTo } = cameraOwner(400, 900);
+    const target = appendStage(owner, "detail", 500);
 
-    focusStage(owner, target, "nearest", true);
+    focusStage(owner, target, "forward", true);
 
     expect(scrollTo).toHaveBeenCalledWith({ left: 448, behavior: "auto" });
   });
 
-  it("keeps the larger mobile leading inset when revealing a stage", () => {
-    const owner = document.createElement("div");
-    const target = document.createElement("div");
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollLeft: { configurable: true, writable: true, value: 100 },
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 400 },
-      scrollWidth: { configurable: true, value: 900 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) });
-    target.getBoundingClientRect = () => ({ left: 10, right: 310, top: 0, bottom: 400, width: 300, height: 400, x: 10, y: 0, toJSON: () => ({}) });
+  it("focuses a new child topology but ignores arbitrary child-list changes", async () => {
+    const { owner, scrollTo } = cameraOwner();
+    const root = appendStage(owner, "root", 100);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "player"));
+    scrollTo.mockClear();
 
-    focusStage(owner, target, "nearest", false, { leading: 48, trailing: 24 });
+    act(() => appendStage(owner, "detail", 600));
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    scrollTo.mockClear();
 
-    expect(scrollTo).toHaveBeenCalledWith({ left: 62, behavior: "smooth" });
+    act(() => root.append(document.createElement("span")));
+    await act(async () => { await Promise.resolve(); });
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["wide", 448],
-    ["compact", 428],
-    ["mobile", 436],
-  ] as const)("uses the %s composition when revealing a child", (profile, expectedLeft) => {
-    const owner = document.createElement("div");
-    const target = document.createElement("div");
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 400 },
-      scrollWidth: { configurable: true, value: 900 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) });
-    target.getBoundingClientRect = () => ({ left: 500, right: 800, top: 0, bottom: 400, width: 300, height: 400, x: 500, y: 0, toJSON: () => ({}) });
+  it("preserves a spatial stage that opts out of forward auto-focus", async () => {
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "profile", 100);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "player"));
+    scrollTo.mockClear();
 
-    focusStage(owner, target, "nearest", false, cameraInsets(owner, profile), profile);
+    act(() => appendStage(owner, "history", 420, 300, false));
+    await act(async () => { await Promise.resolve(); });
 
-    expect(scrollTo).toHaveBeenCalledWith({ left: expectedLeft, behavior: "smooth" });
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
-  it("keeps useful parent context while making a wide-desktop child readable", () => {
-    const owner = document.createElement("div");
-    const target = document.createElement("div");
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 1000 },
-      scrollWidth: { configurable: true, value: 1400 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 1000, top: 0, bottom: 600, width: 1000, height: 600, x: 0, y: 0, toJSON: () => ({}) });
-    target.getBoundingClientRect = () => ({ left: 720, right: 1064, top: 0, bottom: 400, width: 344, height: 400, x: 720, y: 0, toJSON: () => ({}) });
+  it("focuses the immediate surviving parent when the deepest stage is removed", async () => {
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "root", 100);
+    const list = appendStage(owner, "list", 420);
+    const detail = appendStage(owner, "detail", 740);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "player"));
+    scrollTo.mockClear();
 
-    focusStage(owner, target, "nearest", false, cameraInsets(owner, "wide"), "wide");
+    act(() => detail.remove());
 
-    expect(scrollTo).toHaveBeenCalledWith({ left: 184, behavior: "smooth" });
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    expect(list.dataset.stageKey).toBe("list");
   });
 
-  it.each(["wide", "compact", "mobile"] as const)("centers the parent on Back under the %s profile", (profile) => {
-    const owner = document.createElement("div");
-    const target = document.createElement("div");
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 400 },
-      scrollWidth: { configurable: true, value: 900 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) });
-    target.getBoundingClientRect = () => ({ left: 200, right: 500, top: 0, bottom: 400, width: 300, height: 400, x: 200, y: 0, toJSON: () => ({}) });
-
-    focusStage(owner, target, "center", false, cameraInsets(owner, profile), profile);
-
-    expect(scrollTo).toHaveBeenCalledWith({ left: 150, behavior: "smooth" });
-  });
-
-  it("moves the camera when an existing stage sends explicit focus intent", () => {
-    const owner = document.createElement("div");
-    const target = document.createElement("div");
-    target.dataset.stageKey = "detail";
-    owner.append(target);
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 400 },
-      scrollWidth: { configurable: true, value: 900 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) });
-    target.getBoundingClientRect = () => ({ left: 500, right: 800, top: 0, bottom: 400, width: 300, height: 400, x: 500, y: 0, toJSON: () => ({}) });
+  it("moves an existing stage only for explicit focus intent", () => {
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "detail", 500);
     const ref = { current: owner };
     renderHook(() => useStageCamera(ref, ref, "player"));
     scrollTo.mockClear();
@@ -138,31 +184,55 @@ describe("stage camera contract", () => {
     expect(scrollTo).toHaveBeenCalledWith({ left: 450, behavior: "smooth" });
   });
 
-  it("keeps a focus request until its stage is committed and focuses it once", async () => {
-    const owner = document.createElement("div");
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 400 },
-      scrollWidth: { configurable: true, value: 900 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) });
+  it("keeps a same-context request until its stage mounts", async () => {
+    const { owner, scrollTo } = cameraOwner();
     const ref = { current: owner };
     renderHook(() => useStageCamera(ref, ref, "player"));
 
-    act(() => requestStageFocus("late-detail", "nearest"));
+    act(() => requestStageFocus("late-detail", "forward"));
     expect(scrollTo).not.toHaveBeenCalled();
-
-    const target = document.createElement("div");
-    target.dataset.stageKey = "late-detail";
-    target.getBoundingClientRect = () => ({ left: 500, right: 800, top: 0, bottom: 400, width: 300, height: 400, x: 500, y: 0, toJSON: () => ({}) });
-    act(() => owner.append(target));
+    act(() => appendStage(owner, "late-detail", 600));
 
     await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
-    expect(scrollTo).toHaveBeenCalledWith({ left: 448, behavior: "smooth" });
   });
 
-  it("coalesces competing focus intents from one commit to the final child target", () => {
+  it("does not keep a focus target that exists outside the active camera owner", async () => {
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "root", 100);
+    const outside = appendStage(document.body, "left-context", 0);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "role"));
+    scrollTo.mockClear();
+
+    act(() => requestStageFocus("left-context", "back"));
+    act(() => appendStage(owner, "role-summary", 420));
+
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    outside.remove();
+  });
+
+  it("invalidates stale pending focus on main context switch and ignores its late old mount", async () => {
+    const { owner, scrollTo } = cameraOwner();
+    const oldRoot = appendStage(owner, "player-root", 100);
+    const ref = { current: owner };
+    const view = renderHook(({ context }) => useStageCamera(ref, ref, context), { initialProps: { context: "player" } });
+    scrollTo.mockClear();
+    act(() => requestStageFocus("player-late-detail", "forward"));
+
+    act(() => {
+      oldRoot.remove();
+      appendStage(owner, "inventory-root", 100);
+      view.rerender({ context: "inventory" });
+    });
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    scrollTo.mockClear();
+
+    act(() => appendStage(owner, "player-late-detail", 600));
+    await act(async () => { await Promise.resolve(); });
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("coalesces rapid explicit requests to the final valid target", () => {
     const frames = new Map<number, FrameRequestCallback>();
     let frameId = 0;
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
@@ -170,28 +240,16 @@ describe("stage camera contract", () => {
       return frameId;
     });
     vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
-    const owner = document.createElement("div");
-    const list = document.createElement("div");
-    const detail = document.createElement("div");
-    list.dataset.stageKey = "list";
-    detail.dataset.stageKey = "detail";
-    owner.append(list, detail);
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 400 },
-      scrollWidth: { configurable: true, value: 1200 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) });
-    list.getBoundingClientRect = () => ({ left: 400, right: 700, top: 0, bottom: 400, width: 300, height: 400, x: 400, y: 0, toJSON: () => ({}) });
-    detail.getBoundingClientRect = () => ({ left: 720, right: 1020, top: 0, bottom: 400, width: 300, height: 400, x: 720, y: 0, toJSON: () => ({}) });
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "list", 400);
+    appendStage(owner, "detail", 720);
     const ref = { current: owner };
     renderHook(() => useStageCamera(ref, ref, "player"));
     frames.clear();
 
     act(() => {
-      requestStageFocus("list");
-      requestStageFocus("detail");
+      requestStageFocus("list", "forward");
+      requestStageFocus("detail", "forward");
     });
     [...frames.values()].forEach((callback) => callback(0));
 
@@ -199,26 +257,80 @@ describe("stage camera contract", () => {
     expect(scrollTo).toHaveBeenCalledWith({ left: 668, behavior: "smooth" });
   });
 
-  it("re-applies the active stage through the shared profile when the viewport resizes", async () => {
-    const owner = document.createElement("div");
-    const target = document.createElement("div");
-    target.dataset.stageKey = "root";
-    owner.append(target);
-    const scrollTo = vi.fn();
-    Object.defineProperties(owner, {
-      scrollTo: { configurable: true, value: scrollTo },
-      clientWidth: { configurable: true, value: 400 },
-      scrollWidth: { configurable: true, value: 900 },
-    });
-    owner.getBoundingClientRect = () => ({ left: 0, right: 400, top: 0, bottom: 600, width: 400, height: 600, x: 0, y: 0, toJSON: () => ({}) });
-    target.getBoundingClientRect = () => ({ left: 500, right: 800, top: 0, bottom: 400, width: 300, height: 400, x: 500, y: 0, toJSON: () => ({}) });
+  it("preserves the semantic active stage when switching from desktop to mobile owner", async () => {
+    const { owner: viewport, scrollTo: viewportScroll } = cameraOwner();
+    const { owner: workspace, scrollTo: workspaceScroll } = cameraOwner();
+    viewport.append(workspace);
+    appendStage(workspace, "root", 100);
+    appendStage(workspace, "detail", 600);
+    const viewportRef = { current: viewport };
+    const workspaceRef = { current: workspace };
+    renderHook(() => useStageCamera(viewportRef, workspaceRef, "player"));
+    viewportScroll.mockClear();
+
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    act(() => window.dispatchEvent(new Event("resize")));
+
+    await waitFor(() => expect(viewportScroll).toHaveBeenCalledTimes(1));
+    expect(workspaceScroll).toHaveBeenLastCalledWith({ left: 0, behavior: "auto" });
+  });
+
+  it("restores contextual wide composition when switching from mobile to desktop owner", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { owner: viewport } = cameraOwner();
+    const { owner: workspace, scrollTo: workspaceScroll } = cameraOwner();
+    viewport.append(workspace);
+    appendStage(workspace, "root", 100);
+    appendStage(workspace, "detail", 600);
+    const viewportRef = { current: viewport };
+    const workspaceRef = { current: workspace };
+    renderHook(() => useStageCamera(viewportRef, workspaceRef, "player"));
+    workspaceScroll.mockClear();
+
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
+    act(() => window.dispatchEvent(new Event("resize")));
+
+    await waitFor(() => expect(workspaceScroll).toHaveBeenCalledTimes(1));
+    expect(workspaceScroll).toHaveBeenCalledWith({ left: 548, behavior: "smooth" });
+  });
+
+  it("falls back to the deepest surviving stage when the active stage is missing after profile switch", async () => {
+    const { owner: viewport, scrollTo: viewportScroll } = cameraOwner();
+    const { owner: workspace } = cameraOwner();
+    viewport.append(workspace);
+    const root = appendStage(workspace, "root", 100);
+    const detail = appendStage(workspace, "detail", 600);
+    const viewportRef = { current: viewport };
+    const workspaceRef = { current: workspace };
+    renderHook(() => useStageCamera(viewportRef, workspaceRef, "player"));
+    detail.remove();
+    viewportScroll.mockClear();
+
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    act(() => window.dispatchEvent(new Event("resize")));
+
+    await waitFor(() => expect(viewportScroll).toHaveBeenCalledTimes(1));
+    expect(root.dataset.stageKey).toBe("root");
+  });
+
+  it("does not reassert the camera for manual scrolling alone", () => {
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "root", 100);
     const ref = { current: owner };
     renderHook(() => useStageCamera(ref, ref, "player"));
     scrollTo.mockClear();
 
-    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1000 });
-    act(() => window.dispatchEvent(new Event("resize")));
+    act(() => {
+      owner.scrollLeft = 275;
+      owner.dispatchEvent(new Event("scroll"));
+    });
 
-    await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ left: 428, behavior: "smooth" }));
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("derives profile insets without carrying the old mobile parent-peek minimum", () => {
+    const { owner } = cameraOwner(400);
+    expect(cameraInsets(owner, "mobile")).toEqual({ leading: 24, trailing: 24 });
+    expect(cameraInsets(owner, "compact")).toEqual({ leading: 48, trailing: 32 });
   });
 });

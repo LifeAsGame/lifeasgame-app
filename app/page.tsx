@@ -380,7 +380,7 @@ export default function Home() {
     clearDetailSelectionsForMain(main);
     setActiveFormPanel(null);
     setEditingItemId(null);
-    requestStageFocus(`${main}-stage-0`, "center");
+    requestStageFocus(`${main}-stage-0`, "back");
   };
 
   // ─── Form panel helpers ────────────────────────────────────────────────────
@@ -412,7 +412,7 @@ export default function Home() {
         setSelectedSubByMain((prev) => ({ ...prev, skills: null }));
         updateDetailSelections({ skills: null });
       }
-      requestStageFocus(`skills-stage-${Math.max(0, panelIndex - 1)}`, "center");
+      requestStageFocus(`skills-stage-${Math.max(0, panelIndex - 1)}`, "back");
       return;
     }
 

@@ -311,7 +311,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
     setListingReservation(null);
     setCreatingListing(false);
     mutations.clearError();
-    requestStageFocus("market-stage-1", "center");
+    requestStageFocus("market-stage-1", "back");
   };
 
   return (

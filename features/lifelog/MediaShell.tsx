@@ -166,7 +166,7 @@ export default function MediaShell() {
 
       <AnimatePresence initial={false}>
         {media.detail ? (
-          <PanelStage stageKey="lifelog-media-detail" focusKey={media.detail.id} index={2}>
+          <PanelStage stageKey="lifelog-media-detail" index={2}>
             <PanelFrame title="Media Detail" depth={0} contentKey={media.detail.id}>
               <Detail item={media.detail} pending={pending} update={(body) => media.update(media.detail!.id, body)} remove={() => media.remove(media.detail!.id)} rate={(score) => media.rate(media.detail!.id, score)} advance={() => media.advance(media.detail!.id)} markStatus={(next) => media.markStatus(media.detail!.id, next)} rewatch={() => media.rewatch(media.detail!.id)} />
             </PanelFrame>

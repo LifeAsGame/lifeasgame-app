@@ -208,13 +208,13 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
 
   const closeDetail = () => {
     clearDetail();
-    requestStageFocus("journey-list", "nearest");
+    requestStageFocus("journey-list", "back");
   };
 
   const closeList = () => {
     clearDetail();
     setSurface(null);
-    requestStageFocus("journey-root", "nearest");
+    requestStageFocus("journey-root", "back");
   };
 
   const mineById = new Map(queries.routes.data.mine.map((route) => [route.id, route]));
@@ -543,7 +543,7 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
 
       <AnimatePresence initial={false}>
         {surface ? (
-          <PanelStage stageKey="journey-list" focusKey={surface}>
+          <PanelStage stageKey="journey-list">
             <PanelFrame title={listTitle} depth={1} contentKey={surface} backButton={<BackButton label="Back to Journey" onClick={closeList} />}>
               <section className="lag-journey-list-surface" aria-label={`${listTitle} list`}>
                 <header><p className="lag-journey-eyebrow">Journey child surface</p><h4>{listTitle}</h4><p>{SURFACE_COPY[surface]}</p></header>
@@ -556,7 +556,7 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
 
       <AnimatePresence initial={false} mode="popLayout">
         {detailContentKey ? (
-          <PanelStage stageKey="journey-detail" focusKey={detailContentKey}>
+          <PanelStage stageKey="journey-detail">
             <PanelFrame title={detailTitle} depth={0} contentKey={detailContentKey} backButton={<BackButton label={`Back to ${listTitle}`} onClick={closeDetail} />}>
               {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
             </PanelFrame>

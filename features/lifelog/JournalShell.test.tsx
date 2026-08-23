@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { JournalPage, QuickRecordResult, RoleDetail } from "@/shared/api/types";
+import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import JournalShell from "./JournalShell";
 import { journalMock, MOCK_JOURNAL_ENTRIES } from "./mock";
 
@@ -142,6 +143,8 @@ describe("LifeLog Journal v7 surface", () => {
   });
 
   it("opens detail only after selection, keeps its stage stable across entries, and Back closes it", async () => {
+    const focus = vi.fn();
+    window.addEventListener(STAGE_FOCUS_EVENT, focus);
     await renderJournal();
     expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument();
     const entries = screen.getAllByTestId("journal-entry");
@@ -152,13 +155,17 @@ describe("LifeLog Journal v7 surface", () => {
     expect(detailStage).toBeInTheDocument();
     expectDetail("Condition", "Annotated");
 
+    focus.mockClear();
     fireEvent.click(entries[1]);
     await screen.findByText("Morning run");
     expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).toBe(detailStage);
     expectDetail("Entry mode", "QUICK");
+    expect(focus).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Back to Journal" }));
     await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument());
+    expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "lifelog-journal", align: "back" } });
+    window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
   it("renders all current detail fields in semantic common/source sections", async () => {

@@ -169,7 +169,7 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
   const closeDetail = () => {
     setSelectedItemInstanceId(null);
     setSelectedMailId(null);
-    requestStageFocus(`inventory-${surface}-list`, "center");
+    requestStageFocus(`inventory-${surface}-list`, "back");
   };
 
   return (
@@ -201,7 +201,7 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
 
       <AnimatePresence initial={false}>
         {selectedItem || selectedMail ? (
-          <PanelStage stageKey={`inventory-${surface}-detail`} focusKey={selectedItemInstanceId ?? selectedMailId} index={1}>
+          <PanelStage stageKey={`inventory-${surface}-detail`} index={1}>
             <PanelFrame title={items ? "Item Detail" : "Mail Detail"} depth={0} contentKey={selectedItemInstanceId ?? selectedMailId ?? undefined} backButton={<BackButton label={`Back to ${items ? "Items" : "Inbox"}`} onClick={closeDetail} />}>
               {items && selectedItem ? <ItemDetail item={selectedItem} /> : null}
               {!items && selectedMail ? (

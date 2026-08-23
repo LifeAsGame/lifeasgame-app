@@ -253,7 +253,6 @@ export default function RightPanels({
                 <PanelStage
                   key={`${selectedMain}-stage-${panelIndex}`}
                   stageKey={`${selectedMain}-stage-${panelIndex}`}
-                  focusKey={panel.id}
                   autoFocus={panelIndex > 0}
                   index={panelIndex}
                   onPointerDownCapture={() => onPanelFocus?.(panelIndex, panel.id)}
