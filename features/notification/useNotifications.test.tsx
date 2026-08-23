@@ -61,6 +61,19 @@ describe("feature-owned Notification state", () => {
     expect(result.current.nextCursor).toBeNull();
   });
 
+  it("keeps loaded inbox rows when an older cursor request fails", async () => {
+    api.getNotificationsApi
+      .mockResolvedValueOnce(page([item(3), item(2)], true, 2))
+      .mockRejectedValueOnce(new Error("older failed"));
+    const { result } = renderHook(() => useNotifications());
+    await waitFor(() => expect(result.current.unreadCount).toBe(47));
+    await act(async () => { await result.current.loadInbox(); });
+    await act(async () => { await result.current.loadOlder(); });
+
+    expect(result.current.inbox.map(({ id }) => id)).toEqual([3, 2]);
+    expect(result.current.inboxError).toBe("older failed");
+  });
+
   it("mutates a loaded row only after read success, blocks duplicates, then reloads unread count", async () => {
     const command = deferred<void>();
     api.getNotificationsApi.mockResolvedValueOnce(page([item(3)]));
