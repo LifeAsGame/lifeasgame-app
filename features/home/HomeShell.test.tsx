@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -37,15 +38,19 @@ describe("Home world summary를 표시할 때", () => {
       expect(screen.getByText("Begin with Records")).toBeInTheDocument();
       expect(screen.getByText("Build a Recovery Rhythm")).toBeInTheDocument();
       expect(screen.getByText("5 records · 62.5%")).toBeInTheDocument();
-      expect(screen.getByText("Assigned 8 · Unassigned 2 · Total 10")).toBeInTheDocument();
+      expect(screen.getByText("Assigned").closest("div")).toHaveTextContent("8");
+      expect(screen.getByText("Unassigned").closest("div")).toHaveTextContent("2");
+      expect(screen.getByText("Total records").closest("div")).toHaveTextContent("10");
+      expect(screen.getByRole("button", { name: /Begin with Records/ })).not.toHaveTextContent("%");
+      expect(screen.getByTestId("home-shell")).not.toHaveTextContent(/streak|life score|productivity score|\bXP\b/i);
     });
 
-    it("nullable metadata를 가짜 값 없이 생략하고 nullable Role name에는 실제 ID를 쓴다", () => {
+    it("nullable metadata와 raw relationship ID를 primary copy로 노출하지 않는다", () => {
       render(<HomeShell {...callbacks} />);
 
-      expect(screen.getByText("Role #32")).toBeInTheDocument();
+      expect(screen.getByText("Unnamed Role")).toBeInTheDocument();
       expect(screen.getByTestId("home-shell")).not.toHaveTextContent(/null|undefined|not recorded/i);
-      expect(screen.getByText("Build a Recovery Rhythm").closest("button")).not.toHaveTextContent("Current Step");
+      expect(screen.getByTestId("home-shell")).not.toHaveTextContent(/Role #|Event #|Current Step #/);
     });
 
     it("cards를 canonical feature callback에만 연결한다", () => {
@@ -192,5 +197,14 @@ describe("Home world summary를 표시할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
       expect(query.state.reload).toHaveBeenCalledOnce();
     });
+  });
+
+  it("semantic CSS로 compact dashboard를 한 열에 쌓고 Home inline style을 두지 않는다", () => {
+    const source = readFileSync("features/home/HomeShell.tsx", "utf8");
+    const css = readFileSync("app/globals.css", "utf8");
+
+    expect(source).not.toContain("style=");
+    expect(css).toMatch(/@media \(max-width: 980px\)[\s\S]*?\.lag-home-grid\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/);
+    expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.lag-home-role-summary,[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/);
   });
 });
