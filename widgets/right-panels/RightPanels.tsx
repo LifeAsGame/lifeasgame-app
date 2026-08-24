@@ -13,7 +13,6 @@ import { NAV_ICONS, actionBtnStyle } from "./ui/styles";
 import { GoldRow, InfoCard } from "./ui/Rows";
 import { BackButton, PanelFrame } from "./ui/PanelFrame";
 import { FormPanel } from "./ui/FormPanel";
-import { GiftPanel } from "./ui/GiftPanel";
 
 type RightPanelsProps = {
   selectedMain: MainNavId;
@@ -67,17 +66,6 @@ function PanelContent({
         onSubmit={onPanelFormSubmit ?? (() => {})}
         onBack={onPanelBack ?? (() => {})}
         onFieldChange={onPanelFormFieldChange}
-        depth={depth}
-      />
-    );
-  }
-
-  if (panel.kind === "gift") {
-    return (
-      <GiftPanel
-        panel={panel}
-        panelIndex={panelIndex}
-        onBack={onPanelBack ?? (() => {})}
         depth={depth}
       />
     );

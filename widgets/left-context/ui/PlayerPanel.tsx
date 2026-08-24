@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
 import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
-import { MOCK_EQUIPPED_ITEMS } from "@/features/player/mock";
 import { RoleBadges } from "./RoleContextPanel";
 
 function StatBar({
@@ -18,7 +17,7 @@ function StatBar({
   max: number;
   color: string;
 }) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
@@ -49,39 +48,56 @@ export function PlayerPanel({
   playerInfo,
   equipments,
   guildName,
+  loading,
+  error,
   roles = [],
   selectedRoleId,
   onRoleSelect,
+  onRetry,
 }: {
   playerInfo?: PlayerInfo;
   equipments?: EquipmentView[];
   guildName?: string;
+  loading?: boolean;
+  error?: string | null;
   roles?: RoleDetail[];
   selectedRoleId?: number | null;
   onRoleSelect?: (roleId: number) => void;
+  onRetry?: () => void;
 }) {
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
 
-  const name = playerInfo?.name ?? "Player";
-  const gender = playerInfo?.gender === "MALE" ? "Male" : playerInfo?.gender === "FEMALE" ? "Female" : (playerInfo?.gender ?? "");
-  const job = playerInfo?.job ?? "Adventurer";
-  const level = playerInfo?.level ?? 1;
-  const exp = playerInfo?.exp ?? 0;
-  const hp = playerInfo?.currentHealth ?? 0;
-  const hpMax = playerInfo?.healthCapacity ?? 1;
-  const mp = playerInfo?.currentMana ?? 0;
-  const mpMax = playerInfo?.manaCapacity ?? 1;
+  if (!playerInfo) {
+    return (
+      <div className="space-y-3 p-7">
+        {loading ? <p role="status" style={{ color: "var(--lag-text-2)" }}>Loading Player context...</p> : null}
+        {error ? <p role="alert" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
+        {!loading && !error ? <p style={{ color: "var(--lag-text-2)" }}>Player context is unavailable.</p> : null}
+        {error && onRetry ? <button type="button" className="lag-button-secondary" onClick={onRetry}>Retry</button> : null}
+      </div>
+    );
+  }
+
+  const name = playerInfo.name;
+  const gender = playerInfo.gender === "MALE" ? "Male" : playerInfo.gender === "FEMALE" ? "Female" : playerInfo.gender;
+  const job = playerInfo.job;
+  const level = playerInfo.level;
+  const exp = playerInfo.exp;
+  const hp = playerInfo.currentHealth;
+  const hpMax = playerInfo.healthCapacity;
+  const mp = playerInfo.currentMana;
+  const mpMax = playerInfo.manaCapacity;
 
   const stats = [
-    { label: "STR", value: playerInfo?.str ?? 0 },
-    { label: "AGI", value: playerInfo?.agi ?? 0 },
-    { label: "DEX", value: playerInfo?.dex ?? 0 },
-    { label: "INT", value: playerInfo?.intel ?? 0 },
-    { label: "VIT", value: playerInfo?.vit ?? 0 },
-    { label: "LUC", value: playerInfo?.luc ?? 0 },
+    { label: "STR", value: playerInfo.str },
+    { label: "AGI", value: playerInfo.agi },
+    { label: "DEX", value: playerInfo.dex },
+    { label: "INT", value: playerInfo.intel },
+    { label: "VIT", value: playerInfo.vit },
+    { label: "LUC", value: playerInfo.luc },
   ];
   const maxStatVal = Math.max(...stats.map((s) => s.value), 1);
-  const extraStats = playerInfo?.extraStats ?? {};
+  const extraStats = playerInfo.extraStats;
 
   const equipByCat = (equipments ?? []).reduce<Record<string, EquipmentView[]>>((acc, slot) => {
     if (!acc[slot.slotCategory]) acc[slot.slotCategory] = [];
@@ -98,6 +114,12 @@ export function PlayerPanel({
   return (
     <div className="relative">
       <div className="p-7">
+        {error ? (
+          <div className="lag-info-card mb-4 flex items-center justify-between gap-3 px-3 py-2">
+            <p role="alert" className="lag-state-error text-xs">{error}</p>
+            {onRetry ? <button type="button" className="lag-button-secondary px-3 py-2 text-xs" onClick={onRetry}>Retry</button> : null}
+          </div>
+        ) : null}
         {/* Identity header */}
         <div className="text-center">
           <h2 className="font-semibold" style={{ fontSize: "2.25rem", letterSpacing: "0.08em", color: "var(--lag-text)" }}>
@@ -129,17 +151,6 @@ export function PlayerPanel({
             <span style={{ fontSize: "11px", letterSpacing: "0.1em", color: "var(--lag-text-2)", fontWeight: 600 }}>
               {exp.toLocaleString()} xp
             </span>
-          </div>
-          <div style={{ height: "6px", background: "color-mix(in srgb, var(--lag-divider) 72%, transparent)", borderRadius: "1px" }}>
-            <div
-              style={{
-                width: `${Math.min(100, Math.round(((exp % 10000) / 10000) * 100))}%`,
-                height: "100%",
-                background: "linear-gradient(90deg, var(--lag-amber), var(--lag-warning))",
-                borderRadius: "1px",
-                transition: "width 0.5s ease",
-              }}
-            />
           </div>
         </div>
 
@@ -202,7 +213,7 @@ export function PlayerPanel({
                   </p>
                   <div className="space-y-1">
                     {slots.map((slot) => {
-                      const item = slot.itemInstanceId ? MOCK_EQUIPPED_ITEMS[slot.itemInstanceId] : null;
+                      const equipped = slot.itemInstanceId !== null;
                       const isSelected = selectedSlotId === slot.slotId;
                       return (
                         <div key={slot.slotId}>
@@ -210,6 +221,7 @@ export function PlayerPanel({
                             type="button"
                             className="w-full text-left"
                             onClick={() => setSelectedSlotId((prev) => prev === slot.slotId ? null : slot.slotId)}
+                            aria-expanded={isSelected}
                           >
                             <div
                               className="flex items-center gap-2 rounded-sm px-3 py-2 transition-colors"
@@ -227,14 +239,14 @@ export function PlayerPanel({
                               </span>
                               <span
                                 className="min-w-0 flex-1 truncate text-sm"
-                                style={{ color: item ? "var(--lag-text)" : "var(--lag-meta)", fontStyle: item ? "normal" : "italic" }}
+                                style={{ color: equipped ? "var(--lag-text)" : "var(--lag-meta)", fontStyle: equipped ? "normal" : "italic" }}
                               >
-                                {item ? item.name : "Empty"}
+                                {equipped ? `Equipped · Item #${slot.itemInstanceId}` : "Empty"}
                               </span>
                             </div>
                           </button>
                           <AnimatePresence>
-                            {isSelected && item ? (
+                            {isSelected ? (
                               <motion.div
                                 key={`slot-detail-${slot.slotId}`}
                                 initial={{ opacity: 0, height: 0 }}
@@ -252,11 +264,10 @@ export function PlayerPanel({
                                   }}
                                 >
                                   {[
-                                    { k: "Code",     v: item.code },
-                                    { k: "Name",     v: item.name },
-                                    { k: "Category", v: item.category },
-                                    { k: "Role",     v: item.role },
-                                    { k: "Equipped", v: item.equippedAt },
+                                    { k: "Code",     v: slot.slotCode },
+                                    { k: "Category", v: slot.slotCategory },
+                                    { k: "Role",     v: slot.slotRole },
+                                    { k: "Item ID",  v: slot.itemInstanceId === null ? "Empty" : String(slot.itemInstanceId) },
                                   ].map(({ k, v }) => (
                                     <div key={k} className="flex items-center gap-2">
                                       <span className="uppercase" style={{ fontSize: "9px", letterSpacing: "0.14em", color: "var(--lag-text-2)", width: 54, flexShrink: 0 }}>{k}</span>

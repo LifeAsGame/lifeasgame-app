@@ -115,12 +115,4 @@ export type PanelStackItem =
       submitLabel?: string;
       prefillValues?: Record<string, string>;
       context: PanelContext;
-    }
-  | {
-      id: string;
-      kind: "gift";
-      title: string;
-      friendId: string;
-      friendName: string;
-      context: { main: "social"; route: "social-gift" };
     };

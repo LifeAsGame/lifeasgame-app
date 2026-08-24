@@ -14,12 +14,13 @@ const roles = vi.hoisted((): RoleDetail[] => [
 ]);
 const roleHook = vi.hoisted(() => ({ useRoles: vi.fn(() => ({ roles, isLoading: false, error: null, refresh: vi.fn() })) }));
 const growthApi = vi.hoisted(() => ({ getPlayerGrowthApi: vi.fn() }));
+const playerContextHook = vi.hoisted(() => ({ usePlayerContext: vi.fn(), reload: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth.state }));
 vi.mock("@/features/role/useRoles", () => roleHook);
 vi.mock("@/features/player/api", () => growthApi);
-vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+vi.mock("@/features/player/usePlayerContext", () => ({ usePlayerContext: playerContextHook.usePlayerContext }));
 vi.mock("@/shared/hooks/usePanScroll", () => ({ usePanScroll: vi.fn() }));
 vi.mock("@/widgets/left-context/LeftContext", () => ({ default: () => null }));
 vi.mock("@/widgets/orb-nav/OrbNav", () => ({
@@ -86,6 +87,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.state = { isAuthenticated: true, playerId: 7, isLoading: false, logout: vi.fn() };
+    playerContextHook.usePlayerContext.mockReturnValue({ data: null, loading: false, error: null, reload: playerContextHook.reload });
     vi.stubGlobal("requestAnimationFrame", () => 1);
     growthApi.getPlayerGrowthApi.mockResolvedValue({
       current: { level: 8, exp: 842, str: 12, agi: 11, dex: 10, intel: 9, vit: 8, luc: 7, extraStats: {}, representativeTitleId: null },
@@ -93,6 +95,23 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
         { changeId: 2, requestedExp: 100, appliedExp: 80, leftoverExp: 20, beforeLevel: 7, afterLevel: 8, beforeTotalExp: 762, afterTotalExp: 842, occurredAt: "2026-08-14T09:00:00Z", sourceType: "QUEST", sourceId: 31 },
         { changeId: 1, requestedExp: 10, appliedExp: 10, leftoverExp: 0, beforeLevel: 7, afterLevel: 7, beforeTotalExp: 752, afterTotalExp: 762, occurredAt: "2026-08-13T09:00:00Z", sourceType: null, sourceId: 999 },
       ],
+    });
+  });
+
+  describe("authenticated Player authority를 연결하면", () => {
+    it("Player context는 proven composed query를 사용하고 unsupported sheet/mock authority를 포함하지 않는다", () => {
+      render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+
+      expect(playerContextHook.usePlayerContext).toHaveBeenLastCalledWith(true);
+      expect(readFileSync("app/page.tsx", "utf8")).not.toMatch(/useCharacterSheet|players\/me\/sheet|MOCK_CHARACTER_SHEET|MOCK_EQUIPPED_ITEMS/);
+    });
+
+    it("unsupported Skills capability를 production navigation과 active route에서 제거한다", () => {
+      render(<Home />);
+
+      expect(screen.queryByRole("button", { name: "Skills" })).not.toBeInTheDocument();
+      expect(readFileSync("app/page.tsx", "utf8")).not.toMatch(/SkillsShell|skills\/catalog|players\/skills/);
     });
   });
 
@@ -122,7 +141,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       expect(screen.getByTestId("home-shell")).toBeInTheDocument();
       expect(screen.getByTestId("social-utility")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^Home$/ })).not.toBeInTheDocument();
-      expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(8);
+      expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(7);
       expect(roleHook.useRoles).toHaveBeenCalledWith(false);
     });
   });
