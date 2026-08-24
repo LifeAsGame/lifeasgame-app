@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
+import { adminAuditDataSource } from "../api/audit.source";
+import type { AdminAuditDataSource } from "../api/audit.source";
 import type { AdminAccess, AdminAuditEvent, AdminAuditQuery, AdminAuditResult } from "../model";
 import styles from "../admin.module.css";
 import { useAuditEvents } from "./useAuditEvents";
@@ -136,7 +138,7 @@ function AuditDetail({ event, headingRef, onClose }: { event: AdminAuditEvent; h
   );
 }
 
-export function AuditExplorer({ access, onLogin }: { access: AdminAccess; onLogin: () => void }) {
+export function AuditExplorer({ access, onLogin, dataSource = adminAuditDataSource }: { access: AdminAccess; onLogin: () => void; dataSource?: AdminAuditDataSource }) {
   const [draft, setDraft] = useState<FilterDraft>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<FilterDraft>(EMPTY_FILTERS);
   const [filterError, setFilterError] = useState<string | null>(null);
@@ -146,7 +148,8 @@ export function AuditExplorer({ access, onLogin }: { access: AdminAccess; onLogi
   const selectedTrigger = useRef<HTMLButtonElement | null>(null);
   const detailHeading = useRef<HTMLHeadingElement | null>(null);
   const query = useMemo(() => toQuery(applied, cursor), [applied, cursor]);
-  const audit = useAuditEvents(access === "ready", query);
+  const audit = useAuditEvents(access === "ready", query, dataSource);
+  const source = dataSource.descriptor;
   const selected = audit.data?.items.find((item) => item.id === selectedId) ?? null;
 
   useEffect(() => {
@@ -221,27 +224,27 @@ export function AuditExplorer({ access, onLogin }: { access: AdminAccess; onLogi
       ) : null}
 
       <div className={styles.feedMeta}>
-        <span>Canonical cursor feed · newest first</span>
-        <span>Source: <code>/admin/v1/audit-events</code>{audit.loadedAt ? ` · refreshed ${audit.loadedAt.toLocaleTimeString()}` : ""}</span>
+        <span>{source.mode === "api" ? "Canonical" : "Local mock"} cursor feed · newest first</span>
+        <span>Source: <code>{source.eventLabel}</code>{audit.loadedAt ? ` · refreshed ${audit.loadedAt.toLocaleTimeString()}` : ""}</span>
       </div>
 
       {access === "loading" ? <StatePanel title="Validating session" message="Checking the authenticated operator session." /> : null}
       {authRequired ? <StatePanel title="Authentication required" message="Sign in with an authorized operator account, then retry Admin Audit." action={<button type="button" className={styles.primaryButton} onClick={onLogin}>Go to login</button>} /> : null}
       {forbidden ? <StatePanel title="Admin access denied" message="The server did not authorize this session for Admin Audit. No audit content is shown." /> : null}
-      {access === "ready" && audit.loading && !data ? <StatePanel title="Loading Admin Audit" message="Requesting the newest canonical audit page." /> : null}
+      {access === "ready" && audit.loading && !data ? <StatePanel title="Loading Admin Audit" message={`Requesting the newest ${source.mode === "api" ? "canonical" : "local mock"} audit page.`} /> : null}
       {access === "ready" && audit.error && !authRequired && !forbidden ? (
         <StatePanel title={audit.error.status === 409 ? "Audit query conflict" : "Unable to load Admin Audit"} message={audit.error.message} action={<button type="button" className={styles.primaryButton} onClick={() => void audit.reload()}>Retry</button>} />
       ) : null}
-      {access === "ready" && data && data.items.length === 0 ? <StatePanel title={emptyTitle} message={hasFilters(applied) ? "The current server query returned no matching records." : "The canonical audit dataset is empty."} /> : null}
+      {access === "ready" && data && data.items.length === 0 ? <StatePanel title={emptyTitle} message={hasFilters(applied) ? `The current ${source.mode === "api" ? "server" : "local mock"} query returned no matching records.` : `The ${source.mode === "api" ? "canonical" : "local mock"} audit dataset is empty.`} /> : null}
 
       {access === "ready" && data && data.items.length > 0 ? (
         <>
-          {audit.loading ? <p className={styles.refreshing} role="status">Refreshing canonical results…</p> : null}
+          {audit.loading ? <p className={styles.refreshing} role="status">Refreshing {source.mode === "api" ? "canonical" : "local mock"} results…</p> : null}
           <div className={styles.auditLayout}>
             <div>
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
-                  <caption>Admin audit events ordered by the backend</caption>
+                  <caption>Admin audit events ordered newest first</caption>
                   <thead><tr><th>Audit ID</th><th>Occurred</th><th>Actor</th><th>Action</th><th>Target</th><th>Result</th></tr></thead>
                   <tbody>
                     {data.items.map((item) => (
@@ -262,7 +265,7 @@ export function AuditExplorer({ access, onLogin }: { access: AdminAccess; onLogi
                 <div><button type="button" className={styles.secondaryButton} onClick={showNewer} disabled={cursorHistory.length === 0 || audit.loading}>Newer</button><button type="button" className={styles.secondaryButton} onClick={showOlder} disabled={!data.nextCursor || audit.loading}>Older</button></div>
               </div>
             </div>
-            {selected ? <AuditDetail event={selected} headingRef={detailHeading} onClose={closeDetail} /> : <aside className={styles.detailPlaceholder}><span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span><h2>Audit detail</h2><p>Select an Audit ID to inspect canonical safe fields.</p></aside>}
+            {selected ? <AuditDetail event={selected} headingRef={detailHeading} onClose={closeDetail} /> : <aside className={styles.detailPlaceholder}><span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span><h2>Audit detail</h2><p>Select an Audit ID to inspect safe fields.</p></aside>}
           </div>
         </>
       ) : null}

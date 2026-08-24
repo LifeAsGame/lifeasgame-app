@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "@/shared/api/client";
-import { getAdminAuditEvents } from "../api/audit";
+import type { AdminAuditDataSource } from "../api/audit.source";
 import type { AdminAuditPage, AdminAuditQuery } from "../model";
 
 type AuditLoadError = { status: number | null; message: string };
 
-export function useAuditEvents(enabled: boolean, query: AdminAuditQuery) {
+export function useAuditEvents(enabled: boolean, query: AdminAuditQuery, dataSource: AdminAuditDataSource) {
   const [data, setData] = useState<AdminAuditPage | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<AuditLoadError | null>(null);
@@ -20,7 +20,7 @@ export function useAuditEvents(enabled: boolean, query: AdminAuditQuery) {
     setLoading(true);
     setError(null);
     try {
-      const next = await getAdminAuditEvents(query);
+      const next = await dataSource.getEvents(query);
       if (current === requestId.current) {
         setData(next);
         setLoadedAt(new Date());
@@ -39,7 +39,7 @@ export function useAuditEvents(enabled: boolean, query: AdminAuditQuery) {
     } finally {
       if (current === requestId.current) setLoading(false);
     }
-  }, [query]);
+  }, [dataSource, query]);
 
   useEffect(() => {
     if (enabled) void reload();

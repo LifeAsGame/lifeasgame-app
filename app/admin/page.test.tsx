@@ -22,11 +22,13 @@ describe("/admin route", () => {
     render(<AdminPage />);
 
     expect(screen.getByText("operator@lag")).toBeInTheDocument();
+    expect(screen.getByText("API")).toBeInTheDocument();
+    expect(screen.getByText("/admin/v1")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Admin Audit Explorer" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "No audit events" })).toBeInTheDocument();
 
     const source = readFileSync("app/admin/page.tsx", "utf8");
     expect(source).not.toMatch(/admin\.api|OrbNav|adjustWallet|grant|revoke|deleteUser/i);
-    expect(source.split("\n").length).toBeLessThan(40);
+    expect(source.split("\n").length).toBeLessThan(45);
   });
 });

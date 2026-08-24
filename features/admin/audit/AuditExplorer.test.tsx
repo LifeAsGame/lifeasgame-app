@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/shared/api/client";
+import { getAdminAuditDataSource } from "../api/audit.source";
 import type { AdminAuditEvent, AdminAuditPage } from "../model";
 import { AuditExplorer } from "./AuditExplorer";
 
@@ -46,6 +47,16 @@ describe("Admin Audit Explorer", () => {
     expect(screen.getByText("Support case review")).toBeInTheDocument();
     expect(screen.getByText("COR-20260825-881")).toBeInTheDocument();
     expect(screen.queryByText("PRIVATE_BODY")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /adjust|grant|revoke|deliver|delete|override|mutate/i })).not.toBeInTheDocument();
+  });
+
+  it("uses the same explorer anatomy with an explicitly labeled local Mock source", async () => {
+    render(<AuditExplorer access="ready" onLogin={vi.fn()} dataSource={getAdminAuditDataSource("mock")} />);
+
+    expect(await screen.findByRole("button", { name: "AUD-108" })).toBeInTheDocument();
+    expect(screen.getByText("Local mock cursor feed · newest first")).toBeInTheDocument();
+    expect(screen.getByText("Local Admin Mock")).toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Audit filters" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /adjust|grant|revoke|deliver|delete|override|mutate/i })).not.toBeInTheDocument();
   });
 

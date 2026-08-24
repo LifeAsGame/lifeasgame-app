@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 
 import { AdminShell } from "./AdminShell";
 
+const apiSource = { mode: "api", badge: "API", label: "/admin/v1", eventLabel: "/admin/v1/audit-events" } as const;
+const mockSource = { mode: "mock", badge: "MOCK DATA", label: "Local Admin Mock", eventLabel: "Local Admin Mock" } as const;
+
 describe("Admin Phase A1 shell", () => {
   it("keeps the locked navigation visible with only Admin Audit supported", () => {
-    render(<AdminShell operator="operator@lag" audit={<div>Canonical Audit Screen</div>} />);
+    render(<AdminShell operator="operator@lag" audit={<div>Canonical Audit Screen</div>} source={apiSource} />);
 
     expect(screen.getByRole("navigation", { name: "Admin operations" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "System, SUPPORTED" })).toHaveAttribute("aria-current", "page");
@@ -15,7 +18,7 @@ describe("Admin Phase A1 shell", () => {
   });
 
   it("shows explicit non-A1 capability boundaries without unsupported commands", () => {
-    render(<AdminShell operator="operator@lag" audit={<div>Canonical Audit Screen</div>} />);
+    render(<AdminShell operator="operator@lag" audit={<div>Canonical Audit Screen</div>} source={apiSource} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Dashboard, DEFERRED" }));
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
@@ -23,6 +26,18 @@ describe("Admin Phase A1 shell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Players, GATED" }));
     expect(screen.getByText("Player administration is not enabled in Phase A1.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /grant|revoke|adjust|delete|override|deliver/i })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [apiSource, "API", "/admin/v1"],
+    [mockSource, "MOCK DATA", "Local Admin Mock"],
+  ] as const)("shows the %s source without changing A1 shell anatomy", (source, badge, label) => {
+    render(<AdminShell operator="operator@lag" audit={<div>Audit Screen</div>} source={source} />);
+
+    expect(screen.getByText(badge)).toBeInTheDocument();
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText("Audit Screen")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /grant|revoke|adjust|delete|override|deliver/i })).not.toBeInTheDocument();
   });
 });

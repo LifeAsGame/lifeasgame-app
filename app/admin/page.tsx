@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { AuditExplorer } from "@/features/admin/audit/AuditExplorer";
+import { adminAuditDataSource } from "@/features/admin/api/audit.source";
 import { AdminShell } from "@/features/admin/shell/AdminShell";
 import { useAuth } from "@/features/auth/AuthContext";
 
@@ -14,7 +15,8 @@ export default function AdminPage() {
   return (
     <AdminShell
       operator={currentUser?.email ?? "Session not authenticated"}
-      audit={<AuditExplorer access={access} onLogin={() => router.push("/login")} />}
+      source={adminAuditDataSource.descriptor}
+      audit={<AuditExplorer access={access} onLogin={() => router.push("/login")} dataSource={adminAuditDataSource} />}
     />
   );
 }

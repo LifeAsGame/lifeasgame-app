@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import type { AdminDataSourceDescriptor } from "../api/audit.source";
 import { ADMIN_AREAS } from "../model";
 import type { AdminAreaId, AdminCapabilityState } from "../model";
 import styles from "../admin.module.css";
@@ -11,7 +12,7 @@ function CapabilityBadge({ state, compact = false }: { state: AdminCapabilitySta
   return <span className={styles.badge} data-state={state} data-compact={compact || undefined}>{marker} {state}</span>;
 }
 
-export function AdminShell({ operator, audit }: { operator: string; audit: React.ReactNode }) {
+export function AdminShell({ operator, audit, source }: { operator: string; audit: React.ReactNode; source: AdminDataSourceDescriptor }) {
   const [activeArea, setActiveArea] = useState<AdminAreaId>("system");
   const active = ADMIN_AREAS.find((area) => area.id === activeArea)!;
 
@@ -19,8 +20,8 @@ export function AdminShell({ operator, audit }: { operator: string; audit: React
     <div className={styles.root}>
       <header className={styles.topbar}>
         <div className={styles.brand}>LifeAsGame <span>ADMIN</span></div>
-        <span className={styles.environment}>{process.env.NODE_ENV === "production" ? "PROD" : "DEV"}</span>
-        <div className={styles.source}>Source: <code>/admin/v1</code></div>
+        <span className={styles.environment} data-source-mode={source.mode}>{source.badge}</span>
+        <div className={styles.source}>Source: <code>{source.label}</code></div>
         <div className={styles.operator}>{operator}</div>
       </header>
 

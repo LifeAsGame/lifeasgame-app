@@ -102,6 +102,16 @@
   letter-spacing: 0.1em;
 }
 
+.environment[data-source-mode="api"] {
+  color: var(--admin-id);
+  border-color: color-mix(in srgb, var(--admin-id) 65%, var(--admin-border));
+}
+
+.environment[data-source-mode="mock"] {
+  color: var(--admin-gated);
+  border-color: color-mix(in srgb, var(--admin-gated) 65%, var(--admin-border));
+}
+
 .source {
   min-width: 0;
   margin-left: auto;
