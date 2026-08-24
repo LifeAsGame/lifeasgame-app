@@ -7,7 +7,6 @@ export const CRUD_ACTIONS: PanelItemAction[] = [
 
 export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: string }> = [
   { id: "player",    label: "Player",    slotLabel: "PL" },
-  { id: "skills",    label: "Skills",    slotLabel: "SK" },
   { id: "inventory", label: "Inventory", slotLabel: "IN" },
   { id: "quests",    label: "Journey",   slotLabel: "QU" },
   { id: "role",      label: "Role",      slotLabel: "RL" },
@@ -29,10 +28,7 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
     { id: "title",       label: "Title",       slotLabel: "TI" },
     { id: "interests",   label: "Interests",   slotLabel: "IN" },
   ],
-  skills: [
-    { id: "passive", label: "Passive", slotLabel: "PA" },
-    { id: "active",  label: "Active",  slotLabel: "AV" },
-  ],
+  skills: [],
   inventory: [
     { id: "items", label: "Items", slotLabel: "IT" },
     { id: "gear",  label: "Gear",  slotLabel: "GE" },

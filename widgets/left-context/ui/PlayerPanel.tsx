@@ -114,6 +114,12 @@ export function PlayerPanel({
   return (
     <div className="relative">
       <div className="p-7">
+        {error ? (
+          <div className="lag-info-card mb-4 flex items-center justify-between gap-3 px-3 py-2">
+            <p role="alert" className="lag-state-error text-xs">{error}</p>
+            {onRetry ? <button type="button" className="lag-button-secondary px-3 py-2 text-xs" onClick={onRetry}>Retry</button> : null}
+          </div>
+        ) : null}
         {/* Identity header */}
         <div className="text-center">
           <h2 className="font-semibold" style={{ fontSize: "2.25rem", letterSpacing: "0.08em", color: "var(--lag-text)" }}>

@@ -24,8 +24,7 @@ import CertificationShell from "@/features/player/CertificationShell";
 import TitleShell from "@/features/player/TitleShell";
 import HobbyShell from "@/features/player/HobbyShell";
 import GrowthShell from "@/features/player/GrowthShell";
-import { useCharacterSheet } from "@/features/player/useCharacterSheet";
-import SkillsShell from "@/features/skills/SkillsShell";
+import { usePlayerContext } from "@/features/player/usePlayerContext";
 import ExchangeShell from "@/features/market/ExchangeShell";
 import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import SettingsShell from "@/features/system/settings/SettingsShell";
@@ -38,7 +37,7 @@ import {
   MAIN_PANEL_TITLES,
   SUBMENUS_BY_MAIN,
 } from "@/entities/nav";
-import type { MainNavId, MarketSubId, PanelStackItem, QuestsSubId, SkillsSubId } from "@/entities/nav";
+import type { MainNavId, MarketSubId, PanelStackItem, QuestsSubId } from "@/entities/nav";
 import { SYSTEM_PANEL_ROWS } from "@/features/system/model";
 import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
@@ -120,7 +119,7 @@ export default function Home() {
   const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
     ...DEFAULT_SUB_SELECTIONS,
   });
-  const character = useCharacterSheet(Boolean(playerId && selectedMain === "player"));
+  const playerContext = usePlayerContext(Boolean(playerId && selectedMain === "player"));
   const [surfaceFocusState, setSurfaceFocusState] = useState<SurfaceFocusState>({
     counter: 1,
     lastFocusBySurface: {},
@@ -185,7 +184,7 @@ export default function Home() {
     }));
   };
 
-  const closeFeatureSubmenu = (main: "player" | "skills" | "inventory" | "market") => {
+  const closeFeatureSubmenu = (main: "player" | "inventory" | "market") => {
     setSelectedSubByMain((prev) => ({ ...prev, [main]: null }));
     requestStageFocus(`${main}-stage-0`, "back");
   };
@@ -229,16 +228,15 @@ export default function Home() {
       >
         <LeftContext
           mode={leftContextMode}
-          playerInfo={character.data?.player}
-          equipments={character.data?.equipments}
-          guildName={character.data?.representativeGuildName}
-          playerLoading={character.loading}
-          playerError={character.error}
+          playerInfo={playerContext.data?.player}
+          equipments={playerContext.data?.equipments}
+          playerLoading={playerContext.loading}
+          playerError={playerContext.error}
           roles={roleState.roles}
           rolesLoading={roleState.isLoading}
           rolesError={roleState.error}
           selectedRoleId={selectedRoleId}
-          onPlayerRetry={() => void character.reload()}
+          onPlayerRetry={() => void playerContext.reload()}
           onRoleSelect={handleRoleSelect}
           onRoleRetry={() => void roleState.refresh()}
           onFocus={() => bringSurfaceToFront("left-context")}
@@ -288,18 +286,6 @@ export default function Home() {
                 onPanelItemSelect={handlePanelItemSelect}
               />
               {playerSurface}
-            </div>
-          ) : selectedMain === "skills" ? (
-            <div className="flex w-fit items-center gap-3">
-              <RightPanels
-                selectedMain="skills"
-                panelStack={panelStack.slice(0, 1)}
-                onPanelItemSelect={handlePanelItemSelect}
-              />
-              <SkillsShell
-                surface={selectedSubByMain.skills as SkillsSubId | null}
-                onBack={() => closeFeatureSubmenu("skills")}
-              />
             </div>
           ) : selectedMain === "role" ? (
             <div className="flex w-fit items-center gap-3">

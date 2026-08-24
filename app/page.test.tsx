@@ -14,13 +14,13 @@ const roles = vi.hoisted((): RoleDetail[] => [
 ]);
 const roleHook = vi.hoisted(() => ({ useRoles: vi.fn(() => ({ roles, isLoading: false, error: null, refresh: vi.fn() })) }));
 const growthApi = vi.hoisted(() => ({ getPlayerGrowthApi: vi.fn() }));
-const characterHook = vi.hoisted(() => ({ useCharacterSheet: vi.fn(), reload: vi.fn() }));
+const playerContextHook = vi.hoisted(() => ({ usePlayerContext: vi.fn(), reload: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => auth.state }));
 vi.mock("@/features/role/useRoles", () => roleHook);
 vi.mock("@/features/player/api", () => growthApi);
-vi.mock("@/features/player/useCharacterSheet", () => ({ useCharacterSheet: characterHook.useCharacterSheet }));
+vi.mock("@/features/player/usePlayerContext", () => ({ usePlayerContext: playerContextHook.usePlayerContext }));
 vi.mock("@/shared/hooks/usePanScroll", () => ({ usePanScroll: vi.fn() }));
 vi.mock("@/widgets/left-context/LeftContext", () => ({ default: () => null }));
 vi.mock("@/widgets/orb-nav/OrbNav", () => ({
@@ -50,7 +50,6 @@ vi.mock("@/features/player/TitleShell", () => ({
   },
 }));
 vi.mock("@/features/player/HobbyShell", () => ({ default: () => <div data-testid="hobby-shell">Hobby Shell</div> }));
-vi.mock("@/features/skills/SkillsShell", () => ({ default: ({ surface }: { surface: string | null }) => surface ? <div data-testid="skills-shell">Skills · {surface}</div> : null }));
 vi.mock("@/features/inventory/InventoryShell", () => ({ default: ({ surface }: { surface: string }) => <div data-testid="inventory-shell">Inventory · {surface}</div> }));
 vi.mock("@/features/inventory/GearShell", () => ({ default: () => <div data-testid="gear-shell">Gear Shell</div> }));
 vi.mock("@/features/home/HomeShell", () => ({
@@ -88,7 +87,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.state = { isAuthenticated: true, playerId: 7, isLoading: false, logout: vi.fn() };
-    characterHook.useCharacterSheet.mockReturnValue({ data: null, loading: false, error: null, reload: characterHook.reload });
+    playerContextHook.usePlayerContext.mockReturnValue({ data: null, loading: false, error: null, reload: playerContextHook.reload });
     vi.stubGlobal("requestAnimationFrame", () => 1);
     growthApi.getPlayerGrowthApi.mockResolvedValue({
       current: { level: 8, exp: 842, str: 12, agi: 11, dex: 10, intel: 9, vit: 8, luc: 7, extraStats: {}, representativeTitleId: null },
@@ -99,21 +98,20 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     });
   });
 
-  describe("authenticated Player/Skills authority를 연결하면", () => {
-    it("Player context는 character sheet query를 사용하고 page mock authority를 포함하지 않는다", () => {
+  describe("authenticated Player authority를 연결하면", () => {
+    it("Player context는 proven composed query를 사용하고 unsupported sheet/mock authority를 포함하지 않는다", () => {
       render(<Home />);
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
 
-      expect(characterHook.useCharacterSheet).toHaveBeenLastCalledWith(true);
-      expect(readFileSync("app/page.tsx", "utf8")).not.toMatch(/MOCK_CHARACTER_SHEET|MOCK_EQUIPPED_ITEMS/);
+      expect(playerContextHook.usePlayerContext).toHaveBeenLastCalledWith(true);
+      expect(readFileSync("app/page.tsx", "utf8")).not.toMatch(/useCharacterSheet|players\/me\/sheet|MOCK_CHARACTER_SHEET|MOCK_EQUIPPED_ITEMS/);
     });
 
-    it("Skills submenu를 feature-owned canonical surface로 routing한다", () => {
+    it("unsupported Skills capability를 production navigation과 active route에서 제거한다", () => {
       render(<Home />);
-      fireEvent.click(screen.getByRole("button", { name: "Skills" }));
-      fireEvent.click(screen.getByRole("button", { name: "Passive" }));
 
-      expect(screen.getByTestId("skills-shell")).toHaveTextContent("Skills · passive");
+      expect(screen.queryByRole("button", { name: "Skills" })).not.toBeInTheDocument();
+      expect(readFileSync("app/page.tsx", "utf8")).not.toMatch(/SkillsShell|skills\/catalog|players\/skills/);
     });
   });
 
@@ -143,7 +141,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       expect(screen.getByTestId("home-shell")).toBeInTheDocument();
       expect(screen.getByTestId("social-utility")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^Home$/ })).not.toBeInTheDocument();
-      expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(8);
+      expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(7);
       expect(roleHook.useRoles).toHaveBeenCalledWith(false);
     });
   });

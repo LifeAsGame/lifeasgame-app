@@ -92,6 +92,24 @@ describe("LeftContext에서 Role을 사용할 때", () => {
     expect(retry).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps proven Player identity visible when secondary Equipment loading fails", () => {
+    const retry = vi.fn();
+    render(
+      <LeftContext
+        mode="player"
+        playerInfo={MOCK_CHARACTER_SHEET.player}
+        equipments={[]}
+        playerError="Equipment unavailable"
+        onPlayerRetry={retry}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: MOCK_CHARACTER_SHEET.player.name })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Equipment unavailable");
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
   it("renders only canonical equipment slot data instead of mock item metadata", () => {
     const equipment = [{ ...MOCK_CHARACTER_SHEET.equipments[0], itemInstanceId: 999 }];
     render(<LeftContext mode="player" playerInfo={MOCK_CHARACTER_SHEET.player} equipments={equipment} />);
