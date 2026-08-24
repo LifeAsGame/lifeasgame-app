@@ -132,6 +132,7 @@ export function useStageCamera(
   const [profile, setProfile] = useState<CameraProfile>(() =>
     cameraProfileForWidth(typeof window === "undefined" ? 1200 : window.innerWidth),
   );
+  const [viewportRevision, setViewportRevision] = useState(0);
   const contextRef = useRef(mainSelectionKey);
   const pendingFocus = useRef<ScopedFocus | null>(null);
   const invalidatedKeys = useRef(new Set<string>());
@@ -147,10 +148,20 @@ export function useStageCamera(
   }
 
   useEffect(() => {
-    const update = () => setProfile(cameraProfileForWidth(window.innerWidth));
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    let frame = 0;
+    const resize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        setProfile(cameraProfileForWidth(window.innerWidth));
+        setViewportRevision((value) => value + 1);
+      });
+    };
+    setProfile(cameraProfileForWidth(window.innerWidth));
+    window.addEventListener("resize", resize);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
 
   useEffect(() => {
@@ -233,5 +244,5 @@ export function useStageCamera(
       observer.disconnect();
       window.removeEventListener(STAGE_FOCUS_EVENT, focusRequested);
     };
-  }, [mainSelectionKey, profile, viewportRef, workspaceRef]);
+  }, [mainSelectionKey, profile, viewportRef, viewportRevision, workspaceRef]);
 }

@@ -257,6 +257,87 @@ describe("stage camera contract", () => {
     expect(scrollTo).toHaveBeenCalledWith({ left: 668, behavior: "smooth" });
   });
 
+  it.each([
+    ["wide", 1440, 1300, 1000, 800, 700, 296],
+    ["compact", 1100, 900, 1000, 600, 700, 628],
+    ["mobile", 700, 500, 700, 500, 600, 576],
+  ] as const)("recomposes the active detail after a same-profile %s resize", async (
+    _profile,
+    initialViewportWidth,
+    resizedViewportWidth,
+    initialOwnerWidth,
+    resizedOwnerWidth,
+    resizedTargetLeft,
+    expectedLeft,
+  ) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: initialViewportWidth });
+    const { owner, scrollTo } = cameraOwner(initialOwnerWidth, 2_000);
+    appendStage(owner, "root", 100);
+    const detail = appendStage(owner, "detail", 700);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "player"));
+    act(() => requestStageFocus("detail", "forward"));
+    scrollTo.mockClear();
+
+    Object.defineProperty(owner, "clientWidth", { configurable: true, value: resizedOwnerWidth });
+    owner.getBoundingClientRect = () => domRect(0, resizedOwnerWidth);
+    detail.getBoundingClientRect = () => domRect(resizedTargetLeft - owner.scrollLeft, 300);
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: resizedViewportWidth });
+    act(() => window.dispatchEvent(new Event("resize")));
+
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    expect(scrollTo).toHaveBeenCalledWith({ left: expectedLeft, behavior: "smooth" });
+  });
+
+  it("coalesces a resize burst into one camera recomposition", async () => {
+    const frames = new Map<number, FrameRequestCallback>();
+    let frameId = 0;
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      frames.set(++frameId, callback);
+      return frameId;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
+    const { owner, scrollTo } = cameraOwner(1_000, 2_000);
+    appendStage(owner, "root", 100);
+    appendStage(owner, "detail", 700);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "player"));
+
+    act(() => {
+      const initialFocus = [...frames.values()];
+      frames.clear();
+      initialFocus.forEach((callback) => callback(0));
+    });
+    scrollTo.mockClear();
+
+    Object.defineProperty(owner, "clientWidth", { configurable: true, value: 800 });
+    owner.getBoundingClientRect = () => domRect(0, 800);
+    act(() => {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 1380 });
+      window.dispatchEvent(new Event("resize"));
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 1340 });
+      window.dispatchEvent(new Event("resize"));
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 1300 });
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(frames.size).toBe(1);
+
+    act(() => {
+      const resize = [...frames.values()];
+      frames.clear();
+      resize.forEach((callback) => callback(0));
+    });
+    await waitFor(() => expect(frames.size).toBe(1));
+    act(() => {
+      const focus = [...frames.values()];
+      frames.clear();
+      focus.forEach((callback) => callback(0));
+    });
+
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(scrollTo).toHaveBeenCalledWith({ left: 296, behavior: "smooth" });
+  });
+
   it("preserves the semantic active stage when switching from desktop to mobile owner", async () => {
     const { owner: viewport, scrollTo: viewportScroll } = cameraOwner();
     const { owner: workspace, scrollTo: workspaceScroll } = cameraOwner();
