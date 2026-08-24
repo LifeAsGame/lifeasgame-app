@@ -30,13 +30,16 @@ describe("Admin Phase A1 shell", () => {
   });
 
   it.each([
-    [apiSource, "API", "/admin/v1"],
-    [mockSource, "MOCK DATA", "Local Admin Mock"],
-  ] as const)("shows the %s source without changing A1 shell anatomy", (source, badge, label) => {
+    [apiSource, "API", "/admin/v1", "Session", "Authority enforced by server"],
+    [mockSource, "MOCK DATA", "Local Admin Mock", "Mock session", "Server Admin authority not evaluated"],
+  ] as const)("shows the %s source without changing A1 shell anatomy", (source, badge, label, session, authority) => {
     render(<AdminShell operator="operator@lag" audit={<div>Audit Screen</div>} source={source} />);
 
     expect(screen.getByText(badge)).toBeInTheDocument();
     expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText(session)).toBeInTheDocument();
+    expect(screen.getByText(authority)).toBeInTheDocument();
+    if (source.mode === "mock") expect(screen.queryByText("Authority enforced by server")).not.toBeInTheDocument();
     expect(screen.getByText("Audit Screen")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /grant|revoke|adjust|delete|override|deliver/i })).not.toBeInTheDocument();
   });

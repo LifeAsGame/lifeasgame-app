@@ -52,8 +52,8 @@ export function AdminShell({ operator, audit, source }: { operator: string; audi
           ))}
         </nav>
         <div className={styles.sessionNote}>
-          <span>Session</span>
-          <strong>Authority enforced by server</strong>
+          <span>{source.mode === "mock" ? "Mock session" : "Session"}</span>
+          <strong>{source.mode === "mock" ? "Server Admin authority not evaluated" : "Authority enforced by server"}</strong>
         </div>
       </aside>
 
