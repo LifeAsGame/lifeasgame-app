@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { AdminAuditQuery } from "../model";
 import { getMockAdminAuditEvents } from "./audit.mock";
 
 describe("read-only Admin Audit mock adapter", () => {
@@ -40,5 +41,19 @@ describe("read-only Admin Audit mock adapter", () => {
     expect(page.items[0]).not.toHaveProperty("responseBody");
     expect(page.items[0]).not.toHaveProperty("token");
     await expect(getMockAdminAuditEvents({ cursor: "2" })).rejects.toThrow("cursor is invalid");
+  });
+
+  it.each<[AdminAuditQuery, string]>([
+    [{ actorUserId: -1 }, "positive integer"],
+    [{ action: "invalid-action" }, "action has an invalid format"],
+    [{ targetType: "invalid type" }, "targetType has an invalid format"],
+    [{ targetId: "-invalid" }, "targetId has an invalid format"],
+    [{ correlationId: "invalid value" }, "correlationId has an invalid format"],
+    [{ result: "UNKNOWN" as "SUCCESS" }, "result must be SUCCESS or FAILED"],
+    [{ from: "not-a-date" }, "from has an invalid date"],
+    [{ to: "not-a-date" }, "to has an invalid date"],
+    [{ cursor: "x".repeat(257) }, "cursor exceeds the supported length"],
+  ])("rejects the same invalid shared query as the API source: %o", async (query, message) => {
+    await expect(getMockAdminAuditEvents(query)).rejects.toThrow(message);
   });
 });

@@ -501,9 +501,13 @@
 
 .auditLayout {
   display: grid;
-  grid-template-columns: minmax(680px, 1fr) minmax(360px, 390px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
   align-items: start;
   gap: 14px;
+}
+
+.auditLayout > div {
+  min-width: 0;
 }
 
 .tableWrap {
