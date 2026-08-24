@@ -4,25 +4,25 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
 import { MOTION } from "@/shared/lib/motion";
-import type { SocialContextData } from "@/entities/nav";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
 import { PlayerPanel } from "./ui/PlayerPanel";
-import { SocialPanel } from "./ui/SocialPanel";
 import { RoleContextPanel } from "./ui/RoleContextPanel";
 
-type LeftContextMode = "hidden" | "player" | "role" | "social";
+type LeftContextMode = "hidden" | "player" | "role";
 
 type LeftContextProps = {
   mode: LeftContextMode;
   playerInfo?: PlayerInfo;
   equipments?: EquipmentView[];
   guildName?: string;
+  playerLoading?: boolean;
+  playerError?: string | null;
   roles?: RoleDetail[];
   rolesLoading?: boolean;
   rolesError?: string | null;
   selectedRoleId?: number | null;
-  socialContext: SocialContextData | null;
+  onPlayerRetry?: () => void;
   onRoleSelect?: (roleId: number) => void;
   onRoleRetry?: () => void;
   zIndex?: number;
@@ -34,11 +34,13 @@ export default function LeftContext({
   playerInfo,
   equipments,
   guildName,
+  playerLoading,
+  playerError,
   roles = [],
   rolesLoading,
   rolesError,
   selectedRoleId,
-  socialContext,
+  onPlayerRetry,
   onRoleSelect,
   onRoleRetry,
   zIndex,
@@ -98,7 +100,7 @@ export default function LeftContext({
               transition={reducedMotion ? { duration: 0 } : MOTION.panelContentSwap.transition}
             >
               {mode === "player" ? (
-                <PlayerPanel playerInfo={playerInfo} equipments={equipments} guildName={guildName} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} />
+                <PlayerPanel playerInfo={playerInfo} equipments={equipments} guildName={guildName} loading={playerLoading} error={playerError} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} onRetry={onPlayerRetry} />
               ) : mode === "role" ? (
                 <RoleContextPanel
                   roles={roles}
@@ -108,9 +110,7 @@ export default function LeftContext({
                   onRoleSelect={onRoleSelect}
                   onRetry={onRoleRetry}
                 />
-              ) : (
-                <SocialPanel socialContext={socialContext} />
-              )}
+              ) : null}
             </motion.div>
           </AnimatePresence>
         </motion.div>
