@@ -304,13 +304,16 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
       : selectedListing
         ? `${shopSurface}-${selectedListing.id}-${listingReservation?.reservationToken ?? "new"}`
         : null;
-  const closeDetail = () => {
+  const clearDetailState = () => {
     setSelectedShopItemId(null);
     setActivePurchaseId(null);
     setSelectedListingId(null);
     setListingReservation(null);
     setCreatingListing(false);
     mutations.clearError();
+  };
+  const closeDetail = () => {
+    clearDetailState();
     requestStageFocus("market-stage-1", "back");
   };
 
@@ -325,7 +328,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
                 ["system-shop", "System Shop"],
                 ["marketplace", "Marketplace"],
                 ["my-listings", "My Listings"],
-              ] as const).map(([id, label]) => <button key={id} type="button" data-selected={shopSurface === id} aria-pressed={shopSurface === id} onClick={() => { setShopSurface(id); closeDetail(); }}>{label}</button>)}
+              ] as const).map(([id, label]) => <button key={id} type="button" data-selected={shopSurface === id} aria-pressed={shopSurface === id} onClick={() => { setShopSurface(id); clearDetailState(); }}>{label}</button>)}
             </div>
             {shopSurface === "system-shop" ? (
               <QueryState query={queries.shopItems} empty="No System Shop items.">

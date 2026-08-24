@@ -122,7 +122,7 @@ function prefersReducedMotion() {
   return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-type ScopedFocus = StageFocusDetail & { context: string; id: number };
+type ScopedFocus = StageFocusDetail & { context: string; id: number; awaitingMount: boolean };
 
 export function useStageCamera(
   viewportRef: React.RefObject<HTMLDivElement | null>,
@@ -194,9 +194,10 @@ export function useStageCamera(
       const nextStages = stages(owner, invalidatedKeys.current);
       const next = nextStages.map((stage) => stage.dataset.stageKey!);
       const pending = pendingFocus.current?.context === context ? pendingFocus.current : null;
-      if (pending) {
+      const pendingTarget = pending && nextStages.find((stage) => stage.dataset.stageKey === pending.key);
+      if (pendingTarget) {
         previous = next;
-        if (nextStages.some((stage) => stage.dataset.stageKey === pending.key)) focus(pending, pending.id);
+        focus(pending, pending.id);
         return;
       }
       const plan = stageFocusPlan(previous, next);
@@ -204,12 +205,20 @@ export function useStageCamera(
       const target = plan && nextStages.find((stage) => stage.dataset.stageKey === plan.key);
       if (!plan || !target || lastFocusedStage.current?.context === context && lastFocusedStage.current.key === plan.key) return;
       if (plan.align === "forward" && target.dataset.stageAutoFocus === "false") return;
+      if (pending) {
+        invalidatedKeys.current.add(pending.key);
+        pendingFocus.current = null;
+      }
       focus(plan);
     });
 
     const focusRequested = (event: Event) => {
       if (contextRef.current !== context) return;
       const detail = (event as CustomEvent<StageFocusDetail>).detail;
+      const previousPending = pendingFocus.current?.context === context ? pendingFocus.current : null;
+      if (previousPending?.awaitingMount && previousPending.key !== detail.key) {
+        invalidatedKeys.current.add(previousPending.key);
+      }
       invalidatedKeys.current.delete(detail.key);
       const targetInOwner = stages(owner, invalidatedKeys.current).some((stage) => stage.dataset.stageKey === detail.key);
       const targetOutsideOwner = !targetInOwner && [...document.querySelectorAll<HTMLElement>("[data-stage-key]")]
@@ -218,7 +227,7 @@ export function useStageCamera(
         pendingFocus.current = null;
         return;
       }
-      const pending = { ...detail, context, id: ++focusId.current };
+      const pending = { ...detail, context, id: ++focusId.current, awaitingMount: !targetInOwner };
       pendingFocus.current = pending;
       focus(pending, pending.id);
     };

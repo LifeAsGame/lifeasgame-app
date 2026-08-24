@@ -9,6 +9,7 @@ describe("PanelStage camera contract", () => {
   const focus = vi.fn();
 
   beforeEach(() => {
+    focus.mockClear();
     vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     window.addEventListener(STAGE_FOCUS_EVENT, focus);
   });
@@ -24,11 +25,10 @@ describe("PanelStage camera contract", () => {
 
   it("keeps camera position stable when content identity changes in the same stage", () => {
     const view = render(<PanelStage stageKey="detail"><span>Detail A</span></PanelStage>);
-    focus.mockClear();
 
     view.rerender(<PanelStage stageKey="detail"><span>Detail B</span></PanelStage>);
 
-    expect(focus).not.toHaveBeenCalled();
+    expect(focus).toHaveBeenCalledTimes(1);
   });
 
   it("preserves opt-out topology metadata and reduced-motion panel behavior", () => {

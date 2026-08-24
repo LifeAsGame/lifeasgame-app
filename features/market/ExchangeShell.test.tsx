@@ -98,6 +98,28 @@ describe("canonical Exchange surfaces", () => {
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
+  it("keeps Shop tab replacement camera-stable while real detail Back focuses the parent", async () => {
+    const focus = vi.fn();
+    window.addEventListener(STAGE_FOCUS_EVENT, focus);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+    focus.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Marketplace" }));
+
+    expect(document.querySelector('[data-stage-key="market-stage-2"]')).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("button", { name: "Back to System Shop" })).not.toBeInTheDocument();
+    expect(focus).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
+    focus.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Marketplace" }));
+
+    expect(focus).toHaveBeenCalledTimes(1);
+    expect(focus.mock.calls[0][0]).toMatchObject({ detail: { key: "market-stage-1", align: "back" } });
+    window.removeEventListener(STAGE_FOCUS_EVENT, focus);
+  });
+
   it("recovers a reserved purchase by returned id and explicitly confirms its canonical history token", async () => {
     api.getShopPurchasesApi
       .mockResolvedValueOnce([])

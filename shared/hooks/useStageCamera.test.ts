@@ -184,16 +184,74 @@ describe("stage camera contract", () => {
     expect(scrollTo).toHaveBeenCalledWith({ left: 450, behavior: "smooth" });
   });
 
-  it("keeps a same-context request until its stage mounts", async () => {
+  it("keeps a same-context request through unrelated mutations until its stage mounts", async () => {
     const { owner, scrollTo } = cameraOwner();
     const ref = { current: owner };
     renderHook(() => useStageCamera(ref, ref, "player"));
 
     act(() => requestStageFocus("late-detail", "forward"));
     expect(scrollTo).not.toHaveBeenCalled();
+    act(() => owner.append(document.createElement("span")));
+    await act(async () => { await Promise.resolve(); });
+    expect(scrollTo).not.toHaveBeenCalled();
     act(() => appendStage(owner, "late-detail", 600));
 
     await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    expect(scrollTo).toHaveBeenCalledWith({ left: 548, behavior: "smooth" });
+  });
+
+  it("allows a later valid topology focus while a pending target is unresolved", async () => {
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "root", 100);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "player"));
+    scrollTo.mockClear();
+
+    act(() => requestStageFocus("missing-detail", "forward"));
+    act(() => appendStage(owner, "actual-detail", 600));
+
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    expect(scrollTo).toHaveBeenCalledWith({ left: 548, behavior: "smooth" });
+  });
+
+  it("does not let an unresolved target steal focus after a newer topology takes ownership", async () => {
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "root", 100);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "player"));
+    scrollTo.mockClear();
+
+    act(() => requestStageFocus("stale-detail", "forward"));
+    act(() => appendStage(owner, "actual-detail", 600));
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    expect(scrollTo).toHaveBeenCalledWith({ left: 548, behavior: "smooth" });
+    scrollTo.mockClear();
+
+    act(() => appendStage(owner, "stale-detail", 900));
+    await act(async () => { await Promise.resolve(); });
+
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("lets a newer explicit request supersede an older unresolved target", async () => {
+    const { owner, scrollTo } = cameraOwner();
+    appendStage(owner, "root", 100);
+    const ref = { current: owner };
+    renderHook(() => useStageCamera(ref, ref, "player"));
+    scrollTo.mockClear();
+
+    act(() => {
+      requestStageFocus("old-detail", "forward");
+      requestStageFocus("new-detail", "forward");
+      appendStage(owner, "old-detail", 600);
+    });
+    await act(async () => { await Promise.resolve(); });
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    act(() => appendStage(owner, "new-detail", 900));
+
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    expect(scrollTo).toHaveBeenCalledWith({ left: 800, behavior: "smooth" });
   });
 
   it("does not keep a focus target that exists outside the active camera owner", async () => {
