@@ -43,7 +43,7 @@ export default function GrowthShell({ onBack }: { onBack?: () => void }) {
   const openHistory = () => requestStageFocus("player-growth-history", "center");
   const closeDetail = () => {
     setSelectedChangeId(null);
-    requestStageFocus("player-growth-history", "center");
+    requestStageFocus("player-growth-history", "back");
   };
 
   return (
@@ -89,7 +89,7 @@ export default function GrowthShell({ onBack }: { onBack?: () => void }) {
       </PanelStage>
 
       <PanelStage stageKey="player-growth-history" autoFocus={false}>
-        <PanelFrame title="Recent EXP Changes" depth={1} backButton={<BackButton label="Back to Growth Profile" onClick={() => requestStageFocus("player-growth-profile", "center")} />}>
+        <PanelFrame title="Recent EXP Changes" depth={1} backButton={<BackButton label="Back to Growth Profile" onClick={() => requestStageFocus("player-growth-profile", "back")} />}>
           <section className="lag-growth-history" aria-label="Recent EXP Changes">
             <header><p>Canonical EXP history</p><span>{changes.length} changes</span></header>
             {growth.loading && !growth.data ? <div role="status" className="lag-growth-state">Loading EXP history...</div> : null}
@@ -116,7 +116,7 @@ export default function GrowthShell({ onBack }: { onBack?: () => void }) {
 
       <AnimatePresence initial={false}>
         {selectedChange ? (
-          <PanelStage stageKey="player-growth-change-detail" focusKey={selectedChange.changeId}>
+          <PanelStage stageKey="player-growth-change-detail">
             <PanelFrame title="EXP Change Detail" depth={0} contentKey={selectedChange.changeId} backButton={<BackButton label="Back to EXP History" onClick={closeDetail} />}>
               <ExpChangeDetail change={selectedChange} />
             </PanelFrame>

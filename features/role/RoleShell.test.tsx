@@ -4,6 +4,7 @@ import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PersonDetail, RoleDetail, RoleEventDetail, RoleRelationDetail } from "@/shared/api/types";
+import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import { RoleContextPanel } from "@/widgets/left-context/ui/RoleContextPanel";
 import RoleShell from "./RoleShell";
 
@@ -155,6 +156,8 @@ describe("실제 Role shell을 사용할 때", () => {
     });
 
     it("Role 선택은 surfaces만 열고 surface 선택 후 detail을 열며 Role 교체 시 detail을 닫는다", async () => {
+      const focus = vi.fn();
+      window.addEventListener(STAGE_FOCUS_EVENT, focus);
       render(<Harness initialRoleId={null} />);
       const selector = document.querySelector("[data-role-selector]");
 
@@ -165,6 +168,10 @@ describe("실제 Role shell을 사용할 때", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /Overview/ }));
       expect(document.querySelector('[data-stage-key="role-detail"]')).toBeInTheDocument();
+      focus.mockClear();
+      fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      await waitFor(() => expect(api.listRoleEventsApi).toHaveBeenCalledWith(1));
+      expect(focus).not.toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole("button", { name: /Family Member/ }));
       await waitFor(() => expect(document.querySelector('[data-stage-key="role-detail"]')).not.toBeInTheDocument());
@@ -174,6 +181,7 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /Backend Engineer/ }));
       expect(document.querySelector('[data-stage-key="role-detail"]')).not.toBeInTheDocument();
       expect(screen.queryByText("Role Overview")).not.toBeInTheDocument();
+      window.removeEventListener(STAGE_FOCUS_EVENT, focus);
     });
 
     it("surface Back은 selected Role summary를 유지하고 summary Back은 selector로 돌아간다", async () => {

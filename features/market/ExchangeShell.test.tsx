@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { InventoryEntry, ListingSummary, ShopItem, ShopPurchaseSummary, TradeSummary } from "@/shared/api/types";
+import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import ExchangeShell from "./ExchangeShell";
 
 const api = vi.hoisted(() => ({
@@ -79,6 +80,8 @@ describe("canonical Exchange surfaces", () => {
   });
 
   it("loads canonical ShopItems, blocks unavailable purchase, and keeps one detail frame during replacement", async () => {
+    const focus = vi.fn();
+    window.addEventListener(STAGE_FOCUS_EVENT, focus);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
@@ -86,10 +89,35 @@ describe("canonical Exchange surfaces", () => {
     expect(detail).toBeInTheDocument();
     expect(screen.getByText("Global stock limit").nextElementSibling).toHaveTextContent("None");
 
+    focus.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /Item #5010/ }));
     expect(document.querySelector('[data-stage-key="market-stage-2"]')).toBe(detail);
     expect(screen.getByRole("button", { name: "Purchase" })).toBeDisabled();
     expect(screen.getByText("This item is unavailable.")).toBeInTheDocument();
+    expect(focus).not.toHaveBeenCalled();
+    window.removeEventListener(STAGE_FOCUS_EVENT, focus);
+  });
+
+  it("keeps Shop tab replacement camera-stable while real detail Back focuses the parent", async () => {
+    const focus = vi.fn();
+    window.addEventListener(STAGE_FOCUS_EVENT, focus);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
+    focus.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Marketplace" }));
+
+    expect(document.querySelector('[data-stage-key="market-stage-2"]')).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("button", { name: "Back to System Shop" })).not.toBeInTheDocument();
+    expect(focus).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
+    focus.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Marketplace" }));
+
+    expect(focus).toHaveBeenCalledTimes(1);
+    expect(focus.mock.calls[0][0]).toMatchObject({ detail: { key: "market-stage-1", align: "back" } });
+    window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
   it("recovers a reserved purchase by returned id and explicitly confirms its canonical history token", async () => {

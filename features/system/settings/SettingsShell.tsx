@@ -81,7 +81,7 @@ export default function SettingsShell() {
 
   return (
     <div className="lag-settings-shell">
-      <PanelStage stageKey="system-options" focusKey={editing ? "edit" : "summary"}>
+      <PanelStage stageKey="system-options">
         <PanelFrame title="Settings" depth={1} contentKey={editing ? "edit" : "summary"}>
           <div className="lag-settings-surface" data-testid="settings-shell">
             {settings.loading && !settings.canonical ? <p role="status" className="lag-settings-state">Loading Settings...</p> : null}

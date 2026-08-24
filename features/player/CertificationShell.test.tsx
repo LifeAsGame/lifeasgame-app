@@ -103,7 +103,7 @@ describe("Certification management surface를 사용할 때", () => {
     fireEvent.click(screen.getByRole("button", { name: "Back to My Certifications" }));
 
     await waitFor(() => expect(document.querySelector('[data-stage-key="player-certification-detail"]')).not.toBeInTheDocument());
-    expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "player-certification-list", align: "center" } });
+    expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "player-certification-list", align: "back" } });
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 });

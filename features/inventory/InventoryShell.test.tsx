@@ -155,14 +155,15 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(entries[0]);
       const detail = document.querySelector('[data-stage-key="inventory-items-detail"]');
       expect(detail).toBeInTheDocument();
+      focus.mockClear();
       fireEvent.click(entries[1]);
       expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBe(detail);
       expectData("Item instance ID", "502");
+      expect(focus).not.toHaveBeenCalled();
 
-      focus.mockClear();
       fireEvent.click(screen.getByRole("button", { name: "Back to Items" }));
       await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).not.toBeInTheDocument());
-      expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "inventory-items-list", align: "center" } });
+      expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "inventory-items-list", align: "back" } });
       fireEvent.click(screen.getByRole("button", { name: "Back to Inventory" }));
       expect(onBack).toHaveBeenCalledTimes(1);
 

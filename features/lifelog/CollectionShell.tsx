@@ -200,7 +200,7 @@ export default function CollectionShell() {
 
       <AnimatePresence initial={false}>
         {collections.selectedId ? (
-          <PanelStage stageKey="lifelog-collection-detail" focusKey={collections.selectedId} index={2}>
+          <PanelStage stageKey="lifelog-collection-detail" index={2}>
             <PanelFrame title="Collection Detail" depth={0} contentKey={collections.selectedId}>
               {collections.detail.loading && !collections.detail.data ? <InfoCard>Loading Collection...</InfoCard> : null}
               {collections.detail.error ? <ErrorState message={collections.detail.error} retry={() => void collections.detail.retry()} /> : null}

@@ -8,14 +8,12 @@ import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 
 export default function PanelStage({
   stageKey,
-  focusKey,
   autoFocus = true,
   children,
   onPointerDownCapture,
   zIndex,
 }: {
   stageKey: string;
-  focusKey?: string | number | null;
   autoFocus?: boolean;
   index?: number;
   children: React.ReactNode;
@@ -27,14 +25,15 @@ export default function PanelStage({
 
   useLayoutEffect(() => {
     if (!autoFocus) return;
-    requestStageFocus(stageKey, "nearest");
-  }, [autoFocus, focusKey, stageKey]);
+    requestStageFocus(stageKey, "forward");
+  }, [autoFocus, stageKey]);
 
   return (
     <motion.div
       layout="position"
       className="lag-panel-stage relative"
       data-stage-key={stageKey}
+      data-stage-auto-focus={autoFocus ? undefined : "false"}
       aria-hidden={isPresent ? undefined : true}
       onPointerDownCapture={onPointerDownCapture}
       initial={reducedMotion ? false : MOTION.panelSlot.initial}

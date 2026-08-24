@@ -60,13 +60,13 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
     setPart(null);
     setSelectedSlotId(null);
     setSelectedItemInstanceId(null);
-    requestStageFocus("inventory-gear-parts", "center");
+    requestStageFocus("inventory-gear-parts", "back");
   };
 
   const closeAction = () => {
     setSelectedSlotId(null);
     setSelectedItemInstanceId(null);
-    requestStageFocus("inventory-gear-workspace", "center");
+    requestStageFocus("inventory-gear-workspace", "back");
   };
 
   return (
@@ -91,7 +91,7 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
 
       <AnimatePresence initial={false}>
         {part ? (
-          <PanelStage stageKey="inventory-gear-workspace" focusKey={part} index={1}>
+          <PanelStage stageKey="inventory-gear-workspace" index={1}>
             <PanelFrame title={`${INVENTORY_GEAR_PARTS.find(({ id }) => id === part)?.label ?? part} Workspace`} depth={1} contentKey={part} backButton={<BackButton label="Back to Gear Parts" onClick={closeWorkspace} />}>
               <div className="lag-gear-workspace">
                 <section className="lag-gear-section" aria-labelledby="gear-slots-title">
@@ -148,7 +148,7 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
 
       <AnimatePresence initial={false}>
         {selectedSlot ? (
-          <PanelStage stageKey="inventory-gear-action" focusKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} index={2}>
+          <PanelStage stageKey="inventory-gear-action" index={2}>
             <PanelFrame title="Gear Action" depth={0} contentKey={`${selectedSlot.slot.slotId}-${selectedCandidate?.itemInstanceId ?? "none"}`} backButton={<BackButton label={`Back to ${INVENTORY_GEAR_PARTS.find(({ id }) => id === part)?.label ?? "Part"} Workspace`} onClick={closeAction} />}>
               <article className="lag-gear-action-detail">
                 <header className="lag-inventory-hero">

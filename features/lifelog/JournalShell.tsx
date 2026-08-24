@@ -378,7 +378,7 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
   const previousDisabled = loading || journal.params.page === 0;
   const nextDisabled = loading || page.totalPages === 0 || journal.params.page + 1 >= page.totalPages;
 
-  const returnToJournal = () => requestStageFocus("lifelog-journal", "nearest");
+  const returnToJournal = () => requestStageFocus("lifelog-journal", "back");
   const openQuickRecord = () => {
     journal.clearSelection();
     setQuickRecordOpen(true);
@@ -513,7 +513,7 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
 
       <AnimatePresence initial={false}>
         {!quickRecordOpen && journal.selectedLifeLogId ? (
-          <PanelStage stageKey="lifelog-journal-detail" focusKey={journal.selectedLifeLogId}>
+          <PanelStage stageKey="lifelog-journal-detail">
             <PanelFrame
               title="Journal Detail"
               depth={0}

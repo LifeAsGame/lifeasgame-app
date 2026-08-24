@@ -65,10 +65,10 @@ export default function TitleShell({ onBack }: { onBack?: () => void }) {
 
       <AnimatePresence initial={false} mode="popLayout">
         {selected ? (
-          <PanelStage key="player-title-detail" stageKey="player-title-detail" focusKey={selected.titleId} index={1}>
+          <PanelStage key="player-title-detail" stageKey="player-title-detail" index={1}>
             <PanelFrame title="Title Detail" depth={0} contentKey={selected.titleId} backButton={<BackButton label="Back to Acquired Titles" onClick={() => {
               titles.clearSelection();
-              requestStageFocus("player-title-list", "center");
+              requestStageFocus("player-title-list", "back");
             }} />}>
               <div className="space-y-3 px-3">
                 <InfoCard>{selected.name}</InfoCard>

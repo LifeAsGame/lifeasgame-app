@@ -61,13 +61,13 @@ export default function CertificationShell({ onBack }: { onBack?: () => void }) 
     : null;
 
   useEffect(() => {
-    if (selectedCertification && !selected) clearSelection();
+    if (selectedCertification && !selected) {
+      clearSelection();
+      requestStageFocus("player-certification-list", "back");
+    }
   }, [clearSelection, selected, selectedCertification]);
 
-  const changeCategory = (next: string) => {
-    setCategory(next);
-    if (selectedCertification && next !== "ALL" && selectedCertification.category !== next) clearSelection();
-  };
+  const changeCategory = (next: string) => setCategory(next);
 
   return (
     <div className="lag-panel-rail lag-semantic-controls relative" data-testid="certification-shell">
@@ -111,7 +111,7 @@ export default function CertificationShell({ onBack }: { onBack?: () => void }) 
         </PanelFrame>
       </PanelStage>
 
-      <PanelStage stageKey="player-certification-list" focusKey={category} index={1}>
+      <PanelStage stageKey="player-certification-list" index={1}>
         <PanelFrame title="My Certifications" depth={1} backButton={onBack ? <BackButton label="Back to Player" onClick={onBack} /> : undefined}>
         <div className="space-y-3">
           {certifications.owned.loading && certifications.owned.items.length === 0 ? <InfoCard>Loading Certifications...</InfoCard> : null}
@@ -130,10 +130,10 @@ export default function CertificationShell({ onBack }: { onBack?: () => void }) 
 
       <AnimatePresence initial={false} mode="popLayout">
         {selected ? (
-          <PanelStage key="player-certification-detail" stageKey="player-certification-detail" focusKey={selected.certificationId} index={2}>
+          <PanelStage key="player-certification-detail" stageKey="player-certification-detail" index={2}>
             <PanelFrame title="Certification Detail" depth={0} contentKey={selected.certificationId} backButton={<BackButton label="Back to My Certifications" onClick={() => {
               clearSelection();
-              requestStageFocus("player-certification-list", "center");
+              requestStageFocus("player-certification-list", "back");
             }} />}>
               <div className="space-y-3 px-3">
             <InfoCard>{selected.name}</InfoCard>

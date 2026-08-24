@@ -457,7 +457,7 @@ export default function RoleShell({
     setSurface(null);
     setSurfaceRoleId(null);
     setEditingRoleId(null);
-    requestStageFocus("role-summary", "nearest");
+    requestStageFocus("role-summary", "back");
   };
 
   const closeSummary = () => {
@@ -465,7 +465,7 @@ export default function RoleShell({
     setSurfaceRoleId(null);
     setEditingRoleId(null);
     onSelectRole(null);
-    requestStageFocus("left-context", "nearest");
+    requestStageFocus("left-context", "back");
   };
 
   const archiveRole = async (role: RoleDetail) => {
@@ -484,7 +484,7 @@ export default function RoleShell({
     <div className="lag-panel-rail lag-role-shell relative" data-testid="role-shell">
       <AnimatePresence initial={false}>
         {selectedRole ? (
-          <PanelStage stageKey="role-summary" focusKey={selectedRole.id} index={1}>
+          <PanelStage stageKey="role-summary" index={1}>
             <PanelFrame title={selectedRole.name} depth={1} contentKey={selectedRole.id} backButton={<BackButton label="Back to Role selector" onClick={closeSummary} />}>
               <article className="lag-role-summary">
                 {actionError ? <p role="alert" className="lag-role-feedback" data-state="error">{actionError}</p> : null}
@@ -516,7 +516,7 @@ export default function RoleShell({
 
       <AnimatePresence initial={false} mode="popLayout">
         {selectedRole && (editingRole || activeSurface) ? (
-          <PanelStage stageKey="role-detail" focusKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} index={2}>
+          <PanelStage stageKey="role-detail" index={2}>
             <PanelFrame title={editingRole ? "Edit Role" : ROLE_SURFACES.find(({ id }) => id === activeSurface)?.label ?? "Role"} depth={0} contentKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} backButton={<BackButton label={`Back to ${selectedRole.name}`} onClick={closeDetail} />}>
               {editingRole ? (
                 <RoleEditForm role={selectedRole} onSaved={async () => { await onRefresh(); closeDetail(); }} onCancel={closeDetail} />

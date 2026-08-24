@@ -90,10 +90,10 @@ export default function HobbyShell({ onBack }: { onBack?: () => void }) {
 
       <AnimatePresence initial={false} mode="popLayout">
         {selected ? (
-          <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" focusKey={selected.hobbyId} index={2}>
+          <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" index={2}>
             <PanelFrame title="Hobby Detail" depth={0} contentKey={selected.hobbyId} backButton={<BackButton label="Back to My Hobbies" onClick={() => {
               hobbies.clearSelection();
-              requestStageFocus("player-hobby-list", "center");
+              requestStageFocus("player-hobby-list", "back");
             }} />}>
               <div className="space-y-3 px-3">
             <InfoCard>{selected.customName}</InfoCard>
