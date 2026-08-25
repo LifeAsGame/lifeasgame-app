@@ -24,8 +24,11 @@ describe("canonical Admin Player API adapter", () => {
     ["userId", () => lookupAdminPlayerByUserId(0)],
     ["playerId", () => getAdminPlayerById(-1)],
     ["playerId", () => getAdminPlayerById(1.5)],
-  ])("rejects invalid %s values", (_field, request) => {
-    expect(request).toThrow("positive integer");
+  ])("rejects invalid %s values through its Promise contract", async (_field, request) => {
+    const result = request();
+
+    expect(result).toBeInstanceOf(Promise);
+    await expect(result).rejects.toThrow("positive integer");
     expect(client.apiGet).not.toHaveBeenCalled();
   });
 });

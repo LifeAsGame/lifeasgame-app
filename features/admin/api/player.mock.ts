@@ -1,5 +1,6 @@
 import { ApiError } from "@/shared/api/client";
 import type { AdminPlayerInfo, AdminPlayerSummary } from "../player/model";
+import { requirePositiveAdminPlayerId } from "./player.query";
 
 const SUMMARY: AdminPlayerSummary = { playerId: 10218, userId: 8314, name: "HANEUL" };
 const INFO: AdminPlayerInfo = {
@@ -26,11 +27,13 @@ const INFO: AdminPlayerInfo = {
 const notFound = () => new ApiError(404, "PLAYER_NOT_FOUND", "Player was not found.");
 
 export async function lookupMockAdminPlayerByUserId(userId: number): Promise<AdminPlayerSummary> {
+  requirePositiveAdminPlayerId(userId, "userId");
   if (userId !== SUMMARY.userId) throw notFound();
   return { ...SUMMARY };
 }
 
 export async function getMockAdminPlayerById(playerId: number): Promise<AdminPlayerInfo> {
+  requirePositiveAdminPlayerId(playerId, "playerId");
   if (playerId !== INFO.playerId) throw notFound();
   return { ...INFO, effects: INFO.effects.map((effect) => ({ ...effect })) };
 }

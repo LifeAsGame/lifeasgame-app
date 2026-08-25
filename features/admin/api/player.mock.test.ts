@@ -25,4 +25,15 @@ describe("read-only Admin Player mock adapter", () => {
     await expect(lookupMockAdminPlayerByUserId(9999)).rejects.toMatchObject({ status: 404 });
     await expect(getMockAdminPlayerById(9999)).rejects.toMatchObject({ status: 404 });
   });
+
+  it.each([
+    ["userId", () => lookupMockAdminPlayerByUserId(0)],
+    ["playerId", () => getMockAdminPlayerById(-1)],
+  ])("rejects invalid %s values instead of treating them as not-found", async (_field, request) => {
+    const result = request();
+
+    expect(result).toBeInstanceOf(Promise);
+    await expect(result).rejects.toThrow(RangeError);
+    await expect(result).rejects.toThrow("positive integer");
+  });
 });

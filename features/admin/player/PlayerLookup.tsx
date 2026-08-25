@@ -84,8 +84,10 @@ export function PlayerLookup({ access, onLogin, dataSource = adminPlayerDataSour
 
   const authRequired = access === "unauthenticated" || player.error?.status === 401;
   const forbidden = player.error?.status === 403;
-  const notFound = player.error?.status === 404;
-  const genericError = player.error && !authRequired && !forbidden && !notFound ? player.error : null;
+  const lookupError = player.error?.kind === "lookup" && !authRequired && !forbidden ? player.error : null;
+  const detailError = player.error?.kind === "detail" && !authRequired && !forbidden ? player.error : null;
+  const lookupNotFound = lookupError?.status === 404;
+  const detailNotFound = detailError?.status === 404;
 
   return (
     <div className={styles.auditScreen}>
@@ -115,8 +117,8 @@ export function PlayerLookup({ access, onLogin, dataSource = adminPlayerDataSour
       {forbidden ? <StatePanel title="Admin access denied" message="The server did not authorize this session for Player Lookup. No Player data is shown." /> : null}
       {access === "ready" && !player.summary && !player.error && player.loading === null ? <StatePanel title="Ready for exact lookup" message="Enter a positive User ID. Email, nickname, and unbounded Player search are not supported." /> : null}
       {access === "ready" && player.loading === "lookup" ? <StatePanel title="Loading Player" message={`Looking up User ID ${userId}.`} /> : null}
-      {access === "ready" && notFound ? <StatePanel title="Player not found" message="No Player is linked to that User ID." action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : null}
-      {access === "ready" && genericError && !player.summary ? <StatePanel title="Unable to load Player" message={genericError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : null}
+      {access === "ready" && lookupNotFound ? <StatePanel title="Player not found" message="No Player is linked to that User ID." action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : null}
+      {access === "ready" && lookupError && !lookupNotFound ? <StatePanel title="Unable to load Player" message={lookupError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : null}
 
       {access === "ready" && player.summary ? (
         <div className={styles.playerLayout}>
@@ -130,7 +132,7 @@ export function PlayerLookup({ access, onLogin, dataSource = adminPlayerDataSour
               </table>
             </div>
           </section>
-          {player.detail ? <PlayerDetail player={player.detail} headingRef={detailHeading} onClose={closeDetail} /> : player.loading === "detail" ? <StatePanel title="Loading Player detail" message={`Requesting Player ID ${player.summary.playerId}.`} /> : genericError ? <StatePanel title="Unable to load Player detail" message={genericError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : <aside className={styles.detailPlaceholder}><span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span><h2>Player quick detail</h2><p>Open the exact result to fetch allowed Player fields.</p></aside>}
+          {player.detail ? <PlayerDetail player={player.detail} headingRef={detailHeading} onClose={closeDetail} /> : player.loading === "detail" ? <StatePanel title="Loading Player detail" message={`Requesting Player ID ${player.summary.playerId}.`} /> : detailNotFound ? <StatePanel title="Player detail unavailable" message="The Player detail could not be found for the returned Player ID." action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : detailError ? <StatePanel title="Unable to load Player detail" message={detailError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : <aside className={styles.detailPlaceholder}><span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span><h2>Player quick detail</h2><p>Open the exact result to fetch allowed Player fields.</p></aside>}
         </div>
       ) : null}
     </div>

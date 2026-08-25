@@ -7,7 +7,7 @@ import type { AdminPlayerDataSource } from "../api/player.source";
 import type { AdminPlayerInfo, AdminPlayerSummary } from "./model";
 
 type Intent = { kind: "lookup"; id: number } | { kind: "detail"; id: number };
-type PlayerLoadError = { status: number | null; message: string };
+type PlayerLoadError = { status: number | null; message: string; kind: Intent["kind"] };
 
 export function usePlayerLookup(enabled: boolean, dataSource: AdminPlayerDataSource) {
   const [summary, setSummary] = useState<AdminPlayerSummary | null>(null);
@@ -53,7 +53,7 @@ export function usePlayerLookup(enabled: boolean, dataSource: AdminPlayerDataSou
           setDetail(null);
           setLoadedAt(null);
         }
-        setError({ status, message: caught instanceof Error ? caught.message : "Unable to load Player." });
+        setError({ status, message: caught instanceof Error ? caught.message : "Unable to load Player.", kind: intent.kind });
       }
       return undefined;
     } finally {

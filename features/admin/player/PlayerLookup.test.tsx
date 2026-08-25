@@ -80,6 +80,30 @@ describe("read-only Player Lookup", () => {
     expect(dataSource.lookupByUserId).toHaveBeenCalledTimes(3);
   });
 
+  it("keeps Summary and retries the same playerId when detail is not found", async () => {
+    const dataSource = source();
+    vi.mocked(dataSource.lookupByUserId).mockResolvedValue(summary);
+    vi.mocked(dataSource.getByPlayerId)
+      .mockRejectedValueOnce(new ApiError(404, "PLAYER_NOT_FOUND", "Player was not found."))
+      .mockResolvedValueOnce(detail);
+    render(<PlayerLookup access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+
+    submitUserId();
+    fireEvent.click(await screen.findByRole("button", { name: "Open read-only detail" }));
+
+    expect(await screen.findByRole("heading", { name: "Player detail unavailable" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Lookup result" })).toBeInTheDocument();
+    expect(screen.getByText("The Player detail could not be found for the returned Player ID.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Player not found" })).not.toBeInTheDocument();
+    expect(screen.queryByText("No Player is linked to that User ID.")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByRole("heading", { name: "HANEUL" })).toHaveFocus();
+    expect(dataSource.getByPlayerId).toHaveBeenNthCalledWith(1, 10218);
+    expect(dataSource.getByPlayerId).toHaveBeenNthCalledWith(2, 10218);
+    expect(dataSource.lookupByUserId).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     [401, "Authentication required"],
     [403, "Admin access denied"],
