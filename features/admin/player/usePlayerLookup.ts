@@ -33,6 +33,7 @@ export function usePlayerLookup(enabled: boolean, dataSource: AdminPlayerDataSou
     try {
       if (intent.kind === "lookup") {
         const next = await dataSource.lookupByUserId(intent.id);
+        if (next.userId !== intent.id) throw new Error("Player lookup response did not match the requested User ID.");
         if (current === requestId.current) {
           setSummary(next);
           setLoadedAt(new Date());
@@ -40,6 +41,7 @@ export function usePlayerLookup(enabled: boolean, dataSource: AdminPlayerDataSou
         return next;
       }
       const next = await dataSource.getByPlayerId(intent.id);
+      if (next.playerId !== intent.id) throw new Error("Player detail response did not match the requested Player ID.");
       if (current === requestId.current) {
         setDetail(next);
         setLoadedAt(new Date());

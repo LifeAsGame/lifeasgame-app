@@ -80,6 +80,26 @@ describe("read-only Player Lookup", () => {
     expect(dataSource.lookupByUserId).toHaveBeenCalledTimes(3);
   });
 
+  it("rejects a mismatched lookup identity and retries the same userId", async () => {
+    const dataSource = source();
+    vi.mocked(dataSource.lookupByUserId)
+      .mockResolvedValueOnce({ ...summary, userId: 9999, name: "WRONG PLAYER" })
+      .mockResolvedValueOnce(summary);
+    render(<PlayerLookup access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+
+    submitUserId();
+    expect(await screen.findByRole("heading", { name: "Unable to load Player" })).toBeInTheDocument();
+    expect(screen.getByText("Player lookup response did not match the requested User ID.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Lookup result" })).not.toBeInTheDocument();
+    expect(screen.queryByText("WRONG PLAYER")).not.toBeInTheDocument();
+    expect(screen.queryByText("9999")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByRole("button", { name: "Open read-only detail" })).toBeInTheDocument();
+    expect(dataSource.lookupByUserId).toHaveBeenNthCalledWith(1, 8314);
+    expect(dataSource.lookupByUserId).toHaveBeenNthCalledWith(2, 8314);
+  });
+
   it("keeps Summary and retries the same playerId when detail is not found", async () => {
     const dataSource = source();
     vi.mocked(dataSource.lookupByUserId).mockResolvedValue(summary);
@@ -102,6 +122,30 @@ describe("read-only Player Lookup", () => {
     expect(dataSource.getByPlayerId).toHaveBeenNthCalledWith(1, 10218);
     expect(dataSource.getByPlayerId).toHaveBeenNthCalledWith(2, 10218);
     expect(dataSource.lookupByUserId).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps Summary when detail identity mismatches and retries the same playerId", async () => {
+    const dataSource = source();
+    vi.mocked(dataSource.lookupByUserId).mockResolvedValue(summary);
+    vi.mocked(dataSource.getByPlayerId)
+      .mockResolvedValueOnce({ ...detail, playerId: 55555, name: "WRONG DETAIL" })
+      .mockResolvedValueOnce(detail);
+    render(<PlayerLookup access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+
+    submitUserId();
+    fireEvent.click(await screen.findByRole("button", { name: "Open read-only detail" }));
+
+    expect(await screen.findByRole("heading", { name: "Unable to load Player detail" })).toBeInTheDocument();
+    expect(screen.getByText("Player detail response did not match the requested Player ID.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Lookup result" })).toBeInTheDocument();
+    expect(screen.getByText("HANEUL")).toBeInTheDocument();
+    expect(screen.queryByText("WRONG DETAIL")).not.toBeInTheDocument();
+    expect(screen.queryByText("55555")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByRole("heading", { name: "HANEUL" })).toHaveFocus();
+    expect(dataSource.getByPlayerId).toHaveBeenNthCalledWith(1, 10218);
+    expect(dataSource.getByPlayerId).toHaveBeenNthCalledWith(2, 10218);
   });
 
   it.each([
