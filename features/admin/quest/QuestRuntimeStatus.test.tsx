@@ -147,6 +147,27 @@ describe("read-only Quest Runtime Status", () => {
     expect(await screen.findByRole("button", { name: "9001" })).toBeInTheDocument();
   });
 
+  it("withholds a filtered Acceptance list containing another status and retries the same filter", async () => {
+    const dataSource = source();
+    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    await selectDefinition();
+    vi.mocked(dataSource.getAcceptances)
+      .mockResolvedValueOnce({ acceptances: [acceptance] })
+      .mockResolvedValueOnce({ acceptances: [completed] });
+
+    fireEvent.change(screen.getByLabelText("Acceptance status"), { target: { value: "COMPLETED" } });
+
+    expect(await screen.findByRole("heading", { name: "Unable to load Quest Acceptances" })).toBeInTheDocument();
+    expect(screen.getByText("Quest acceptance list contained another Acceptance status.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "9001" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "9002" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByRole("button", { name: "9002" })).toBeInTheDocument();
+    expect(dataSource.getAcceptances).toHaveBeenNthCalledWith(2, definition.code, "COMPLETED");
+    expect(dataSource.getAcceptances).toHaveBeenNthCalledWith(3, definition.code, "COMPLETED");
+  });
+
   it("withholds mismatched Acceptance identity and selected Quest identity before rendering", async () => {
     const dataSource = source();
     vi.mocked(dataSource.getAcceptance)

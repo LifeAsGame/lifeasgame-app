@@ -19,9 +19,12 @@ type Intent =
 
 type QuestLoadError = { kind: Intent["kind"]; status: number | null; message: string };
 
-function ensureAcceptanceCodes(acceptances: AdminQuestAcceptance[], questCode: string) {
+function ensureAcceptanceListMatches(acceptances: AdminQuestAcceptance[], questCode: string, status: AdminQuestAcceptanceStatus | "" = "") {
   if (acceptances.some((acceptance) => acceptance.code !== questCode)) {
     throw new Error("Quest acceptance list contained another Quest code.");
+  }
+  if (status && acceptances.some((acceptance) => acceptance.status !== status)) {
+    throw new Error("Quest acceptance list contained another Acceptance status.");
   }
 }
 
@@ -85,7 +88,7 @@ export function useQuestRuntimeStatus(enabled: boolean, dataSource: AdminQuestDa
           dataSource.getAcceptances(intent.questCode),
         ]);
         if (nextDefinition.code !== intent.questCode) throw new Error("Quest definition response did not match the requested Quest code.");
-        ensureAcceptanceCodes(acceptanceResponse.acceptances, intent.questCode);
+        ensureAcceptanceListMatches(acceptanceResponse.acceptances, intent.questCode);
         if (current === requestId.current) {
           setDefinition(nextDefinition);
           setAcceptances(acceptanceResponse.acceptances);
@@ -93,7 +96,7 @@ export function useQuestRuntimeStatus(enabled: boolean, dataSource: AdminQuestDa
         }
       } else if (intent.kind === "acceptances") {
         const response = await dataSource.getAcceptances(intent.questCode, intent.status);
-        ensureAcceptanceCodes(response.acceptances, intent.questCode);
+        ensureAcceptanceListMatches(response.acceptances, intent.questCode, intent.status);
         if (current === requestId.current) {
           setAcceptances(response.acceptances);
           setLoadedAt(new Date());
