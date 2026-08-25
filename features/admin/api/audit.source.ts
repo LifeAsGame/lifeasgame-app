@@ -1,18 +1,14 @@
 import type { AdminAuditPage, AdminAuditQuery } from "../model";
 import { getAdminAuditEvents } from "./audit";
 import { getMockAdminAuditEvents } from "./audit.mock";
+import { resolveAdminDataSourceMode } from "./source";
+import type { AdminDataSourceDescriptor } from "./source";
 
-export type AdminDataSourceMode = "api" | "mock";
-
-export type AdminDataSourceDescriptor = {
-  mode: AdminDataSourceMode;
-  badge: "API" | "MOCK DATA";
-  label: string;
-  eventLabel: string;
-};
+export { resolveAdminDataSourceMode } from "./source";
+export type { AdminDataSourceDescriptor, AdminDataSourceMode } from "./source";
 
 export type AdminAuditDataSource = {
-  descriptor: AdminDataSourceDescriptor;
+  descriptor: AdminDataSourceDescriptor & { eventLabel: string };
   getEvents: (query: AdminAuditQuery) => Promise<AdminAuditPage>;
 };
 
@@ -25,10 +21,6 @@ const MOCK_SOURCE: AdminAuditDataSource = {
   descriptor: { mode: "mock", badge: "MOCK DATA", label: "Local Admin Mock", eventLabel: "Local Admin Mock" },
   getEvents: getMockAdminAuditEvents,
 };
-
-export function resolveAdminDataSourceMode(value: unknown): AdminDataSourceMode {
-  return value === "mock" ? "mock" : "api";
-}
 
 export function getAdminAuditDataSource(value: unknown): AdminAuditDataSource {
   return resolveAdminDataSourceMode(value) === "mock" ? MOCK_SOURCE : API_SOURCE;
