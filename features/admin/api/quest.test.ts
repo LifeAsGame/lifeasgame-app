@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { AdminQuestAcceptanceStatus } from "../quest/model";
 import {
   getAdminQuestAcceptance,
   getAdminQuestAcceptances,
@@ -40,7 +41,7 @@ describe("read-only Admin Quest API adapter", () => {
     [() => getAdminQuestAcceptances(""), "must not be blank"],
     [() => getAdminQuestAcceptance(0), "positive integer"],
     [() => getAdminQuestAcceptance(1.5), "positive integer"],
-    [() => getAdminQuestAcceptances("quest:record:first-trace", "DONE" as "COMPLETED"), "canonical Acceptance status"],
+    [() => getAdminQuestAcceptances("quest:record:first-trace", "DONE" as unknown as AdminQuestAcceptanceStatus), "canonical Acceptance status"],
   ])("rejects invalid input through its Promise contract", async (request, message) => {
     const result = request();
 

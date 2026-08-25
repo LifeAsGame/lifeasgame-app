@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { AdminQuestAcceptanceStatus } from "../quest/model";
 import {
   getMockAdminQuestAcceptance,
   getMockAdminQuestAcceptances,
@@ -48,7 +49,7 @@ describe("read-only Admin Quest Mock adapter", () => {
     [() => getMockAdminQuestAcceptances(""), "must not be blank"],
     [() => getMockAdminQuestAcceptance(0), "positive integer"],
     [() => getMockAdminQuestAcceptance(-1), "positive integer"],
-    [() => getMockAdminQuestAcceptances("quest:record:first-trace", "DONE" as "COMPLETED"), "canonical Acceptance status"],
+    [() => getMockAdminQuestAcceptances("quest:record:first-trace", "DONE" as unknown as AdminQuestAcceptanceStatus), "canonical Acceptance status"],
   ])("rejects the same invalid input as the API source", async (request, message) => {
     await expect(request()).rejects.toThrow(message);
   });
