@@ -6,12 +6,16 @@ import { AdminShell } from "./AdminShell";
 const apiSource = { mode: "api", badge: "API", label: "/admin/v1", eventLabel: "/admin/v1/audit-events" } as const;
 const mockSource = { mode: "mock", badge: "MOCK DATA", label: "Local Admin Mock", eventLabel: "Local Admin Mock" } as const;
 
-describe("Admin Phase A2 shell", () => {
-  it("keeps Player Lookup active while Admin Audit remains supported", () => {
-    render(<AdminShell operator="operator@lag" player={<div>Player Screen</div>} audit={<div>Audit Screen</div>} source={apiSource} />);
+describe("Admin Phase A3 shell", () => {
+  it("exposes only Quest Runtime Status under Content while Player and Audit remain supported", () => {
+    render(<AdminShell operator="operator@lag" quest={<div>Quest Screen</div>} player={<div>Player Screen</div>} audit={<div>Audit Screen</div>} source={apiSource} />);
 
     expect(screen.getByRole("navigation", { name: "Admin operations" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Players, SUPPORTED" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Content, SUPPORTED" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Quest Runtime Status")).toBeInTheDocument();
+    expect(screen.getByText("Quest Screen")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Players, SUPPORTED" }));
     expect(screen.getByText("Player Lookup")).toBeInTheDocument();
     expect(screen.getByText("Player Screen")).toBeInTheDocument();
 
@@ -22,7 +26,7 @@ describe("Admin Phase A2 shell", () => {
   });
 
   it("keeps unrelated capability boundaries without unsupported commands", () => {
-    render(<AdminShell operator="operator@lag" player={<div>Player Screen</div>} audit={<div>Audit Screen</div>} source={apiSource} />);
+    render(<AdminShell operator="operator@lag" quest={<div>Quest Screen</div>} player={<div>Player Screen</div>} audit={<div>Audit Screen</div>} source={apiSource} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Dashboard, DEFERRED" }));
     expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
@@ -37,14 +41,14 @@ describe("Admin Phase A2 shell", () => {
     [apiSource, "API", "/admin/v1", "Session", "Authority enforced by server"],
     [mockSource, "MOCK DATA", "Local Admin Mock", "Mock session", "Server Admin authority not evaluated"],
   ] as const)("shows the %s source without changing the Admin shell anatomy", (source, badge, label, session, authority) => {
-    render(<AdminShell operator="operator@lag" player={<div>Player Screen</div>} audit={<div>Audit Screen</div>} source={source} />);
+    render(<AdminShell operator="operator@lag" quest={<div>Quest Screen</div>} player={<div>Player Screen</div>} audit={<div>Audit Screen</div>} source={source} />);
 
     expect(screen.getByText(badge)).toBeInTheDocument();
     expect(screen.getByText(label)).toBeInTheDocument();
     expect(screen.getByText(session)).toBeInTheDocument();
     expect(screen.getByText(authority)).toBeInTheDocument();
     if (source.mode === "mock") expect(screen.queryByText("Authority enforced by server")).not.toBeInTheDocument();
-    expect(screen.getByText("Player Screen")).toBeInTheDocument();
+    expect(screen.getByText("Quest Screen")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /grant|revoke|adjust|delete|override|deliver/i })).not.toBeInTheDocument();
   });
 });

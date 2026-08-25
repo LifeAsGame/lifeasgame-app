@@ -59,7 +59,7 @@
   --admin-failed: #d86d72;
 }
 
-.root :where(button, input, select):focus-visible {
+.root :where(button, input, select, summary):focus-visible {
   outline: 2px solid var(--admin-focus);
   outline-offset: 2px;
 }
@@ -582,6 +582,7 @@
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 3px;
+  user-select: text;
 }
 
 .idButton:hover {
@@ -870,6 +871,181 @@
   font-size: 11px;
 }
 
+.questLayout {
+  display: grid;
+  grid-template-columns: minmax(360px, 430px) minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+
+.questPanel {
+  min-width: 0;
+  padding: 14px;
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+}
+
+.questPanel h2 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 17px;
+}
+
+.questPanelHeader,
+.questAcceptanceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.questPanelHeader > span {
+  color: var(--admin-muted);
+  font-size: 10px;
+}
+
+.catalogDisclosure {
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  color: var(--admin-text-2);
+  background: var(--admin-workspace);
+  border: 1px solid var(--admin-divider);
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.catalogDisclosure summary {
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.catalogDisclosure ul {
+  display: grid;
+  gap: 6px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalogDisclosure li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.catalogDisclosure code {
+  color: var(--admin-id);
+  user-select: text;
+}
+
+.questDefinitionTable {
+  min-width: 400px;
+}
+
+.questWorkspace {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.questDescription,
+.questSemantics {
+  color: var(--admin-text-2);
+  line-height: 1.5;
+}
+
+.questDescription {
+  margin: 0 0 12px;
+  padding: 10px;
+  background: var(--admin-workspace);
+  border: 1px solid var(--admin-divider);
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+.questDefinitionFields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+}
+
+.questAcceptanceHeader label {
+  display: flex;
+  min-width: 190px;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--admin-text-2);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.questAcceptanceHeader select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  color: var(--admin-text);
+  background: var(--admin-workspace);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.questSemantics {
+  margin: 0 0 12px;
+  padding: 9px 10px;
+  border-left: 2px solid var(--admin-focus);
+  font-size: 10px;
+}
+
+.questAcceptanceLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+  align-items: start;
+  gap: 12px;
+}
+
+.questAcceptanceLayout > * {
+  min-width: 0;
+}
+
+.questAcceptanceTable {
+  min-width: 710px;
+}
+
+.questStatus {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 23px;
+  padding: 3px 8px;
+  color: var(--admin-focus);
+  background: color-mix(in srgb, var(--admin-focus) 8%, var(--admin-panel));
+  border: 1px solid var(--admin-focus);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.questStatus[data-status="GOAL_REACHED"] {
+  color: var(--admin-gated);
+  border-color: var(--admin-gated);
+  background: color-mix(in srgb, var(--admin-gated) 8%, var(--admin-panel));
+}
+
+.questStatus[data-status="COMPLETED"] {
+  color: var(--admin-supported);
+  border-color: var(--admin-supported);
+  background: color-mix(in srgb, var(--admin-supported) 8%, var(--admin-panel));
+}
+
+.questStatus[data-status="CANCELED"] {
+  color: var(--admin-failed);
+  border-color: var(--admin-failed);
+  background: color-mix(in srgb, var(--admin-failed) 8%, var(--admin-panel));
+}
+
 @media (max-width: 1179px) {
   .root {
     grid-template:
@@ -907,6 +1083,15 @@
   }
 
   .playerLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .questLayout,
+  .questAcceptanceLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .questDefinitionFields {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -997,6 +1182,14 @@
   }
 
   .playerLookupForm button {
+    width: 100%;
+  }
+
+  .questAcceptanceHeader {
+    flex-direction: column;
+  }
+
+  .questAcceptanceHeader label {
     width: 100%;
   }
 
