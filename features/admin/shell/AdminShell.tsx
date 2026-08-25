@@ -12,8 +12,8 @@ function CapabilityBadge({ state, compact = false }: { state: AdminCapabilitySta
   return <span className={styles.badge} data-state={state} data-compact={compact || undefined}>{marker} {state}</span>;
 }
 
-export function AdminShell({ operator, audit, player, source }: { operator: string; audit: React.ReactNode; player: React.ReactNode; source: AdminDataSourceDescriptor }) {
-  const [activeArea, setActiveArea] = useState<AdminAreaId>("players");
+export function AdminShell({ operator, audit, player, quest, source }: { operator: string; audit: React.ReactNode; player: React.ReactNode; quest: React.ReactNode; source: AdminDataSourceDescriptor }) {
+  const [activeArea, setActiveArea] = useState<AdminAreaId>("content");
   const active = ADMIN_AREAS.find((area) => area.id === activeArea)!;
 
   return (
@@ -42,9 +42,9 @@ export function AdminShell({ operator, audit, player, source }: { operator: stri
                 <span className={styles.navLabel}>{area.label}</span>
                 {area.id !== "system" ? <span className={styles.navBadge}><CapabilityBadge state={area.state} compact /></span> : null}
               </button>
-              {(area.id === "system" || area.id === "players") && activeArea === area.id ? (
+              {(area.id === "system" || area.id === "players" || area.id === "content") && activeArea === area.id ? (
                 <div className={styles.subnav} aria-label={`${area.label} capabilities`}>
-                  <span>{area.id === "system" ? "Admin Audit" : "Player Lookup"}</span>
+                  <span>{area.id === "system" ? "Admin Audit" : area.id === "players" ? "Player Lookup" : "Quest Runtime Status"}</span>
                   <CapabilityBadge state={area.id === "system" ? "SUPPORTED" : "READ_ONLY"} compact />
                 </div>
               ) : null}
@@ -58,7 +58,7 @@ export function AdminShell({ operator, audit, player, source }: { operator: stri
       </aside>
 
       <main className={styles.workspace}>
-        {activeArea === "system" ? audit : activeArea === "players" ? player : (
+        {activeArea === "system" ? audit : activeArea === "players" ? player : activeArea === "content" ? quest : (
           <section className={styles.capabilityPanel} aria-labelledby="admin-capability-title">
             <div className={styles.capabilityHeader}>
               <div>
