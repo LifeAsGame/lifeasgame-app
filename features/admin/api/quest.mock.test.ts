@@ -30,15 +30,26 @@ describe("read-only Admin Quest Mock adapter", () => {
   });
 
   it("supports the proven status filter and an empty Acceptance list", async () => {
-    expect((await getMockAdminQuestAcceptances("quest:record:first-trace", "COMPLETED")).acceptances).toEqual([
+    expect((await getMockAdminQuestAcceptances(" quest:record:first-trace ", "COMPLETED")).acceptances).toEqual([
       expect.objectContaining({ id: 9002, status: "COMPLETED" }),
     ]);
     expect((await getMockAdminQuestAcceptances("quest:daily:walk")).acceptances).toEqual([]);
+    expect((await getMockAdminQuestDefinition(" quest:record:first-trace ")).code).toBe("quest:record:first-trace");
   });
 
   it("reports not-found without fabricating fallback data", async () => {
     await expect(getMockAdminQuestDefinition("missing")).rejects.toMatchObject({ status: 404 });
     await expect(getMockAdminQuestAcceptances("missing")).rejects.toMatchObject({ status: 404 });
     await expect(getMockAdminQuestAcceptance(9999)).rejects.toMatchObject({ status: 404 });
+  });
+
+  it.each([
+    [() => getMockAdminQuestDefinition("   "), "must not be blank"],
+    [() => getMockAdminQuestAcceptances(""), "must not be blank"],
+    [() => getMockAdminQuestAcceptance(0), "positive integer"],
+    [() => getMockAdminQuestAcceptance(-1), "positive integer"],
+    [() => getMockAdminQuestAcceptances("quest:record:first-trace", "DONE" as "COMPLETED"), "canonical Acceptance status"],
+  ])("rejects the same invalid input as the API source", async (request, message) => {
+    await expect(request()).rejects.toThrow(message);
   });
 });

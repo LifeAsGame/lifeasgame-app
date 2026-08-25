@@ -21,9 +21,9 @@ describe("read-only Admin Quest API adapter", () => {
   it("uses the exact five GET endpoint forms with safe path and query encoding", async () => {
     await getAdminQuestCatalog();
     await getAdminQuestDefinitions();
-    await getAdminQuestDefinition("quest/with space");
-    await getAdminQuestAcceptances("quest/with space");
-    await getAdminQuestAcceptances("quest/with space", "GOAL_REACHED");
+    await getAdminQuestDefinition(" quest/with space ");
+    await getAdminQuestAcceptances(" quest/with space ");
+    await getAdminQuestAcceptances(" quest/with space ", "GOAL_REACHED");
     await getAdminQuestAcceptance(9001);
 
     expect(client.apiGet).toHaveBeenNthCalledWith(1, "/admin/v1/quests/catalog");
@@ -35,11 +35,17 @@ describe("read-only Admin Quest API adapter", () => {
     expect(client.apiGet.mock.calls.flat().join(" ")).not.toContain("/api/v1/admin/");
   });
 
-  it("rejects blank Quest codes and invalid Acceptance IDs before a request", () => {
-    expect(() => getAdminQuestDefinition("   ")).toThrow("must not be blank");
-    expect(() => getAdminQuestAcceptances("")).toThrow("must not be blank");
-    expect(() => getAdminQuestAcceptance(0)).toThrow("positive integer");
-    expect(() => getAdminQuestAcceptance(1.5)).toThrow("positive integer");
+  it.each([
+    [() => getAdminQuestDefinition("   "), "must not be blank"],
+    [() => getAdminQuestAcceptances(""), "must not be blank"],
+    [() => getAdminQuestAcceptance(0), "positive integer"],
+    [() => getAdminQuestAcceptance(1.5), "positive integer"],
+    [() => getAdminQuestAcceptances("quest:record:first-trace", "DONE" as "COMPLETED"), "canonical Acceptance status"],
+  ])("rejects invalid input through its Promise contract", async (request, message) => {
+    const result = request();
+
+    expect(result).toBeInstanceOf(Promise);
+    await expect(result).rejects.toThrow(message);
     expect(client.apiGet).not.toHaveBeenCalled();
   });
 

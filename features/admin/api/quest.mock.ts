@@ -8,6 +8,11 @@ import type {
   AdminQuestDefinition,
   AdminQuestDefinitions,
 } from "../quest/model";
+import {
+  normalizeAdminQuestCode,
+  requirePositiveAdminAcceptanceId,
+  validateAdminQuestAcceptanceStatus,
+} from "./quest.query";
 
 const BLUEPRINTS: AdminQuestBlueprint[] = [
   {
@@ -55,18 +60,22 @@ export async function getMockAdminQuestDefinitions(): Promise<AdminQuestDefiniti
 }
 
 export async function getMockAdminQuestDefinition(questCode: string): Promise<AdminQuestDefinition> {
-  const definition = DEFINITIONS.find((candidate) => candidate.code === questCode);
+  const normalizedCode = normalizeAdminQuestCode(questCode);
+  const definition = DEFINITIONS.find((candidate) => candidate.code === normalizedCode);
   if (!definition) throw notFound();
   return copy(definition);
 }
 
 export async function getMockAdminQuestAcceptances(questCode: string, status?: AdminQuestAcceptanceStatus | ""): Promise<AdminQuestAcceptances> {
-  if (!DEFINITIONS.some((definition) => definition.code === questCode)) throw notFound();
-  return copy({ acceptances: ACCEPTANCES.filter((acceptance) => acceptance.code === questCode && (!status || acceptance.status === status)) });
+  const normalizedCode = normalizeAdminQuestCode(questCode);
+  const normalizedStatus = validateAdminQuestAcceptanceStatus(status);
+  if (!DEFINITIONS.some((definition) => definition.code === normalizedCode)) throw notFound();
+  return copy({ acceptances: ACCEPTANCES.filter((acceptance) => acceptance.code === normalizedCode && (!normalizedStatus || acceptance.status === normalizedStatus)) });
 }
 
 export async function getMockAdminQuestAcceptance(acceptanceId: number): Promise<AdminQuestAcceptance> {
-  const acceptance = ACCEPTANCES.find((candidate) => candidate.id === acceptanceId);
+  const normalizedId = requirePositiveAdminAcceptanceId(acceptanceId);
+  const acceptance = ACCEPTANCES.find((candidate) => candidate.id === normalizedId);
   if (!acceptance) throw notFound();
   return copy(acceptance);
 }
