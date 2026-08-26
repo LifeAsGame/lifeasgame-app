@@ -1046,6 +1046,196 @@
   background: color-mix(in srgb, var(--admin-failed) 8%, var(--admin-panel));
 }
 
+.questOverrideForm,
+.questOverrideReview,
+.questOverrideState,
+.questOverrideUnavailable {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  color: var(--admin-text-2);
+  background: color-mix(in srgb, var(--admin-workspace) 82%, var(--admin-panel));
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+}
+
+.questOverrideForm h3,
+.questOverrideReview h3,
+.questOverrideState h3,
+.questOverrideUnavailable h3 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.questOverrideForm p,
+.questOverrideReview p,
+.questOverrideState p,
+.questOverrideUnavailable p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.questOverrideForm label,
+.questLevel3Warning label {
+  display: grid;
+  gap: 5px;
+  color: var(--admin-text-2);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.questOverrideForm input,
+.questOverrideForm select,
+.questLevel3Warning input[type="text"],
+.questLevel3Warning input:not([type]) {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  color: var(--admin-text);
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.questOverrideForm input,
+.questOverrideForm select,
+.questLevel3Warning input:not([type]) {
+  min-height: 36px;
+}
+
+.questRiskPreview,
+.questLevel2Note {
+  padding: 8px 9px;
+  border-left: 2px solid var(--admin-focus);
+  font-size: 10px;
+}
+
+.questOverrideReview {
+  border-color: var(--admin-focus);
+}
+
+.questOverrideReview[data-risk="L3"] {
+  border-color: var(--admin-failed);
+}
+
+.questOverrideReview[data-risk="L3"] .primaryButton {
+  color: #fff;
+  background: var(--admin-failed);
+  border-color: var(--admin-failed);
+}
+
+.questOverrideReviewHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.questOverrideReviewHeader > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  color: var(--admin-panel);
+  background: var(--admin-focus);
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  font-weight: 850;
+}
+
+.questOverrideReview[data-risk="L3"] .questOverrideReviewHeader > span {
+  background: var(--admin-failed);
+}
+
+.questOverrideSummary,
+.questOperationReceipt {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--admin-divider);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.questOverrideSummary > div,
+.questOperationReceipt > div {
+  display: grid;
+  grid-template-columns: 105px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+.questOverrideSummary > div:last-child,
+.questOperationReceipt > div:last-child {
+  border-bottom: 0;
+}
+
+.questOverrideSummary dt,
+.questOperationReceipt dt {
+  color: var(--admin-muted);
+  font-size: 9px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.questOverrideSummary dd,
+.questOperationReceipt dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--admin-text);
+  overflow-wrap: anywhere;
+}
+
+.questOverrideSummary code,
+.questOperationReceipt code {
+  color: var(--admin-id);
+  user-select: text;
+}
+
+.questLevel3Warning {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  color: var(--admin-text-2);
+  background: color-mix(in srgb, var(--admin-failed) 7%, var(--admin-panel));
+  border-left: 3px solid var(--admin-failed);
+}
+
+.questConfirmCheck {
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  align-items: start;
+}
+
+.questConfirmCheck input {
+  width: 16px;
+  min-height: 16px;
+  margin: 1px 0 0;
+}
+
+.questOverrideActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.questOverrideError {
+  color: var(--admin-failed);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.questOverrideState[data-state="success"] {
+  border-color: var(--admin-supported);
+}
+
+.questOverrideState[data-state="unknown"],
+.questOverrideState[data-state="conflict"] {
+  border-color: var(--admin-gated);
+}
+
 @media (max-width: 1179px) {
   .root {
     grid-template:
@@ -1190,6 +1380,15 @@
   }
 
   .questAcceptanceHeader label {
+    width: 100%;
+  }
+
+  .questOverrideActions {
+    flex-direction: column-reverse;
+  }
+
+  .questOverrideActions button,
+  .questOverrideForm > button {
     width: 100%;
   }
 

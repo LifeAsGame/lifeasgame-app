@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/shared/api/client";
 import type { AdminQuestDataSource } from "../api/quest.source";
+import type { AdminQuestCommandSource } from "../api/quest.command";
 import type { AdminQuestAcceptance, AdminQuestBlueprint, AdminQuestDefinition } from "./model";
 import { QuestRuntimeStatus } from "./QuestRuntimeStatus";
 
@@ -26,6 +27,7 @@ const completed: AdminQuestAcceptance = {
   ...acceptance, id: 9002, playerId: 10219, progressValue: 1, status: "COMPLETED",
   goalReachedAt: "2026-08-23T04:05:00Z", completedAt: "2026-08-23T04:05:00Z",
 };
+const unavailableCommands: AdminQuestCommandSource = { available: false };
 
 function source(): AdminQuestDataSource {
   return {
@@ -45,6 +47,10 @@ async function selectDefinition(code = definition.code) {
   await waitFor(() => expect(document.getElementById("quest-definition-title")).toHaveFocus());
 }
 
+function renderQuest(dataSource: AdminQuestDataSource) {
+  return render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} commandSource={unavailableCommands} />);
+}
+
 describe("read-only Quest Runtime Status", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -55,7 +61,7 @@ describe("read-only Quest Runtime Status", () => {
     const dataSource = source();
     let resolveCatalog!: (value: { blueprints: AdminQuestBlueprint[] }) => void;
     vi.mocked(dataSource.getCatalog).mockReturnValue(new Promise((resolve) => { resolveCatalog = resolve; }));
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
 
     expect(await screen.findByRole("heading", { name: "Loading Quest sources" })).toBeInTheDocument();
     await act(async () => resolveCatalog({ blueprints: [blueprint] }));
@@ -73,13 +79,15 @@ describe("read-only Quest Runtime Status", () => {
 
   it("filters by the proven status values and opens an exact Acceptance detail", async () => {
     const dataSource = source();
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
     await selectDefinition();
 
     fireEvent.click(screen.getByRole("button", { name: "9001" }));
     await waitFor(() => expect(document.getElementById("quest-acceptance-title")).toHaveFocus());
     expect(dataSource.getAcceptance).toHaveBeenCalledWith(9001);
     expect(within(document.getElementById("quest-acceptance-title")!.closest("aside")!).getByText("2026-08-24T04:00:00Z")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Operational command unavailable" })).toBeInTheDocument();
+    expect(screen.getByText(/Mock mode remains read-only/)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Acceptance status"), { target: { value: "COMPLETED" } });
     expect(await screen.findByRole("button", { name: "9002" })).toBeInTheDocument();
@@ -87,9 +95,23 @@ describe("read-only Quest Runtime Status", () => {
     expect(dataSource.getAcceptances).toHaveBeenLastCalledWith(definition.code, "COMPLETED");
   });
 
+  it("never exposes a mutation when the active read source is Mock", async () => {
+    const dataSource = source();
+    dataSource.descriptor = { mode: "mock", badge: "MOCK DATA", label: "Local Admin Mock", questLabel: "Local Admin Mock" };
+    const commandSource = { available: true, adjustProgress: vi.fn(), changeStatus: vi.fn() } satisfies AdminQuestCommandSource;
+    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} commandSource={commandSource} />);
+    await selectDefinition();
+    fireEvent.click(screen.getByRole("button", { name: "9001" }));
+
+    expect(await screen.findByRole("heading", { name: "Operational command unavailable" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Review operation" })).not.toBeInTheDocument();
+    expect(commandSource.adjustProgress).not.toHaveBeenCalled();
+    expect(commandSource.changeStatus).not.toHaveBeenCalled();
+  });
+
   it("distinguishes an empty Quest from a status no-match", async () => {
     const dataSource = source();
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
     await selectDefinition(emptyDefinition.code);
 
     expect(screen.getByRole("heading", { name: "No Quest Acceptances" })).toBeInTheDocument();
@@ -100,7 +122,7 @@ describe("read-only Quest Runtime Status", () => {
   it("retries the same source after an index error without switching to Mock", async () => {
     const dataSource = source();
     vi.mocked(dataSource.getCatalog).mockRejectedValueOnce(new Error("Network unavailable"));
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
 
     expect(await screen.findByRole("heading", { name: "Unable to load Quest sources" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
@@ -111,7 +133,7 @@ describe("read-only Quest Runtime Status", () => {
   it.each([[401, "Authentication required"], [403, "Admin access denied"]] as const)("renders %s without cached Quest data", async (status, title) => {
     const dataSource = source();
     vi.mocked(dataSource.getCatalog).mockRejectedValueOnce(new ApiError(status, `HTTP_${status}`, "Denied"));
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
 
     expect(await screen.findByRole("heading", { name: title })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: definition.code })).not.toBeInTheDocument();
@@ -122,7 +144,7 @@ describe("read-only Quest Runtime Status", () => {
     vi.mocked(dataSource.getDefinition)
       .mockResolvedValueOnce({ ...definition, code: "quest:wrong", title: "Wrong Definition" })
       .mockResolvedValueOnce(definition);
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
     fireEvent.click(await screen.findByRole("button", { name: definition.code }));
 
     expect(await screen.findByText("Quest definition response did not match the requested Quest code.")).toBeInTheDocument();
@@ -138,7 +160,7 @@ describe("read-only Quest Runtime Status", () => {
     vi.mocked(dataSource.getAcceptances)
       .mockResolvedValueOnce({ acceptances: [{ ...acceptance, code: "quest:wrong" }] })
       .mockResolvedValueOnce({ acceptances: [acceptance] });
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
     fireEvent.click(await screen.findByRole("button", { name: definition.code }));
 
     expect(await screen.findByText("Quest acceptance list contained another Quest code.")).toBeInTheDocument();
@@ -149,7 +171,7 @@ describe("read-only Quest Runtime Status", () => {
 
   it("withholds a filtered Acceptance list containing another status and retries the same filter", async () => {
     const dataSource = source();
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
     await selectDefinition();
     vi.mocked(dataSource.getAcceptances)
       .mockResolvedValueOnce({ acceptances: [acceptance] })
@@ -174,7 +196,7 @@ describe("read-only Quest Runtime Status", () => {
       .mockResolvedValueOnce({ ...acceptance, id: 9999 })
       .mockResolvedValueOnce({ ...acceptance, code: "quest:wrong" })
       .mockResolvedValueOnce(acceptance);
-    render(<QuestRuntimeStatus access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+    renderQuest(dataSource);
     await selectDefinition();
     fireEvent.click(screen.getByRole("button", { name: "9001" }));
 

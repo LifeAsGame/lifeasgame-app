@@ -12,7 +12,13 @@ function CapabilityBadge({ state, compact = false }: { state: AdminCapabilitySta
   return <span className={styles.badge} data-state={state} data-compact={compact || undefined}>{marker} {state}</span>;
 }
 
-export function AdminShell({ operator, audit, player, quest, source }: { operator: string; audit: React.ReactNode; player: React.ReactNode; quest: React.ReactNode; source: AdminDataSourceDescriptor }) {
+export function AdminShell({ operator, audit, player, quest, source }: {
+  operator: string;
+  audit: React.ReactNode;
+  player: React.ReactNode;
+  quest: React.ReactNode | ((openAudit: () => void) => React.ReactNode);
+  source: AdminDataSourceDescriptor;
+}) {
   const [activeArea, setActiveArea] = useState<AdminAreaId>("content");
   const active = ADMIN_AREAS.find((area) => area.id === activeArea)!;
 
@@ -45,7 +51,7 @@ export function AdminShell({ operator, audit, player, quest, source }: { operato
               {(area.id === "system" || area.id === "players" || area.id === "content") && activeArea === area.id ? (
                 <div className={styles.subnav} aria-label={`${area.label} capabilities`}>
                   <span>{area.id === "system" ? "Admin Audit" : area.id === "players" ? "Player Lookup" : "Quest Runtime Status"}</span>
-                  <CapabilityBadge state={area.id === "system" ? "SUPPORTED" : "READ_ONLY"} compact />
+                  <CapabilityBadge state={area.id === "players" ? "READ_ONLY" : "SUPPORTED"} compact />
                 </div>
               ) : null}
             </div>
@@ -58,7 +64,9 @@ export function AdminShell({ operator, audit, player, quest, source }: { operato
       </aside>
 
       <main className={styles.workspace}>
-        {activeArea === "system" ? audit : activeArea === "players" ? player : activeArea === "content" ? quest : (
+        {activeArea === "system" ? audit : activeArea === "players" ? player : activeArea === "content"
+          ? typeof quest === "function" ? quest(() => setActiveArea("system")) : quest
+          : (
           <section className={styles.capabilityPanel} aria-labelledby="admin-capability-title">
             <div className={styles.capabilityHeader}>
               <div>
@@ -70,7 +78,7 @@ export function AdminShell({ operator, audit, player, quest, source }: { operato
             <p>{active.reason}</p>
             <p className={styles.safeNote}>No data or command API is connected for this area in the current approved slice.</p>
           </section>
-        )}
+          )}
       </main>
     </div>
   );

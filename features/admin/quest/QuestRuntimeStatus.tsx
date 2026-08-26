@@ -4,11 +4,16 @@ import { useEffect, useRef } from "react";
 
 import { adminQuestDataSource } from "../api/quest.source";
 import type { AdminQuestDataSource } from "../api/quest.source";
+import { adminQuestCommandSource } from "../api/quest.command";
+import type { AdminQuestCommandSource } from "../api/quest.command";
 import type { AdminAccess } from "../model";
 import styles from "../admin.module.css";
 import { ADMIN_QUEST_ACCEPTANCE_STATUSES } from "./model";
 import type { AdminQuestAcceptance, AdminQuestAcceptanceStatus, AdminQuestDefinition } from "./model";
+import { QuestAcceptanceOverride } from "./QuestAcceptanceOverride";
 import { useQuestRuntimeStatus } from "./useQuestRuntimeStatus";
+
+const UNAVAILABLE_COMMAND_SOURCE: AdminQuestCommandSource = { available: false };
 
 function StatePanel({ title, message, action }: { title: string; message: string; action?: React.ReactNode }) {
   return <section className={styles.statePanel} role="status" aria-live="polite"><h2>{title}</h2><p>{message}</p>{action}</section>;
@@ -49,7 +54,7 @@ function DefinitionDetail({ definition, headingRef }: { definition: AdminQuestDe
   );
 }
 
-function AcceptanceDetail({ acceptance, headingRef, onClose }: { acceptance: AdminQuestAcceptance; headingRef: React.RefObject<HTMLHeadingElement | null>; onClose: () => void }) {
+function AcceptanceDetail({ acceptance, headingRef, onClose, children }: { acceptance: AdminQuestAcceptance; headingRef: React.RefObject<HTMLHeadingElement | null>; onClose: () => void; children: React.ReactNode }) {
   const fields = [
     ["Acceptance ID", acceptance.id], ["Quest ID", acceptance.questId], ["Player ID", acceptance.playerId], ["Quest code", acceptance.code],
     ["Category", shown(acceptance.category)], ["Target type", acceptance.targetType], ["Target value", acceptance.targetValue],
@@ -71,11 +76,24 @@ function AcceptanceDetail({ acceptance, headingRef, onClose }: { acceptance: Adm
       <dl className={styles.detailList}>
         {fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd className={label.includes("ID") || label.includes("code") ? styles.mono : undefined}>{value}</dd></div>)}
       </dl>
+      {children}
     </aside>
   );
 }
 
-export function QuestRuntimeStatus({ access, onLogin, dataSource = adminQuestDataSource }: { access: AdminAccess; onLogin: () => void; dataSource?: AdminQuestDataSource }) {
+export function QuestRuntimeStatus({
+  access,
+  onLogin,
+  onOpenAudit,
+  dataSource = adminQuestDataSource,
+  commandSource = adminQuestCommandSource,
+}: {
+  access: AdminAccess;
+  onLogin: () => void;
+  onOpenAudit?: () => void;
+  dataSource?: AdminQuestDataSource;
+  commandSource?: AdminQuestCommandSource;
+}) {
   const quest = useQuestRuntimeStatus(access === "ready", dataSource);
   const definitionHeading = useRef<HTMLHeadingElement | null>(null);
   const acceptanceHeading = useRef<HTMLHeadingElement | null>(null);
@@ -101,9 +119,9 @@ export function QuestRuntimeStatus({ access, onLogin, dataSource = adminQuestDat
   return (
     <div className={styles.auditScreen}>
       <div className={styles.screenHeader}>
-        <div><p className={styles.eyebrow}>Content / Quest Runtime Status</p><h1>Quest Runtime Status</h1><p>Inspect authored Quest definitions and player Acceptance state without changing runtime data.</p></div>
+        <div><p className={styles.eyebrow}>Content / Quest Runtime Status</p><h1>Quest Runtime Status</h1><p>Inspect Quest definitions and Acceptance state, then run the approved controlled Acceptance operations.</p></div>
         <div className={styles.screenActions}>
-          <span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span>
+          <span className={styles.badge} data-state="SUPPORTED">✓ CONTROLLED</span>
           <button type="button" className={styles.secondaryButton} onClick={() => void quest.retry()} disabled={access !== "ready" || quest.loading !== null || (!quest.indexLoaded && !quest.error)}>Refresh</button>
         </div>
       </div>
@@ -152,8 +170,8 @@ export function QuestRuntimeStatus({ access, onLogin, dataSource = adminQuestDat
                   <label>Acceptance status<select value={quest.statusFilter} onChange={(event) => void quest.filterAcceptances(event.target.value as AdminQuestAcceptanceStatus | "")} disabled={quest.loading !== null}><option value="">All statuses</option>{ADMIN_QUEST_ACCEPTANCE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label>
                 </div>
                 <p className={styles.questSemantics}>Definition configuration and player Acceptance runtime state remain separate. Quest completion does not automatically advance a QuestRoute.</p>
-                {quest.loading === "acceptances" ? <StatePanel title="Loading Quest Acceptances" message="Applying the exact runtime status filter." /> : acceptancesError ? <StatePanel title="Unable to load Quest Acceptances" message={acceptancesError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void quest.retry()}>Retry</button>} /> : quest.acceptances.length === 0 ? <StatePanel title={quest.statusFilter ? "No matching Acceptances" : "No Quest Acceptances"} message={quest.statusFilter ? `No ${quest.statusFilter} Acceptance exists for this Quest.` : "No player Acceptance exists for this Quest definition."} /> : (
-                  <div className={styles.questAcceptanceLayout}>
+                <div className={styles.questAcceptanceLayout}>
+                  {quest.loading === "acceptances" ? <StatePanel title="Loading Quest Acceptances" message="Applying the exact runtime status filter." /> : acceptancesError ? <StatePanel title="Unable to load Quest Acceptances" message={acceptancesError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void quest.retry()}>Retry</button>} /> : quest.acceptances.length === 0 ? <StatePanel title={quest.statusFilter ? "No matching Acceptances" : "No Quest Acceptances"} message={quest.statusFilter ? `No ${quest.statusFilter} Acceptance exists for this Quest.` : "No player Acceptance exists for this Quest definition."} /> : (
                     <div className={styles.tableWrap}>
                       <table className={`${styles.table} ${styles.questAcceptanceTable}`}>
                         <caption>Acceptances for {quest.definition.code}</caption>
@@ -161,9 +179,20 @@ export function QuestRuntimeStatus({ access, onLogin, dataSource = adminQuestDat
                         <tbody>{quest.acceptances.map((acceptance) => <tr key={acceptance.id} data-selected={quest.acceptance?.id === acceptance.id || undefined}><td><button ref={(node) => { if (node) acceptanceTriggers.current.set(acceptance.id, node); else acceptanceTriggers.current.delete(acceptance.id); }} type="button" className={styles.idButton} onClick={() => void quest.openAcceptance(acceptance.id)}>{acceptance.id}</button></td><td className={styles.mono}>{acceptance.playerId}</td><td>{acceptance.progressValue} / {acceptance.targetValue}</td><td><QuestStatusBadge status={acceptance.status} /></td><td>{acceptance.acceptedAt}</td></tr>)}</tbody>
                       </table>
                     </div>
-                    {quest.loading === "acceptance" ? <StatePanel title="Loading Acceptance detail" message="Loading the selected Acceptance ID." /> : acceptanceError ? <StatePanel title={acceptanceError.status === 404 ? "Acceptance not found" : "Unable to load Acceptance detail"} message={acceptanceError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void quest.retry()}>Retry</button>} /> : quest.acceptance ? <AcceptanceDetail acceptance={quest.acceptance} headingRef={acceptanceHeading} onClose={closeAcceptance} /> : <aside className={styles.detailPlaceholder}><span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span><h2>Acceptance detail</h2><p>Open an exact Acceptance ID to inspect its runtime state.</p></aside>}
-                  </div>
-                )}
+                  )}
+                  {quest.loading === "acceptance" ? <StatePanel title="Loading Acceptance detail" message="Loading the selected Acceptance ID." /> : acceptanceError ? <StatePanel title={acceptanceError.status === 404 ? "Acceptance not found" : "Unable to load Acceptance detail"} message={acceptanceError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void quest.retry()}>Retry</button>} /> : quest.acceptance ? (
+                    <AcceptanceDetail acceptance={quest.acceptance} headingRef={acceptanceHeading} onClose={closeAcceptance}>
+                      <QuestAcceptanceOverride
+                        acceptance={quest.acceptance}
+                        access={access}
+                        readSource={dataSource}
+                        commandSource={dataSource.descriptor.mode === "api" ? commandSource : UNAVAILABLE_COMMAND_SOURCE}
+                        onCanonicalAcceptance={quest.applyCanonicalAcceptance}
+                        onOpenAudit={onOpenAudit}
+                      />
+                    </AcceptanceDetail>
+                  ) : <aside className={styles.detailPlaceholder}><span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span><h2>Acceptance detail</h2><p>Open an exact Acceptance ID to inspect its runtime state.</p></aside>}
+                </div>
               </section>
             ) : null}
           </div>
