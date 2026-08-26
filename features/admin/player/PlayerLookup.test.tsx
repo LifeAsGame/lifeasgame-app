@@ -67,6 +67,8 @@ describe("read-only Player Lookup", () => {
   });
 
   it("keeps quick detail mutation-free and enters full Player detail explicitly", async () => {
+    let restoreFocus!: FrameRequestCallback;
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { restoreFocus = callback; return 1; });
     const dataSource = source();
     vi.mocked(dataSource.lookupByUserId).mockResolvedValue(summary);
     vi.mocked(dataSource.getByPlayerId).mockResolvedValue(detail);
@@ -87,6 +89,10 @@ describe("read-only Player Lookup", () => {
     fireEvent.click(screen.getByRole("button", { name: "← Back to Player Lookup" }));
     expect(screen.getByRole("heading", { name: "Player Lookup" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "HANEUL" })).toBeInTheDocument();
+    const detailButton = screen.getByRole("button", { name: "Open read-only detail" });
+    restoreFocus(0);
+    expect(detailButton).toHaveFocus();
+    expect(document.body).not.toHaveFocus();
   });
 
   it.each([

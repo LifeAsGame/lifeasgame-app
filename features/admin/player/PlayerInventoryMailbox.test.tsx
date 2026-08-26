@@ -107,6 +107,7 @@ describe("Player Inventory and Mailbox full-detail surface", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm Level 2 operation" }));
 
     expect(await screen.findByRole("heading", { name: "Entitlement confirmed" })).toBeInTheDocument();
+    expect(screen.getByText("The command succeeded and the exact destination was reloaded.")).toBeInTheDocument();
     if (!input.commandSource.available) throw new Error("Expected API command source");
     expect(input.commandSource.addInventory).toHaveBeenCalledWith(10218, { itemId: 1201, quantity: 2, bound: true, reason: "Verified support case" }, expect.objectContaining({ idempotencyKey: expect.stringMatching(/^entitlement:/), correlationId: expect.stringMatching(/^admin-operation:/) }));
     expect(input.readSource.getInventory).toHaveBeenCalledTimes(2);
@@ -246,6 +247,8 @@ describe("Player Inventory and Mailbox full-detail surface", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm Level 2 operation" }));
 
     expect(await screen.findByRole("heading", { name: "Entitlement confirmed" })).toBeInTheDocument();
+    expect(screen.getByText("The command succeeded, but the canonical destination could not be refreshed.")).toBeInTheDocument();
+    expect(screen.queryByText(/exact destination was reloaded/i)).not.toBeInTheDocument();
     expect(screen.getByText(/visible list as stale/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /reconcile|retry same/i })).not.toBeInTheDocument();
     expect(onOperationLockChange).toHaveBeenLastCalledWith(false);

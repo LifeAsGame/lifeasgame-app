@@ -112,6 +112,11 @@ export function PlayerLookup({
     requestAnimationFrame(() => detailTrigger.current?.focus());
   };
 
+  const exitFullDetail = () => {
+    setFullDetail(false);
+    requestAnimationFrame(() => detailTrigger.current?.focus());
+  };
+
   const authRequired = access === "unauthenticated" || player.error?.status === 401;
   const forbidden = player.error?.status === 403;
   const lookupError = player.error?.kind === "lookup" && !authRequired && !forbidden ? player.error : null;
@@ -120,7 +125,7 @@ export function PlayerLookup({
   const detailNotFound = detailError?.status === 404;
 
   if (access === "ready" && fullDetail && player.detail) {
-    return <PlayerFullDetail player={player.detail} userId={player.summary?.userId} access={access} readSource={inventorySource} commandSource={commandSource} auditSource={auditSource} onBack={() => setFullDetail(false)} onOpenAudit={onOpenAudit} />;
+    return <PlayerFullDetail player={player.detail} userId={player.summary?.userId} access={access} readSource={inventorySource} commandSource={commandSource} auditSource={auditSource} onBack={exitFullDetail} onOpenAudit={onOpenAudit} />;
   }
 
   return (

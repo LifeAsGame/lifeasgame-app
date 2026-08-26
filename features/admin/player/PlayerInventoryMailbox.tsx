@@ -293,7 +293,13 @@ export function PlayerInventoryMailbox({
   const operationState = operation.phase === "SUCCEEDED" && operation.receipt ? (
     <section className={styles.questOverrideState} data-state="success" aria-labelledby="entitlement-complete">
       <p className={styles.eyebrow}>Operation completed</p><h3 id="entitlement-complete">Entitlement confirmed</h3>
-      <p>{operation.receipt.evidence === "DIRECT" ? "The command succeeded and the exact destination was reloaded." : "Matching Admin Audit evidence proves this operation committed."}</p>
+      <p>{operation.receipt.evidence === "DIRECT"
+        ? operation.receipt.destinationStale
+          ? "The command succeeded, but the canonical destination could not be refreshed."
+          : "The command succeeded and the exact destination was reloaded."
+        : operation.receipt.destinationStale
+          ? "Matching Admin Audit evidence proves this operation committed, but the canonical destination could not be refreshed."
+          : "Matching Admin Audit evidence proves this operation committed, and the exact destination was reloaded."}</p>
       {operation.receipt.destinationStale ? <p className={styles.entitlementStaleWarning} role="alert">The destination could not be refreshed. Treat the visible list as stale until Refresh succeeds.</p> : null}
       <dl className={styles.questOperationReceipt}><div><dt>Correlation ID</dt><dd><code>{operation.receipt.correlationId}</code></dd></div><div><dt>Idempotency key</dt><dd><code>{operation.receipt.idempotencyKey}</code></dd></div></dl>
       <div className={styles.questOverrideActions}>{onOpenAudit ? <button type="button" className={styles.secondaryButton} onClick={onOpenAudit}>Open Audit Explorer</button> : null}<button type="button" className={styles.primaryButton} onClick={() => { if (operation.receipt?.destinationStale) setLoadedAt(null); operation.newIntent(); }}>Start another operation</button></div>
