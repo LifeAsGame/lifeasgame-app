@@ -67,8 +67,13 @@ describe("Player Inventory and Mailbox full-detail surface", () => {
     expect(await screen.findByText("Health Potion")).toBeInTheDocument();
     expect(input.readSource.getInventory).toHaveBeenCalledWith(10218);
     expect(screen.getByText("71001")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "Mailbox" }));
+    const destinationNav = screen.getByRole("navigation", { name: "Entitlement destination" });
+    expect(screen.getByRole("button", { name: "Inventory" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Mailbox" })).not.toHaveAttribute("role", "tab");
+    expect(destinationNav).not.toContainElement(screen.getByRole("button", { name: "Refresh" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mailbox" }));
     expect(await screen.findByRole("heading", { name: "Mailbox is empty" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mailbox" })).toHaveAttribute("aria-current", "page");
     expect(input.readSource.getMailbox).toHaveBeenCalledWith(10218);
     expect(screen.queryByText(/capacity|free slot|instance attrs/i)).not.toBeInTheDocument();
   });
@@ -157,7 +162,7 @@ describe("Player Inventory and Mailbox full-detail surface", () => {
     render(<PlayerInventoryMailbox {...input} />);
     if (target === "MAILBOX") {
       await screen.findByText("71001");
-      fireEvent.click(screen.getByRole("tab", { name: "Mailbox" }));
+      fireEvent.click(screen.getByRole("button", { name: "Mailbox" }));
     }
 
     expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
@@ -226,5 +231,25 @@ describe("Player Inventory and Mailbox full-detail surface", () => {
     expect(screen.queryByRole("button", { name: /review|confirm|retry|reconcile/i })).not.toBeInTheDocument();
     expect(input.commandSource.addInventory).toHaveBeenCalledTimes(1);
     expect(input.auditSource.getEvents).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows POST 2xx as DIRECT stale success without reconcile or retry when reload fails", async () => {
+    const input = props();
+    if (!input.commandSource.available) throw new Error("Expected API command source");
+    vi.mocked(input.readSource.getInventory).mockReset().mockResolvedValueOnce(inventory).mockRejectedValueOnce(new Error("Reload unavailable"));
+    const onOperationLockChange = vi.fn();
+    render(<PlayerInventoryMailbox {...input} onOperationLockChange={onOperationLockChange} />);
+    await prepareInventoryReview();
+    expect(onOperationLockChange).toHaveBeenLastCalledWith(true);
+    expect(screen.getByRole("button", { name: "Inventory" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Mailbox" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Level 2 operation" }));
+
+    expect(await screen.findByRole("heading", { name: "Entitlement confirmed" })).toBeInTheDocument();
+    expect(screen.getByText(/visible list as stale/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /reconcile|retry same/i })).not.toBeInTheDocument();
+    expect(onOperationLockChange).toHaveBeenLastCalledWith(false);
+    expect(input.commandSource.addInventory).toHaveBeenCalledTimes(1);
+    expect(input.auditSource.getEvents).not.toHaveBeenCalled();
   });
 });

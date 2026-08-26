@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/shared/api/client";
+import type { AdminAuditDataSource } from "../api/audit.source";
+import type { AdminInventoryOperationsCommandSource } from "../api/inventory.command";
 import type { AdminInventoryOperationsDataSource } from "../api/inventory.source";
 import type { AdminPlayerDataSource } from "../api/player.source";
 import type { AdminPlayerInfo, AdminPlayerSummary } from "./model";
@@ -134,9 +136,61 @@ describe("read-only Player Lookup", () => {
 
     expect(await screen.findByRole("heading", { name: "Admin access denied" })).toBeInTheDocument();
     expect(screen.getByText("Inventory access denied")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "HANEUL" })).not.toBeInTheDocument();
+    expect(screen.queryByText("10218")).not.toBeInTheDocument();
+    expect(screen.queryByText("8314")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Overview" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Inventory / Mailbox" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /review|confirm|retry/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "← Back to Player Lookup" })).toBeEnabled();
+  });
+
+  it("keeps PlayerFullDetail mounted while an operation is unresolved and unlocks after IDLE or success", async () => {
+    const dataSource = source();
+    vi.mocked(dataSource.lookupByUserId).mockResolvedValue(summary);
+    vi.mocked(dataSource.getByPlayerId).mockResolvedValue(detail);
+    const verifiedItem = { id: 1201, code: "HEALTH_POTION", name: "Health Potion", category: "CONSUMABLE", type: "POTION", rarity: "COMMON", stackable: true, maxStack: 99, maxDurability: null, baseAttrs: {} };
+    const inventorySource: AdminInventoryOperationsDataSource = {
+      descriptor: { mode: "api", badge: "API", label: "/admin/v1", inventoryLabel: "/admin/v1/items" },
+      searchItems: vi.fn().mockResolvedValue({ content: [verifiedItem], page: 0, size: 20, totalElements: 1, totalPages: 1 }),
+      getItem: vi.fn().mockResolvedValue(verifiedItem),
+      getInventory: vi.fn().mockResolvedValue({ playerId: 10218, entries: [] }),
+      getMailbox: vi.fn().mockResolvedValue({ playerId: 10218, entries: [] }),
+    };
+    const commandSource: AdminInventoryOperationsCommandSource = { available: true, addInventory: vi.fn().mockResolvedValue({ slots: [0] }), deliverMailbox: vi.fn() };
+    const auditSource: AdminAuditDataSource = {
+      descriptor: { mode: "api", badge: "API", label: "/admin/v1", eventLabel: "/admin/v1/audit-events" },
+      getEvents: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+    };
+    render(<PlayerLookup access="ready" onLogin={vi.fn()} dataSource={dataSource} inventorySource={inventorySource} commandSource={commandSource} auditSource={auditSource} />);
+
+    submitUserId();
+    fireEvent.click(await screen.findByRole("button", { name: "Open read-only detail" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open full Player detail" }));
+    const back = screen.getByRole("button", { name: "← Back to Player Lookup" });
+    const overview = screen.getByRole("button", { name: "Overview" });
+    expect(back).toBeEnabled();
+    expect(overview).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Inventory / Mailbox" }));
+    await screen.findByRole("heading", { name: "Inventory is empty" });
+    fireEvent.click(screen.getByRole("button", { name: "Search Items" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Health Potion/ }));
+    await screen.findByLabelText("Selected Item detail");
+    fireEvent.change(screen.getByLabelText("Reason *"), { target: { value: "Verified support case" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review Level 2 operation" }));
+
+    expect(await screen.findByRole("dialog", { name: "Confirm entitlement operation" })).toBeInTheDocument();
+    expect(back).toBeDisabled();
+    expect(overview).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() => { expect(back).toBeEnabled(); expect(overview).toBeEnabled(); });
+
+    fireEvent.click(screen.getByRole("button", { name: "Review Level 2 operation" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm Level 2 operation" }));
+    expect(await screen.findByRole("heading", { name: "Entitlement confirmed" })).toBeInTheDocument();
+    await waitFor(() => { expect(back).toBeEnabled(); expect(overview).toBeEnabled(); });
+    fireEvent.click(overview);
+    expect(screen.getByRole("heading", { name: "Player state" })).toBeInTheDocument();
   });
 
   it("renders not-found and generic retry without switching sources", async () => {

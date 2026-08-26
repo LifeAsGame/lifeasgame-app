@@ -6,7 +6,7 @@ import type { AdminAuditDataSource } from "../api/audit.source";
 import type { AdminInventoryOperationsCommandSource } from "../api/inventory.command";
 import type { AdminInventoryOperationsDataSource, AdminItemDetail } from "../api/inventory.source";
 import type { AdminAuditEvent } from "../model";
-import { useInventoryMailboxOperations } from "./useInventoryMailboxOperations";
+import { isEntitlementOperationLocked, useInventoryMailboxOperations } from "./useInventoryMailboxOperations";
 
 const item: AdminItemDetail = { id: 1201, code: "HEALTH_POTION", name: "Health Potion", category: "CONSUMABLE", type: "POTION", rarity: "COMMON", stackable: true, maxStack: 99, maxDurability: null, baseAttrs: {} };
 const inventory = { playerId: 10218, entries: [] };
@@ -107,18 +107,22 @@ describe("Player Inventory and Mailbox operation workflow", () => {
     await act(async () => { resolveReload(); });
     await waitFor(() => expect(result.current.phase).toBe("SUCCEEDED"));
     expect(onCanonicalInventory).toHaveBeenCalledWith(inventory);
+    expect(result.current.receipt).toMatchObject({ evidence: "DIRECT", destinationStale: false });
   });
 
-  it("keeps command success UNKNOWN when canonical Player identity mismatches", async () => {
+  it("keeps a POST 2xx DIRECT and terminal when canonical reload fails non-auth", async () => {
     const all = sources();
     all.commandSource.addInventory = vi.fn().mockResolvedValue({ slots: [1] });
-    all.readSource.getInventory = vi.fn().mockResolvedValue({ playerId: 99999, entries: [] });
-    const { result } = setup(all);
+    all.readSource.getInventory = vi.fn().mockRejectedValue(new Error("Reload unavailable"));
+    const { result, auditSource } = setup(all);
     act(() => { result.current.beginReview(inventoryDraft()); });
+    const identity = result.current.intent;
     await act(async () => { await result.current.submit(); });
-    expect(result.current.phase).toBe("UNKNOWN_RESULT");
-    expect(result.current.intent).not.toBeNull();
-    expect(result.current.receipt).toBeNull();
+    expect(result.current.phase).toBe("SUCCEEDED");
+    expect(result.current.intent).toBeNull();
+    expect(result.current.receipt).toEqual({ correlationId: identity?.correlationId, idempotencyKey: identity?.idempotencyKey, destinationStale: true, evidence: "DIRECT" });
+    expect(auditSource.getEvents).not.toHaveBeenCalled();
+    expect(isEntitlementOperationLocked(result.current.phase)).toBe(false);
   });
 
   it("attributes UNKNOWN only to exact Audit and can prove success with a stale destination warning", async () => {
@@ -211,5 +215,24 @@ describe("Player Inventory and Mailbox operation workflow", () => {
     expect(result.current.phase).toBe("IDLE");
     expect(result.current.intent).toBeNull();
     expect(onSecurityFailure).toHaveBeenCalledWith({ status: 403, message: "Audit denied" });
+  });
+
+  it("keeps destination reload 401/403 on the security boundary after POST 2xx", async () => {
+    const all = sources();
+    all.commandSource.addInventory = vi.fn().mockResolvedValue({ slots: [1] });
+    all.readSource.getInventory = vi.fn().mockRejectedValue(new ApiError(403, "FORBIDDEN", "Reload denied"));
+    const { result, onSecurityFailure } = setup(all);
+    act(() => { result.current.beginReview(inventoryDraft()); });
+    await act(async () => { await result.current.submit(); });
+
+    expect(result.current.phase).toBe("IDLE");
+    expect(result.current.receipt).toBeNull();
+    expect(onSecurityFailure).toHaveBeenCalledWith({ status: 403, message: "Reload denied" });
+  });
+
+  it("locks every unresolved phase and allows IDLE/SUCCEEDED navigation", () => {
+    expect(["REVIEWING", "SUBMITTING", "SUCCEEDED_RELOADING", "UNKNOWN_RESULT", "RECONCILING", "RECONCILED_RETRYABLE", "CONFLICT_RECONCILING", "CONFLICT_RECONCILED"].every((phase) => isEntitlementOperationLocked(phase as Parameters<typeof isEntitlementOperationLocked>[0]))).toBe(true);
+    expect(isEntitlementOperationLocked("IDLE")).toBe(false);
+    expect(isEntitlementOperationLocked("SUCCEEDED")).toBe(false);
   });
 });

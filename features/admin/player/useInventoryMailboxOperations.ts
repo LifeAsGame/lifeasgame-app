@@ -37,6 +37,10 @@ export type EntitlementOperationPhase =
   | "CONFLICT_RECONCILED"
   | "SUCCEEDED";
 
+export function isEntitlementOperationLocked(phase: EntitlementOperationPhase) {
+  return phase !== "IDLE" && phase !== "SUCCEEDED";
+}
+
 type OperationState = {
   phase: EntitlementOperationPhase;
   intent: EntitlementIntent | null;
@@ -240,7 +244,14 @@ export function useInventoryMailboxOperations({
       });
     } catch (caught) {
       const error = operationError(caught);
-      if (!failSecurity(error)) setState((current) => ({ ...current, phase: "UNKNOWN_RESULT", error }));
+      if (!failSecurity(error)) {
+        setState({
+          phase: "SUCCEEDED",
+          intent: null,
+          error,
+          receipt: { correlationId: intent.correlationId, idempotencyKey: intent.idempotencyKey, destinationStale: true, evidence: "DIRECT" },
+        });
+      }
     } finally {
       submitting.current = false;
     }

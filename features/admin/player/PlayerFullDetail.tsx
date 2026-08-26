@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import type { AdminAuditDataSource } from "../api/audit.source";
 import type { AdminInventoryOperationsCommandSource } from "../api/inventory.command";
@@ -47,11 +47,19 @@ export function PlayerFullDetail({
 }) {
   const [tab, setTab] = useState<"overview" | "inventory">("overview");
   const [securityFailure, setSecurityFailure] = useState<{ status: 401 | 403; message: string } | null>(null);
+  const [operationLocked, setOperationLocked] = useState(false);
+  const failSecurity = useCallback((error: { status: 401 | 403; message: string }) => {
+    setOperationLocked(false);
+    setSecurityFailure(error);
+  }, []);
   if (access !== "ready") return null;
+  if (securityFailure) {
+    return <div className={styles.auditScreen}><section className={styles.statePanel} role="alert"><h2>{securityFailure.status === 401 ? "Authentication required" : "Admin access denied"}</h2><p>{securityFailure.message}</p><button type="button" className={styles.secondaryButton} onClick={onBack}>← Back to Player Lookup</button></section></div>;
+  }
   return (
     <div className={styles.auditScreen}>
       <div className={styles.playerFullHeader}>
-        <button type="button" className={styles.secondaryButton} onClick={onBack}>← Back to Player Lookup</button>
+        <button type="button" className={styles.secondaryButton} onClick={onBack} disabled={operationLocked}>← Back to Player Lookup</button>
         <div className={styles.playerFullIdentity}>
           <div><p className={styles.eyebrow}>Players / Full Player detail</p><h1>{player.name}</h1></div>
           <dl>
@@ -60,11 +68,11 @@ export function PlayerFullDetail({
           </dl>
         </div>
       </div>
-      {securityFailure ? <section className={styles.statePanel} role="alert"><h2>{securityFailure.status === 401 ? "Authentication required" : "Admin access denied"}</h2><p>{securityFailure.message}</p></section> : <><nav className={styles.playerLocalTabs} aria-label="Player detail sections">
-        <button type="button" data-active={tab === "overview" || undefined} aria-current={tab === "overview" ? "page" : undefined} onClick={() => setTab("overview")}>Overview</button>
+      <nav className={styles.playerLocalTabs} aria-label="Player detail sections">
+        <button type="button" data-active={tab === "overview" || undefined} aria-current={tab === "overview" ? "page" : undefined} onClick={() => setTab("overview")} disabled={operationLocked}>Overview</button>
         <button type="button" data-active={tab === "inventory" || undefined} aria-current={tab === "inventory" ? "page" : undefined} onClick={() => setTab("inventory")}>Inventory / Mailbox</button>
       </nav>
-      {tab === "overview" ? <Overview player={player} /> : <PlayerInventoryMailbox player={player} access={access} readSource={readSource} commandSource={commandSource} auditSource={auditSource} onOpenAudit={onOpenAudit} onSecurityFailure={setSecurityFailure} />}</>}
+      {tab === "overview" ? <Overview player={player} /> : <PlayerInventoryMailbox player={player} access={access} readSource={readSource} commandSource={commandSource} auditSource={auditSource} onOpenAudit={onOpenAudit} onSecurityFailure={failSecurity} onOperationLockChange={setOperationLocked} />}
     </div>
   );
 }

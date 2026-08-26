@@ -1482,13 +1482,20 @@
   padding: 0 14px 14px;
 }
 
-.destinationTabs {
-  padding-inline: 0;
-  border: 0;
+.destinationHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border-bottom: 1px solid var(--admin-divider);
 }
 
-.destinationTabs .secondaryButton {
+.destinationTabs {
+  flex: 1;
+  padding-inline: 0;
+  border: 0;
+}
+
+.destinationHeader > .secondaryButton {
   margin-left: auto;
 }
 
@@ -1919,11 +1926,12 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .destinationHeader,
   .destinationTabs {
     flex-wrap: wrap;
   }
 
-  .destinationTabs .secondaryButton {
+  .destinationHeader > .secondaryButton {
     width: 100%;
     margin-left: 0;
   }

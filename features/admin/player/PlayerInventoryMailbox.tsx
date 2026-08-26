@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { createPortal } from "react-dom";
 
@@ -18,7 +18,7 @@ import type {
 import type { AdminAccess } from "../model";
 import styles from "../admin.module.css";
 import type { AdminPlayerInfo } from "./model";
-import { useInventoryMailboxOperations } from "./useInventoryMailboxOperations";
+import { isEntitlementOperationLocked, useInventoryMailboxOperations } from "./useInventoryMailboxOperations";
 import type { EntitlementIntent, EntitlementOperationPhase } from "./useInventoryMailboxOperations";
 
 function useIsMobile() {
@@ -108,6 +108,7 @@ export function PlayerInventoryMailbox({
   auditSource,
   onOpenAudit,
   onSecurityFailure,
+  onOperationLockChange,
 }: {
   player: AdminPlayerInfo;
   access: AdminAccess;
@@ -116,6 +117,7 @@ export function PlayerInventoryMailbox({
   auditSource: AdminAuditDataSource;
   onOpenAudit?: () => void;
   onSecurityFailure?: (error: SecurityFailure) => void;
+  onOperationLockChange?: (locked: boolean) => void;
 }) {
   const [destination, setDestination] = useState<"INVENTORY" | "MAILBOX">("INVENTORY");
   const [inventory, setInventory] = useState<AdminInventoryEntries | null>(null);
@@ -177,6 +179,11 @@ export function PlayerInventoryMailbox({
     onCanonicalMailbox: applyMailbox,
     onSecurityFailure: failClosed,
   });
+  const operationLocked = isEntitlementOperationLocked(operation.phase);
+
+  useLayoutEffect(() => {
+    onOperationLockChange?.(operationLocked);
+  }, [onOperationLockChange, operationLocked]);
 
   const loadDestination = useCallback(async (target: "INVENTORY" | "MAILBOX") => {
     const request = ++destinationRequest.current;
@@ -271,7 +278,6 @@ export function PlayerInventoryMailbox({
   const current = destination === "INVENTORY" ? inventory : mailbox;
   const matchingEntries = current?.entries.filter((entry) => entry.itemId === selectedItem?.id) ?? [];
   const mutationAvailable = access === "ready" && mobile === false && commandSource.available && readSource.descriptor.mode === "api" && auditSource.descriptor.mode === "api" && !destinationLoading && !destinationError && !!current && !!loadedAt;
-  const operationLocked = operation.phase !== "IDLE";
 
   const review = () => {
     setValidation(null);
@@ -305,9 +311,11 @@ export function PlayerInventoryMailbox({
   return (
     <div className={styles.inventoryWorkspace}>
       <div className={styles.inventoryMain}>
-        <div className={styles.destinationTabs} role="tablist" aria-label="Entitlement destination">
-          <button type="button" role="tab" aria-selected={destination === "INVENTORY"} data-active={destination === "INVENTORY" || undefined} onClick={() => switchDestination("INVENTORY")} disabled={operationLocked}>Inventory</button>
-          <button type="button" role="tab" aria-selected={destination === "MAILBOX"} data-active={destination === "MAILBOX" || undefined} onClick={() => switchDestination("MAILBOX")} disabled={operationLocked}>Mailbox</button>
+        <div className={styles.destinationHeader}>
+          <nav className={styles.destinationTabs} aria-label="Entitlement destination">
+            <button type="button" aria-current={destination === "INVENTORY" ? "page" : undefined} data-active={destination === "INVENTORY" || undefined} onClick={() => switchDestination("INVENTORY")} disabled={operationLocked}>Inventory</button>
+            <button type="button" aria-current={destination === "MAILBOX" ? "page" : undefined} data-active={destination === "MAILBOX" || undefined} onClick={() => switchDestination("MAILBOX")} disabled={operationLocked}>Mailbox</button>
+          </nav>
           <button type="button" className={styles.secondaryButton} onClick={() => void loadDestination(destination)} disabled={destinationLoading || operationLocked}>Refresh</button>
         </div>
         <div className={styles.feedMeta}><span>Exact Player ID: <code>{player.playerId}</code></span><span>{loadedAt ? `Refreshed ${loadedAt.toLocaleTimeString()}` : "Not loaded"}</span></div>
