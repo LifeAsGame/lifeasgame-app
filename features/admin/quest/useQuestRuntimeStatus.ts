@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { ApiError } from "@/shared/api/client";
 import { assertAdminQuestAcceptanceIdentity } from "../api/quest.query";
@@ -46,9 +46,12 @@ export function useQuestRuntimeStatus(enabled: boolean, dataSource: AdminQuestDa
   const selectedCodeRef = useRef(selectedCode);
   const acceptanceIdRef = useRef(acceptance?.id ?? null);
   const statusFilterRef = useRef(statusFilter);
-  selectedCodeRef.current = selectedCode;
-  acceptanceIdRef.current = acceptance?.id ?? null;
-  statusFilterRef.current = statusFilter;
+
+  useLayoutEffect(() => {
+    selectedCodeRef.current = selectedCode;
+    acceptanceIdRef.current = acceptance?.id ?? null;
+    statusFilterRef.current = statusFilter;
+  }, [acceptance?.id, selectedCode, statusFilter]);
 
   const run = useCallback(async (intent: Intent) => {
     const current = ++requestId.current;

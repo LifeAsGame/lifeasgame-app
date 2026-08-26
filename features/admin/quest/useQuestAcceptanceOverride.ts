@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "@/shared/api/client";
+import type { AdminAuditDataSource } from "../api/audit.source";
 import type {
   AdminQuestCommandSource,
   AdminQuestStatusCommand,
@@ -17,7 +18,7 @@ export type QuestOverrideDraft =
   | { kind: "progress"; delta: number; reason: string }
   | { kind: "status"; status: AdminQuestStatusCommand; reason: string };
 
-type QuestOverrideIntent = QuestOverrideDraft & {
+export type QuestOverrideIntent = QuestOverrideDraft & {
   acceptanceId: number;
   questCode: string;
   playerId: number;
@@ -38,7 +39,8 @@ export type QuestOverridePhase =
   | "CONFLICT_RECONCILING"
   | "UNKNOWN_RESULT"
   | "RECONCILING"
-  | "RECONCILED"
+  | "RECONCILED_RETRYABLE"
+  | "RECONCILED_UNVERIFIED"
   | "CONFLICT_RECONCILED"
   | "SUCCEEDED";
 
@@ -73,9 +75,31 @@ function commandError(caught: unknown) {
   };
 }
 
-function completedIntent(intent: QuestOverrideIntent, acceptance: AdminQuestAcceptance) {
+function requestedOutcomeIsReflected(intent: QuestOverrideIntent, acceptance: AdminQuestAcceptance) {
   if (intent.kind === "status") return acceptance.status === intent.status;
   return intent.delta > 0 && acceptance.progressValue >= intent.originalProgress + intent.delta;
+}
+
+function auditAction(intent: QuestOverrideIntent) {
+  return intent.kind === "progress" ? "QUEST_ACCEPTANCE_PROGRESS_ADJUST" : "QUEST_ACCEPTANCE_STATUS_CHANGE";
+}
+
+async function hasExactSuccessAudit(intent: QuestOverrideIntent, auditSource: AdminAuditDataSource) {
+  const action = auditAction(intent);
+  const targetId = String(intent.acceptanceId);
+  const page = await auditSource.getEvents({
+    action,
+    targetType: "QUEST_ACCEPTANCE",
+    targetId,
+    result: "SUCCESS",
+    correlationId: intent.correlationId,
+  });
+  return page.items.some((event) => event.action === action
+    && event.targetType === "QUEST_ACCEPTANCE"
+    && event.targetId === targetId
+    && event.result === "SUCCESS"
+    && event.correlationId === intent.correlationId
+    && event.idempotencyKey === intent.idempotencyKey);
 }
 
 export function useQuestAcceptanceOverride({
@@ -83,19 +107,22 @@ export function useQuestAcceptanceOverride({
   enabled,
   commandSource,
   readSource,
+  auditSource,
   onCanonicalAcceptance,
 }: {
   acceptance: AdminQuestAcceptance;
   enabled: boolean;
   commandSource: AdminQuestCommandSource;
   readSource: AdminQuestDataSource;
+  auditSource: AdminAuditDataSource;
   onCanonicalAcceptance: (acceptance: AdminQuestAcceptance) => void;
 }) {
   const [state, setState] = useState<QuestOverrideState>(INITIAL_STATE);
+  const [reviewVersion, setReviewVersion] = useState(0);
   const submitting = useRef(false);
 
   useEffect(() => {
-    if (!enabled || !commandSource.available) {
+    if (!enabled || !commandSource.available || auditSource.descriptor.mode !== "api") {
       submitting.current = false;
       setState(INITIAL_STATE);
       return;
@@ -103,7 +130,7 @@ export function useQuestAcceptanceOverride({
     setState((current) => current.intent && (
       current.intent.acceptanceId !== acceptance.id || current.intent.questCode !== acceptance.code
     ) ? INITIAL_STATE : current);
-  }, [acceptance.code, acceptance.id, commandSource.available, enabled]);
+  }, [acceptance.code, acceptance.id, auditSource.descriptor.mode, commandSource.available, enabled]);
 
   const loadCanonical = useCallback(async (intent: QuestOverrideIntent) => {
     const canonical = assertAdminQuestAcceptanceIdentity(
@@ -115,8 +142,13 @@ export function useQuestAcceptanceOverride({
     return canonical;
   }, [onCanonicalAcceptance, readSource]);
 
+  const reconcileEvidence = useCallback(async (intent: QuestOverrideIntent) => {
+    const canonical = await loadCanonical(intent);
+    return { canonical, exactAudit: await hasExactSuccessAudit(intent, auditSource) };
+  }, [auditSource, loadCanonical]);
+
   const beginReview = useCallback((draft: QuestOverrideDraft) => {
-    if (!enabled || !commandSource.available) return false;
+    if (!enabled || !commandSource.available || auditSource.descriptor.mode !== "api") return false;
     const reason = validateAdminQuestOverrideReason(draft.reason);
     if (draft.kind === "progress") {
       if (acceptance.status !== "IN_PROGRESS") throw new RangeError("Progress can only be adjusted for an IN_PROGRESS Acceptance.");
@@ -135,6 +167,7 @@ export function useQuestAcceptanceOverride({
       acceptance.targetValue,
       normalizedDraft,
     ]);
+    setReviewVersion((current) => current + 1);
     setState((current) => {
       const reusable = current.intent?.fingerprint === fingerprint ? current.intent : null;
       const intent: QuestOverrideIntent = reusable ?? {
@@ -153,22 +186,53 @@ export function useQuestAcceptanceOverride({
       return { phase: "REVIEWING", intent, error: null, receipt: null };
     });
     return true;
-  }, [acceptance, commandSource.available, enabled]);
+  }, [acceptance, auditSource.descriptor.mode, commandSource.available, enabled]);
 
   const submit = useCallback(async () => {
     const intent = state.intent;
-    if (!intent || !enabled || !commandSource.available || submitting.current) return;
+    if (!intent || !enabled || !commandSource.available || auditSource.descriptor.mode !== "api" || submitting.current) return;
     submitting.current = true;
     setState((current) => ({ ...current, phase: "SUBMITTING", error: null }));
 
+    const metadata = { idempotencyKey: intent.idempotencyKey, correlationId: intent.correlationId };
     try {
-      const metadata = { idempotencyKey: intent.idempotencyKey, correlationId: intent.correlationId };
       if (intent.kind === "progress") {
         await commandSource.adjustProgress(intent.acceptanceId, { delta: intent.delta, reason: intent.reason }, metadata);
       } else {
         await commandSource.changeStatus(intent.acceptanceId, { status: intent.status, reason: intent.reason }, metadata);
       }
-      setState((current) => ({ ...current, phase: "SUCCEEDED_RECONCILING" }));
+    } catch (caught) {
+      const error = commandError(caught);
+      if (error.status === 401 || error.status === 403) {
+        setState({ ...INITIAL_STATE, error });
+      } else if (error.status === 409) {
+        setState((current) => ({ ...current, phase: "CONFLICT_RECONCILING", error }));
+        try {
+          const { exactAudit } = await reconcileEvidence(intent);
+          setState(exactAudit ? {
+            phase: "SUCCEEDED",
+            intent: null,
+            error: null,
+            receipt: { correlationId: intent.correlationId, idempotencyKey: intent.idempotencyKey },
+          } : (current) => ({ ...current, phase: "CONFLICT_RECONCILED", error }));
+        } catch (reconcileError) {
+          const reconcileFailure = commandError(reconcileError);
+          setState(reconcileFailure.status === 401 || reconcileFailure.status === 403
+            ? { ...INITIAL_STATE, error: reconcileFailure }
+            : (current) => ({ ...current, phase: "UNKNOWN_RESULT", error: reconcileFailure }));
+        }
+      } else if (error.status === null || error.status >= 500) {
+        setState((current) => ({ ...current, phase: "UNKNOWN_RESULT", error }));
+      } else {
+        setReviewVersion((current) => current + 1);
+        setState((current) => ({ ...current, phase: "REVIEWING", error }));
+      }
+      submitting.current = false;
+      return;
+    }
+
+    setState((current) => ({ ...current, phase: "SUCCEEDED_RECONCILING" }));
+    try {
       await loadCanonical(intent);
       setState({
         phase: "SUCCEEDED",
@@ -178,25 +242,13 @@ export function useQuestAcceptanceOverride({
       });
     } catch (caught) {
       const error = commandError(caught);
-      if (error.status === 401 || error.status === 403) {
-        setState({ ...INITIAL_STATE, error });
-      } else if (error.status === 409) {
-        setState((current) => ({ ...current, phase: "CONFLICT_RECONCILING", error }));
-        try {
-          await loadCanonical(intent);
-          setState((current) => ({ ...current, phase: "CONFLICT_RECONCILED", error }));
-        } catch (reconcileError) {
-          setState((current) => ({ ...current, phase: "UNKNOWN_RESULT", error: commandError(reconcileError) }));
-        }
-      } else if (error.status === null || error.status >= 500) {
-        setState((current) => ({ ...current, phase: "UNKNOWN_RESULT", error }));
-      } else {
-        setState((current) => ({ ...current, phase: "REVIEWING", error }));
-      }
+      setState(error.status === 401 || error.status === 403
+        ? { ...INITIAL_STATE, error }
+        : (current) => ({ ...current, phase: "UNKNOWN_RESULT", error }));
     } finally {
       submitting.current = false;
     }
-  }, [commandSource, enabled, loadCanonical, state.intent]);
+  }, [auditSource.descriptor.mode, commandSource, enabled, loadCanonical, reconcileEvidence, state.intent]);
 
   const reconcile = useCallback(async () => {
     const intent = state.intent;
@@ -204,16 +256,18 @@ export function useQuestAcceptanceOverride({
     submitting.current = true;
     setState((current) => ({ ...current, phase: "RECONCILING", error: null }));
     try {
-      const canonical = await loadCanonical(intent);
-      if (completedIntent(intent, canonical)) {
+      const { canonical, exactAudit } = await reconcileEvidence(intent);
+      if (exactAudit) {
         setState({
           phase: "SUCCEEDED",
           intent: null,
           error: null,
           receipt: { correlationId: intent.correlationId, idempotencyKey: intent.idempotencyKey },
         });
+      } else if (requestedOutcomeIsReflected(intent, canonical)) {
+        setState((current) => ({ ...current, phase: "RECONCILED_UNVERIFIED", error: null }));
       } else {
-        setState((current) => ({ ...current, phase: "RECONCILED", error: null }));
+        setState((current) => ({ ...current, phase: "RECONCILED_RETRYABLE", error: null }));
       }
     } catch (caught) {
       const error = commandError(caught);
@@ -223,10 +277,11 @@ export function useQuestAcceptanceOverride({
     } finally {
       submitting.current = false;
     }
-  }, [loadCanonical, state.intent]);
+  }, [reconcileEvidence, state.intent]);
 
   return {
     ...state,
+    reviewVersion,
     beginReview,
     submit,
     reconcile,

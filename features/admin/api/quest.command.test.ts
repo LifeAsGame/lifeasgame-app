@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as client from "@/shared/api/client";
 import {
+  type AdminQuestStatusCommand,
   adjustAdminQuestAcceptanceProgress,
   changeAdminQuestAcceptanceStatus,
   getAdminQuestCommandSource,
@@ -38,7 +39,7 @@ describe("Admin Quest command adapter", () => {
   });
 
   it("rejects legacy and unsafe values before transport", () => {
-    expect(() => changeAdminQuestAcceptanceStatus(9001, { status: "DONE" as "COMPLETED", reason: "Legacy" }, { idempotencyKey: "key" })).toThrow("allowed Acceptance command target");
+    expect(() => changeAdminQuestAcceptanceStatus(9001, { status: "DONE" as unknown as AdminQuestStatusCommand, reason: "Legacy" }, { idempotencyKey: "key" })).toThrow("allowed Acceptance command target");
     expect(() => adjustAdminQuestAcceptanceProgress(9001, { delta: 0.5, reason: "Fraction" }, { idempotencyKey: "key" })).toThrow("non-negative integer");
     expect(() => validateAdminQuestOverrideReason("")).toThrow("visible, single-line");
     expect(() => validateAdminQuestOverrideReason("line one\nline two")).toThrow("visible, single-line");

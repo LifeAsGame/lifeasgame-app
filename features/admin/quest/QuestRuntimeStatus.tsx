@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { adminAuditDataSource } from "../api/audit.source";
+import type { AdminAuditDataSource } from "../api/audit.source";
 import { adminQuestDataSource } from "../api/quest.source";
 import type { AdminQuestDataSource } from "../api/quest.source";
 import { adminQuestCommandSource } from "../api/quest.command";
@@ -87,12 +89,14 @@ export function QuestRuntimeStatus({
   onOpenAudit,
   dataSource = adminQuestDataSource,
   commandSource = adminQuestCommandSource,
+  auditSource = adminAuditDataSource,
 }: {
   access: AdminAccess;
   onLogin: () => void;
   onOpenAudit?: () => void;
   dataSource?: AdminQuestDataSource;
   commandSource?: AdminQuestCommandSource;
+  auditSource?: AdminAuditDataSource;
 }) {
   const quest = useQuestRuntimeStatus(access === "ready", dataSource);
   const definitionHeading = useRef<HTMLHeadingElement | null>(null);
@@ -186,7 +190,8 @@ export function QuestRuntimeStatus({
                         acceptance={quest.acceptance}
                         access={access}
                         readSource={dataSource}
-                        commandSource={dataSource.descriptor.mode === "api" ? commandSource : UNAVAILABLE_COMMAND_SOURCE}
+                        auditSource={auditSource}
+                        commandSource={dataSource.descriptor.mode === "api" && auditSource.descriptor.mode === "api" ? commandSource : UNAVAILABLE_COMMAND_SOURCE}
                         onCanonicalAcceptance={quest.applyCanonicalAcceptance}
                         onOpenAudit={onOpenAudit}
                       />

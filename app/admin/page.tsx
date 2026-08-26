@@ -23,7 +23,7 @@ export default function AdminPage() {
       source={adminAuditDataSource.descriptor}
       audit={<AuditExplorer access={access} onLogin={() => router.push("/login")} dataSource={adminAuditDataSource} />}
       player={<PlayerLookup access={access} onLogin={() => router.push("/login")} dataSource={adminPlayerDataSource} />}
-      quest={(openAudit) => <QuestRuntimeStatus access={access} onLogin={() => router.push("/login")} onOpenAudit={openAudit} dataSource={adminQuestDataSource} commandSource={adminQuestCommandSource} />}
+      quest={(openAudit) => <QuestRuntimeStatus access={access} onLogin={() => router.push("/login")} onOpenAudit={openAudit} dataSource={adminQuestDataSource} commandSource={adminQuestCommandSource} auditSource={adminAuditDataSource} />}
     />
   );
 }

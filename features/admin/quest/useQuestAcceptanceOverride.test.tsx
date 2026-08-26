@@ -2,8 +2,10 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/shared/api/client";
+import type { AdminAuditDataSource } from "../api/audit.source";
 import type { AdminQuestCommandSource } from "../api/quest.command";
 import type { AdminQuestDataSource } from "../api/quest.source";
+import type { AdminAuditEvent } from "../model";
 import type { AdminQuestAcceptance } from "./model";
 import {
   adminQuestOverrideRisk,
@@ -28,7 +30,30 @@ function sources() {
     descriptor: { mode: "api", badge: "API", label: "/admin/v1", questLabel: "/admin/v1/quests" },
     getAcceptance: vi.fn(),
   } as unknown as AdminQuestDataSource;
-  return { commandSource, readSource };
+  const auditSource = {
+    descriptor: { mode: "api", badge: "API", label: "/admin/v1", eventLabel: "/admin/v1/audit-events" },
+    getEvents: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+  } satisfies AdminAuditDataSource;
+  return { commandSource, readSource, auditSource };
+}
+
+function successAudit(
+  intent: NonNullable<ReturnType<typeof useQuestAcceptanceOverride>["intent"]>,
+  overrides: Partial<AdminAuditEvent> = {},
+): AdminAuditEvent {
+  return {
+    id: 1,
+    actorUserId: 12,
+    action: intent.kind === "progress" ? "QUEST_ACCEPTANCE_PROGRESS_ADJUST" : "QUEST_ACCEPTANCE_STATUS_CHANGE",
+    targetType: "QUEST_ACCEPTANCE",
+    targetId: String(intent.acceptanceId),
+    reason: intent.reason,
+    result: "SUCCESS",
+    correlationId: intent.correlationId,
+    idempotencyKey: intent.idempotencyKey,
+    occurredAt: "2026-08-26T01:00:00Z",
+    ...overrides,
+  };
 }
 
 describe("Quest Acceptance override workflow", () => {
@@ -38,14 +63,14 @@ describe("Quest Acceptance override workflow", () => {
   });
 
   it("keeps an unresolved key through failed reload, reconcile, and manual retry", async () => {
-    const { commandSource, readSource } = sources();
+    const { commandSource, readSource, auditSource } = sources();
     commandSource.adjustProgress.mockResolvedValue(acceptance);
     vi.mocked(readSource.getAcceptance)
       .mockRejectedValueOnce(new Error("Reload unavailable"))
       .mockResolvedValueOnce(acceptance)
       .mockResolvedValueOnce({ ...acceptance, progressValue: 2 });
     const onCanonicalAcceptance = vi.fn();
-    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, onCanonicalAcceptance }));
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance }));
 
     act(() => { result.current.beginReview({ kind: "progress", delta: 1, reason: "Verified support request" }); });
     const firstKey = result.current.intent?.idempotencyKey;
@@ -54,7 +79,7 @@ describe("Quest Acceptance override workflow", () => {
     expect(result.current.intent?.idempotencyKey).toBe(firstKey);
 
     await act(async () => { await result.current.reconcile(); });
-    expect(result.current.phase).toBe("RECONCILED");
+    expect(result.current.phase).toBe("RECONCILED_RETRYABLE");
     await act(async () => { await result.current.submit(); });
     await waitFor(() => expect(result.current.phase).toBe("SUCCEEDED"));
 
@@ -69,12 +94,107 @@ describe("Quest Acceptance override workflow", () => {
     expect(result.current.intent?.idempotencyKey).not.toBe(firstKey);
   });
 
-  it("reconciles a 409 without blind retry and clears resolved intent metadata", async () => {
-    const { commandSource, readSource } = sources();
+  it("does not attribute an outcome-looking canonical state without exact Audit evidence", async () => {
+    const { commandSource, readSource, auditSource } = sources();
+    commandSource.adjustProgress.mockRejectedValue(new Error("Connection lost"));
+    vi.mocked(readSource.getAcceptance).mockResolvedValue({ ...acceptance, progressValue: 2 });
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance: vi.fn() }));
+
+    act(() => { result.current.beginReview({ kind: "progress", delta: 1, reason: "Verified support request" }); });
+    await act(async () => { await result.current.submit(); });
+    await act(async () => { await result.current.reconcile(); });
+
+    expect(result.current.phase).toBe("RECONCILED_UNVERIFIED");
+    expect(result.current.intent).not.toBeNull();
+    expect(result.current.receipt).toBeNull();
+  });
+
+  it("attributes an unknown result only when exact success Audit evidence matches", async () => {
+    const { commandSource, readSource, auditSource } = sources();
+    commandSource.adjustProgress.mockRejectedValue(new Error("Connection lost"));
+    vi.mocked(readSource.getAcceptance).mockResolvedValue({ ...acceptance, progressValue: 3, status: "GOAL_REACHED" });
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance: vi.fn() }));
+
+    act(() => { result.current.beginReview({ kind: "progress", delta: 1, reason: "Verified support request" }); });
+    const intent = result.current.intent!;
+    auditSource.getEvents.mockResolvedValue({ items: [successAudit(intent)], nextCursor: null });
+    await act(async () => { await result.current.submit(); });
+    await act(async () => { await result.current.reconcile(); });
+
+    expect(result.current.phase).toBe("SUCCEEDED");
+    expect(result.current.receipt).toEqual({ correlationId: intent.correlationId, idempotencyKey: intent.idempotencyKey });
+    expect(auditSource.getEvents).toHaveBeenCalledWith({
+      action: "QUEST_ACCEPTANCE_PROGRESS_ADJUST",
+      targetType: "QUEST_ACCEPTANCE",
+      targetId: "9001",
+      result: "SUCCESS",
+      correlationId: intent.correlationId,
+    });
+  });
+
+  it("keeps UNKNOWN_RESULT when Audit evidence cannot be read", async () => {
+    const { commandSource, readSource, auditSource } = sources();
+    commandSource.adjustProgress.mockRejectedValue(new Error("Connection lost"));
+    vi.mocked(readSource.getAcceptance).mockResolvedValue(acceptance);
+    auditSource.getEvents.mockRejectedValue(new Error("Audit unavailable"));
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance: vi.fn() }));
+
+    act(() => { result.current.beginReview({ kind: "progress", delta: 1, reason: "Verified support request" }); });
+    await act(async () => { await result.current.submit(); });
+    await act(async () => { await result.current.reconcile(); });
+
+    expect(result.current.phase).toBe("UNKNOWN_RESULT");
+    expect(result.current.intent).not.toBeNull();
+    expect(commandSource.adjustProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects same-target Audit rows when any operation identity field differs", async () => {
+    const { commandSource, readSource, auditSource } = sources();
+    commandSource.adjustProgress.mockRejectedValue(new Error("Connection lost"));
+    vi.mocked(readSource.getAcceptance).mockResolvedValue({ ...acceptance, progressValue: 2 });
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance: vi.fn() }));
+
+    act(() => { result.current.beginReview({ kind: "progress", delta: 1, reason: "Verified support request" }); });
+    const intent = result.current.intent!;
+    auditSource.getEvents.mockResolvedValue({ items: [
+      successAudit(intent, { action: "QUEST_ACCEPTANCE_STATUS_CHANGE" }),
+      successAudit(intent, { correlationId: "quest-operation:other" }),
+      successAudit(intent, { idempotencyKey: "quest-override:other" }),
+    ], nextCursor: null });
+    await act(async () => { await result.current.submit(); });
+    await act(async () => { await result.current.reconcile(); });
+
+    expect(result.current.phase).toBe("RECONCILED_UNVERIFIED");
+    expect(result.current.receipt).toBeNull();
+  });
+
+  it("proves a 409 successful only with the exact status Audit", async () => {
+    const { commandSource, readSource, auditSource } = sources();
+    commandSource.changeStatus.mockRejectedValue(new ApiError(409, "CONFLICT", "Already applied"));
+    vi.mocked(readSource.getAcceptance).mockResolvedValue({ ...acceptance, status: "CANCELED" });
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance: vi.fn() }));
+
+    act(() => { result.current.beginReview({ kind: "status", status: "CANCELED", reason: "Verified cancellation" }); });
+    const intent = result.current.intent!;
+    auditSource.getEvents.mockResolvedValue({ items: [successAudit(intent)], nextCursor: null });
+    await act(async () => { await result.current.submit(); });
+
+    expect(result.current.phase).toBe("SUCCEEDED");
+    expect(auditSource.getEvents).toHaveBeenCalledWith({
+      action: "QUEST_ACCEPTANCE_STATUS_CHANGE",
+      targetType: "QUEST_ACCEPTANCE",
+      targetId: "9001",
+      result: "SUCCESS",
+      correlationId: intent.correlationId,
+    });
+  });
+
+  it("keeps a 409 without matching Audit conflict-reconciled and not successful", async () => {
+    const { commandSource, readSource, auditSource } = sources();
     commandSource.changeStatus.mockRejectedValue(new ApiError(409, "CONFLICT", "Already applied"));
     vi.mocked(readSource.getAcceptance).mockResolvedValue({ ...acceptance, status: "GOAL_REACHED" });
     const onCanonicalAcceptance = vi.fn();
-    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, onCanonicalAcceptance }));
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance }));
 
     act(() => { result.current.beginReview({ kind: "status", status: "GOAL_REACHED", reason: "Verified goal evidence" }); });
     await act(async () => { await result.current.submit(); });
@@ -86,8 +206,8 @@ describe("Quest Acceptance override workflow", () => {
   });
 
   it("creates a new key only when operator intent changes", () => {
-    const { commandSource, readSource } = sources();
-    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, onCanonicalAcceptance: vi.fn() }));
+    const { commandSource, readSource, auditSource } = sources();
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance: vi.fn() }));
 
     act(() => { result.current.beginReview({ kind: "progress", delta: 1, reason: "Same reason" }); });
     const initialKey = result.current.intent?.idempotencyKey;
@@ -101,9 +221,9 @@ describe("Quest Acceptance override workflow", () => {
   });
 
   it("clears pending command metadata on authorization failure", async () => {
-    const { commandSource, readSource } = sources();
+    const { commandSource, readSource, auditSource } = sources();
     commandSource.adjustProgress.mockRejectedValue(new ApiError(403, "FORBIDDEN", "Admin access denied"));
-    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, onCanonicalAcceptance: vi.fn() }));
+    const { result } = renderHook(() => useQuestAcceptanceOverride({ acceptance, enabled: true, commandSource, readSource, auditSource, onCanonicalAcceptance: vi.fn() }));
 
     act(() => { result.current.beginReview({ kind: "progress", delta: 1, reason: "Verified support request" }); });
     expect(result.current.intent).not.toBeNull();

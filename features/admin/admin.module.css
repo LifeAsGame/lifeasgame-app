@@ -1078,7 +1078,7 @@
 }
 
 .questOverrideForm label,
-.questLevel3Warning label {
+.questLevel3Confirmation label {
   display: grid;
   gap: 5px;
   color: var(--admin-text-2);
@@ -1088,8 +1088,7 @@
 
 .questOverrideForm input,
 .questOverrideForm select,
-.questLevel3Warning input[type="text"],
-.questLevel3Warning input:not([type]) {
+.questLevel3Confirmation input:not([type]) {
   width: 100%;
   min-width: 0;
   padding: 8px 10px;
@@ -1102,7 +1101,7 @@
 
 .questOverrideForm input,
 .questOverrideForm select,
-.questLevel3Warning input:not([type]) {
+.questLevel3Confirmation input:not([type]) {
   min-height: 36px;
 }
 
@@ -1115,16 +1114,6 @@
 
 .questOverrideReview {
   border-color: var(--admin-focus);
-}
-
-.questOverrideReview[data-risk="L3"] {
-  border-color: var(--admin-failed);
-}
-
-.questOverrideReview[data-risk="L3"] .primaryButton {
-  color: #fff;
-  background: var(--admin-failed);
-  border-color: var(--admin-failed);
 }
 
 .questOverrideReviewHeader {
@@ -1143,10 +1132,6 @@
   background: var(--admin-focus);
   clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
   font-weight: 850;
-}
-
-.questOverrideReview[data-risk="L3"] .questOverrideReviewHeader > span {
-  background: var(--admin-failed);
 }
 
 .questOverrideSummary,
@@ -1195,11 +1180,131 @@
   user-select: text;
 }
 
-.questLevel3Warning {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
+.questLevel3Dialog {
+  width: min(900px, calc(100vw - 48px));
+  max-width: 900px;
+  max-height: calc(100svh - 48px);
+  margin: auto;
+  padding: 24px;
   color: var(--admin-text-2);
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-failed);
+  border-radius: 12px;
+  overflow: auto;
+}
+
+.questLevel3Dialog::backdrop {
+  background: color-mix(in srgb, var(--admin-text) 48%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.questLevel3Dialog .primaryButton {
+  color: #fff;
+  background: var(--admin-failed);
+  border-color: var(--admin-failed);
+}
+
+.questLevel3Header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.questLevel3Header > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  color: #fff;
+  background: var(--admin-failed);
+  clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%);
+  font-weight: 850;
+}
+
+.questLevel3Header h2 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 22px;
+}
+
+.questLevel3Section {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.questLevel3SectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+.questLevel3SectionHeader h3 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.questLevel3SectionHeader span {
+  color: var(--admin-muted);
+  font-size: 9px;
+}
+
+.questLevel3Identity,
+.questLevel3Safeguards {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.questLevel3Identity > div,
+.questLevel3Safeguards > div {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.questLevel3Identity dt,
+.questLevel3Safeguards dt {
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.questLevel3Identity dd,
+.questLevel3Safeguards dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--admin-text);
+  overflow-wrap: anywhere;
+}
+
+.questLevel3Identity code {
+  color: var(--admin-id);
+  user-select: text;
+}
+
+.questLevel3Reason {
+  margin: 0;
+  padding: 11px 12px;
+  color: var(--admin-text);
+  background: var(--admin-workspace);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+
+.questLevel3Confirmation {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px;
   background: color-mix(in srgb, var(--admin-failed) 7%, var(--admin-panel));
   border-left: 3px solid var(--admin-failed);
 }
@@ -1221,6 +1326,13 @@
   gap: 8px;
 }
 
+.questLevel3FocusNote {
+  margin: 8px 0 0;
+  color: var(--admin-muted);
+  font-size: 9px;
+  text-align: right;
+}
+
 .questOverrideError {
   color: var(--admin-failed);
   font-size: 10px;
@@ -1237,6 +1349,14 @@
 }
 
 @media (max-width: 1179px) {
+  .questLevel3Dialog {
+    width: calc(100vw - 32px);
+    max-width: none;
+    height: calc(100svh - 32px);
+    max-height: none;
+    padding: 20px;
+  }
+
   .root {
     grid-template:
       "topbar topbar" 57px
@@ -1390,6 +1510,12 @@
   .questOverrideActions button,
   .questOverrideForm > button {
     width: 100%;
+  }
+
+  .questLevel3Identity > div,
+  .questLevel3Safeguards > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
   }
 
   .filterActions {
