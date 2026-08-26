@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "@/shared/api/client";
 import type { AdminAuditDataSource } from "../api/audit.source";
 import type { AdminInventoryOperationsCommandSource } from "../api/inventory.command";
 import type { AdminInventoryOperationsDataSource, AdminItemDetail } from "../api/inventory.source";
@@ -40,6 +41,16 @@ function props(mode: "api" | "mock" = "api") {
 
 function desktop() {
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+}
+
+async function prepareInventoryReview() {
+  await screen.findByText("71001");
+  fireEvent.click(screen.getByRole("button", { name: "Search Items" }));
+  fireEvent.click(await screen.findByRole("button", { name: /Health Potion/ }));
+  await screen.findByLabelText("Selected Item detail");
+  fireEvent.change(screen.getByLabelText("Reason *"), { target: { value: "Verified support case" } });
+  fireEvent.click(screen.getByRole("button", { name: "Review Level 2 operation" }));
+  await screen.findByRole("dialog", { name: "Confirm entitlement operation" });
 }
 
 describe("Player Inventory and Mailbox full-detail surface", () => {
@@ -134,5 +145,86 @@ describe("Player Inventory and Mailbox full-detail surface", () => {
     expect(await screen.findByRole("heading", { name: "Unable to load Inventory" })).toBeInTheDocument();
     expect(screen.getByText("Inventory response did not match the requested Player ID.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review Level 2 operation" })).toBeDisabled();
+  });
+
+  it.each([
+    [401, "Authentication required", "INVENTORY"],
+    [403, "Admin access denied", "MAILBOX"],
+  ] as const)("fails closed when a destination read returns %s", async (status, heading, target) => {
+    const input = props();
+    if (target === "INVENTORY") vi.mocked(input.readSource.getInventory).mockRejectedValue(new ApiError(status, `HTTP_${status}`, "Destination denied"));
+    else vi.mocked(input.readSource.getMailbox).mockRejectedValue(new ApiError(status, `HTTP_${status}`, "Destination denied"));
+    render(<PlayerInventoryMailbox {...input} />);
+    if (target === "MAILBOX") {
+      await screen.findByText("71001");
+      fireEvent.click(screen.getByRole("tab", { name: "Mailbox" }));
+    }
+
+    expect(await screen.findByRole("heading", { name: heading })).toBeInTheDocument();
+    expect(screen.queryByText("71001")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /refresh|review|confirm|retry/i })).not.toBeInTheDocument();
+  });
+
+  it("clears cached destination and verified Item when Item search returns 401", async () => {
+    const input = props();
+    render(<PlayerInventoryMailbox {...input} />);
+    await screen.findByText("71001");
+    fireEvent.click(screen.getByRole("button", { name: "Search Items" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Health Potion/ }));
+    expect(await screen.findByLabelText("Selected Item detail")).toBeInTheDocument();
+    vi.mocked(input.readSource.searchItems).mockRejectedValueOnce(new ApiError(401, "UNAUTHORIZED", "Session expired"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Search Items" }));
+    expect(await screen.findByRole("heading", { name: "Authentication required" })).toBeInTheDocument();
+    expect(screen.queryByText("71001")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Selected Item detail")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /review|confirm|retry/i })).not.toBeInTheDocument();
+  });
+
+  it("fails closed when exact Item detail returns 403", async () => {
+    const input = props();
+    vi.mocked(input.readSource.getItem).mockRejectedValue(new ApiError(403, "FORBIDDEN", "Item access denied"));
+    render(<PlayerInventoryMailbox {...input} />);
+    await screen.findByText("71001");
+    fireEvent.click(screen.getByRole("button", { name: "Search Items" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Health Potion/ }));
+
+    expect(await screen.findByRole("heading", { name: "Admin access denied" })).toBeInTheDocument();
+    expect(screen.queryByText("71001")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Selected Item detail")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /review|confirm|retry/i })).not.toBeInTheDocument();
+  });
+
+  it("removes the active review and cached data when the command returns 401", async () => {
+    const input = props();
+    if (!input.commandSource.available) throw new Error("Expected API command source");
+    vi.mocked(input.commandSource.addInventory).mockRejectedValue(new ApiError(401, "UNAUTHORIZED", "Session expired"));
+    render(<PlayerInventoryMailbox {...input} />);
+    await prepareInventoryReview();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Level 2 operation" }));
+
+    expect(await screen.findByRole("heading", { name: "Authentication required" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("71001")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Selected Item detail")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /review|confirm|retry|reconcile/i })).not.toBeInTheDocument();
+    expect(input.commandSource.addInventory).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when Audit reconciliation returns 403 without retrying", async () => {
+    const input = props();
+    if (!input.commandSource.available) throw new Error("Expected API command source");
+    vi.mocked(input.commandSource.addInventory).mockRejectedValue(new Error("Connection lost"));
+    vi.mocked(input.auditSource.getEvents).mockRejectedValue(new ApiError(403, "FORBIDDEN", "Audit access denied"));
+    render(<PlayerInventoryMailbox {...input} />);
+    await prepareInventoryReview();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Level 2 operation" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reconcile operation" }));
+
+    expect(await screen.findByRole("heading", { name: "Admin access denied" })).toBeInTheDocument();
+    expect(screen.queryByText("71001")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /review|confirm|retry|reconcile/i })).not.toBeInTheDocument();
+    expect(input.commandSource.addInventory).toHaveBeenCalledTimes(1);
+    expect(input.auditSource.getEvents).toHaveBeenCalledTimes(1);
   });
 });

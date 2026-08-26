@@ -80,6 +80,9 @@ export type AdminInventoryOperationsDataSource = {
 
 const ITEMS_PATH = "/admin/v1/items";
 const PLAYERS_PATH = "/admin/v1/players";
+const ITEM_CATEGORIES = ["WEAPON", "ARMOR", "ACCESSORY", "CONSUMABLE", "MATERIAL", "QUEST", "MISC"] as const;
+const ITEM_TYPES = ["SWORD", "BOW", "STAFF", "SHIELD", "HELMET", "CHEST", "RING", "POTION", "SCROLL", "ORE", "HERB", "KEY", "ETC"] as const;
+const ITEM_RARITIES = ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"] as const;
 
 function positiveId(value: number, field: string) {
   if (!Number.isInteger(value) || value < 1) throw new RangeError(`${field} must be a positive integer.`);
@@ -141,8 +144,8 @@ export async function getAdminPlayerMailbox(playerId: number): Promise<AdminMail
 
 const MOCK_ITEMS: AdminItemDetail[] = [
   { id: 1201, code: "HEALTH_POTION", name: "Health Potion", category: "CONSUMABLE", type: "POTION", rarity: "COMMON", stackable: true, maxStack: 99, maxDurability: null, baseAttrs: {} },
-  { id: 2204, code: "IRON_LONGSWORD", name: "Iron Longsword", category: "EQUIPMENT", type: "WEAPON", rarity: "UNCOMMON", stackable: false, maxStack: 1, maxDurability: 100, baseAttrs: { attack: 12 } },
-  { id: 3307, code: "TRAVEL_CHARM", name: "Travel Charm", category: "MATERIAL", type: "CHARM", rarity: "RARE", stackable: true, maxStack: 20, maxDurability: null, baseAttrs: {} },
+  { id: 2204, code: "IRON_LONGSWORD", name: "Iron Longsword", category: "WEAPON", type: "SWORD", rarity: "UNCOMMON", stackable: false, maxStack: 1, maxDurability: 100, baseAttrs: { attack: 12 } },
+  { id: 3307, code: "TRAVEL_CHARM", name: "Travel Charm", category: "ACCESSORY", type: "ETC", rarity: "RARE", stackable: true, maxStack: 20, maxDurability: null, baseAttrs: {} },
 ];
 
 function mockSummary(item: AdminItemDetail): AdminItemSummary {
@@ -160,11 +163,20 @@ function mockSummary(item: AdminItemDetail): AdminItemSummary {
 
 async function searchMockItems(query: AdminItemSearchQuery = {}): Promise<AdminItemPage> {
   const normalized = normalizedSearch(query);
-  const includes = (actual: string, expected?: string) => !expected || actual.toLocaleLowerCase().includes(expected.toLocaleLowerCase());
-  const filtered = MOCK_ITEMS.filter((item) => includes(item.name, normalized.name)
-    && includes(item.category, normalized.category)
-    && includes(item.type, normalized.type)
-    && includes(item.rarity, normalized.rarity));
+  const strictEnum = (value: string | undefined, allowed: readonly string[], label: string) => {
+    if (!value) return undefined;
+    const parsed = value.trim().replace(/[- ]/g, "_").toUpperCase();
+    if (!allowed.includes(parsed)) throw new RangeError(`Invalid Item ${label}: ${value}`);
+    return parsed;
+  };
+  const category = strictEnum(normalized.category, ITEM_CATEGORIES, "category");
+  const type = strictEnum(normalized.type, ITEM_TYPES, "type");
+  const rarity = strictEnum(normalized.rarity, ITEM_RARITIES, "rarity");
+  const name = normalized.name?.toLocaleLowerCase();
+  const filtered = MOCK_ITEMS.filter((item) => (!name || item.name.toLocaleLowerCase().includes(name))
+    && (!category || item.category === category)
+    && (!type || item.type === type)
+    && (!rarity || item.rarity === rarity));
   const start = normalized.page * normalized.size;
   return {
     content: filtered.slice(start, start + normalized.size).map(mockSummary),
@@ -191,7 +203,7 @@ async function getMockInventory(playerId: number): Promise<AdminInventoryEntries
 async function getMockMailbox(playerId: number): Promise<AdminMailboxEntries> {
   requirePositiveAdminPlayerId(playerId, "playerId");
   if (playerId !== 10218) throw new ApiError(404, "PLAYER_NOT_FOUND", "Player was not found.");
-  return { playerId, entries: [{ mailId: 81001, slotIndex: 0, itemId: 3307, itemName: "Travel Charm", category: "MATERIAL", type: "CHARM", rarity: "RARE", stackable: true, maxStack: 20, quantity: 1, bound: true, durability: null }] };
+  return { playerId, entries: [{ mailId: 81001, slotIndex: 0, itemId: 3307, itemName: "Travel Charm", category: "ACCESSORY", type: "ETC", rarity: "RARE", stackable: true, maxStack: 20, quantity: 1, bound: true, durability: null }] };
 }
 
 const API_SOURCE: AdminInventoryOperationsDataSource = {

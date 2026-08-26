@@ -46,6 +46,8 @@ export function PlayerFullDetail({
   onOpenAudit?: () => void;
 }) {
   const [tab, setTab] = useState<"overview" | "inventory">("overview");
+  const [securityFailure, setSecurityFailure] = useState<{ status: 401 | 403; message: string } | null>(null);
+  if (access !== "ready") return null;
   return (
     <div className={styles.auditScreen}>
       <div className={styles.playerFullHeader}>
@@ -58,11 +60,11 @@ export function PlayerFullDetail({
           </dl>
         </div>
       </div>
-      <nav className={styles.playerLocalTabs} aria-label="Player detail sections">
+      {securityFailure ? <section className={styles.statePanel} role="alert"><h2>{securityFailure.status === 401 ? "Authentication required" : "Admin access denied"}</h2><p>{securityFailure.message}</p></section> : <><nav className={styles.playerLocalTabs} aria-label="Player detail sections">
         <button type="button" data-active={tab === "overview" || undefined} aria-current={tab === "overview" ? "page" : undefined} onClick={() => setTab("overview")}>Overview</button>
         <button type="button" data-active={tab === "inventory" || undefined} aria-current={tab === "inventory" ? "page" : undefined} onClick={() => setTab("inventory")}>Inventory / Mailbox</button>
       </nav>
-      {tab === "overview" ? <Overview player={player} /> : <PlayerInventoryMailbox player={player} access={access} readSource={readSource} commandSource={commandSource} auditSource={auditSource} onOpenAudit={onOpenAudit} />}
+      {tab === "overview" ? <Overview player={player} /> : <PlayerInventoryMailbox player={player} access={access} readSource={readSource} commandSource={commandSource} auditSource={auditSource} onOpenAudit={onOpenAudit} onSecurityFailure={setSecurityFailure} />}</>}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/shared/api/client";
+import type { AdminInventoryOperationsDataSource } from "../api/inventory.source";
 import type { AdminPlayerDataSource } from "../api/player.source";
 import type { AdminPlayerInfo, AdminPlayerSummary } from "./model";
 import { PlayerLookup } from "./PlayerLookup";
@@ -84,6 +85,58 @@ describe("read-only Player Lookup", () => {
     fireEvent.click(screen.getByRole("button", { name: "← Back to Player Lookup" }));
     expect(screen.getByRole("heading", { name: "Player Lookup" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "HANEUL" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["loading", "Validating session"],
+    ["unauthenticated", "Authentication required"],
+  ] as const)("exits full Player detail immediately when access becomes %s", async (nextAccess, safeHeading) => {
+    const dataSource = source();
+    vi.mocked(dataSource.lookupByUserId).mockResolvedValue(summary);
+    vi.mocked(dataSource.getByPlayerId).mockResolvedValue(detail);
+    const onLogin = vi.fn();
+    const view = render(<PlayerLookup access="ready" onLogin={onLogin} dataSource={dataSource} />);
+
+    submitUserId();
+    fireEvent.click(await screen.findByRole("button", { name: "Open read-only detail" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open full Player detail" }));
+    expect(screen.getByRole("heading", { name: "HANEUL", level: 1 })).toBeInTheDocument();
+
+    view.rerender(<PlayerLookup access={nextAccess} onLogin={onLogin} dataSource={dataSource} />);
+    expect(screen.getByRole("heading", { name: safeHeading })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "HANEUL" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Inventory / Mailbox" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /review|confirm|retry same/i })).not.toBeInTheDocument();
+
+    view.rerender(<PlayerLookup access="ready" onLogin={onLogin} dataSource={dataSource} />);
+    expect(screen.getByRole("heading", { name: "Ready for exact lookup" })).toBeInTheDocument();
+    expect(dataSource.lookupByUserId).toHaveBeenCalledTimes(1);
+    expect(dataSource.getByPlayerId).toHaveBeenCalledTimes(1);
+  });
+
+  it("latches a direct child 403 as a full-detail fail-closed state", async () => {
+    const dataSource = source();
+    vi.mocked(dataSource.lookupByUserId).mockResolvedValue(summary);
+    vi.mocked(dataSource.getByPlayerId).mockResolvedValue(detail);
+    const inventorySource: AdminInventoryOperationsDataSource = {
+      descriptor: { mode: "api", badge: "API", label: "/admin/v1", inventoryLabel: "/admin/v1/items" },
+      searchItems: vi.fn(),
+      getItem: vi.fn(),
+      getInventory: vi.fn().mockRejectedValue(new ApiError(403, "FORBIDDEN", "Inventory access denied")),
+      getMailbox: vi.fn(),
+    };
+    render(<PlayerLookup access="ready" onLogin={vi.fn()} dataSource={dataSource} inventorySource={inventorySource} />);
+
+    submitUserId();
+    fireEvent.click(await screen.findByRole("button", { name: "Open read-only detail" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open full Player detail" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inventory / Mailbox" }));
+
+    expect(await screen.findByRole("heading", { name: "Admin access denied" })).toBeInTheDocument();
+    expect(screen.getByText("Inventory access denied")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Overview" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Inventory / Mailbox" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /review|confirm|retry/i })).not.toBeInTheDocument();
   });
 
   it("renders not-found and generic retry without switching sources", async () => {

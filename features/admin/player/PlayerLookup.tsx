@@ -91,6 +91,10 @@ export function PlayerLookup({
     if (player.detail) detailHeading.current?.focus();
   }, [player.detail]);
 
+  useEffect(() => {
+    if (access !== "ready") setFullDetail(false);
+  }, [access]);
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const id = Number(userId);
@@ -115,7 +119,7 @@ export function PlayerLookup({
   const lookupNotFound = lookupError?.status === 404;
   const detailNotFound = detailError?.status === 404;
 
-  if (fullDetail && player.detail) {
+  if (access === "ready" && fullDetail && player.detail) {
     return <PlayerFullDetail player={player.detail} userId={player.summary?.userId} access={access} readSource={inventorySource} commandSource={commandSource} auditSource={auditSource} onBack={() => setFullDetail(false)} onOpenAudit={onOpenAudit} />;
   }
 

@@ -58,6 +58,21 @@ describe("Admin Inventory operations read source", () => {
     await expect(mock.searchItems({ name: "Health", page: 0, size: 20 })).resolves.toMatchObject({ totalElements: 1, content: [{ id: 1201 }] });
   });
 
+  it("uses only canonical Mock enums and strict Backend-style enum filters", async () => {
+    const mock = getAdminInventoryOperationsDataSource("mock");
+    const all = await mock.searchItems({ page: 0, size: 20 });
+    expect(all.content).toEqual(expect.arrayContaining([
+      expect.objectContaining({ category: "CONSUMABLE", type: "POTION", rarity: "COMMON" }),
+      expect.objectContaining({ category: "WEAPON", type: "SWORD", rarity: "UNCOMMON" }),
+      expect.objectContaining({ category: "ACCESSORY", type: "ETC", rarity: "RARE" }),
+    ]));
+    await expect(mock.searchItems({ category: "  consumable  ", page: 0, size: 20 })).resolves.toMatchObject({ totalElements: 1, content: [{ id: 1201 }] });
+    await expect(mock.searchItems({ category: "CONS", page: 0, size: 20 })).rejects.toThrow("Invalid Item category");
+    await expect(mock.searchItems({ type: "CHARM", page: 0, size: 20 })).rejects.toThrow("Invalid Item type");
+    await expect(mock.searchItems({ name: "otion", page: 0, size: 20 })).resolves.toMatchObject({ totalElements: 1, content: [{ name: "Health Potion" }] });
+    await expect(mock.getMailbox(10218)).resolves.toMatchObject({ entries: [{ category: "ACCESSORY", type: "ETC", rarity: "RARE" }] });
+  });
+
   it("bounds paging and keeps removed raw attributes out of production models", async () => {
     await expect(searchAdminItems({ page: -1 })).rejects.toThrow("non-negative integer");
     await expect(searchAdminItems({ size: 101 })).rejects.toThrow("1 to 100");

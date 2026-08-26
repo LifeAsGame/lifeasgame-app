@@ -38,6 +38,12 @@ function loadError(caught: unknown, fallback: string) {
   return { status: caught instanceof ApiError ? caught.status : null, message: caught instanceof Error ? caught.message : fallback };
 }
 
+type SecurityFailure = { status: 401 | 403; message: string };
+
+function asSecurityFailure(error: { status: number | null; message: string }): SecurityFailure | null {
+  return error.status === 401 || error.status === 403 ? { status: error.status, message: error.message } : null;
+}
+
 function L2Review({
   intent,
   phase,
@@ -101,6 +107,7 @@ export function PlayerInventoryMailbox({
   commandSource,
   auditSource,
   onOpenAudit,
+  onSecurityFailure,
 }: {
   player: AdminPlayerInfo;
   access: AdminAccess;
@@ -108,6 +115,7 @@ export function PlayerInventoryMailbox({
   commandSource: AdminInventoryOperationsCommandSource;
   auditSource: AdminAuditDataSource;
   onOpenAudit?: () => void;
+  onSecurityFailure?: (error: SecurityFailure) => void;
 }) {
   const [destination, setDestination] = useState<"INVENTORY" | "MAILBOX">("INVENTORY");
   const [inventory, setInventory] = useState<AdminInventoryEntries | null>(null);
@@ -125,14 +133,38 @@ export function PlayerInventoryMailbox({
   const [bound, setBound] = useState(false);
   const [reason, setReason] = useState("");
   const [validation, setValidation] = useState<string | null>(null);
+  const [securityFailure, setSecurityFailure] = useState<SecurityFailure | null>(null);
   const destinationRequest = useRef(0);
   const searchRequest = useRef(0);
   const itemRequest = useRef(0);
+  const securityFailureRef = useRef<SecurityFailure | null>(null);
   const appliedFilters = useRef(filters);
   const mobile = useIsMobile();
 
-  const applyInventory = useCallback((next: AdminInventoryEntries) => { setInventory(next); setLoadedAt(new Date()); setDestinationError(null); }, []);
-  const applyMailbox = useCallback((next: AdminMailboxEntries) => { setMailbox(next); setLoadedAt(new Date()); setDestinationError(null); }, []);
+  const failClosed = useCallback((error: SecurityFailure) => {
+    securityFailureRef.current = error;
+    destinationRequest.current += 1;
+    searchRequest.current += 1;
+    itemRequest.current += 1;
+    setSecurityFailure(error);
+    setInventory(null);
+    setMailbox(null);
+    setItems(null);
+    setSelectedItem(null);
+    setLoadedAt(null);
+    setDestinationLoading(false);
+    setItemSearchLoading(false);
+    setItemDetailLoading(false);
+    setDestinationError(null);
+    setItemSearchError(null);
+    setValidation(null);
+    setQuantity("1");
+    setBound(false);
+    setReason("");
+    onSecurityFailure?.(error);
+  }, [onSecurityFailure]);
+  const applyInventory = useCallback((next: AdminInventoryEntries) => { if (securityFailureRef.current) return; setInventory(next); setLoadedAt(new Date()); setDestinationError(null); }, []);
+  const applyMailbox = useCallback((next: AdminMailboxEntries) => { if (securityFailureRef.current) return; setMailbox(next); setLoadedAt(new Date()); setDestinationError(null); }, []);
   const operation = useInventoryMailboxOperations({
     playerId: player.playerId,
     playerName: player.name,
@@ -143,6 +175,7 @@ export function PlayerInventoryMailbox({
     auditSource,
     onCanonicalInventory: applyInventory,
     onCanonicalMailbox: applyMailbox,
+    onSecurityFailure: failClosed,
   });
 
   const loadDestination = useCallback(async (target: "INVENTORY" | "MAILBOX") => {
@@ -159,18 +192,30 @@ export function PlayerInventoryMailbox({
       setLoadedAt(new Date());
     } catch (caught) {
       if (request === destinationRequest.current) {
+        const error = loadError(caught, `Unable to load ${target}.`);
+        const security = asSecurityFailure(error);
+        if (security) { failClosed(security); return; }
         if (target === "INVENTORY") setInventory(null); else setMailbox(null);
-        setDestinationError(loadError(caught, `Unable to load ${target}.`));
+        setDestinationError(error);
       }
     } finally {
       if (request === destinationRequest.current) setDestinationLoading(false);
     }
-  }, [player.playerId, readSource]);
+  }, [failClosed, player.playerId, readSource]);
 
   useEffect(() => {
     if (access === "ready") void loadDestination(destination);
     return () => { destinationRequest.current += 1; };
   }, [access, destination, loadDestination]);
+
+  if (access !== "ready" || securityFailure) {
+    const failure = securityFailure;
+    const title = access === "loading" ? "Validating session" : failure?.status === 403 ? "Admin access denied" : "Authentication required";
+    const message = access === "loading"
+      ? "Checking the authenticated operator session. Cached operational data is hidden."
+      : failure?.message ?? "Sign in with an authorized operator account before reopening Player operations.";
+    return <section className={styles.statePanel} role="alert"><h2>{title}</h2><p>{message}</p></section>;
+  }
 
   const switchDestination = (next: "INVENTORY" | "MAILBOX") => {
     operation.newIntent();
@@ -186,9 +231,15 @@ export function PlayerInventoryMailbox({
     const query: AdminItemSearchQuery = { ...appliedFilters.current, page, size: 20 };
     try {
       const next = await readSource.searchItems(query);
-      if (request === searchRequest.current) setItems(next);
+      if (request === searchRequest.current && !securityFailureRef.current) setItems(next);
     } catch (caught) {
-      if (request === searchRequest.current) { setItems(null); setItemSearchError(loadError(caught, "Unable to search Items.").message); }
+      if (request === searchRequest.current) {
+        const error = loadError(caught, "Unable to search Items.");
+        const security = asSecurityFailure(error);
+        if (security) { failClosed(security); return; }
+        setItems(null);
+        setItemSearchError(error.message);
+      }
     } finally {
       if (request === searchRequest.current) setItemSearchLoading(false);
     }
@@ -204,9 +255,14 @@ export function PlayerInventoryMailbox({
     try {
       const next = await readSource.getItem(itemId);
       if (next.id !== itemId) throw new Error("Item detail response did not match the requested Item ID.");
-      if (request === itemRequest.current) setSelectedItem(next);
+      if (request === itemRequest.current && !securityFailureRef.current) setSelectedItem(next);
     } catch (caught) {
-      if (request === itemRequest.current) setItemSearchError(loadError(caught, "Unable to load Item detail.").message);
+      if (request === itemRequest.current) {
+        const error = loadError(caught, "Unable to load Item detail.");
+        const security = asSecurityFailure(error);
+        if (security) { failClosed(security); return; }
+        setItemSearchError(error.message);
+      }
     } finally {
       if (request === itemRequest.current) setItemDetailLoading(false);
     }

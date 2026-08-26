@@ -90,6 +90,7 @@ export function useInventoryMailboxOperations({
   auditSource,
   onCanonicalInventory,
   onCanonicalMailbox,
+  onSecurityFailure,
 }: {
   playerId: number;
   playerName: string;
@@ -100,11 +101,19 @@ export function useInventoryMailboxOperations({
   auditSource: AdminAuditDataSource;
   onCanonicalInventory: (inventory: AdminInventoryEntries) => void;
   onCanonicalMailbox: (mailbox: AdminMailboxEntries) => void;
+  onSecurityFailure?: (error: { status: 401 | 403; message: string }) => void;
 }) {
   const [state, setState] = useState<OperationState>(INITIAL_STATE);
   const [reviewVersion, setReviewVersion] = useState(0);
   const submitting = useRef(false);
   const realApi = readSource.descriptor.mode === "api" && auditSource.descriptor.mode === "api" && commandSource.available;
+  const failSecurity = useCallback((error: { status: number | null; message: string }) => {
+    if (error.status !== 401 && error.status !== 403) return false;
+    submitting.current = false;
+    setState({ ...INITIAL_STATE, error });
+    onSecurityFailure?.({ status: error.status, message: error.message });
+    return true;
+  }, [onSecurityFailure]);
 
   useEffect(() => {
     if (!enabled || !realApi) {
@@ -170,11 +179,10 @@ export function useInventoryMailboxOperations({
 
   const finishReconciliation = useCallback(async (intent: EntitlementIntent, conflict: boolean) => {
     const evidence = await reconcileEvidence(intent);
+    if (evidence.destinationError && failSecurity(operationError(evidence.destinationError))) return;
     if (evidence.auditError) {
       const error = operationError(evidence.auditError);
-      setState(error.status === 401 || error.status === 403
-        ? { ...INITIAL_STATE, error }
-        : (current) => ({ ...current, phase: "UNKNOWN_RESULT", error }));
+      if (!failSecurity(error)) setState((current) => ({ ...current, phase: "UNKNOWN_RESULT", error }));
       return;
     }
     if (evidence.exactAudit) {
@@ -191,7 +199,7 @@ export function useInventoryMailboxOperations({
       return;
     }
     setState((current) => ({ ...current, phase: conflict ? "CONFLICT_RECONCILED" : "RECONCILED_RETRYABLE", error: null }));
-  }, [reconcileEvidence]);
+  }, [failSecurity, reconcileEvidence]);
 
   const submit = useCallback(async () => {
     const intent = state.intent;
@@ -205,8 +213,9 @@ export function useInventoryMailboxOperations({
       else await commandSource.deliverMailbox(intent.playerId, body, metadata);
     } catch (caught) {
       const error = operationError(caught);
-      if (error.status === 401 || error.status === 403) {
-        setState({ ...INITIAL_STATE, error });
+      if (failSecurity(error)) {
+        submitting.current = false;
+        return;
       } else if (error.status === 409) {
         setState((current) => ({ ...current, phase: "CONFLICT_RECONCILING", error }));
         await finishReconciliation(intent, true);
@@ -231,13 +240,11 @@ export function useInventoryMailboxOperations({
       });
     } catch (caught) {
       const error = operationError(caught);
-      setState(error.status === 401 || error.status === 403
-        ? { ...INITIAL_STATE, error }
-        : (current) => ({ ...current, phase: "UNKNOWN_RESULT", error }));
+      if (!failSecurity(error)) setState((current) => ({ ...current, phase: "UNKNOWN_RESULT", error }));
     } finally {
       submitting.current = false;
     }
-  }, [commandSource, enabled, finishReconciliation, loadCanonical, realApi, state.intent]);
+  }, [commandSource, enabled, failSecurity, finishReconciliation, loadCanonical, realApi, state.intent]);
 
   const reconcile = useCallback(async () => {
     const intent = state.intent;

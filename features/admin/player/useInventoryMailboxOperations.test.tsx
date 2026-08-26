@@ -48,6 +48,7 @@ function setup(sourceOverrides: Partial<ReturnType<typeof sources>> = {}, select
   const all = { ...defaults, ...sourceOverrides };
   const onCanonicalInventory = vi.fn();
   const onCanonicalMailbox = vi.fn();
+  const onSecurityFailure = vi.fn();
   const hook = renderHook(() => useInventoryMailboxOperations({
     playerId: 10218,
     playerName: "HANEUL",
@@ -56,8 +57,9 @@ function setup(sourceOverrides: Partial<ReturnType<typeof sources>> = {}, select
     ...all,
     onCanonicalInventory,
     onCanonicalMailbox,
+    onSecurityFailure,
   }));
-  return { ...all, ...hook, onCanonicalInventory, onCanonicalMailbox };
+  return { ...all, ...hook, onCanonicalInventory, onCanonicalMailbox, onSecurityFailure };
 }
 
 function inventoryDraft(overrides = {}) {
@@ -182,5 +184,32 @@ describe("Player Inventory and Mailbox operation workflow", () => {
     await act(async () => { await conflictHook.result.current.submit(); });
     expect(conflictHook.result.current.phase).toBe("CONFLICT_RECONCILED");
     expect(conflictHook.result.current.receipt).toBeNull();
+  });
+
+  it("clears operation identity and reports a command 401 to the shared security boundary", async () => {
+    const all = sources();
+    all.commandSource.addInventory = vi.fn().mockRejectedValue(new ApiError(401, "UNAUTHORIZED", "Session expired"));
+    const { result, onSecurityFailure } = setup(all);
+    act(() => { result.current.beginReview(inventoryDraft()); });
+    await act(async () => { await result.current.submit(); });
+
+    expect(result.current.phase).toBe("IDLE");
+    expect(result.current.intent).toBeNull();
+    expect(result.current.receipt).toBeNull();
+    expect(onSecurityFailure).toHaveBeenCalledWith({ status: 401, message: "Session expired" });
+  });
+
+  it("reports an Audit 403 and never exposes a reconciled retry", async () => {
+    const all = sources();
+    all.commandSource.addInventory = vi.fn().mockRejectedValue(new Error("Connection lost"));
+    all.auditSource.getEvents = vi.fn().mockRejectedValue(new ApiError(403, "FORBIDDEN", "Audit denied"));
+    const { result, onSecurityFailure } = setup(all);
+    act(() => { result.current.beginReview(inventoryDraft()); });
+    await act(async () => { await result.current.submit(); });
+    await act(async () => { await result.current.reconcile(); });
+
+    expect(result.current.phase).toBe("IDLE");
+    expect(result.current.intent).toBeNull();
+    expect(onSecurityFailure).toHaveBeenCalledWith({ status: 403, message: "Audit denied" });
   });
 });
