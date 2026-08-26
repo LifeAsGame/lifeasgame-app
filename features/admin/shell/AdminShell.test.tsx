@@ -37,6 +37,14 @@ describe("Admin Phase A3 shell", () => {
     expect(screen.queryByRole("button", { name: /grant|revoke|adjust|delete|override|deliver/i })).not.toBeInTheDocument();
   });
 
+  it("lets a completed Quest operation open the normal Audit Explorer area", () => {
+    render(<AdminShell operator="operator@lag" quest={(openAudit) => <button type="button" onClick={openAudit}>Open Audit Explorer</button>} player={<div>Player Screen</div>} audit={<div>Audit Screen</div>} source={apiSource} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Audit Explorer" }));
+    expect(screen.getByText("Audit Screen")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "System, SUPPORTED" })).toHaveAttribute("aria-current", "page");
+  });
+
   it.each([
     [apiSource, "API", "/admin/v1", "Session", "Authority enforced by server"],
     [mockSource, "MOCK DATA", "Local Admin Mock", "Mock session", "Server Admin authority not evaluated"],

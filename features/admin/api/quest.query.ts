@@ -1,5 +1,5 @@
 import { ADMIN_QUEST_ACCEPTANCE_STATUSES } from "../quest/model";
-import type { AdminQuestAcceptanceStatus } from "../quest/model";
+import type { AdminQuestAcceptance, AdminQuestAcceptanceStatus } from "../quest/model";
 
 export function normalizeAdminQuestCode(questCode: string) {
   const normalized = questCode.trim();
@@ -16,4 +16,14 @@ export function validateAdminQuestAcceptanceStatus(status?: AdminQuestAcceptance
   if (!status) return undefined;
   if (!ADMIN_QUEST_ACCEPTANCE_STATUSES.includes(status)) throw new RangeError("status must be a canonical Acceptance status.");
   return status;
+}
+
+export function assertAdminQuestAcceptanceIdentity(
+  acceptance: AdminQuestAcceptance,
+  acceptanceId: number,
+  questCode: string,
+) {
+  if (acceptance.id !== acceptanceId) throw new Error("Quest acceptance response did not match the requested Acceptance ID.");
+  if (acceptance.code !== questCode) throw new Error("Quest acceptance response did not match the selected Quest code.");
+  return acceptance;
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { ApiError } from "@/shared/api/client";
+import { assertAdminQuestAcceptanceIdentity } from "../api/quest.query";
 import type { AdminQuestDataSource } from "../api/quest.source";
 import type {
   AdminQuestAcceptance,
@@ -42,6 +43,15 @@ export function useQuestRuntimeStatus(enabled: boolean, dataSource: AdminQuestDa
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const requestId = useRef(0);
   const lastIntent = useRef<Intent | null>(null);
+  const selectedCodeRef = useRef(selectedCode);
+  const acceptanceIdRef = useRef(acceptance?.id ?? null);
+  const statusFilterRef = useRef(statusFilter);
+
+  useLayoutEffect(() => {
+    selectedCodeRef.current = selectedCode;
+    acceptanceIdRef.current = acceptance?.id ?? null;
+    statusFilterRef.current = statusFilter;
+  }, [acceptance?.id, selectedCode, statusFilter]);
 
   const run = useCallback(async (intent: Intent) => {
     const current = ++requestId.current;
@@ -102,9 +112,11 @@ export function useQuestRuntimeStatus(enabled: boolean, dataSource: AdminQuestDa
           setLoadedAt(new Date());
         }
       } else {
-        const nextAcceptance = await dataSource.getAcceptance(intent.acceptanceId);
-        if (nextAcceptance.id !== intent.acceptanceId) throw new Error("Quest acceptance response did not match the requested Acceptance ID.");
-        if (nextAcceptance.code !== intent.questCode) throw new Error("Quest acceptance response did not match the selected Quest code.");
+        const nextAcceptance = assertAdminQuestAcceptanceIdentity(
+          await dataSource.getAcceptance(intent.acceptanceId),
+          intent.acceptanceId,
+          intent.questCode,
+        );
         if (current === requestId.current) {
           setAcceptance(nextAcceptance);
           setLoadedAt(new Date());
@@ -129,6 +141,18 @@ export function useQuestRuntimeStatus(enabled: boolean, dataSource: AdminQuestDa
       if (current === requestId.current) setLoading(null);
     }
   }, [dataSource]);
+
+  const applyCanonicalAcceptance = useCallback((nextAcceptance: AdminQuestAcceptance) => {
+    if (!selectedCodeRef.current || acceptanceIdRef.current !== nextAcceptance.id) {
+      throw new Error("Quest acceptance reconciliation no longer matches the selected Acceptance.");
+    }
+    assertAdminQuestAcceptanceIdentity(nextAcceptance, acceptanceIdRef.current, selectedCodeRef.current);
+    setAcceptance(nextAcceptance);
+    setAcceptances((current) => statusFilterRef.current && nextAcceptance.status !== statusFilterRef.current
+      ? current.filter((item) => item.id !== nextAcceptance.id)
+      : current.map((item) => item.id === nextAcceptance.id ? nextAcceptance : item));
+    setLoadedAt(new Date());
+  }, []);
 
   useEffect(() => {
     if (enabled) void run({ kind: "index" });
@@ -174,5 +198,6 @@ export function useQuestRuntimeStatus(enabled: boolean, dataSource: AdminQuestDa
       setAcceptance(null);
       setError((current) => current?.kind === "acceptance" ? null : current);
     },
+    applyCanonicalAcceptance,
   };
 }
