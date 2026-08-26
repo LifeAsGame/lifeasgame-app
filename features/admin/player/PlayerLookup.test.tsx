@@ -63,6 +63,29 @@ describe("read-only Player Lookup", () => {
     expect(screen.queryByRole("button", { name: /grant|revoke|rename|adjust|deliver|override|set hp|set mp/i })).not.toBeInTheDocument();
   });
 
+  it("keeps quick detail mutation-free and enters full Player detail explicitly", async () => {
+    const dataSource = source();
+    vi.mocked(dataSource.lookupByUserId).mockResolvedValue(summary);
+    vi.mocked(dataSource.getByPlayerId).mockResolvedValue(detail);
+    render(<PlayerLookup access="ready" onLogin={vi.fn()} dataSource={dataSource} />);
+
+    submitUserId();
+    fireEvent.click(await screen.findByRole("button", { name: "Open read-only detail" }));
+    const openFull = await screen.findByRole("button", { name: "Open full Player detail" });
+    expect(screen.queryByRole("button", { name: /add to inventory|deliver to mailbox|review level/i })).not.toBeInTheDocument();
+
+    fireEvent.click(openFull);
+    expect(screen.getByRole("heading", { name: "HANEUL", level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("10218")).toBeInTheDocument();
+    expect(screen.getByText("8314")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Inventory / Mailbox" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "← Back to Player Lookup" }));
+    expect(screen.getByRole("heading", { name: "Player Lookup" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "HANEUL" })).toBeInTheDocument();
+  });
+
   it("renders not-found and generic retry without switching sources", async () => {
     const dataSource = source();
     vi.mocked(dataSource.lookupByUserId)
