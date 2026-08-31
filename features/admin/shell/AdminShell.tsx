@@ -15,7 +15,7 @@ function CapabilityBadge({ state, compact = false }: { state: AdminCapabilitySta
 export function AdminShell({ operator, audit, player, quest, source }: {
   operator: string;
   audit: React.ReactNode;
-  player: React.ReactNode;
+  player: React.ReactNode | ((openAudit: () => void) => React.ReactNode);
   quest: React.ReactNode | ((openAudit: () => void) => React.ReactNode);
   source: AdminDataSourceDescriptor;
 }) {
@@ -51,7 +51,7 @@ export function AdminShell({ operator, audit, player, quest, source }: {
               {(area.id === "system" || area.id === "players" || area.id === "content") && activeArea === area.id ? (
                 <div className={styles.subnav} aria-label={`${area.label} capabilities`}>
                   <span>{area.id === "system" ? "Admin Audit" : area.id === "players" ? "Player Lookup" : "Quest Runtime Status"}</span>
-                  <CapabilityBadge state={area.id === "players" ? "READ_ONLY" : "SUPPORTED"} compact />
+                  <CapabilityBadge state="SUPPORTED" compact />
                 </div>
               ) : null}
             </div>
@@ -64,7 +64,9 @@ export function AdminShell({ operator, audit, player, quest, source }: {
       </aside>
 
       <main className={styles.workspace}>
-        {activeArea === "system" ? audit : activeArea === "players" ? player : activeArea === "content"
+        {activeArea === "system" ? audit : activeArea === "players"
+          ? typeof player === "function" ? player(() => setActiveArea("system")) : player
+          : activeArea === "content"
           ? typeof quest === "function" ? quest(() => setActiveArea("system")) : quest
           : (
           <section className={styles.capabilityPanel} aria-labelledby="admin-capability-title">

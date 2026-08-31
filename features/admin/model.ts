@@ -18,7 +18,7 @@ export type AdminArea = {
 
 export const ADMIN_AREAS: AdminArea[] = [
   { id: "dashboard", label: "Dashboard", shortLabel: "D", state: "DEFERRED", reason: "BACKEND_READ_MODEL_REQUIRED" },
-  { id: "players", label: "Players", shortLabel: "P", state: "SUPPORTED", reason: "Exact User ID lookup and read-only Player detail are supported." },
+  { id: "players", label: "Players", shortLabel: "P", state: "SUPPORTED", reason: "Exact User ID lookup, safe Player detail, and approved Inventory/Mailbox operations are supported." },
   { id: "content", label: "Content", shortLabel: "C", state: "SUPPORTED", reason: "Read-only Quest Runtime Status is supported; other Content capabilities remain deferred." },
   { id: "economy", label: "Economy", shortLabel: "E", state: "GATED", reason: "Economy commands are not enabled in the current Admin slice." },
   { id: "social", label: "Social & Trust", shortLabel: "S", state: "PRIVACY_GATED", reason: "Private social content is outside this Admin slice." },

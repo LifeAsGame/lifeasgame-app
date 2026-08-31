@@ -45,6 +45,15 @@ describe("Admin Phase A3 shell", () => {
     expect(screen.getByRole("button", { name: "System, SUPPORTED" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("lets a Player entitlement receipt open the normal Audit Explorer area", () => {
+    render(<AdminShell operator="operator@lag" quest={<div>Quest Screen</div>} player={(openAudit) => <button type="button" onClick={openAudit}>Open Player Audit</button>} audit={<div>Audit Screen</div>} source={apiSource} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Players, SUPPORTED" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Player Audit" }));
+    expect(screen.getByText("Audit Screen")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "System, SUPPORTED" })).toHaveAttribute("aria-current", "page");
+  });
+
   it.each([
     [apiSource, "API", "/admin/v1", "Session", "Authority enforced by server"],
     [mockSource, "MOCK DATA", "Local Admin Mock", "Mock session", "Server Admin authority not evaluated"],

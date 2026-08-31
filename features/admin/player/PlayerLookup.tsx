@@ -3,18 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
+import { adminAuditDataSource } from "../api/audit.source";
+import type { AdminAuditDataSource } from "../api/audit.source";
+import { adminInventoryOperationsCommandSource } from "../api/inventory.command";
+import type { AdminInventoryOperationsCommandSource } from "../api/inventory.command";
+import { adminInventoryOperationsDataSource } from "../api/inventory.source";
+import type { AdminInventoryOperationsDataSource } from "../api/inventory.source";
 import { adminPlayerDataSource } from "../api/player.source";
 import type { AdminPlayerDataSource } from "../api/player.source";
 import type { AdminAccess } from "../model";
 import styles from "../admin.module.css";
 import type { AdminPlayerInfo } from "./model";
+import { PlayerFullDetail } from "./PlayerFullDetail";
 import { usePlayerLookup } from "./usePlayerLookup";
 
 function StatePanel({ title, message, action }: { title: string; message: string; action?: React.ReactNode }) {
   return <section className={styles.statePanel} role="status" aria-live="polite"><h2>{title}</h2><p>{message}</p>{action}</section>;
 }
 
-function PlayerDetail({ player, headingRef, onClose }: { player: AdminPlayerInfo; headingRef: React.RefObject<HTMLHeadingElement | null>; onClose: () => void }) {
+function PlayerDetail({ player, headingRef, onClose, onOpenFull }: { player: AdminPlayerInfo; headingRef: React.RefObject<HTMLHeadingElement | null>; onClose: () => void; onOpenFull: () => void }) {
   const identity = [
     ["Player ID", player.playerId],
     ["Name", player.name],
@@ -50,13 +57,31 @@ function PlayerDetail({ player, headingRef, onClose }: { player: AdminPlayerInfo
         {player.effects.length > 0 ? <ul>{player.effects.map((effect) => <li key={`${effect.code}:${effect.category}`}><code>{effect.code}</code><span>{effect.category}</span></li>)}</ul> : <p>None</p>}
       </section>
       <div className={styles.privacyNote}><span className={styles.badge} data-state="PRIVACY_GATED">◆ PRIVACY_GATED</span><p>Private LifeLog, Person, and Direct Chat content is not part of Player detail.</p></div>
+      <button type="button" className={`${styles.primaryButton} ${styles.openFullPlayerButton}`} onClick={onOpenFull}>Open full Player detail</button>
     </aside>
   );
 }
 
-export function PlayerLookup({ access, onLogin, dataSource = adminPlayerDataSource }: { access: AdminAccess; onLogin: () => void; dataSource?: AdminPlayerDataSource }) {
+export function PlayerLookup({
+  access,
+  onLogin,
+  onOpenAudit,
+  dataSource = adminPlayerDataSource,
+  inventorySource = adminInventoryOperationsDataSource,
+  commandSource = adminInventoryOperationsCommandSource,
+  auditSource = adminAuditDataSource,
+}: {
+  access: AdminAccess;
+  onLogin: () => void;
+  onOpenAudit?: () => void;
+  dataSource?: AdminPlayerDataSource;
+  inventorySource?: AdminInventoryOperationsDataSource;
+  commandSource?: AdminInventoryOperationsCommandSource;
+  auditSource?: AdminAuditDataSource;
+}) {
   const [userId, setUserId] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [fullDetail, setFullDetail] = useState(false);
   const detailTrigger = useRef<HTMLButtonElement | null>(null);
   const detailHeading = useRef<HTMLHeadingElement | null>(null);
   const player = usePlayerLookup(access === "ready", dataSource);
@@ -65,6 +90,10 @@ export function PlayerLookup({ access, onLogin, dataSource = adminPlayerDataSour
   useEffect(() => {
     if (player.detail) detailHeading.current?.focus();
   }, [player.detail]);
+
+  useEffect(() => {
+    if (access !== "ready") setFullDetail(false);
+  }, [access]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -78,7 +107,13 @@ export function PlayerLookup({ access, onLogin, dataSource = adminPlayerDataSour
   };
 
   const closeDetail = () => {
+    setFullDetail(false);
     player.closeDetail();
+    requestAnimationFrame(() => detailTrigger.current?.focus());
+  };
+
+  const exitFullDetail = () => {
+    setFullDetail(false);
     requestAnimationFrame(() => detailTrigger.current?.focus());
   };
 
@@ -88,6 +123,10 @@ export function PlayerLookup({ access, onLogin, dataSource = adminPlayerDataSour
   const detailError = player.error?.kind === "detail" && !authRequired && !forbidden ? player.error : null;
   const lookupNotFound = lookupError?.status === 404;
   const detailNotFound = detailError?.status === 404;
+
+  if (access === "ready" && fullDetail && player.detail) {
+    return <PlayerFullDetail player={player.detail} userId={player.summary?.userId} access={access} readSource={inventorySource} commandSource={commandSource} auditSource={auditSource} onBack={exitFullDetail} onOpenAudit={onOpenAudit} />;
+  }
 
   return (
     <div className={styles.auditScreen}>
@@ -132,7 +171,7 @@ export function PlayerLookup({ access, onLogin, dataSource = adminPlayerDataSour
               </table>
             </div>
           </section>
-          {player.detail ? <PlayerDetail player={player.detail} headingRef={detailHeading} onClose={closeDetail} /> : player.loading === "detail" ? <StatePanel title="Loading Player detail" message={`Requesting Player ID ${player.summary.playerId}.`} /> : detailNotFound ? <StatePanel title="Player detail unavailable" message="The Player detail could not be found for the returned Player ID." action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : detailError ? <StatePanel title="Unable to load Player detail" message={detailError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : <aside className={styles.detailPlaceholder}><span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span><h2>Player quick detail</h2><p>Open the exact result to fetch allowed Player fields.</p></aside>}
+          {player.detail ? <PlayerDetail player={player.detail} headingRef={detailHeading} onClose={closeDetail} onOpenFull={() => setFullDetail(true)} /> : player.loading === "detail" ? <StatePanel title="Loading Player detail" message={`Requesting Player ID ${player.summary.playerId}.`} /> : detailNotFound ? <StatePanel title="Player detail unavailable" message="The Player detail could not be found for the returned Player ID." action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : detailError ? <StatePanel title="Unable to load Player detail" message={detailError.message} action={<button type="button" className={styles.primaryButton} onClick={() => void player.retry()}>Retry</button>} /> : <aside className={styles.detailPlaceholder}><span className={styles.badge} data-state="READ_ONLY">▣ READ_ONLY</span><h2>Player quick detail</h2><p>Open the exact result to fetch allowed Player fields.</p></aside>}
         </div>
       ) : null}
     </div>
