@@ -79,7 +79,7 @@ describe("canonical Exchange surfaces", () => {
     expect(screen.queryByText(/transaction|monthly|available|reserved balance/i)).not.toBeInTheDocument();
   });
 
-  it("loads canonical ShopItems, blocks unavailable purchase, and keeps one detail frame during replacement", async () => {
+  it("keeps System Shop checkout unavailable and one detail frame during replacement", async () => {
     const focus = vi.fn();
     window.addEventListener(STAGE_FOCUS_EVENT, focus);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
@@ -88,12 +88,15 @@ describe("canonical Exchange surfaces", () => {
     const detail = document.querySelector('[data-stage-key="market-stage-2"]');
     expect(detail).toBeInTheDocument();
     expect(screen.getByText("Global stock limit").nextElementSibling).toHaveTextContent("None");
+    expect(screen.queryByRole("button", { name: "Reserve / Start purchase" })).not.toBeInTheDocument();
+    expect(screen.getByText(/System Shop checkout is unavailable/)).toBeInTheDocument();
 
     focus.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /Item #5010/ }));
     expect(document.querySelector('[data-stage-key="market-stage-2"]')).toBe(detail);
-    expect(screen.getByRole("button", { name: "Purchase" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Purchase" })).not.toBeInTheDocument();
     expect(screen.getByText("This item is unavailable.")).toBeInTheDocument();
+    expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
     expect(focus).not.toHaveBeenCalled();
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
@@ -120,37 +123,23 @@ describe("canonical Exchange surfaces", () => {
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
-  it("recovers a reserved purchase by returned id and explicitly confirms its canonical history token", async () => {
-    api.getShopPurchasesApi
-      .mockResolvedValueOnce([])
-      .mockResolvedValue([reservedPurchase]);
-    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-
-    fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Reserve / Start purchase" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Confirm Purchase" }));
-
-    await waitFor(() => expect(api.confirmShopPurchaseApi).toHaveBeenCalledWith("canonical-shop-token", expect.any(String)));
-    expect(api.initiateShopPurchaseApi).toHaveBeenCalledWith(expect.objectContaining({ shopItemId: 1, quantity: 1, reserveOnly: true }));
-  });
-
-  it("restores an existing RESERVED purchase when its matching System Shop item opens", async () => {
+  it("keeps an existing RESERVED purchase readable without exposing confirmation", async () => {
     api.getShopPurchasesApi.mockResolvedValue([reservedPurchase]);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
     expect(screen.getByText("Purchase ID").nextElementSibling).toHaveTextContent("41");
+    expect(screen.getByText("Status").nextElementSibling).toHaveTextContent("RESERVED");
     expect(screen.getByText("Reservation expiry").nextElementSibling).not.toHaveTextContent("Not reserved");
+    expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
     expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "Confirm Purchase" }));
-    await waitFor(() => expect(api.confirmShopPurchaseApi).toHaveBeenCalledWith("canonical-shop-token", expect.any(String)));
+    expect(api.confirmShopPurchaseApi).not.toHaveBeenCalled();
   });
 
-  it("restores REQUESTED as pending and refreshes it into a confirmable reservation", async () => {
-    api.getShopPurchasesApi.mockResolvedValueOnce([requestedPurchase]).mockResolvedValue([reservedPurchase]);
+  it("shows COMPLETED as transaction status without claiming item delivery", async () => {
+    api.getShopPurchasesApi.mockResolvedValueOnce([requestedPurchase]).mockResolvedValue([{ ...requestedPurchase, status: "COMPLETED" }]);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
@@ -162,28 +151,31 @@ describe("canonical Exchange surfaces", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh Purchase Status" }));
 
-    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(await screen.findByText("Transaction status: COMPLETED. Item delivery is not confirmed.")).toBeInTheDocument();
+    expect(screen.getByText("Status").nextElementSibling).toHaveTextContent("COMPLETED");
+    expect(screen.queryByText("Purchase completed.")).not.toBeInTheDocument();
+    expect(api.confirmShopPurchaseApi).not.toHaveBeenCalled();
   });
 
-  it("keeps a started reservation recoverable after Back and reopening the same item", async () => {
-    api.getShopPurchasesApi.mockResolvedValueOnce([]).mockResolvedValue([reservedPurchase]);
+  it("keeps a read-only reservation visible after Back and reopening the same item", async () => {
+    api.getShopPurchasesApi.mockResolvedValue([reservedPurchase]);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Reserve / Start purchase" }));
-    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Back to System Shop" }));
     fireEvent.click(screen.getByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
-    expect(api.initiateShopPurchaseApi).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
+    expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
   });
 
   it("reloads purchase history and restores the reservation after Shop surface re-entry", async () => {
     api.getShopPurchasesApi.mockResolvedValue([reservedPurchase]);
     const view = render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
-    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
 
     view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
     expect(await screen.findByText("284,500")).toBeInTheDocument();
@@ -191,7 +183,8 @@ describe("canonical Exchange surfaces", () => {
     await waitFor(() => expect(api.getShopPurchasesApi).toHaveBeenCalledTimes(2));
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByRole("button", { name: "Confirm Purchase" })).toBeInTheDocument();
+    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
     expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
   });
 
@@ -205,7 +198,8 @@ describe("canonical Exchange surfaces", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByRole("button", { name: "Reserve / Start purchase" })).toBeInTheDocument();
+    expect(await screen.findByText(/System Shop checkout is unavailable/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reserve / Start purchase" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
   });
 
