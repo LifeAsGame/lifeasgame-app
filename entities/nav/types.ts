@@ -1,25 +1,21 @@
 export type MainNavId =
   | "player"
-  | "skills"
   | "inventory"
   | "quests"
   | "role"
-  | "social"
   | "lifelog"
   | "market"
   | "system";
 
 export type PlayerSubId = "growth" | "achievement" | "credentials" | "title" | "interests";
-export type SkillsSubId = "passive" | "active";
 export type InventorySubId = "items" | "gear" | "inbox";
 export type InventoryGearPartId = "weapon" | "armor" | "accessory" | "boots";
 export type QuestsSubId = "current" | "catalog" | "routes";
 export type RoleSubId = "overview" | "relations" | "events";
-export type SocialSubId = "party" | "guild";
 export type LifelogSubId = "journal" | "collection" | "media" | "exercise";
 export type MarketSubId = "wallet" | "shop" | "trade";
 export type MarketShopSubId = "catalog" | "myListings";
-export type SystemSubId = "options" | "help" | "logout";
+export type SystemSubId = "options" | "logout";
 
 export type PanelMenuItem = {
   id: string;
@@ -56,14 +52,6 @@ export type PanelDataItem = {
   contextDescription?: string;
   contextRows?: string[];
   actions?: PanelItemAction[];
-};
-
-export type SocialContextData = {
-  categoryLabel: string;
-  title: string;
-  subtitle?: string;
-  description: string;
-  rows: string[];
 };
 
 type PanelContext = {

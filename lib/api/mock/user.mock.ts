@@ -1,25 +1,3 @@
-import type { UserInfo } from "../types";
-
-export const MOCK_USER_INFO: UserInfo = {
-  user: {
-    id: 1,
-    email: "player@lag.io",
-    nickname: "Kirito",
-    status: "ACTIVE",
-  },
-  player: {
-    exists: true,
-    playerId: 6,
-  },
-  ui: {
-    nextActions: ["complete_daily_quests", "check_inbox"],
-    badges: {
-      notifications: 3,
-      pendingRewards: 2,
-    },
-  },
-};
-
 export const MOCK_ADMIN_USERS: Array<{
   id: number;
   email: string;

@@ -11,7 +11,7 @@ import PanelStage from "@/shared/ui/PanelStage";
 
 import { NAV_ICONS, actionBtnStyle } from "./ui/styles";
 import { GoldRow, InfoCard } from "./ui/Rows";
-import { BackButton, PanelFrame } from "./ui/PanelFrame";
+import { PanelFrame } from "./ui/PanelFrame";
 import { FormPanel } from "./ui/FormPanel";
 
 type RightPanelsProps = {
@@ -41,8 +41,6 @@ function PanelContent({
   onPanelFormFieldChange,
   onPanelBack,
   onPanelActionClick,
-  showBack,
-  parentTitle,
 }: {
   panel: PanelStackItem;
   panelIndex: number;
@@ -54,8 +52,6 @@ function PanelContent({
   onPanelFormFieldChange?: (formKey: string, fieldKey: string, value: string) => void;
   onPanelBack?: (panelIndex: number) => void;
   onPanelActionClick?: (panelIndex: number) => void;
-  showBack?: boolean;
-  parentTitle?: string;
 }) {
   if (panel.kind === "form") {
     return (
@@ -119,7 +115,6 @@ function PanelContent({
       depth={depth}
       fixedScrollHeight={categoryScrollHeight}
       contentKey={panel.id}
-      backButton={showBack ? <BackButton label={`Back to ${parentTitle ?? "previous panel"}`} onClick={() => onPanelBack?.(panelIndex)} /> : undefined}
     >
       {panel.kind === "menu" ? (
         <div style={{ width: "100%", display: "grid", rowGap: 4 }}>
@@ -257,8 +252,6 @@ export default function RightPanels({
                     onPanelFormFieldChange={onPanelFormFieldChange}
                     onPanelBack={onPanelBack}
                     onPanelActionClick={onPanelActionClick}
-                    showBack={selectedMain === "skills" && panelIndex > 0}
-                    parentTitle={panelStack[panelIndex - 1]?.title}
                   />
                 </PanelStage>
               );

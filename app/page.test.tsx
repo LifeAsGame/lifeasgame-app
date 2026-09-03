@@ -335,6 +335,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("page-owned form 대신 feature-owned Settings shell로 routing한다", () => {
       render(<Home />);
       fireEvent.click(screen.getByRole("button", { name: "System" }));
+      expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Options" }));
 
       expect(screen.getByTestId("settings-shell")).toHaveTextContent("Canonical Settings");
