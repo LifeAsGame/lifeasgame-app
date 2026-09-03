@@ -1,8 +1,34 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, apiDelete, apiGet, apiGetRaw, apiPost, apiPostRaw } from "./client";
 import { tokenStorage } from "./tokenStorage";
 import type { ApiEnvelope, TokenPair } from "./types";
+
+const initialUseMock = process.env.NEXT_PUBLIC_USE_MOCK;
+
+describe("consumer data source configuration", () => {
+  afterEach(() => {
+    if (initialUseMock === undefined) delete process.env.NEXT_PUBLIC_USE_MOCK;
+    else process.env.NEXT_PUBLIC_USE_MOCK = initialUseMock;
+    vi.resetModules();
+  });
+
+  it.each([
+    ["unset", undefined, false],
+    ["empty", "", false],
+    ["invalid", "TRUE", false],
+    ["false", "false", false],
+    ["true", "true", true],
+  ])("uses API for %s unless Mock is explicitly enabled", async (_case, value, expected) => {
+    vi.resetModules();
+    if (value === undefined) delete process.env.NEXT_PUBLIC_USE_MOCK;
+    else process.env.NEXT_PUBLIC_USE_MOCK = value;
+
+    const { USE_MOCK } = await import("./client");
+
+    expect(USE_MOCK).toBe(expected);
+  });
+});
 
 const oldSession: TokenPair = {
   accessToken: "old-access",

@@ -102,17 +102,14 @@ function WalletPanel({ query, onBack }: { query: ExchangeQuery<WalletBalance | n
   );
 }
 
-function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onStart, onRefresh, onConfirm }: {
+function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onRefresh }: {
   item: ShopItem;
   purchase: ShopPurchaseSummary | null;
   purchaseId: number | null;
   pending: boolean;
   onBack: () => void;
-  onStart: () => void;
   onRefresh: () => void;
-  onConfirm: () => void;
 }) {
-  const confirmable = purchase?.status === "RESERVED" && Boolean(purchase.reservationToken);
   const refreshable = purchaseId !== null && (!purchase || purchase.status === "REQUESTED" || (purchase.status === "RESERVED" && !purchase.reservationToken));
   return (
     <article className="lag-exchange-detail">
@@ -132,10 +129,9 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onStart, 
         </DetailSection>
       ) : null}
       <div className="lag-exchange-actions">
-        {purchaseId === null ? <button type="button" className="lag-exchange-action" disabled={pending || !item.available} onClick={onStart}>{pending ? "Working..." : item.reservationTtlSec ? "Reserve / Start purchase" : "Purchase"}</button> : null}
         {refreshable ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onRefresh}>{pending ? "Working..." : "Refresh Purchase Status"}</button> : null}
-        {confirmable ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onConfirm}>{pending ? "Working..." : "Confirm Purchase"}</button> : null}
-        {purchase?.status === "COMPLETED" ? <Feedback state="info" role="status">Purchase completed.</Feedback> : null}
+        <Feedback state="info" role="status">System Shop checkout is unavailable until item fulfillment support is ready.</Feedback>
+        {purchase?.status === "COMPLETED" ? <Feedback state="info" role="status">Transaction status: COMPLETED. Item delivery is not confirmed.</Feedback> : null}
         {!item.available ? <Feedback state="info" role="status">This item is unavailable.</Feedback> : null}
         <button type="button" className="lag-exchange-button" onClick={onBack}>Back to System Shop</button>
       </div>
@@ -365,7 +361,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
           <PanelStage key="market-stage-2" stageKey="market-stage-2" index={1}>
             <PanelFrame title={creatingListing ? "New Listing" : "Exchange Detail"} depth={0} contentKey={detailIdentity} backButton={<BackButton label="Back to Shop" onClick={closeDetail} />}>
               {mutations.error ? <div className="lag-exchange-state"><Feedback>{mutations.error}</Feedback></div> : null}
-              {selectedShopItem ? <ShopItemDetail item={selectedShopItem} purchase={activePurchase} purchaseId={effectivePurchaseId} pending={mutations.pendingKey !== null} onBack={closeDetail} onStart={() => void mutations.startShopPurchase(selectedShopItem).then((result) => setActivePurchaseId(result?.purchaseId ?? null))} onRefresh={() => { if (effectivePurchaseId !== null) void mutations.refreshShopPurchase(effectivePurchaseId); }} onConfirm={() => { if (activePurchase) void mutations.confirmShopPurchase(activePurchase).then((completed) => { if (completed) closeDetail(); }); }} /> : null}
+              {selectedShopItem ? <ShopItemDetail item={selectedShopItem} purchase={activePurchase} purchaseId={effectivePurchaseId} pending={mutations.pendingKey !== null} onBack={closeDetail} onRefresh={() => { if (effectivePurchaseId !== null) void mutations.refreshShopPurchase(effectivePurchaseId).then((purchase) => setActivePurchaseId(purchase?.id ?? effectivePurchaseId)); }} /> : null}
               {shopSurface === "marketplace" && selectedListing ? <ListingDetail listing={selectedListing} playerId={playerId} reservation={listingReservation} pending={mutations.pendingKey !== null} onBack={closeDetail} onReserve={() => void mutations.reserveListing(selectedListing).then((reservation) => setListingReservation(reservation ?? null))} onPurchase={() => { if (listingReservation) void mutations.purchaseListing(selectedListing, listingReservation.reservationToken).then((trade) => { if (trade) closeDetail(); }); }} /> : null}
               {shopSurface === "my-listings" && selectedListing ? <MyListingDetail listing={selectedListing} pending={mutations.pendingKey !== null} onBack={closeDetail} onCancel={() => { if (window.confirm(`Cancel listing #${selectedListing.id}?`)) void mutations.cancelListing(selectedListing).then((done) => { if (done) closeDetail(); }); }} /> : null}
               {shopSurface === "my-listings" && creatingListing ? <CreateListingForm entries={queries.inventory.data} pending={mutations.pendingKey !== null} onBack={closeDetail} onSubmit={(entry, price, currency) => void mutations.createListing(entry, price, currency).then((listing) => { if (listing) closeDetail(); })} /> : null}

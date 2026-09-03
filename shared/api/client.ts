@@ -1,7 +1,11 @@
 import { AUTH_EXPIRED_EVENT, tokenStorage } from "./tokenStorage";
 import type { ApiEnvelope, TokenPair } from "./types";
 
-export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+export function resolveConsumerMockMode(value: unknown): boolean {
+  return value === "true";
+}
+
+export const USE_MOCK = resolveConsumerMockMode(process.env.NEXT_PUBLIC_USE_MOCK);
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export class ApiError extends Error {
