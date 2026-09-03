@@ -1,0 +1,112 @@
+LifeAsGame Consumer Mock / Placeholder Boundary Audit
+
+1. PRODUCTION-AUTHORITY FAILURE
+
+Classification: RUNTIME_CONTRACT_GAP
+
+shared/api/client.ts:
+  USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false"
+
+.env.example:
+  NEXT_PUBLIC_USE_MOCK=true
+
+Consequences:
+- Missing, misspelled, empty, or unsupported NEXT_PUBLIC_USE_MOCK values select Mock.
+- Auth can issue local mock tokens and mutate MOCK_USERS instead of contacting the server.
+- Home, Role, LifeLog, Quest, Player, Inventory, Gear, Connections, Direct Chat, Notification, Settings, and Exchange adapters all branch to fixture implementations.
+- This is not a silent API-error-to-Mock fallback. The API request is never attempted when the global switch selects Mock.
+- Because the default is Mock, demo names, item/quest/achievement records, balances, notifications, chat messages, and mutation results can become apparent runtime authority.
+
+Required correction:
+- Default and invalid configuration must select API.
+- Mock must require an explicit development/test opt-in.
+- Keep existing fixture adapters; they are useful for focused tests and explicit local development once the authority boundary is safe.
+- Add a configuration lifecycle test that proves unset/invalid -> API and explicit supported value -> Mock.
+
+2. SILENT FALLBACK CHECK
+
+Classification: VERIFIED
+
+No consumer adapter catch path was found that converts an API error into fixture success. API errors remain errors in API mode. Theme local-cache fallback is intentional preference behavior, not domain-data fallback. Admin uses its independent NEXT_PUBLIC_ADMIN_DATA_SOURCE resolver, where default/invalid -> api and API failure does not fall back to Mock.
+
+Evidence:
+- shared/api/client.ts
+- features/admin/api/source.ts
+- features/admin/api/*source.ts
+- Admin source focused tests
+
+3. EXPLICIT TEST/DEV FIXTURES
+
+Classification: VERIFIED after the global selection correction; RUNTIME_CONTRACT_GAP under the current default.
+
+Fixture locations are explicit and can remain:
+- features/auth/mock.ts
+- features/home/mock.ts
+- features/lifelog/mock.ts
+- features/player/mock.ts
+- features/quests/mock.ts
+- features/role/mock.ts
+- features/social/mock.ts
+- features/social/chat/mock.ts
+- features/notification/mock.ts
+- lib/api/mock/inventory.mock.ts
+- lib/api/mock/equipment.mock.ts
+- lib/api/mock/market.mock.ts
+- lib/api/mock/settings.mock.ts
+
+They must never prove backend content activation, final equipment/Shop content, notification source support, or transaction fulfillment.
+
+4. ENABLED PLACEHOLDER CHECK
+
+System > Help:
+- Classification: MOCK_OR_PLACEHOLDER.
+- app/page.tsx buildPanels creates a kind="placeholder" surface from features/system/model.ts.
+- Quick Start Guide, FAQ, Contact Support, Patch Notes, and Terms and Safety are rendered as static rows, not buttons or links.
+- This is visibly incomplete but does not fake a successful action.
+
+No active screenshot-only Wishlist, Plan, Income, Asset Trace, ranking, streak, life-score, or productivity metric was found in consumer runtime. The v7 Economy samples are material/layout references only.
+
+5. SYSTEM SHOP COMPLETION COPY
+
+Classification: RUNTIME_CONTRACT_GAP.
+
+Exchange System Shop is not fixture-only, but its active product copy crosses the same truth boundary:
+- ExchangeShell.tsx exposes start and confirmation commands.
+- ShopItemDetail maps COMPLETED to "Purchase completed."
+- The backend has no completed Inventory/Mailbox entitlement fulfillment consumer.
+
+The next PR must gate the currency-moving fulfillment actions or otherwise make them unavailable until backend authority exists. Merely renaming the success line is insufficient if the action still implies a delivered entitlement.
+
+6. DEAD LEGACY PRESENTATION / ADAPTERS
+
+Classification: DEFERRED_BY_LOCK.
+
+Repository-wide caller search found definitions but no runtime callers for:
+- lib/api/endpoints/social.api.ts Party/Guild/gift adapter
+- features/social/forms.ts Party/Guild forms
+- lib/api/endpoints/user.api.ts legacy user adapter
+
+Additional unreachable/stale presentation branches:
+- entities/nav/types.ts and SUBMENUS_BY_MAIN still contain skills/social identifiers, Party, and Guild, while MAIN_NAV_ITEMS and app/page.tsx do not activate them.
+- widgets/left-context/LeftContext.tsx -> PlayerPanel.tsx accepts guildName, but app/page.tsx supplies no guildName.
+- features/player/mock.ts includes representativeGuildName and legacy fantasy item/achievement labels.
+
+These are not current runtime capability, but they expand the chance of accidental reactivation and should be removed in a scoped cleanup after the P0 authority correction. They must not be reinterpreted as RoleParty.
+
+7. CONTENT BOUNDARY
+
+Classification: CONTENT_BLOCKED.
+
+Do not supplement these with fixtures or screenshot copy:
+- final Quest catalog activation
+- final Gear/equipment seed and compatibility content
+- final System Shop catalog and paid-entitlement fulfillment
+- final Player achievement/title/certification/hobby catalog activation
+
+Real-mode empty states are the correct UI until backend/content authority becomes active.
+
+8. ADMIN ISOLATION
+
+Classification: VERIFIED.
+
+Admin mock behavior is separately selected by NEXT_PUBLIC_ADMIN_DATA_SOURCE=api|mock. Default/invalid -> api; API failure has no Mock fallback; high-risk Admin mutation adapters are unavailable in Mock. Admin fixture policy must not be copied into or used to excuse the consumer global Mock default.

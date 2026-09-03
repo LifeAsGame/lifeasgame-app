@@ -1,0 +1,119 @@
+LifeAsGame Consumer Frontend Remaining PR Plan
+
+PLAN RULES
+- Only frontend work proven necessary by this audit is listed.
+- Backend #323 request shape is unchanged.
+- Shop fulfillment, final content activation, equipment content, and unsupported notification sources do not receive speculative UI.
+- OrbNav, stage camera, and theme runtime semantics are not redesigned.
+
+PR FE-86A
+Priority:
+  P0
+
+Working title:
+  Consumer production-authority fail-closed correction
+
+Exact evidence:
+- shared/api/client.ts line 4: missing/invalid NEXT_PUBLIC_USE_MOCK selects Mock.
+- .env.example line 2: Mock is the documented example.
+- Consumer API modules import USE_MOCK and return mutable fixture data before any API attempt.
+- features/market/ExchangeShell.tsx lines 105-140 exposes System Shop Purchase/Confirm and "Purchase completed."
+- Known backend reality has no completed Inventory/Mailbox entitlement fulfillment consumer for System Shop.
+
+Scope:
+- Change consumer data-source selection so unset/invalid configuration selects API and Mock requires explicit opt-in.
+- Update the example environment accordingly.
+- Add focused configuration tests that exercise unset, invalid, API, and explicit Mock values.
+- Gate System Shop currency-moving start/confirm as unavailable until entitlement fulfillment is authoritative; keep truthful read/status/empty/error handling only where it cannot imply fulfillment.
+- Add focused Exchange tests proving the unavailable state and absence of a delivered-entitlement success claim.
+
+Exclusions:
+- No backend/API change.
+- No marketplace purchase request-shape or idempotency lifecycle change.
+- No fixture deletion required.
+- No content seeding.
+- No camera, OrbNav, theme selector, or visual redesign.
+
+Backend dependency:
+  None for the fail-closed correction. System Shop remains unavailable until a later backend fulfillment authority exists.
+
+Visual dependency:
+  Existing semantic disabled/read-only/error tokens only; no screenshot-derived capability.
+
+Can parallel with backend #323:
+  yes
+
+NEXT_FE_IMPLEMENTATION_PR:
+  PR FE-86A — Consumer production-authority fail-closed correction
+
+PR FE-86B
+Priority:
+  P1
+
+Working title:
+  Consumer stale-contract and dead-presentation cleanup
+
+Exact evidence:
+- shared/api/types/quest.ts retains optional Accept/Cancel idempotencyKey fields not sent by features/quests/api.ts.
+- Quest endpoints mix raw/enveloped parsing and need exact current response-contract tests.
+- lib/api/endpoints/social.api.ts, features/social/forms.ts, and lib/api/endpoints/user.api.ts have no repository callers.
+- inactive skills/social Party/Guild nav keys and the unused guildName LeftContext path remain.
+- System > Help is an explicit placeholder.
+
+Scope:
+- Remove unsupported Quest idempotency DTO fields and pin exact endpoint envelope handling to backend contract evidence.
+- Remove only caller-free legacy adapters/forms/presentation paths after a fresh repository usage check.
+- Keep System Help visibly deferred or remove the selectable placeholder entry; do not invent destinations.
+
+Exclusions:
+- No RoleParty design or Party/Guild activation.
+- No Quest catalog content.
+- No Direct Chat realtime implementation.
+- No navigation taxonomy redesign.
+
+Backend dependency:
+  Exact current Quest response DTO/envelope evidence is required; no new endpoint.
+
+Visual dependency:
+  None.
+
+Can parallel with backend #323:
+  yes
+
+PR FE-86C
+Priority:
+  P1
+
+Working title:
+  Consumer v7 rendered verification and scoped fidelity correction
+
+Exact evidence:
+- All supplied v7 reference PNGs were inspected.
+- No current runtime desktop/compact/mobile capture was produced in this docs-only audit.
+- No dedicated v7 Growth mobile PNG exists.
+
+Scope:
+- Run authenticated consumer scenarios with real API authority for Warm Beige and Astral at representative wide, compact, and mobile viewports.
+- Capture loading, empty, error, retry, disabled, pending, read-only, staged-depth, utility-window, and theme-switch preservation states.
+- Correct only differences demonstrated by side-by-side runtime evidence.
+
+Exclusions:
+- No screenshot-only metrics/data.
+- No theme component fork.
+- No product navigation/camera redesign.
+- No blocked content or Shop fulfillment simulation.
+
+Backend dependency:
+  Use available real-mode empty/error/read-only states; content-blocked surfaces remain blocked.
+
+Visual dependency:
+  v7 textual/token authority and supplied PNGs; Growth mobile requires product-design confirmation if a pixel target is demanded.
+
+Can parallel with backend #323:
+  yes, provided Marketplace durable-success claims are excluded until #323 lands.
+
+NOT SCHEDULED AS FRONTEND IMPLEMENTATION
+- Marketplace durable idempotency completion: BACKEND_BLOCKED by #323.
+- System Shop entitlement activation: BACKEND_BLOCKED.
+- Final Quest/Gear/Shop/Player catalogs: CONTENT_BLOCKED.
+- Unsupported notification source types and production realtime claims: BACKEND_BLOCKED.

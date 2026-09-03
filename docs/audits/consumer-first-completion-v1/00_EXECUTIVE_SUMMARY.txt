@@ -1,0 +1,64 @@
+LifeAsGame Consumer First Completion Audit v1
+
+AUDIT BASELINE
+- Branch inspected: chore/#86-consumer-runtime-v7-gap-audit (pre-existing; no switch/create performed)
+- HEAD inspected: 8564067324bbf875d36eb857e7ed8ca35cf110ed
+- Consumer PR #75 merge ancestry: ffd783bafe1dda91f7ffd2cf22be5f5e493ff102 is an ancestor of HEAD.
+- Admin PR #85 merge/head ancestry: 8564067324bbf875d36eb857e7ed8ca35cf110ed is HEAD and an ancestor of itself.
+- Initial worktree: clean.
+
+OVERALL CONSUMER FIRST COMPLETION VERDICT
+RUNTIME_CONTRACT_GAP
+
+The current consumer tree has broad real-API adapters, feature-owned hooks, explicit loading/empty/error/retry states, shared stage-camera behavior, and a structurally complete dual-theme foundation. It is not safe to freeze as First Completion because production authority can default to frontend fixtures and System Shop copy/actions overstate a backend capability that does not yet deliver entitlement fulfillment.
+
+VERIFIED RUNTIME STRENGTHS
+- Auth uses POST /api/v1/auth/register; no /api/v1/users/register call exists.
+- Role, Person, RoleRelation, RoleEvent, LifeLog, Quick Record, Journal, Growth, Inventory, Mailbox, notification inbox/read state, and Connections reads have feature/API/test evidence.
+- Quest completion and QuestRoute are separate; Route advancement explicitly sends expectedStepId.
+- Inventory does not send or depend on ignored includeItem/includeInstanceAttrs detail flags.
+- Exchange orchestration is owned by features/market; Wallet, listings, whole-entry creation, reservation/purchase, and Trade history use canonical request/response shapes.
+- Marketplace self-purchase is disabled and listing creation selects an owned InventoryEntry, maps itemInstanceId to inventoryEntryId, and accepts integer total price in GOLD/GEM only.
+- Notification exposes inbox, unread count, mark-read, mark-all-read, cursor older flow, and neutral handling for unknown types; it does not expose invented filters, realtime, deletion, or deep links.
+- Theme switching is shared-tree, token-driven, pre-painted, local-first, account-synchronized, and SYSTEM-aware.
+- Stage camera separates wide/compact/mobile, explicit spatial focus, same-depth content replacement, and reduced motion.
+
+P0 FRONTEND BLOCKERS
+1. RUNTIME_CONTRACT_GAP — shared/api/client.ts defines USE_MOCK as NEXT_PUBLIC_USE_MOCK !== "false", while .env.example sets true. Missing or invalid configuration therefore selects mutable frontend fixtures across Auth and consumer feature APIs instead of failing toward real API authority. This is direct selection, not an API-error fallback.
+2. RUNTIME_CONTRACT_GAP — Exchange System Shop still exposes Purchase/Confirm and renders "Purchase completed." although backend entitlement delivery to Inventory/Mailbox is not complete. A transaction status must not be represented as fulfilled paid entitlement.
+
+P1 FRONTEND GAPS
+- RUNTIME_CONTRACT_GAP — AcceptQuestRequest and CancelQuestRequest retain optional idempotencyKey fields that are not sent and are not durable backend authority.
+- RUNTIME_CONTRACT_GAP — Quest catalog/list/detail use endpoint-specific raw handling, but known backend response-envelope drift is not frozen by a current cross-repository contract test.
+- DEFERRED_BY_LOCK — unused legacy Party/Guild API/forms/nav branches and an unused guildName presentation path remain in the repository; active consumer navigation does not expose them.
+- MOCK_OR_PLACEHOLDER — System > Help is a truthful static placeholder panel; its rows are not enabled actions.
+- NOT_VISUALLY_VERIFIED — v7 reference PNGs were viewed, but no current consumer runtime render was captured in this docs-only audit, so pixel/layout/state fidelity is not a pass.
+
+BACKEND-BLOCKED SURFACES
+- BACKEND_BLOCKED — marketplace durable request idempotency until backend #323 lands; keep the current request shape.
+- BACKEND_BLOCKED — System Shop paid-entitlement completion until a canonical Inventory/Mailbox fulfillment consumer exists.
+- BACKEND_BLOCKED — notification source types beyond the verified QUEST_COMPLETED and QUEST_REWARD_READY adapters.
+- BACKEND_BLOCKED — claims about production deployment activation or Direct Chat realtime behavior; source wiring alone is not deployment evidence.
+
+CONTENT-BLOCKED SURFACES
+- CONTENT_BLOCKED — final Quest catalog activation.
+- CONTENT_BLOCKED — final Gear/equipment slot and item content.
+- CONTENT_BLOCKED — final System Shop catalog/entitlement content.
+- CONTENT_BLOCKED — any final Player achievement/title/certification/hobby catalog labels not proven active by backend content authority.
+Frontend fixtures and v7 screenshot copy are not acceptable substitutes.
+
+V7 STRUCTURAL FIDELITY VERDICT
+VERIFIED
+Warm Beige is the default, Astral is secondary, both map through one semantic token layer and one component tree, Settings applies immediately, account sync is asynchronous, pre-paint bootstrap exists, focus remains visible, reduced motion is honored, and CSS/profile evidence covers desktop, compact, and mobile. The current runtime selector remains astral | warm-beige per the established implementation contract.
+
+ACTUAL VISUAL VERIFICATION COVERAGE
+- The final Enterprise Dual Theme v7 authority package was inspected as the visual source for this audit.
+- All supplied Warm Beige and Astral Desktop PNGs (22), Mobile PNGs (20), and Theme Switching PNGs (2) were directly viewed.
+- No dedicated Growth mobile PNG is supplied.
+- Current rendered app comparison: NOT_VISUALLY_VERIFIED.
+
+SELECTED NEXT FE IMPLEMENTATION PR
+Consumer production-authority fail-closed correction: make API the default/invalid-config behavior, keep Mock explicit-only, and gate System Shop currency-moving completion UI until entitlement fulfillment is authoritative. Preserve marketplace request shape and all camera/theme semantics.
+
+PARALLELIZATION WITH BACKEND #323
+YES. The selected PR is a safe fail-closed/configuration and System Shop gating change. It neither modifies marketplace purchase DTOs nor depends on backend #323 completion.
