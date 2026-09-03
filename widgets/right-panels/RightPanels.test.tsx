@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { PanelStackItem } from "@/entities/nav";
@@ -15,21 +15,21 @@ const root = (selectedId?: string): PanelStackItem => ({
 });
 
 const list = (selectedId?: string): PanelStackItem => ({
-  id: "skills-list-passive",
+  id: "player-title-list",
   kind: "list",
-  title: "Passive List",
+  title: "Title List",
   selectedId,
   items: [
-    { id: "skill-a", label: "Skill A", slotLabel: "A", detailDescription: "A", detailRows: [] },
-    { id: "skill-b", label: "Skill B", slotLabel: "B", detailDescription: "B", detailRows: [] },
+    { id: "title-a", label: "Title A", slotLabel: "A", detailDescription: "A", detailRows: [] },
+    { id: "title-b", label: "Title B", slotLabel: "B", detailDescription: "B", detailRows: [] },
   ],
-  context: { main: "skills", route: "skills-list" },
+  context: { main: "player", route: "player-title-list" },
 });
 
 const detail = (id: string): PanelStackItem => ({
-  id: `skills-detail-${id}`,
+  id: `player-title-detail-${id}`,
   kind: "placeholder",
-  title: "Skill Detail",
+  title: "Title Detail",
   description: id,
   rows: [],
 });
@@ -42,25 +42,17 @@ describe("RightPanels stable stage frames", () => {
     const view = render(<RightPanels {...props} panelStack={[root()]} />);
     const rootStage = document.querySelector('[data-stage-key="player-stage-0"]');
 
-    view.rerender(<RightPanels {...props} panelStack={[root("title"), list("skill-a"), detail("skill-a")]} />);
+    view.rerender(<RightPanels {...props} panelStack={[root("title"), list("title-a"), detail("title-a")]} />);
     const detailStage = document.querySelector('[data-stage-key="player-stage-2"]');
     expect(document.querySelector('[data-stage-key="player-stage-0"]')).toBe(rootStage);
 
     focus.mockClear();
-    view.rerender(<RightPanels {...props} panelStack={[root("title"), list("skill-b"), detail("skill-b")]} />);
+    view.rerender(<RightPanels {...props} panelStack={[root("title"), list("title-b"), detail("title-b")]} />);
     expect(document.querySelector('[data-stage-key="player-stage-0"]')).toBe(rootStage);
     expect(document.querySelector('[data-stage-key="player-stage-2"]')).toBe(detailStage);
-    expect(screen.getByText("skill-b")).toBeInTheDocument();
+    expect(screen.getByText("title-b")).toBeInTheDocument();
     expect(focus).not.toHaveBeenCalled();
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
-  it("gives Skills child stages a feature-state Back affordance", () => {
-    const onBack = vi.fn();
-    render(<RightPanels selectedMain="skills" panelStack={[root("title"), list("skill-a"), detail("skill-a")]} onPanelItemSelect={vi.fn()} onPanelBack={onBack} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Back to Passive List" }));
-
-    expect(onBack).toHaveBeenCalledWith(2);
-  });
 });

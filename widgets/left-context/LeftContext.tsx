@@ -15,7 +15,6 @@ type LeftContextProps = {
   mode: LeftContextMode;
   playerInfo?: PlayerInfo;
   equipments?: EquipmentView[];
-  guildName?: string;
   playerLoading?: boolean;
   playerError?: string | null;
   roles?: RoleDetail[];
@@ -33,7 +32,6 @@ export default function LeftContext({
   mode,
   playerInfo,
   equipments,
-  guildName,
   playerLoading,
   playerError,
   roles = [],
@@ -100,7 +98,7 @@ export default function LeftContext({
               transition={reducedMotion ? { duration: 0 } : MOTION.panelContentSwap.transition}
             >
               {mode === "player" ? (
-                <PlayerPanel playerInfo={playerInfo} equipments={equipments} guildName={guildName} loading={playerLoading} error={playerError} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} onRetry={onPlayerRetry} />
+                <PlayerPanel playerInfo={playerInfo} equipments={equipments} loading={playerLoading} error={playerError} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} onRetry={onPlayerRetry} />
               ) : mode === "role" ? (
                 <RoleContextPanel
                   roles={roles}

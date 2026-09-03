@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
   acceptQuestApi,
@@ -16,7 +16,7 @@ import {
   selectQuestRouteApi,
 } from "./api";
 import { journeyMock, resetJourneyMock } from "./mock";
-import type { QuestStatus } from "@/shared/api/types";
+import type { AcceptQuestRequest, CancelQuestRequest, QuestStatus } from "@/shared/api/types";
 
 const client = vi.hoisted(() => ({
   apiDelete: vi.fn(),
@@ -47,18 +47,33 @@ describe("Journey API를 실제 backend에 연결할 때", () => {
       expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/quests/catalog");
       expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/quests?status=GOAL%2FREACHED");
       expect(client.apiGetRaw).toHaveBeenNthCalledWith(3, "/api/v1/players/quests/Q%2FONE%20%3F");
+      expect(client.apiGet).not.toHaveBeenCalled();
     });
   });
 
   describe("Quest mutation 계약을 사용하면", () => {
-    it("encoded questCode path와 typed body만 전송하고 reward endpoint를 만들지 않는다", async () => {
-      await acceptQuestApi("Q/ONE ?");
-      await manualCheckQuestApi("Q/ONE ?");
-      await cancelQuestApi("Q/ONE ?", "Changed direction");
+    it("Accept/Cancel request type에서 stale idempotency field를 노출하지 않는다", () => {
+      expectTypeOf<AcceptQuestRequest>().toEqualTypeOf<{ partyId: null; guildId: null }>();
+      expectTypeOf<CancelQuestRequest>().toEqualTypeOf<{ reason?: string }>();
+    });
+
+    it("encoded questCode path와 exact envelope mutation body만 전송하고 reward endpoint를 만들지 않는다", async () => {
+      const accepted = { id: 31 };
+      const checked = { id: 32 };
+      const canceled = { questCode: "Q/ONE ?" };
+      client.apiPost.mockResolvedValueOnce(accepted).mockResolvedValueOnce(checked);
+      client.apiDelete.mockResolvedValueOnce(canceled).mockResolvedValueOnce(canceled);
+
+      await expect(acceptQuestApi("Q/ONE ?")).resolves.toBe(accepted);
+      await expect(manualCheckQuestApi("Q/ONE ?")).resolves.toBe(checked);
+      await expect(cancelQuestApi("Q/ONE ?", "Changed direction")).resolves.toBe(canceled);
+      await expect(cancelQuestApi("Q/ONE ?")).resolves.toBe(canceled);
 
       expect(client.apiPost).toHaveBeenNthCalledWith(1, "/api/v1/players/quests/Q%2FONE%20%3F", { partyId: null, guildId: null });
       expect(client.apiPost).toHaveBeenNthCalledWith(2, "/api/v1/players/quests/Q%2FONE%20%3F/manual-check", {});
-      expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/quests/Q%2FONE%20%3F", { reason: "Changed direction" });
+      expect(client.apiDelete).toHaveBeenNthCalledWith(1, "/api/v1/players/quests/Q%2FONE%20%3F", { reason: "Changed direction" });
+      expect(client.apiDelete).toHaveBeenNthCalledWith(2, "/api/v1/players/quests/Q%2FONE%20%3F", {});
+      expect(client.apiGetRaw).not.toHaveBeenCalled();
       expect([...client.apiPost.mock.calls, ...client.apiDelete.mock.calls].some(([path]) => String(path).includes("reward"))).toBe(false);
     });
   });

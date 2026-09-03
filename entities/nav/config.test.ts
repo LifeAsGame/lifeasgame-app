@@ -11,8 +11,8 @@ describe("primary Orb navigation을 구성할 때", () => {
 
   describe("unsupported Skills capability를 제외하면", () => {
     it("Skills Orb와 submenu를 production navigation에 노출하지 않는다", () => {
-      expect(MAIN_NAV_ITEMS.some(({ id }) => id === "skills")).toBe(false);
-      expect(SUBMENUS_BY_MAIN.skills).toEqual([]);
+      expect(MAIN_NAV_ITEMS.some(({ id }) => (id as string) === "skills")).toBe(false);
+      expect("skills" in SUBMENUS_BY_MAIN).toBe(false);
     });
   });
 
@@ -28,7 +28,8 @@ describe("primary Orb navigation을 구성할 때", () => {
       const role = MAIN_NAV_ITEMS.find(({ id }) => id === "role");
 
       expect(role).toEqual({ id: "role", label: "Role", slotLabel: "RL" });
-      expect(MAIN_NAV_ITEMS.some(({ id }) => id === "social")).toBe(false);
+      expect(MAIN_NAV_ITEMS.some(({ id }) => (id as string) === "social")).toBe(false);
+      expect("social" in SUBMENUS_BY_MAIN).toBe(false);
       expect(SUBMENUS_BY_MAIN.role.map(({ id }) => id)).toEqual(["overview", "relations", "events"]);
       expect(DEFAULT_SUB_SELECTIONS.role).toBeNull();
     });
@@ -44,6 +45,12 @@ describe("primary Orb navigation을 구성할 때", () => {
     it("market internal key를 유지하고 Wallet/Shop/Trade만 표시한다", () => {
       expect(MAIN_NAV_ITEMS.find(({ id }) => id === "market")).toEqual({ id: "market", label: "Exchange", slotLabel: "EX" });
       expect(SUBMENUS_BY_MAIN.market.map(({ id }) => id)).toEqual(["wallet", "shop", "trade"]);
+    });
+  });
+
+  describe("System capability를 노출하면", () => {
+    it("실제 Options와 Logout만 선택 가능하고 Help placeholder를 노출하지 않는다", () => {
+      expect(SUBMENUS_BY_MAIN.system.map(({ id }) => id)).toEqual(["options", "logout"]);
     });
   });
 });

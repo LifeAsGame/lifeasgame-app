@@ -16,8 +16,8 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
 ];
 
 export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {
-  player: "Player", skills: "Skills", inventory: "Inventory", quests: "Journey",
-  role: "Role", social: "Social", lifelog: "Lifelog", market: "Exchange", system: "System",
+  player: "Player", inventory: "Inventory", quests: "Journey", role: "Role",
+  lifelog: "Lifelog", market: "Exchange", system: "System",
 };
 
 export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
@@ -28,7 +28,6 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
     { id: "title",       label: "Title",       slotLabel: "TI" },
     { id: "interests",   label: "Interests",   slotLabel: "IN" },
   ],
-  skills: [],
   inventory: [
     { id: "items", label: "Items", slotLabel: "IT" },
     { id: "gear",  label: "Gear",  slotLabel: "GE" },
@@ -44,10 +43,6 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
     { id: "relations", label: "Relations", slotLabel: "RE" },
     { id: "events",    label: "Events",    slotLabel: "EV" },
   ],
-  social: [
-    { id: "party",  label: "Party",  slotLabel: "PT" },
-    { id: "guild",  label: "Guild",  slotLabel: "GD" },
-  ],
   lifelog: [
     { id: "journal",    label: "Journal",    slotLabel: "JR" },
     { id: "collection", label: "Collection", slotLabel: "CL" },
@@ -61,14 +56,13 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
   ],
   system: [
     { id: "options", label: "Options", slotLabel: "OP" },
-    { id: "help",    label: "Help",    slotLabel: "HP" },
     { id: "logout",  label: "Logout",  slotLabel: "LO" },
   ],
 };
 
 export const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string | null> = {
-  player: null, skills: null, inventory: null, quests: null,
-  role: null, social: null, lifelog: null, market: null,  system: null,
+  player: null, inventory: null, quests: null, role: null,
+  lifelog: null, market: null, system: null,
 };
 
 export const INVENTORY_GEAR_PARTS: PanelMenuItem[] = [

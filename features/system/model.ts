@@ -1,24 +1,4 @@
-import type { SystemSubId, FormFieldSpec } from "@/entities/nav";
-
-export const SYSTEM_PANEL_ROWS: Record<Exclude<SystemSubId, "logout">, {
-  description: string;
-  rows: string[];
-}> = {
-  options: {
-    description: "Graphics, audio, controls, and gameplay preferences.",
-    rows: [],
-  },
-  help: {
-    description: "Quick guides, FAQ, and support routes.",
-    rows: [
-      "Quick Start Guide",
-      "Frequently Asked Questions",
-      "Contact Support",
-      "Patch Notes",
-      "Terms and Safety",
-    ],
-  },
-};
+import type { FormFieldSpec } from "@/entities/nav";
 
 export const SYSTEM_OPTIONS_FORM_FIELDS: FormFieldSpec[] = [
   {

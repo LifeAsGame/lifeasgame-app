@@ -38,7 +38,6 @@ import {
   SUBMENUS_BY_MAIN,
 } from "@/entities/nav";
 import type { MainNavId, MarketSubId, PanelStackItem, QuestsSubId } from "@/entities/nav";
-import { SYSTEM_PANEL_ROWS } from "@/features/system/model";
 import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { NotificationBell } from "@/features/notification/NotificationBell";
@@ -80,18 +79,6 @@ function buildPanels(
 
   if (!selectedMainSub) {
     return panelStack;
-  }
-
-  const systemPanel = SYSTEM_PANEL_ROWS[selectedMainSub as keyof typeof SYSTEM_PANEL_ROWS];
-
-  if (selectedMain === "system" && selectedMainSub === "help" && systemPanel) {
-    panelStack.push({
-      id: "system-help",
-      kind: "placeholder",
-      title: "Help",
-      description: systemPanel.description,
-      rows: systemPanel.rows,
-    });
   }
 
   return panelStack;

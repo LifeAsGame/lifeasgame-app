@@ -47,7 +47,6 @@ function StatBar({
 export function PlayerPanel({
   playerInfo,
   equipments,
-  guildName,
   loading,
   error,
   roles = [],
@@ -57,7 +56,6 @@ export function PlayerPanel({
 }: {
   playerInfo?: PlayerInfo;
   equipments?: EquipmentView[];
-  guildName?: string;
   loading?: boolean;
   error?: string | null;
   roles?: RoleDetail[];
@@ -126,7 +124,7 @@ export function PlayerPanel({
             {name}
           </h2>
           <p className="mt-0.5 uppercase" style={{ fontSize: "11px", letterSpacing: "0.22em", color: "var(--lag-text-2)" }}>
-            {[gender, guildName].filter(Boolean).join(" · ")}
+            {gender}
           </p>
           <p className="mt-1 uppercase" style={{ fontSize: "11px", letterSpacing: "0.22em", color: "var(--lag-text-2)" }}>
             Lv.{level} {job}

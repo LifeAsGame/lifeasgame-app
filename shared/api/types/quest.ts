@@ -61,12 +61,10 @@ export interface QuestAcceptancesResponse {
 export interface AcceptQuestRequest {
   partyId: null;
   guildId: null;
-  idempotencyKey?: string;
 }
 
 export interface CancelQuestRequest {
   reason?: string;
-  idempotencyKey?: string;
 }
 
 export interface CanceledQuest {

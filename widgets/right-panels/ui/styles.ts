@@ -45,11 +45,9 @@ export const actionBtnStyle = {
 
 export const NAV_ICONS: Partial<Record<MainNavId, string>> = {
   player:    SAO_ICON.player,
-  skills:    SAO_ICON.skills,
   inventory: SAO_ICON.items,
   quests:    SAO_ICON.quest,
   role:      SAO_ICON.social,
-  social:    SAO_ICON.social,
   lifelog:   SAO_ICON.lifelog,
   market:    SAO_ICON.market,
   system:    SAO_ICON.config,
