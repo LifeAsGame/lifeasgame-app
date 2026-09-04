@@ -47,7 +47,7 @@ export default function LeftContext({
   const reducedMotion = useReducedMotion();
   const visible = mode !== "hidden";
   return (
-    <div className="lag-left-anchor" data-context-present={visible}>
+    <div className="lag-left-anchor" data-camera-layout-owner="fixed" data-context-present={visible}>
       <AnimatePresence initial={false}>
         {visible ? (
         <motion.div

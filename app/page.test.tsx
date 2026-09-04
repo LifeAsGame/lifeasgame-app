@@ -132,6 +132,10 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     expect(css).toMatch(/\.lag-left-context\s*{[^}]*height:\s*min\(680px, calc\(100svh[^}]*max-height:\s*calc\(100svh/);
     expect(css).toMatch(/\.lag-left-context-content\s*{[^}]*overflow-y:\s*auto/);
     expect(page).toContain('className="lag-app-shell mx-auto flex w-full min-w-max items-start"');
+    expect(page).toContain('data-camera-layout-owner="fixed"');
+    expect(css).toMatch(/@media \(min-width: 1200px\)[\s\S]*\.lag-left-anchor\[data-context-present="false"\]\s*{[^}]*display:\s*none/);
+    expect(css).toMatch(/@media \(min-width: 1200px\)[\s\S]*\.lag-workspace\s*{[^}]*min-width:\s*0 !important;[^}]*overflow-x:\s*hidden/);
+    expect(css).toContain("max-width: var(--lag-wide-stage-max)");
   });
 
   describe("인증된 player가 처음 진입하면", () => {

@@ -230,7 +230,7 @@ export default function Home() {
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
 
-        <div className="lag-orb-column shrink-0" style={{ width: UI_CONSTS.layout.centerWidth }}>
+        <div className="lag-orb-column shrink-0" data-camera-layout-owner="fixed" style={{ width: UI_CONSTS.layout.centerWidth }}>
           <div className="lag-utility-cluster" style={{ zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
             <SocialUtilityHub />
             <NotificationBell />

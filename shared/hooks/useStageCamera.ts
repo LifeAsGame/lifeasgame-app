@@ -6,6 +6,7 @@ export type CameraProfile = "wide" | "compact" | "mobile";
 export type CameraFocusIntent = "forward" | "back" | "center" | "nearest";
 type StageFocusPlan = { key: string; align: CameraFocusIntent } | null;
 type StageFocusDetail = NonNullable<StageFocusPlan>;
+export type HorizontalBounds = { left: number; right: number; width: number };
 
 export const STAGE_FOCUS_EVENT = "lag:stage-focus";
 
@@ -113,9 +114,40 @@ export function cameraInsets(owner: HTMLElement, profile: CameraProfile) {
   };
 }
 
+export function horizontalBounds(rects: Array<Pick<DOMRect, "left" | "right">>): HorizontalBounds | null {
+  if (rects.length === 0) return null;
+  const left = Math.min(...rects.map((rect) => rect.left));
+  const right = Math.max(...rects.map((rect) => rect.right));
+  return { left, right, width: right - left };
+}
+
+export function wideStageMaxWidth(clientWidth: number, stageCount: number, edge = 24, gap = 18) {
+  const count = Math.max(1, stageCount);
+  return Math.max(0, (clientWidth - edge * 2 - gap * (count - 1)) / count);
+}
+
+export function wideCompositionScrollDelta(bounds: HorizontalBounds, viewportWidth: number, edge = 24) {
+  const trailingOverflow = bounds.right - (viewportWidth - edge);
+  if (trailingOverflow > 0) return trailingOverflow;
+  const leadingOverflow = edge - bounds.left;
+  return leadingOverflow > 0 ? -leadingOverflow : 0;
+}
+
+function consumesGeometry(element: HTMLElement) {
+  if (element.getAttribute("aria-hidden") === "true") return false;
+  const style = getComputedStyle(element);
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+export function activeHorizontalBounds(elements: HTMLElement[]) {
+  return horizontalBounds(elements.filter(consumesGeometry).map((element) => element.getBoundingClientRect()));
+}
+
 function stages(owner: HTMLElement, invalidated: Set<string>) {
   return [...owner.querySelectorAll<HTMLElement>("[data-stage-key]")]
-    .filter((stage) => stage.getAttribute("aria-hidden") !== "true" && !invalidated.has(stage.dataset.stageKey!));
+    .filter((stage) => !invalidated.has(stage.dataset.stageKey!) && consumesGeometry(stage));
 }
 
 function prefersReducedMotion() {
@@ -168,13 +200,67 @@ export function useStageCamera(
     const context = mainSelectionKey;
     const owner = profile === "mobile" ? viewportRef.current : workspaceRef.current;
     if (!owner) return;
+    const viewport = viewportRef.current;
+    const usesWideComposition = profile === "wide" && viewport !== null && viewport !== owner;
     const inactiveOwner = profile === "mobile" ? workspaceRef.current : viewportRef.current;
     if (inactiveOwner && inactiveOwner !== owner && inactiveOwner.scrollLeft !== 0) {
       inactiveOwner.scrollTo({ left: 0, behavior: "auto" });
     }
     let previous = stages(owner, invalidatedKeys.current).map((stage) => stage.dataset.stageKey!);
     let frame = 0;
+    let recomposeFrame = 0;
     let scheduledFocus = 0;
+    let pendingWideScroll: number | null = null;
+
+    const wideLayoutOwners = (currentStages = stages(owner, invalidatedKeys.current)) => {
+      if (!viewport) return currentStages;
+      const fixed = [...viewport.querySelectorAll<HTMLElement>("[data-camera-layout-owner='fixed']")];
+      const surfaces = currentStages.length > 0
+        ? currentStages
+        : [...owner.querySelectorAll<HTMLElement>("[data-camera-layout-owner='surface']")];
+      const fallback = surfaces.length === 0 && owner.firstElementChild instanceof HTMLElement
+        ? [owner.firstElementChild]
+        : [];
+      return [...new Set([...fixed, ...surfaces, ...fallback])].filter(consumesGeometry);
+    };
+
+    const recomposeWide = () => {
+      if (!usesWideComposition || !viewport) return;
+      const currentStages = stages(owner, invalidatedKeys.current);
+      const stageCount = Math.max(1, currentStages.length || Number(Boolean(owner.firstElementChild)));
+      owner.dataset.wideStageFit = "true";
+      owner.style.setProperty("--lag-wide-stage-max", `${wideStageMaxWidth(owner.clientWidth, stageCount)}px`);
+
+      const bounds = activeHorizontalBounds(wideLayoutOwners(currentStages));
+      if (!bounds) return;
+      const delta = wideCompositionScrollDelta(bounds, viewport.clientWidth || window.innerWidth);
+      const maxScroll = Math.max(0, owner.scrollWidth - owner.clientWidth);
+      const next = Math.max(0, Math.min(owner.scrollLeft + delta, maxScroll));
+      if (Math.abs(next - owner.scrollLeft) < 0.5) {
+        pendingWideScroll = null;
+        return;
+      }
+      if (pendingWideScroll !== null && Math.abs(next - pendingWideScroll) < 0.5) return;
+      pendingWideScroll = next;
+      owner.scrollTo({ left: next, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    };
+
+    const scheduleWideRecompose = () => {
+      if (!usesWideComposition) return;
+      cancelAnimationFrame(recomposeFrame);
+      recomposeFrame = requestAnimationFrame(recomposeWide);
+    };
+
+    const geometryObserver = usesWideComposition && typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(scheduleWideRecompose)
+      : null;
+    const observeWideGeometry = () => {
+      if (!geometryObserver || !viewport) return;
+      geometryObserver.disconnect();
+      geometryObserver.observe(viewport);
+      geometryObserver.observe(owner);
+      wideLayoutOwners().forEach((element) => geometryObserver.observe(element));
+    };
 
     const focus = (detail: StageFocusDetail, pendingId?: number) => {
       const scheduled = ++scheduledFocus;
@@ -183,7 +269,8 @@ export function useStageCamera(
         if (scheduled !== scheduledFocus || contextRef.current !== context) return;
         const target = stages(owner, invalidatedKeys.current).find((stage) => stage.dataset.stageKey === detail.key);
         if (!target) return;
-        focusStage(owner, target, detail.align, prefersReducedMotion(), cameraInsets(owner, profile), profile);
+        if (usesWideComposition) recomposeWide();
+        else focusStage(owner, target, detail.align, prefersReducedMotion(), cameraInsets(owner, profile), profile);
         lastFocusedStage.current = { context, key: detail.key };
         if (pendingId && pendingFocus.current?.id === pendingId) pendingFocus.current = null;
       });
@@ -193,6 +280,11 @@ export function useStageCamera(
       if (contextRef.current !== context) return;
       const nextStages = stages(owner, invalidatedKeys.current);
       const next = nextStages.map((stage) => stage.dataset.stageKey!);
+      const topologyChanged = previous.length !== next.length || previous.some((key, index) => key !== next[index]);
+      if (topologyChanged) {
+        observeWideGeometry();
+        scheduleWideRecompose();
+      }
       const pending = pendingFocus.current?.context === context ? pendingFocus.current : null;
       const pendingTarget = pending && nextStages.find((stage) => stage.dataset.stageKey === pending.key);
       if (pendingTarget) {
@@ -234,6 +326,9 @@ export function useStageCamera(
 
     observer.observe(owner, { childList: true, subtree: true });
     window.addEventListener(STAGE_FOCUS_EVENT, focusRequested);
+    const finishWideScroll = () => { pendingWideScroll = null; };
+    owner.addEventListener("scrollend", finishWideScroll);
+    observeWideGeometry();
 
     const currentPending = pendingFocus.current?.context === context ? pendingFocus.current : null;
     const currentStages = stages(owner, invalidatedKeys.current);
@@ -245,13 +340,21 @@ export function useStageCamera(
         : null;
       const fallback = active ?? currentStages.at(-1);
       if (fallback) focus({ key: fallback.dataset.stageKey!, align: "forward" });
+      else scheduleWideRecompose();
     }
 
     return () => {
       scheduledFocus += 1;
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(recomposeFrame);
       observer.disconnect();
+      geometryObserver?.disconnect();
       window.removeEventListener(STAGE_FOCUS_EVENT, focusRequested);
+      owner.removeEventListener("scrollend", finishWideScroll);
+      if (usesWideComposition) {
+        delete owner.dataset.wideStageFit;
+        owner.style.removeProperty("--lag-wide-stage-max");
+      }
     };
   }, [mainSelectionKey, profile, viewportRef, viewportRevision, workspaceRef]);
 }

@@ -211,6 +211,7 @@ body {
 }
 
 .lag-workspace {
+  --lag-wide-stage-max: none;
   padding: var(--lag-space-6);
   scroll-padding-inline: 24px;
   background-color: color-mix(in srgb, var(--lag-workspace) 94%, transparent);
@@ -2956,6 +2957,43 @@ body {
 .lag-exchange-trade em {
   grid-column: 3;
   grid-row: 1 / 3;
+}
+
+@media (min-width: 1200px) {
+  .lag-app-shell {
+    min-width: 0 !important;
+    gap: var(--lag-space-4) !important;
+    padding-inline: var(--lag-space-6) !important;
+  }
+
+  .lag-left-anchor[data-context-present="false"] {
+    display: none;
+  }
+
+  .lag-orb-column {
+    width: 96px !important;
+  }
+
+  .lag-workspace {
+    min-width: 0 !important;
+    overflow-x: hidden;
+  }
+
+  .lag-workspace[data-wide-stage-fit="true"] > :only-child {
+    margin-inline: auto;
+  }
+
+  .lag-workspace[data-wide-stage-fit="true"] .lag-panel-stage {
+    min-width: 0;
+  }
+
+  .lag-workspace[data-wide-stage-fit="true"] .lag-panel-frame {
+    max-width: var(--lag-wide-stage-max);
+  }
+
+  .lag-workspace[data-wide-stage-fit="true"] .lag-home {
+    width: 100%;
+  }
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
