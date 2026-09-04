@@ -102,7 +102,7 @@ export default function HomeShell({
   if (!data) return null;
 
   return (
-    <div className="lag-home" data-testid="home-shell">
+    <div className="lag-home" data-camera-layout-owner="surface" data-testid="home-shell">
       <header className="lag-home-surface lag-home-hero">
         <div>
           <p className="lag-home-eyebrow">World overview</p>
