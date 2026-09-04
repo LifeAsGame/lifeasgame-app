@@ -317,6 +317,34 @@ describe("stage camera contract", () => {
     viewport.remove();
   });
 
+  it("rescans wide layout owners when a fixed viewport sibling changes", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1_600 });
+    const { owner: viewport } = cameraOwner(1_600, 1_600);
+    const { owner: workspace, scrollTo } = cameraOwner(1_440, 2_000, 136);
+    const fixed = layoutElement(24, 500);
+    fixed.dataset.cameraLayoutOwner = "fixed";
+    fixed.setAttribute("aria-hidden", "true");
+    let stageLeft = 1_000;
+    const stage = appendStage(workspace, "overview", stageLeft, 300);
+    stage.getBoundingClientRect = () => domRect(stageLeft - workspace.scrollLeft, 300);
+    viewport.append(fixed, workspace);
+    document.body.append(viewport);
+    const view = renderHook(() => useStageCamera({ current: viewport }, { current: workspace }, "role"));
+    scrollTo.mockClear();
+
+    act(() => {
+      Object.defineProperty(workspace, "clientWidth", { configurable: true, value: 900 });
+      workspace.getBoundingClientRect = () => domRect(676, 900);
+      stageLeft = 1_450;
+      fixed.removeAttribute("aria-hidden");
+    });
+
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ left: 198, behavior: "smooth" }));
+    expect(workspace.style.getPropertyValue("--lag-wide-stage-max")).toBe("852px");
+    view.unmount();
+    viewport.remove();
+  });
+
   it("passes wide center and nearest intent through the hook", () => {
     const { owner: viewport } = cameraOwner(1_600, 1_600);
     const { owner: workspace, scrollTo } = cameraOwner(1_000, 2_000, 500);

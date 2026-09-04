@@ -414,12 +414,16 @@ export function useStageCamera(
       focus(pending, pending.id);
     };
 
-    observer.observe(owner, {
+    const mutationOptions: MutationObserverInit = {
       childList: true,
       subtree: true,
       attributes: true,
       attributeFilter: ["aria-hidden", "data-camera-layout-owner", "data-stage-key"],
-    });
+    };
+    observer.observe(owner, mutationOptions);
+    if (usesWideComposition && viewport !== null && viewport !== owner) {
+      observer.observe(viewport, mutationOptions);
+    }
     window.addEventListener(STAGE_FOCUS_EVENT, focusRequested);
     const finishWideScroll = () => { pendingWideScroll = null; };
     owner.addEventListener("scrollend", finishWideScroll);
