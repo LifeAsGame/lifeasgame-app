@@ -11,6 +11,7 @@ import {
   requestStageFocus,
   stageFocusPlan,
   useStageCamera,
+  wideCameraScrollTarget,
   wideCompositionScrollDelta,
   wideStageMaxWidth,
 } from "./useStageCamera";
@@ -27,7 +28,7 @@ const domRect = (left: number, width: number) => ({
   toJSON: () => ({}),
 });
 
-function cameraOwner(clientWidth = 400, scrollWidth = 1200) {
+function cameraOwner(clientWidth = 400, scrollWidth = 1200, left = 0) {
   const owner = document.createElement("div");
   const scrollTo = vi.fn(({ left }: { left: number }) => { owner.scrollLeft = left; });
   Object.defineProperties(owner, {
@@ -36,7 +37,7 @@ function cameraOwner(clientWidth = 400, scrollWidth = 1200) {
     clientWidth: { configurable: true, value: clientWidth },
     scrollWidth: { configurable: true, value: scrollWidth },
   });
-  owner.getBoundingClientRect = () => domRect(0, clientWidth);
+  owner.getBoundingClientRect = () => domRect(left, clientWidth);
   return { owner, scrollTo };
 }
 
@@ -118,6 +119,58 @@ describe("stage camera contract", () => {
     document.documentElement.dataset.theme = "astral";
     expect(wideStageMaxWidth(1_440, 3)).toBe(warm);
     delete document.documentElement.dataset.theme;
+  });
+
+  it("honors wide center and nearest preferences inside the composition-safe interval", () => {
+    const base = {
+      scrollWidth: 2_000,
+      clientWidth: 1_000,
+      bounds: { left: 800, right: 1_200, width: 400 },
+      safeLeft: 524,
+      safeRight: 1_476,
+      targetLeft: 500,
+      targetWidth: 200,
+      insets: { leading: 32, trailing: 120 },
+    };
+
+    expect(wideCameraScrollTarget({ ...base, scrollLeft: 0, align: "center" })).toBe(100);
+    expect(wideCameraScrollTarget({
+      ...base,
+      scrollLeft: 120,
+      bounds: { left: 700, right: 1_100, width: 400 },
+      targetLeft: 420,
+      align: "nearest",
+    })).toBe(120);
+  });
+
+  it.each(["forward", "back"] as const)("honors wide %s preference while the whole composition remains safe", (align) => {
+    expect(wideCameraScrollTarget({
+      scrollLeft: 0,
+      scrollWidth: 2_000,
+      clientWidth: 1_000,
+      bounds: { left: 700, right: 1_450, width: 750 },
+      safeLeft: 524,
+      safeRight: 1_476,
+      targetLeft: 600,
+      targetWidth: 350,
+      align,
+      insets: { leading: 32, trailing: 120 },
+    })).toBe(70);
+  });
+
+  it("keeps wide composition safety authoritative over a conflicting center preference", () => {
+    expect(wideCameraScrollTarget({
+      scrollLeft: 0,
+      scrollWidth: 2_000,
+      clientWidth: 1_000,
+      bounds: { left: 524, right: 1_476, width: 952 },
+      safeLeft: 524,
+      safeRight: 1_476,
+      targetLeft: 700,
+      targetWidth: 200,
+      align: "center",
+      insets: { leading: 32, trailing: 120 },
+    })).toBe(0);
   });
 
   it("targets only genuine stage topology changes and returns to the immediate parent", () => {
@@ -227,6 +280,63 @@ describe("stage camera contract", () => {
     viewport.remove();
   });
 
+  it("rescans and recomposes when a non-stage loading owner is replaced by the Home surface", async () => {
+    const observed: Element[] = [];
+    class TestResizeObserver {
+      observe = (element: Element) => { observed.push(element); };
+      disconnect = vi.fn();
+      unobserve = vi.fn();
+    }
+    vi.stubGlobal("ResizeObserver", TestResizeObserver);
+    const { owner: viewport } = cameraOwner(1_600, 1_600);
+    const { owner: workspace, scrollTo } = cameraOwner(1_440, 2_000, 136);
+    const loading = layoutElement(160, 400);
+    workspace.append(loading);
+    viewport.append(workspace);
+    document.body.append(viewport);
+    const view = renderHook(() => useStageCamera({ current: viewport }, { current: workspace }, "home"));
+    expect(observed).toContain(loading);
+    observed.length = 0;
+    scrollTo.mockClear();
+
+    const loaded = loading;
+    act(() => {
+      loaded.dataset.cameraLayoutOwner = "surface";
+      loaded.getBoundingClientRect = () => domRect(160, 1_540);
+      loaded.replaceChildren(document.createElement("section"));
+    });
+
+    await waitFor(() => expect(observed).toContain(loaded));
+    expect(scrollTo).toHaveBeenCalledWith({ left: 148, behavior: "smooth" });
+    scrollTo.mockClear();
+
+    act(() => loaded.append(document.createElement("span")));
+    await act(async () => { await Promise.resolve(); });
+    expect(scrollTo).not.toHaveBeenCalled();
+    view.unmount();
+    viewport.remove();
+  });
+
+  it("passes wide center and nearest intent through the hook", () => {
+    const { owner: viewport } = cameraOwner(1_600, 1_600);
+    const { owner: workspace, scrollTo } = cameraOwner(1_000, 2_000, 500);
+    viewport.append(workspace);
+    document.body.append(viewport);
+    appendStage(workspace, "detail", 1_000, 200);
+    const view = renderHook(() => useStageCamera({ current: viewport }, { current: workspace }, "player"));
+    scrollTo.mockClear();
+
+    act(() => requestStageFocus("detail", "center"));
+    expect(scrollTo).toHaveBeenCalledWith({ left: 100, behavior: "smooth" });
+
+    workspace.scrollLeft = 0;
+    scrollTo.mockClear();
+    act(() => requestStageFocus("detail", "nearest"));
+    expect(scrollTo).not.toHaveBeenCalled();
+    view.unmount();
+    viewport.remove();
+  });
+
   it("recomposes wide bounds after a relevant measured-size change", () => {
     let resizeCallback: ResizeObserverCallback = () => {};
     class TestResizeObserver {
@@ -237,7 +347,7 @@ describe("stage camera contract", () => {
     }
     vi.stubGlobal("ResizeObserver", TestResizeObserver);
     const { owner: viewport } = cameraOwner(1_600, 1_600);
-    const { owner: workspace, scrollTo } = cameraOwner(900, 2_000);
+    const { owner: workspace, scrollTo } = cameraOwner(900, 2_000, 676);
     viewport.append(workspace);
     document.body.append(viewport);
     let detailLeft = 1_100;
@@ -250,7 +360,7 @@ describe("stage camera contract", () => {
     act(() => resizeCallback([], {} as ResizeObserver));
 
     expect(scrollTo).toHaveBeenCalledTimes(1);
-    expect(scrollTo).toHaveBeenCalledWith({ left: 174, behavior: "smooth" });
+    expect(scrollTo).toHaveBeenCalledWith({ left: 198, behavior: "smooth" });
     view.unmount();
     viewport.remove();
   });
@@ -460,7 +570,7 @@ describe("stage camera contract", () => {
 
   it("recomposes the complete wide composition after a same-profile viewport resize", async () => {
     const { owner: viewport } = cameraOwner(1_600, 1_600);
-    const { owner: workspace, scrollTo } = cameraOwner(900, 2_000);
+    const { owner: workspace, scrollTo } = cameraOwner(900, 2_000, 400);
     viewport.append(workspace);
     document.body.append(viewport);
     let detailLeft = 1_100;
@@ -477,7 +587,7 @@ describe("stage camera contract", () => {
     act(() => window.dispatchEvent(new Event("resize")));
 
     await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
-    expect(scrollTo).toHaveBeenCalledWith({ left: 524, behavior: "smooth" });
+    expect(scrollTo).toHaveBeenCalledWith({ left: 608, behavior: "smooth" });
     view.unmount();
     viewport.remove();
   });

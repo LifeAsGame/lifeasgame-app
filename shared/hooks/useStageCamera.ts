@@ -133,6 +133,55 @@ export function wideCompositionScrollDelta(bounds: HorizontalBounds, viewportWid
   return leadingOverflow > 0 ? -leadingOverflow : 0;
 }
 
+export function wideCameraScrollTarget({
+  scrollLeft,
+  scrollWidth,
+  clientWidth,
+  bounds,
+  safeLeft,
+  safeRight,
+  targetLeft,
+  targetWidth,
+  align = "nearest",
+  insets,
+}: {
+  scrollLeft: number;
+  scrollWidth: number;
+  clientWidth: number;
+  bounds: HorizontalBounds;
+  safeLeft: number;
+  safeRight: number;
+  targetLeft?: number;
+  targetWidth?: number;
+  align?: CameraFocusIntent;
+  insets: { leading: number; trailing: number };
+}) {
+  const maxScroll = Math.max(0, scrollWidth - clientWidth);
+  const clamp = (value: number) => Math.max(0, Math.min(value, maxScroll));
+  const minimumSafe = clamp(scrollLeft + bounds.right - safeRight);
+  const maximumSafe = clamp(scrollLeft + bounds.left - safeLeft);
+  const preferred = targetLeft === undefined || targetWidth === undefined
+    ? clamp(scrollLeft)
+    : cameraScrollTarget({
+        scrollLeft,
+        scrollWidth,
+        clientWidth,
+        targetLeft,
+        targetWidth,
+        profile: "wide",
+        align,
+        insets,
+      });
+
+  if (minimumSafe <= maximumSafe) return Math.max(minimumSafe, Math.min(preferred, maximumSafe));
+  const correction = bounds.right > safeRight
+    ? bounds.right - safeRight
+    : bounds.left < safeLeft
+      ? bounds.left - safeLeft
+      : 0;
+  return clamp(scrollLeft + correction);
+}
+
 function consumesGeometry(element: HTMLElement) {
   if (element.getAttribute("aria-hidden") === "true") return false;
   const style = getComputedStyle(element);
@@ -212,30 +261,57 @@ export function useStageCamera(
     let scheduledFocus = 0;
     let pendingWideScroll: number | null = null;
 
-    const wideLayoutOwners = (currentStages = stages(owner, invalidatedKeys.current)) => {
-      if (!viewport) return currentStages;
-      const fixed = [...viewport.querySelectorAll<HTMLElement>("[data-camera-layout-owner='fixed']")];
-      const surfaces = currentStages.length > 0
+    const wideSurfaceOwners = (currentStages = stages(owner, invalidatedKeys.current)) => {
+      const surfaces = (currentStages.length > 0
         ? currentStages
-        : [...owner.querySelectorAll<HTMLElement>("[data-camera-layout-owner='surface']")];
-      const fallback = surfaces.length === 0 && owner.firstElementChild instanceof HTMLElement
-        ? [owner.firstElementChild]
-        : [];
-      return [...new Set([...fixed, ...surfaces, ...fallback])].filter(consumesGeometry);
+        : [...owner.querySelectorAll<HTMLElement>("[data-camera-layout-owner='surface']")])
+        .filter(consumesGeometry);
+      return surfaces.length > 0
+        ? surfaces
+        : owner.firstElementChild instanceof HTMLElement && consumesGeometry(owner.firstElementChild)
+          ? [owner.firstElementChild]
+          : [];
     };
 
-    const recomposeWide = () => {
+    const wideLayoutOwners = (currentStages = stages(owner, invalidatedKeys.current)) => {
+      if (!viewport) return currentStages;
+      const fixed = [...viewport.querySelectorAll<HTMLElement>("[data-camera-layout-owner='fixed']")]
+        .filter(consumesGeometry);
+      return [...new Set([...fixed, ...wideSurfaceOwners(currentStages)])];
+    };
+
+    const layoutOwnerSnapshot = (currentStages = stages(owner, invalidatedKeys.current)) =>
+      wideLayoutOwners(currentStages).map((element) => ({
+        element,
+        kind: element.dataset.cameraLayoutOwner ?? (element.dataset.stageKey ? `stage:${element.dataset.stageKey}` : "fallback"),
+      }));
+    let previousLayoutOwners = layoutOwnerSnapshot();
+
+    const recomposeWide = (target?: HTMLElement, align: CameraFocusIntent = "nearest") => {
       if (!usesWideComposition || !viewport) return;
       const currentStages = stages(owner, invalidatedKeys.current);
       const stageCount = Math.max(1, currentStages.length || Number(Boolean(owner.firstElementChild)));
       owner.dataset.wideStageFit = "true";
       owner.style.setProperty("--lag-wide-stage-max", `${wideStageMaxWidth(owner.clientWidth, stageCount)}px`);
 
-      const bounds = activeHorizontalBounds(wideLayoutOwners(currentStages));
-      if (!bounds) return;
-      const delta = wideCompositionScrollDelta(bounds, viewport.clientWidth || window.innerWidth);
-      const maxScroll = Math.max(0, owner.scrollWidth - owner.clientWidth);
-      const next = Math.max(0, Math.min(owner.scrollLeft + delta, maxScroll));
+      const compositionBounds = activeHorizontalBounds(wideLayoutOwners(currentStages));
+      const surfaceBounds = activeHorizontalBounds(wideSurfaceOwners(currentStages));
+      if (!compositionBounds || !surfaceBounds) return;
+      const ownerRect = owner.getBoundingClientRect();
+      const viewportWidth = viewport.clientWidth || window.innerWidth;
+      const targetRect = target?.getBoundingClientRect();
+      const next = wideCameraScrollTarget({
+        scrollLeft: owner.scrollLeft,
+        scrollWidth: owner.scrollWidth,
+        clientWidth: owner.clientWidth,
+        bounds: surfaceBounds,
+        safeLeft: Math.max(24, ownerRect.left + 24),
+        safeRight: Math.min(viewportWidth - 24, ownerRect.right - 24),
+        targetLeft: targetRect ? owner.scrollLeft + targetRect.left - ownerRect.left : undefined,
+        targetWidth: targetRect?.width,
+        align,
+        insets: cameraInsets(owner, "wide"),
+      });
       if (Math.abs(next - owner.scrollLeft) < 0.5) {
         pendingWideScroll = null;
         return;
@@ -248,7 +324,7 @@ export function useStageCamera(
     const scheduleWideRecompose = () => {
       if (!usesWideComposition) return;
       cancelAnimationFrame(recomposeFrame);
-      recomposeFrame = requestAnimationFrame(recomposeWide);
+      recomposeFrame = requestAnimationFrame(() => recomposeWide());
     };
 
     const geometryObserver = usesWideComposition && typeof ResizeObserver !== "undefined"
@@ -269,7 +345,10 @@ export function useStageCamera(
         if (scheduled !== scheduledFocus || contextRef.current !== context) return;
         const target = stages(owner, invalidatedKeys.current).find((stage) => stage.dataset.stageKey === detail.key);
         if (!target) return;
-        if (usesWideComposition) recomposeWide();
+        if (usesWideComposition) {
+          pendingWideScroll = null;
+          recomposeWide(target, detail.align);
+        }
         else focusStage(owner, target, detail.align, prefersReducedMotion(), cameraInsets(owner, profile), profile);
         lastFocusedStage.current = { context, key: detail.key };
         if (pendingId && pendingFocus.current?.id === pendingId) pendingFocus.current = null;
@@ -281,9 +360,14 @@ export function useStageCamera(
       const nextStages = stages(owner, invalidatedKeys.current);
       const next = nextStages.map((stage) => stage.dataset.stageKey!);
       const topologyChanged = previous.length !== next.length || previous.some((key, index) => key !== next[index]);
-      if (topologyChanged) {
+      const nextLayoutOwners = layoutOwnerSnapshot(nextStages);
+      const layoutOwnersChanged = previousLayoutOwners.length !== nextLayoutOwners.length
+        || previousLayoutOwners.some(({ element, kind }, index) =>
+          element !== nextLayoutOwners[index]?.element || kind !== nextLayoutOwners[index]?.kind);
+      previousLayoutOwners = nextLayoutOwners;
+      const geometryOwnersChanged = topologyChanged || layoutOwnersChanged;
+      if (geometryOwnersChanged) {
         observeWideGeometry();
-        scheduleWideRecompose();
       }
       const pending = pendingFocus.current?.context === context ? pendingFocus.current : null;
       const pendingTarget = pending && nextStages.find((stage) => stage.dataset.stageKey === pending.key);
@@ -295,8 +379,14 @@ export function useStageCamera(
       const plan = stageFocusPlan(previous, next);
       previous = next;
       const target = plan && nextStages.find((stage) => stage.dataset.stageKey === plan.key);
-      if (!plan || !target || lastFocusedStage.current?.context === context && lastFocusedStage.current.key === plan.key) return;
-      if (plan.align === "forward" && target.dataset.stageAutoFocus === "false") return;
+      if (!plan || !target || lastFocusedStage.current?.context === context && lastFocusedStage.current.key === plan.key) {
+        if (geometryOwnersChanged) scheduleWideRecompose();
+        return;
+      }
+      if (plan.align === "forward" && target.dataset.stageAutoFocus === "false") {
+        scheduleWideRecompose();
+        return;
+      }
       if (pending) {
         invalidatedKeys.current.add(pending.key);
         pendingFocus.current = null;
@@ -324,7 +414,12 @@ export function useStageCamera(
       focus(pending, pending.id);
     };
 
-    observer.observe(owner, { childList: true, subtree: true });
+    observer.observe(owner, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["aria-hidden", "data-camera-layout-owner", "data-stage-key"],
+    });
     window.addEventListener(STAGE_FOCUS_EVENT, focusRequested);
     const finishWideScroll = () => { pendingWideScroll = null; };
     owner.addEventListener("scrollend", finishWideScroll);
