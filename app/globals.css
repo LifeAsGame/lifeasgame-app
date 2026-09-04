@@ -2985,6 +2985,7 @@ body {
 
   .lag-workspace[data-wide-stage-fit="true"] .lag-panel-stage {
     min-width: 0;
+    max-width: var(--lag-wide-stage-max);
   }
 
   .lag-workspace[data-wide-stage-fit="true"] .lag-panel-frame {

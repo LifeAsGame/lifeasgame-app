@@ -88,6 +88,20 @@ describe("실제 Role shell을 사용할 때", () => {
     expect(css).toContain("@media (max-width: 767px)");
   });
 
+  it("실제 Role summary/detail stage wrapper가 shared wide width budget을 소유한다", () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: /Overview/ }));
+
+    const summary = document.querySelector('[data-stage-key="role-summary"]');
+    const detail = document.querySelector('[data-stage-key="role-detail"]');
+    expect(summary).toHaveClass("lag-panel-stage");
+    expect(detail).toHaveClass("lag-panel-stage");
+
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toMatch(/\.lag-workspace\[data-wide-stage-fit="true"\] \.lag-panel-stage\s*{[^}]*min-width:\s*0;[^}]*max-width:\s*var\(--lag-wide-stage-max\)/);
+    expect(css).toMatch(/\.lag-workspace\[data-wide-stage-fit="true"\] \.lag-panel-frame\s*{[^}]*max-width:\s*var\(--lag-wide-stage-max\)/);
+  });
+
   describe("Role 목록을 탐색하고 관리하면", () => {
     it("canonical selector가 loading/empty/error/retry와 선택·create·edit·archive 흐름을 제공한다", async () => {
       const refresh = vi.fn().mockResolvedValue(undefined);
