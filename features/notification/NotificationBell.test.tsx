@@ -92,16 +92,30 @@ describe("NotificationBell canonical surface", () => {
 
   it("closes on outside click while retaining viewport placement wiring", async () => {
     render(<NotificationBell />);
-    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    fireEvent.click(trigger);
     expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
     fireEvent.mouseDown(document.body);
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
 
     const source = readFileSync("features/notification/NotificationBell.tsx", "utf8");
     expect(source).toContain("notificationPopupPosition");
     expect(source).toContain("ResizeObserver");
     const css = readFileSync("app/globals.css", "utf8");
-    expect(css).toContain("max-height: calc(100dvh - 112px - env(safe-area-inset-bottom)");
+    expect(css).toContain("bottom: max(16px, env(safe-area-inset-bottom))");
+  });
+
+  it("closes on Escape and restores focus to the notification trigger", async () => {
+    render(<NotificationBell />);
+    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    fireEvent.click(trigger);
+    screen.getByRole("button", { name: "Close Notifications" }).focus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
   });
 
   it("renders deterministic initial timestamp text without render-time Date.now", () => {

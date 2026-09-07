@@ -76,6 +76,7 @@ export function NotificationBell() {
   const close = useCallback(() => {
     setOpen(false);
     setSelectedId(null);
+    triggerRef.current?.focus();
   }, []);
 
   const placePopup = useCallback(() => {
@@ -105,6 +106,15 @@ export function NotificationBell() {
     };
     document.addEventListener("mousedown", closeOutside);
     return () => document.removeEventListener("mousedown", closeOutside);
+  }, [close, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
   }, [close, open]);
 
   const toggle = () => {
@@ -137,20 +147,30 @@ export function NotificationBell() {
       <UtilityPortal>
         <AnimatePresence>
           {open ? (
-            <motion.div
-              ref={popupRef}
-              role="dialog"
-              aria-label="Notifications"
-              key="notification-dropdown"
-              initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
-              transition={{ duration: reducedMotion ? 0 : 0.16, ease: "easeOut" }}
-              className="lag-notification-dropdown"
-              data-detail={selected !== null}
-              data-view={selected ? "detail" : "inbox"}
-              style={{ position: "fixed", left: popupPosition?.x ?? 16, top: popupPosition?.y ?? 16, zIndex: 600100, visibility: popupPosition ? "visible" : "hidden" }}
-            >
+            <>
+              <motion.div
+                aria-hidden
+                className="lag-notification-backdrop"
+                key="notification-backdrop"
+                initial={reducedMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reducedMotion ? 0 : 0.16 }}
+              />
+              <motion.div
+                ref={popupRef}
+                role="dialog"
+                aria-label="Notifications"
+                key="notification-dropdown"
+                initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: reducedMotion ? 0 : 0.16, ease: "easeOut" }}
+                className="lag-notification-dropdown"
+                data-detail={selected !== null}
+                data-view={selected ? "detail" : "inbox"}
+                style={{ position: "fixed", left: popupPosition?.x ?? 16, top: popupPosition?.y ?? 16, zIndex: 600100, visibility: popupPosition ? "visible" : "hidden" }}
+              >
               <header className="lag-notification-header">
                 <div><span>Current Player</span><h2>Notifications</h2></div>
                 <div>
@@ -188,7 +208,8 @@ export function NotificationBell() {
                   </section>
                 ) : null}
               </div>
-            </motion.div>
+              </motion.div>
+            </>
           ) : null}
         </AnimatePresence>
       </UtilityPortal>

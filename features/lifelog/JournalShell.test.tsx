@@ -232,6 +232,19 @@ describe("LifeLog Journal v7 surface", () => {
     await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument());
   });
 
+  it("keeps mobile Quick Record labels and its Save action in the shared scroll contract", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    const panelFrame = readFileSync("widgets/right-panels/ui/PanelFrame.tsx", "utf8");
+    const mobile = css.slice(css.indexOf("@media (max-width: 767px)"));
+
+    expect(mobile).toMatch(/\.lag-journal-segments\s*{[^}]*display:\s*grid;[^}]*repeat\(3, minmax\(0, 1fr\)\)/);
+    expect(mobile).toMatch(/@media \(max-width: 380px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
+    expect(mobile).toMatch(/\.lag-panel-stage\[data-camera-active="true"\][\s\S]*?> \.lag-panel-frame\s*{[^}]*width:\s*100% !important/);
+    expect(css).toMatch(/\.lag-panel-body\s*{[^}]*overflow-y:\s*auto/);
+    expect(mobile).toMatch(/\.lag-panel-body\s*{[^}]*padding-bottom:\s*calc\(82px \+ env\(safe-area-inset-bottom\)\) !important/);
+    expect(panelFrame).toContain("panelContentBottomSafePadding");
+  });
+
   it("represents every current Quick Record type-specific field", async () => {
     await openQuickRecord();
     expect(screen.getByLabelText("Collection category")).toBeInTheDocument();
