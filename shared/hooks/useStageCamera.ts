@@ -345,6 +345,11 @@ export function useStageCamera(
         if (scheduled !== scheduledFocus || contextRef.current !== context) return;
         const target = stages(owner, invalidatedKeys.current).find((stage) => stage.dataset.stageKey === detail.key);
         if (!target) return;
+        if (profile === "mobile") {
+          owner.querySelectorAll<HTMLElement>("[data-camera-active]")
+            .forEach((stage) => stage.removeAttribute("data-camera-active"));
+          target.dataset.cameraActive = "true";
+        }
         if (usesWideComposition) {
           pendingWideScroll = null;
           recomposeWide(target, detail.align);
@@ -450,6 +455,8 @@ export function useStageCamera(
       geometryObserver?.disconnect();
       window.removeEventListener(STAGE_FOCUS_EVENT, focusRequested);
       owner.removeEventListener("scrollend", finishWideScroll);
+      owner.querySelectorAll<HTMLElement>("[data-camera-active]")
+        .forEach((stage) => stage.removeAttribute("data-camera-active"));
       if (usesWideComposition) {
         delete owner.dataset.wideStageFit;
         owner.style.removeProperty("--lag-wide-stage-max");

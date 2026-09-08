@@ -90,18 +90,52 @@ describe("NotificationBell canonical surface", () => {
     expect(screen.getByText("2026-08-18 12:34 UTC").closest("time")).toHaveAttribute("dateTime", "2026-08-18T12:34:56Z");
   });
 
-  it("closes on outside click while retaining viewport placement wiring", async () => {
-    render(<NotificationBell />);
-    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+  it("dismisses on outside interaction without stealing focus from the chosen control", async () => {
+    render(<><NotificationBell /><button type="button">Player outside</button></>);
+    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    const outside = screen.getByRole("button", { name: "Player outside" });
+    fireEvent.click(trigger, { detail: 1 });
     expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
-    fireEvent.mouseDown(document.body);
+    outside.focus();
+    fireEvent.mouseDown(outside);
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    expect(outside).toHaveFocus();
 
     const source = readFileSync("features/notification/NotificationBell.tsx", "utf8");
     expect(source).toContain("notificationPopupPosition");
     expect(source).toContain("ResizeObserver");
     const css = readFileSync("app/globals.css", "utf8");
-    expect(css).toContain("max-height: calc(100dvh - 112px - env(safe-area-inset-bottom)");
+    expect(css).toContain("bottom: calc(148px + env(safe-area-inset-bottom))");
+    expect(css).not.toContain(".lag-notification-backdrop");
+  });
+
+  it.each(["Escape", "Close"])("keyboard-opens into the panel and %s restores trigger focus", async (method) => {
+    render(<NotificationBell />);
+    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    trigger.focus();
+    fireEvent.click(trigger, { detail: 0 });
+    const closeButton = screen.getByRole("button", { name: "Close Notifications" });
+    await waitFor(() => expect(closeButton).toHaveFocus());
+
+    if (method === "Escape") fireEvent.keyDown(document, { key: "Escape" });
+    else fireEvent.click(closeButton);
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it("returns focus from detail to the selected visible inbox row", async () => {
+    render(<NotificationBell />);
+    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    fireEvent.click(trigger, { detail: 0 });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Close Notifications" })).toHaveFocus());
+
+    const selectedRow = screen.getByText("Canonical body").closest("button")!;
+    fireEvent.click(selectedRow);
+    fireEvent.click(within(screen.getByLabelText("Notification detail")).getByRole("button", { name: /Back to inbox/ }));
+
+    await waitFor(() => expect(selectedRow).toHaveFocus());
+    expect(screen.queryByLabelText("Notification detail")).not.toBeInTheDocument();
   });
 
   it("renders deterministic initial timestamp text without render-time Date.now", () => {

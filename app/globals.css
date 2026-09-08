@@ -4080,8 +4080,11 @@ textarea.lag-journal-control {
 
 @media (max-width: 767px) {
   .lag-app-surface {
+    --lag-mobile-nav-clearance: calc(148px + env(safe-area-inset-bottom));
+    padding-bottom: var(--lag-mobile-nav-clearance);
     scroll-padding-left: calc(env(safe-area-inset-left) + 48px);
     scroll-padding-right: calc(env(safe-area-inset-right) + 24px);
+    scroll-padding-bottom: var(--lag-mobile-nav-clearance);
   }
 
   .lag-app-shell {
@@ -4090,7 +4093,7 @@ textarea.lag-journal-control {
     min-width: 100% !important;
     align-items: center;
     gap: var(--lag-space-3) !important;
-    padding: var(--lag-space-4) var(--lag-space-4) calc(140px + env(safe-area-inset-bottom)) !important;
+    padding: var(--lag-space-4) !important;
   }
 
   .lag-exchange-route {
@@ -4317,6 +4320,18 @@ textarea.lag-journal-control {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .lag-journal-segments {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lag-journal-chip {
+    min-width: 0;
+    padding-inline: var(--lag-space-2);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+  }
+
   .lag-journal-entry {
     grid-template-columns: 60px minmax(0, 1fr);
     min-height: 132px;
@@ -4493,6 +4508,14 @@ textarea.lag-journal-control {
     max-height: calc(100svh - 156px);
   }
 
+  .lag-panel-stage[data-camera-active="true"] {
+    width: calc(100vw - 32px);
+  }
+
+  .lag-panel-stage[data-camera-active="true"] > .lag-panel-frame {
+    width: 100% !important;
+  }
+
   .lag-panel-rail {
     height: calc(100svh - 156px);
     min-height: 420px;
@@ -4500,6 +4523,7 @@ textarea.lag-journal-control {
 
   .lag-panel-body {
     max-height: calc(100svh - 230px) !important;
+    padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important;
   }
 
   .lag-left-context {
@@ -4541,8 +4565,13 @@ textarea.lag-journal-control {
   }
 
   .lag-notification-dropdown {
+    top: max(16px, env(safe-area-inset-top)) !important;
+    right: 16px;
+    bottom: calc(148px + env(safe-area-inset-bottom));
+    left: 16px !important;
     width: calc(100vw - 32px) !important;
-    max-height: calc(100dvh - 112px - env(safe-area-inset-bottom) - max(16px, env(safe-area-inset-top))) !important;
+    height: auto;
+    max-height: none !important;
   }
 
   .lag-notification-header {
@@ -4626,6 +4655,16 @@ textarea.lag-journal-control {
     height: 1px;
     overflow: hidden;
     clip-path: inset(50%);
+  }
+}
+
+@media (max-width: 380px) {
+  .lag-journal-segments {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lag-journal-chip:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }
 

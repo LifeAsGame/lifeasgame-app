@@ -249,14 +249,19 @@ describe("stage camera contract", () => {
   });
 
   it("focuses a new child topology but ignores arbitrary child-list changes", async () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     const { owner, scrollTo } = cameraOwner();
     const root = appendStage(owner, "root", 100);
     const ref = { current: owner };
     renderHook(() => useStageCamera(ref, ref, "player"));
+    expect(root).toHaveAttribute("data-camera-active", "true");
     scrollTo.mockClear();
 
-    act(() => appendStage(owner, "detail", 600));
+    let detail!: HTMLElement;
+    act(() => { detail = appendStage(owner, "detail", 600); });
     await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    expect(root).not.toHaveAttribute("data-camera-active");
+    expect(detail).toHaveAttribute("data-camera-active", "true");
     scrollTo.mockClear();
 
     act(() => root.append(document.createElement("span")));

@@ -41,13 +41,13 @@ function NotificationRow({ notification, pending, selected, onSelect, onMarkRead
   notification: NotificationInfo;
   pending: boolean;
   selected: boolean;
-  onSelect: (id: number) => void;
+  onSelect: (id: number, trigger: HTMLButtonElement) => void;
   onMarkRead: (id: number) => void;
 }) {
   const meta = metaFor(notification.type);
   return (
     <article className="lag-notification-row" data-read={notification.read} data-selected={selected}>
-      <button type="button" className="lag-notification-select" aria-pressed={selected} onClick={() => onSelect(notification.id)}>
+      <button type="button" className="lag-notification-select" aria-pressed={selected} onClick={(event) => onSelect(notification.id, event.currentTarget)}>
         <TypeMark notification={notification} />
         <span className="lag-notification-copy">
           <span className="lag-notification-row-meta"><span>{meta.label}</span><span>{notification.read ? "Read" : "Unread"}</span></span>
@@ -70,13 +70,24 @@ export function NotificationBell() {
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const selectedTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const focusOnOpenRef = useRef(false);
+  const focusInboxRef = useRef(false);
   const [popupPosition, setPopupPosition] = useState<FloatingPosition | null>(null);
   const selected = state.inbox.find(({ id }) => id === selectedId) ?? null;
 
-  const close = useCallback(() => {
+  const dismiss = useCallback(() => {
+    focusOnOpenRef.current = false;
+    focusInboxRef.current = false;
     setOpen(false);
     setSelectedId(null);
   }, []);
+
+  const close = useCallback(() => {
+    dismiss();
+    triggerRef.current?.focus({ preventScroll: true });
+  }, [dismiss]);
 
   const placePopup = useCallback(() => {
     const anchor = triggerRef.current?.getBoundingClientRect();
@@ -97,20 +108,57 @@ export function NotificationBell() {
     };
   }, [open, placePopup]);
 
+  useLayoutEffect(() => {
+    if (open && popupPosition && focusOnOpenRef.current) {
+      focusOnOpenRef.current = false;
+      closeRef.current?.focus({ preventScroll: true });
+    }
+  }, [open, popupPosition]);
+
+  useLayoutEffect(() => {
+    if (open && selectedId === null && focusInboxRef.current) {
+      focusInboxRef.current = false;
+      (selectedTriggerRef.current ?? closeRef.current)?.focus({ preventScroll: true });
+    }
+  }, [open, selectedId]);
+
   useEffect(() => {
     if (!open) return;
     const closeOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (!panelRef.current?.contains(target) && !popupRef.current?.contains(target)) close();
+      if (!panelRef.current?.contains(target) && !popupRef.current?.contains(target)) dismiss();
     };
     document.addEventListener("mousedown", closeOutside);
     return () => document.removeEventListener("mousedown", closeOutside);
+  }, [dismiss, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
   }, [close, open]);
 
-  const toggle = () => {
+  const toggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!open && !state.inboxLoaded && !state.inboxLoading) void state.loadInbox();
     if (open) close();
-    else setOpen(true);
+    else {
+      focusOnOpenRef.current = event.detail === 0;
+      setPopupPosition(null);
+      setOpen(true);
+    }
+  };
+
+  const selectNotification = (id: number, trigger: HTMLButtonElement) => {
+    selectedTriggerRef.current = trigger;
+    setSelectedId(id);
+  };
+
+  const returnToInbox = () => {
+    focusInboxRef.current = true;
+    setSelectedId(null);
   };
 
   return (
@@ -138,24 +186,24 @@ export function NotificationBell() {
         <AnimatePresence>
           {open ? (
             <motion.div
-              ref={popupRef}
-              role="dialog"
-              aria-label="Notifications"
-              key="notification-dropdown"
-              initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
-              transition={{ duration: reducedMotion ? 0 : 0.16, ease: "easeOut" }}
-              className="lag-notification-dropdown"
-              data-detail={selected !== null}
-              data-view={selected ? "detail" : "inbox"}
-              style={{ position: "fixed", left: popupPosition?.x ?? 16, top: popupPosition?.y ?? 16, zIndex: 600100, visibility: popupPosition ? "visible" : "hidden" }}
-            >
+                ref={popupRef}
+                role="dialog"
+                aria-label="Notifications"
+                key="notification-dropdown"
+                initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: reducedMotion ? 0 : 0.16, ease: "easeOut" }}
+                className="lag-notification-dropdown"
+                data-detail={selected !== null}
+                data-view={selected ? "detail" : "inbox"}
+                style={{ position: "fixed", left: popupPosition?.x ?? 16, top: popupPosition?.y ?? 16, zIndex: 600100, visibility: popupPosition ? "visible" : "hidden" }}
+              >
               <header className="lag-notification-header">
                 <div><span>Current Player</span><h2>Notifications</h2></div>
                 <div>
                   <button type="button" disabled={state.markAllPending} onClick={() => void state.markAllRead()} className="lag-notification-action">{state.markAllPending ? "Saving..." : "Mark all read"}</button>
-                  <button type="button" aria-label="Close Notifications" onClick={close} className="lag-notification-action">Close</button>
+                  <button ref={closeRef} type="button" aria-label="Close Notifications" onClick={close} className="lag-notification-action">Close</button>
                 </div>
               </header>
 
@@ -169,14 +217,14 @@ export function NotificationBell() {
                   <div className="lag-notification-list">
                     {state.inboxLoading ? <p role="status" className="lag-notification-empty">Loading notifications...</p> : null}
                     {!state.inboxLoading && state.inboxLoaded && state.inbox.length === 0 ? <p className="lag-notification-empty">No notifications</p> : null}
-                    {state.inbox.map((notification) => <NotificationRow key={notification.id} notification={notification} pending={state.pendingId === notification.id} selected={selectedId === notification.id} onSelect={setSelectedId} onMarkRead={(id) => void state.markRead(id)} />)}
+                    {state.inbox.map((notification) => <NotificationRow key={notification.id} notification={notification} pending={state.pendingId === notification.id} selected={selectedId === notification.id} onSelect={selectNotification} onMarkRead={(id) => void state.markRead(id)} />)}
                     {state.hasMore ? <button type="button" className="lag-notification-load-older" disabled={state.olderLoading} onClick={() => void state.loadOlder()}>{state.olderLoading ? "Loading..." : "Load older"}</button> : null}
                   </div>
                 </section>
 
                 {selected ? (
                   <section className="lag-notification-detail" aria-label="Notification detail">
-                    <header><button type="button" className="lag-notification-action" onClick={() => setSelectedId(null)}>← Back to inbox</button><span>{selected.read ? "Read" : "Unread"}</span></header>
+                    <header><button type="button" className="lag-notification-action" onClick={returnToInbox}>← Back to inbox</button><span>{selected.read ? "Read" : "Unread"}</span></header>
                     <div className="lag-notification-detail-content">
                       <TypeMark notification={selected} />
                       <span>{metaFor(selected.type).label}</span>

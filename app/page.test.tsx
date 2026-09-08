@@ -136,6 +136,8 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     expect(css).toMatch(/@media \(min-width: 1200px\)[\s\S]*\.lag-left-anchor\[data-context-present="false"\]\s*{[^}]*display:\s*none/);
     expect(css).toMatch(/@media \(min-width: 1200px\)[\s\S]*\.lag-workspace\s*{[^}]*min-width:\s*0 !important;[^}]*overflow-x:\s*hidden/);
     expect(css).toContain("max-width: var(--lag-wide-stage-max)");
+    expect(css).toMatch(/\.lag-app-surface\s*{[^}]*padding-bottom:\s*var\(--lag-mobile-nav-clearance\);[^}]*scroll-padding-bottom:\s*var\(--lag-mobile-nav-clearance\)/);
+    expect(css).not.toContain("calc(140px + env(safe-area-inset-bottom))");
   });
 
   describe("인증된 player가 처음 진입하면", () => {
