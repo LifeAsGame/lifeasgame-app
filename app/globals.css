@@ -4567,20 +4567,11 @@ textarea.lag-journal-control {
   .lag-notification-dropdown {
     top: max(16px, env(safe-area-inset-top)) !important;
     right: 16px;
-    bottom: max(16px, env(safe-area-inset-bottom));
+    bottom: calc(148px + env(safe-area-inset-bottom));
     left: 16px !important;
     width: calc(100vw - 32px) !important;
     height: auto;
     max-height: none !important;
-  }
-
-  .lag-notification-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 600000;
-    background: color-mix(in srgb, var(--lag-ambient) 72%, transparent);
-    backdrop-filter: blur(3px);
-    pointer-events: none;
   }
 
   .lag-notification-header {
