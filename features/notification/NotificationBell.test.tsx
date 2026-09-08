@@ -103,6 +103,7 @@ describe("NotificationBell canonical surface", () => {
 
     const source = readFileSync("features/notification/NotificationBell.tsx", "utf8");
     expect(source).toContain("notificationPopupPosition");
+    expect(source).toContain("popup.offsetHeight");
     expect(source).toContain("ResizeObserver");
     const css = readFileSync("app/globals.css", "utf8");
     expect(css).toContain("bottom: calc(148px + env(safe-area-inset-bottom))");

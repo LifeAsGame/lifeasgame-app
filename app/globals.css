@@ -4668,6 +4668,120 @@ textarea.lag-journal-control {
   }
 }
 
+/* Issue 97 desktop hierarchy correction; mobile keeps the shared PR #96 contract. */
+@media (min-width: 1200px) {
+  .lag-home-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+    align-items: stretch;
+  }
+
+  .lag-home-section-journey {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .lag-home-section-journal {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .lag-home-section-achievements {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .lag-home-section-roles {
+    grid-row: 3;
+  }
+
+  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
+    [data-stage-key="lifelog-journal"] {
+    width: min(820px, calc(100vw - 500px));
+    max-width: min(820px, calc(100vw - 500px));
+  }
+
+  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
+    [data-stage-key="lifelog-journal"] .lag-panel-frame {
+    width: min(820px, calc(100vw - 500px)) !important;
+    max-width: min(820px, calc(100vw - 500px)) !important;
+  }
+
+  .lag-journal-shell [data-stage-key="lifelog-journal"] .lag-panel-body,
+  .lag-journey-shell .lag-panel-body,
+  .lag-growth-shell .lag-panel-body {
+    max-height: min(60vh, 600px) !important;
+  }
+
+  .lag-growth-shell .lag-panel-title {
+    overflow: visible;
+    white-space: normal;
+    text-align: center;
+    text-overflow: clip;
+  }
+}
+
+@media (min-width: 1500px) {
+  .lag-journey-shell:not(:has([data-stage-key="journey-detail"]))
+    [data-stage-key="journey-root"] {
+    width: 280px;
+    max-width: 280px;
+  }
+
+  .lag-journey-shell:not(:has([data-stage-key="journey-detail"]))
+    [data-stage-key="journey-root"] .lag-panel-frame {
+    width: 280px !important;
+    max-width: 280px !important;
+  }
+
+  .lag-journey-shell:not(:has([data-stage-key="journey-detail"]))
+    [data-stage-key="journey-list"] {
+    width: 760px;
+    max-width: 760px;
+  }
+
+  .lag-journey-shell:not(:has([data-stage-key="journey-detail"]))
+    [data-stage-key="journey-list"] .lag-panel-frame {
+    width: 760px !important;
+    max-width: 760px !important;
+  }
+
+  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
+    > .lag-panel-rail[data-main="player"] [data-stage-key="player-stage-0"] {
+    width: 220px;
+    max-width: 220px;
+  }
+
+  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
+    > .lag-panel-rail[data-main="player"] .lag-panel-frame {
+    width: 220px !important;
+    max-width: 220px !important;
+  }
+
+  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
+    [data-stage-key="player-growth-profile"] {
+    width: 360px;
+    max-width: 360px;
+  }
+
+  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
+    [data-stage-key="player-growth-profile"] .lag-panel-frame {
+    width: 360px !important;
+    max-width: 360px !important;
+  }
+
+  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
+    [data-stage-key="player-growth-history"] {
+    width: 296px;
+    max-width: 296px;
+  }
+
+  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
+    [data-stage-key="player-growth-history"] .lag-panel-frame {
+    width: 296px !important;
+    max-width: 296px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lag-app-surface,
   .lag-orb-nav,

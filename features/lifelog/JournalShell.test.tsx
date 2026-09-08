@@ -74,6 +74,7 @@ describe("LifeLog Journal v7 surface", () => {
 
     const css = readFileSync("app/globals.css", "utf8");
     expect(css).toContain('[data-stage-key="lifelog-journal"]');
+    expect(css).toContain('max-width: min(820px, calc(100vw - 500px))');
     expect(css).toContain("var(--lag-control-bg)");
     expect(css).toContain("@media (max-width: 767px)");
     expect(css).toContain(".lag-orb-column");
