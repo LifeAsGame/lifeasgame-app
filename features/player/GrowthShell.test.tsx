@@ -57,6 +57,7 @@ describe("v7 Growth surface를 사용할 때", () => {
     expect(growthCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
     expect(css).toContain('@media (max-width: 767px)');
     expect(css).toContain('[data-stage-key="player-growth-change-detail"]');
+    expect(css).toMatch(/@media \(min-width: 1500px\)[\s\S]*?\[data-stage-key="player-growth-profile"\] \.lag-panel-frame\s*\{[\s\S]*?width: 360px/);
   });
 
   it("empty extra stats와 real history를 표시하되 첫 change를 자동 선택하지 않는다", async () => {

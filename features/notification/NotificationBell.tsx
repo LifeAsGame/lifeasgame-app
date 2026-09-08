@@ -91,9 +91,9 @@ export function NotificationBell() {
 
   const placePopup = useCallback(() => {
     const anchor = triggerRef.current?.getBoundingClientRect();
-    const popup = popupRef.current?.getBoundingClientRect();
+    const popup = popupRef.current;
     if (!anchor || !popup) return;
-    setPopupPosition(notificationPopupPosition(anchor, { width: popup.width, height: popup.height }, { width: window.innerWidth, height: window.innerHeight }));
+    setPopupPosition(notificationPopupPosition(anchor, { width: popup.offsetWidth, height: popup.offsetHeight }, { width: window.innerWidth, height: window.innerHeight }));
   }, []);
 
   useLayoutEffect(() => {

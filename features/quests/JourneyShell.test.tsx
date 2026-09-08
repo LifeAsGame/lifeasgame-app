@@ -182,6 +182,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     const journeyCss = css.slice(css.indexOf("/* v7 Journey"), css.indexOf(".lag-state-error"));
     expect(journeyCss).toContain("var(--lag-muted-surface)");
     expect(journeyCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
+    expect(css).toMatch(/@media \(min-width: 1500px\)[\s\S]*?\[data-stage-key="journey-list"\] \.lag-panel-frame\s*\{[\s\S]*?width: 760px/);
   });
 
   describe("Current Quest의 상태와 next action을 확인하면", () => {

@@ -204,6 +204,7 @@ describe("Home world summary를 표시할 때", () => {
     const css = readFileSync("app/globals.css", "utf8");
 
     expect(source).not.toContain("style=");
+    expect(css).toMatch(/@media \(min-width: 1200px\)[\s\S]*?\.lag-home-section-journey\s*\{[\s\S]*?grid-row: 1 \/ span 2/);
     expect(css).toMatch(/@media \(max-width: 980px\)[\s\S]*?\.lag-home-grid\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/);
     expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.lag-home-role-summary,[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/);
   });
