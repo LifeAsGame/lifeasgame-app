@@ -4668,6 +4668,26 @@ textarea.lag-journal-control {
   }
 }
 
+/* Issue 99 mobile Home first-view priority. */
+@media (max-width: 767px) {
+  .lag-home-section-journal .lag-home-section-header,
+  .lag-home-section-journey .lag-home-subsection-header {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .lag-home-section-journal .lag-home-action,
+  .lag-home-section-journey .lag-home-action {
+    width: auto;
+  }
+
+  .lag-home-section-journal .lag-home-list {
+    grid-auto-columns: 85%;
+    grid-auto-flow: column;
+    overflow-x: auto;
+  }
+}
+
 /* Issue 97 desktop hierarchy correction; mobile keeps the shared PR #96 contract. */
 @media (min-width: 1200px) {
   .lag-home-grid {
