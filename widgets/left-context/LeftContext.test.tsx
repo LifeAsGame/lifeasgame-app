@@ -111,12 +111,15 @@ describe("LeftContext에서 Role을 사용할 때", () => {
   });
 
   it("renders only canonical equipment slot data instead of mock item metadata", () => {
-    const equipment = [{ ...MOCK_CHARACTER_SHEET.equipments[0], itemInstanceId: 999 }];
+    const equipment = [{ ...MOCK_CHARACTER_SHEET.equipments[0], slotCode: "HEAD", slotName: "Head", slotCategory: null, slotRole: null, itemInstanceId: 999 }];
     render(<LeftContext mode="player" playerInfo={MOCK_CHARACTER_SHEET.player} equipments={equipment} />);
 
     expect(screen.getByText("Equipped · Item #999")).toBeInTheDocument();
     expect(screen.queryByText("Elucidator")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Main Hand/ }));
+    expect(screen.getByText("HEAD")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Head/ }));
     expect(screen.getByText("Item ID").parentElement).toHaveTextContent("999");
+    expect(screen.queryByText("Category")).not.toBeInTheDocument();
+    expect(screen.queryByText("Role")).not.toBeInTheDocument();
   });
 });

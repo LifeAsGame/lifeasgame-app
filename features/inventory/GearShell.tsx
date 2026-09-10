@@ -106,10 +106,10 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                           setSelectedSlotId(slot.slotId);
                           setSelectedItemInstanceId(null);
                         }}>
-                          <span aria-hidden>{slot.slotRole.slice(0, 2)}</span>
+                          <span aria-hidden>{slot.slotCode.slice(0, 2)}</span>
                           <span>
                             <strong>{slot.slotName}</strong>
-                            <small>{slot.slotCode} · {slot.slotCategory} · {slot.slotRole}</small>
+                            <small>{[slot.slotCode, slot.slotCategory, slot.slotRole].filter(Boolean).join(" · ")}</small>
                             <small>{slot.itemInstanceId === null
                               ? "Empty"
                               : enrichmentMissing
@@ -154,15 +154,15 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                 <header className="lag-inventory-hero">
                   <span>Selected Equipment Slot</span>
                   <h4>{selectedSlot.slot.slotName}</h4>
-                  <div><span>{selectedSlot.slot.slotCategory}</span><span>{selectedSlot.slot.slotRole}</span></div>
+                  <div><span>{selectedSlot.slot.slotCode}</span>{selectedSlot.slot.slotRole ? <span>{selectedSlot.slot.slotRole}</span> : null}</div>
                 </header>
                 <section className="lag-inventory-section">
                   <h4>Slot</h4>
                   <dl>
                     <DataRow label="Slot ID">{selectedSlot.slot.slotId}</DataRow>
                     <DataRow label="Slot code">{selectedSlot.slot.slotCode}</DataRow>
-                    <DataRow label="Category">{selectedSlot.slot.slotCategory}</DataRow>
-                    <DataRow label="Role">{selectedSlot.slot.slotRole}</DataRow>
+                    {selectedSlot.slot.slotCategory ? <DataRow label="Category">{selectedSlot.slot.slotCategory}</DataRow> : null}
+                    {selectedSlot.slot.slotRole ? <DataRow label="Role">{selectedSlot.slot.slotRole}</DataRow> : null}
                     <DataRow label="Equipped">{selectedSlot.slot.itemInstanceId === null
                       ? "Empty"
                       : selectedSlot.item

@@ -19,7 +19,7 @@ describe("Equipment를 실제 backend에 연결할 때", () => {
 
   describe("현재 player의 equipment infos를 조회하면", () => {
     it("result.infos를 exact endpoint에서 꺼내 반환한다", async () => {
-      const infos = [{ slotId: 42, slotCode: "RING_LEFT", slotName: "Left Ring", slotCategory: "RING", slotRole: "LEFT", itemInstanceId: null }];
+      const infos = [{ slotId: 42, slotCode: "RING_LEFT", slotName: "Ring", slotCategory: null, slotRole: null, itemInstanceId: null }];
       client.apiGet.mockResolvedValue({ infos });
 
       await expect(getEquippedGearApi()).resolves.toEqual(infos);
@@ -47,10 +47,17 @@ describe("Equipment를 실제 backend에 연결할 때", () => {
 
   describe("mock equipment contract를 사용하면", () => {
     it("API DTO에는 composed item metadata가 없고 mutation은 itemInstanceId만 바꾼다", () => {
-      const before = equipmentMock.infos().infos[0];
+      const initial = equipmentMock.infos().infos;
+      const before = initial[0];
       equipmentMock.equip(before.slotId, 999);
       const after = equipmentMock.infos().infos[0];
 
+      expect(initial.map(({ slotCode }) => slotCode)).toEqual([
+        "HEAD", "NECK", "BODY", "WRIST", "RING_LEFT", "FEET", "AURA", "PROFILE_FRAME", "BADGE",
+      ]);
+      expect(initial.every(({ slotCategory, slotRole, itemInstanceId }) =>
+        slotCategory === null && slotRole === null && itemInstanceId === null,
+      )).toBe(true);
       expect(Object.keys(before)).toEqual(["slotId", "slotCode", "slotName", "slotCategory", "slotRole", "itemInstanceId"]);
       expect(after).toEqual({ ...before, itemInstanceId: 999 });
       expect(after).not.toHaveProperty("itemName");
