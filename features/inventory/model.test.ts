@@ -4,10 +4,17 @@ import type { EquipmentSlotInfo, InventoryEntry } from "@/shared/api/types";
 import { candidatesForGearPart, composeEquipmentSlots, getEquipCompatibility, slotsForGearPart } from "./model";
 
 const slots: EquipmentSlotInfo[] = [
-  { slotId: 21, slotCode: "MAIN_HAND", slotName: "Main Hand", slotCategory: "WEAPON", slotRole: "MAIN", itemInstanceId: 501 },
-  { slotId: 22, slotCode: "OFF_HAND", slotName: "Off Hand", slotCategory: "WEAPON", slotRole: "OFFHAND", itemInstanceId: null },
-  { slotId: 31, slotCode: "CHEST", slotName: "Chest", slotCategory: "CHEST", slotRole: "SINGLE", itemInstanceId: 999 },
-  { slotId: 41, slotCode: "FEET", slotName: "Feet", slotCategory: "FEET", slotRole: "SINGLE", itemInstanceId: null },
+  { slotId: 21, slotCode: "HEAD", slotName: "Head", slotCategory: null, slotRole: null, itemInstanceId: 501 },
+  { slotId: 22, slotCode: "NECK", slotName: "Neck", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 23, slotCode: "BODY", slotName: "Body", slotCategory: null, slotRole: null, itemInstanceId: 999 },
+  { slotId: 24, slotCode: "WRIST", slotName: "Wrist", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 25, slotCode: "RING_LEFT", slotName: "Ring", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 26, slotCode: "FEET", slotName: "Feet", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 27, slotCode: "AURA", slotName: "Aura", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 28, slotCode: "PROFILE_FRAME", slotName: "Profile Frame", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 29, slotCode: "BADGE", slotName: "Badge", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 30, slotCode: "TITLE", slotName: "Title", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 31, slotCode: "CHEST", slotName: "Legacy Chest", slotCategory: "CHEST", slotRole: "SINGLE", itemInstanceId: null },
 ];
 
 const inventory: InventoryEntry[] = [
@@ -16,7 +23,7 @@ const inventory: InventoryEntry[] = [
   { itemInstanceId: 701, slotIndex: 5, itemId: 301, itemName: "Server Ring", category: "ACCESSORY", type: "RING", rarity: "COMMON", stackable: false, maxStack: 1, quantity: 1, bound: false, durability: null, instanceAttrs: {} },
 ];
 
-const slot = (slotCategory: string): EquipmentSlotInfo => ({ ...slots[0], slotCategory });
+const slot = (slotCode: string): EquipmentSlotInfo => ({ ...slots[0], slotCode });
 const item = (category: string, type: string, itemName = "Contract Item"): InventoryEntry => ({
   ...inventory[0], category, type, itemName,
 });
@@ -41,12 +48,16 @@ describe("Equipment와 Inventory를 Gear read model로 조합할 때", () => {
   });
 
   describe("Gear subsection을 선택하면", () => {
-    it("검증된 slot category mapping과 coarse Inventory category mapping만 적용한다", () => {
+    it("nine eager slotCode만 현재 Gear parts에 배치하고 TITLE과 inactive legacy slot은 제외한다", () => {
       const composed = composeEquipmentSlots(slots, inventory);
 
-      expect(slotsForGearPart(composed, "weapon").map(({ slot }) => slot.slotId)).toEqual([21, 22]);
-      expect(slotsForGearPart(composed, "armor").map(({ slot }) => slot.slotId)).toEqual([31]);
-      expect(slotsForGearPart(composed, "boots").map(({ slot }) => slot.slotId)).toEqual([41]);
+      expect(slotsForGearPart(composed, "weapon")).toEqual([]);
+      expect(slotsForGearPart(composed, "armor").map(({ slot }) => slot.slotCode)).toEqual(["HEAD", "BODY", "WRIST"]);
+      expect(slotsForGearPart(composed, "accessory").map(({ slot }) => slot.slotCode)).toEqual(["NECK", "RING_LEFT", "AURA", "PROFILE_FRAME", "BADGE"]);
+      expect(slotsForGearPart(composed, "boots").map(({ slot }) => slot.slotCode)).toEqual(["FEET"]);
+      expect(["weapon", "armor", "accessory", "boots"].flatMap((part) =>
+        slotsForGearPart(composed, part as "weapon" | "armor" | "accessory" | "boots").map(({ slot }) => slot.slotCode),
+      ).sort()).toEqual(["AURA", "BADGE", "BODY", "FEET", "HEAD", "NECK", "PROFILE_FRAME", "RING_LEFT", "WRIST"]);
       expect(candidatesForGearPart(inventory, "weapon").map(({ itemInstanceId }) => itemInstanceId)).toEqual([501]);
       expect(candidatesForGearPart(inventory, "armor").map(({ itemInstanceId }) => itemInstanceId)).toEqual([601]);
       expect(candidatesForGearPart(inventory, "boots").map(({ itemInstanceId }) => itemInstanceId)).toEqual([601]);
@@ -56,29 +67,30 @@ describe("Equipment와 Inventory를 Gear read model로 조합할 때", () => {
 
   describe("선택한 slot과 item의 호환성을 판정하면", () => {
     it.each([
-      ["WEAPON", "WEAPON", "SWORD"],
       ["HEAD", "ARMOR", "HELMET"],
-      ["CHEST", "ARMOR", "CHEST"],
-      ["RING", "ACCESSORY", "RING"],
-    ])("%s slot의 현재 계약으로 증명되는 pair만 VERIFIED다", (slotCategory, category, type) => {
-      expect(getEquipCompatibility(slot(slotCategory), item(category, type))).toEqual({ status: "VERIFIED" });
+      ["BODY", "ARMOR", "CHEST"],
+      ["RING_LEFT", "ACCESSORY", "RING"],
+    ])("%s slotCode의 현재 계약으로 증명되는 pair만 VERIFIED다", (slotCode, category, type) => {
+      expect(getEquipCompatibility(slot(slotCode), item(category, type))).toEqual({ status: "VERIFIED" });
     });
 
     it.each([
-      ["CHEST", "ARMOR", "HELMET"],
+      ["BODY", "ARMOR", "HELMET"],
       ["HEAD", "ARMOR", "CHEST"],
-    ])("%s slot에 다른 명시적 slot type은 INCOMPATIBLE이다", (slotCategory, category, type) => {
-      expect(getEquipCompatibility(slot(slotCategory), item(category, type)).status).toBe("INCOMPATIBLE");
+    ])("%s slot에 다른 명시적 slot type은 INCOMPATIBLE이다", (slotCode, category, type) => {
+      expect(getEquipCompatibility(slot(slotCode), item(category, type)).status).toBe("INCOMPATIBLE");
     });
 
     it.each([
       ["FEET", "ARMOR", "ETC"],
-      ["LEGS", "ARMOR", "ETC"],
-      ["HANDS", "ARMOR", "ETC"],
+      ["WRIST", "ARMOR", "ETC"],
       ["NECK", "ACCESSORY", "ETC"],
-      ["TRINKET", "ACCESSORY", "ETC"],
-    ])("%s slot의 ETC item은 호환성을 추론하지 않는다", (slotCategory, category, type) => {
-      expect(getEquipCompatibility(slot(slotCategory), item(category, type)).status).toBe("UNVERIFIABLE");
+      ["AURA", "ACCESSORY", "ETC"],
+      ["PROFILE_FRAME", "ACCESSORY", "ETC"],
+      ["BADGE", "ACCESSORY", "ETC"],
+      ["TITLE", "ACCESSORY", "ETC"],
+    ])("%s slot의 item 호환성은 추론하지 않는다", (slotCode, category, type) => {
+      expect(getEquipCompatibility(slot(slotCode), item(category, type)).status).toBe("UNVERIFIABLE");
     });
 
     it("item name에 slot 단어가 있어도 호환성 증거로 사용하지 않는다", () => {

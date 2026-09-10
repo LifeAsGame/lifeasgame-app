@@ -36,8 +36,8 @@ export interface EquipmentView {
   slotId: number;
   slotCode: string;
   slotName: string;
-  slotCategory: string;
-  slotRole: string;
+  slotCategory: string | null;
+  slotRole: string | null;
   itemInstanceId: number | null;
 }
 

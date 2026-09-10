@@ -10,7 +10,7 @@ vi.mock("@/lib/api/endpoints/equipment.api", () => ({ getEquippedGearApi: api.ge
 
 const player = { playerId: 7, name: "Player", level: 8 } as PlayerInfo;
 const equipments: EquipmentSlotInfo[] = [
-  { slotId: 1, slotCode: "MAIN", slotName: "Main Hand", slotCategory: "WEAPON", slotRole: "PRIMARY", itemInstanceId: 99 },
+  { slotId: 1, slotCode: "HEAD", slotName: "Head", slotCategory: null, slotRole: null, itemInstanceId: null },
 ];
 
 describe("proven Player context query", () => {

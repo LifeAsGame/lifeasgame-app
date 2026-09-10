@@ -97,9 +97,9 @@ export function PlayerPanel({
   const maxStatVal = Math.max(...stats.map((s) => s.value), 1);
   const extraStats = playerInfo.extraStats;
 
-  const equipByCat = (equipments ?? []).reduce<Record<string, EquipmentView[]>>((acc, slot) => {
-    if (!acc[slot.slotCategory]) acc[slot.slotCategory] = [];
-    acc[slot.slotCategory].push(slot);
+  const equipByCode = (equipments ?? []).reduce<Record<string, EquipmentView[]>>((acc, slot) => {
+    if (!acc[slot.slotCode]) acc[slot.slotCode] = [];
+    acc[slot.slotCode].push(slot);
     return acc;
   }, {});
 
@@ -198,16 +198,16 @@ export function PlayerPanel({
         ) : null}
 
         {/* Equipment section */}
-        {Object.keys(equipByCat).length > 0 ? (
+        {Object.keys(equipByCode).length > 0 ? (
           <div className="mt-6 px-1">
             <p className="mb-2 uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>
               Equipment
             </p>
             <div className="space-y-3">
-              {Object.entries(equipByCat).map(([cat, slots]) => (
-                <div key={cat}>
+              {Object.entries(equipByCode).map(([slotCode, slots]) => (
+                <div key={slotCode}>
                   <p className="mb-1 uppercase" style={{ fontSize: "9px", letterSpacing: "0.18em", color: "var(--lag-text-2)", opacity: 0.7 }}>
-                    {cat}
+                    {slotCode}
                   </p>
                   <div className="space-y-1">
                     {slots.map((slot) => {
@@ -262,10 +262,10 @@ export function PlayerPanel({
                                   }}
                                 >
                                   {[
-                                    { k: "Code",     v: slot.slotCode },
-                                    { k: "Category", v: slot.slotCategory },
-                                    { k: "Role",     v: slot.slotRole },
-                                    { k: "Item ID",  v: slot.itemInstanceId === null ? "Empty" : String(slot.itemInstanceId) },
+                                    { k: "Code",    v: slot.slotCode },
+                                    ...(slot.slotCategory ? [{ k: "Category", v: slot.slotCategory }] : []),
+                                    ...(slot.slotRole ? [{ k: "Role", v: slot.slotRole }] : []),
+                                    { k: "Item ID", v: slot.itemInstanceId === null ? "Empty" : String(slot.itemInstanceId) },
                                   ].map(({ k, v }) => (
                                     <div key={k} className="flex items-center gap-2">
                                       <span className="uppercase" style={{ fontSize: "9px", letterSpacing: "0.14em", color: "var(--lag-text-2)", width: 54, flexShrink: 0 }}>{k}</span>
