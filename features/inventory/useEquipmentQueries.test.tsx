@@ -24,9 +24,9 @@ const item: InventoryEntry = {
   itemInstanceId: 501,
   slotIndex: 3,
   itemId: 101,
-  itemName: "Server Sword",
-  category: "WEAPON",
-  type: "SWORD",
+  itemName: "Server Helmet",
+  category: "ARMOR",
+  type: "HELMET",
   rarity: "RARE",
   stackable: false,
   maxStack: 1,
@@ -37,7 +37,7 @@ const item: InventoryEntry = {
 };
 const inventory: InventoryEntriesResponse = { entries: [item] };
 const slots: EquipmentSlotInfo[] = [
-  { slotId: 21, slotCode: "MAIN_HAND", slotName: "Main Hand", slotCategory: "WEAPON", slotRole: "MAIN", itemInstanceId: null },
+  { slotId: 21, slotCode: "HEAD", slotName: "Head", slotCategory: null, slotRole: null, itemInstanceId: null },
 ];
 
 function deferred<T>() {
@@ -95,22 +95,22 @@ describe("Gear server query state를 관리할 때", () => {
       expect(equipmentApi.getEquippedGearApi).toHaveBeenCalledTimes(2);
       expect(inventoryApi.getInventoryApi).toHaveBeenCalledTimes(2);
       expect(result.current.slots[0].slot.itemInstanceId).toBe(501);
-      expect(result.current.slots[0].item?.itemName).toBe("Server Sword");
+      expect(result.current.slots[0].item?.itemName).toBe("Server Helmet");
       expect(result.current.mutationError).toContain("Server state was reloaded");
     });
   });
 
   describe("직접 Equip action을 호출한 pair가 검증되지 않으면", () => {
     it.each([
-      ["CHEST", "ARMOR", "HELMET", "incompatible"],
+      ["BODY", "ARMOR", "HELMET", "incompatible"],
       ["HEAD", "ARMOR", "CHEST", "incompatible"],
       ["FEET", "ARMOR", "ETC", "not available"],
-      ["LEGS", "ARMOR", "ETC", "not available"],
-      ["HANDS", "ARMOR", "ETC", "not available"],
+      ["WRIST", "ARMOR", "ETC", "not available"],
       ["NECK", "ACCESSORY", "ETC", "not available"],
-      ["TRINKET", "ACCESSORY", "ETC", "not available"],
-    ])("%s slot과 %s/%s item은 API 호출로 우회되지 않는다", async (slotCategory, category, type, reason) => {
-      equipmentApi.getEquippedGearApi.mockResolvedValue([{ ...slots[0], slotCategory }]);
+      ["AURA", "ACCESSORY", "ETC", "not available"],
+      ["TITLE", "ACCESSORY", "ETC", "not available"],
+    ])("%s slot과 %s/%s item은 API 호출로 우회되지 않는다", async (slotCode, category, type, reason) => {
+      equipmentApi.getEquippedGearApi.mockResolvedValue([{ ...slots[0], slotCode }]);
       inventoryApi.getInventoryApi.mockResolvedValue({ entries: [{ ...item, category, type }] });
       const { result, unmount } = renderHook(() => useEquipmentQueries());
       await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
@@ -127,7 +127,7 @@ describe("Gear server query state를 관리할 때", () => {
 
   describe("Unequip을 요청하면", () => {
     it("UNVERIFIABLE occupied slot도 해제하며 duplicate submit과 ambiguous failure를 복구한다", async () => {
-      const occupied = [{ ...slots[0], slotCategory: "FEET", itemInstanceId: 501 }];
+      const occupied = [{ ...slots[0], slotCode: "FEET", itemInstanceId: 501 }];
       const request = deferred<{ slotId: number }>();
       equipmentApi.getEquippedGearApi.mockResolvedValue(occupied);
       inventoryApi.getInventoryApi.mockResolvedValue({ entries: [{ ...item, category: "ARMOR", type: "ETC" }] });

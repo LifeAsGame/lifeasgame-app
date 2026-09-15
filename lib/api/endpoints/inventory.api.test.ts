@@ -73,6 +73,10 @@ describe("Inventory와 Mailbox를 실제 backend에 연결할 때", () => {
         durability: null,
         instanceAttrs: expect.any(Object),
       }));
+      expect(inventory.entries).toEqual(expect.arrayContaining([
+        expect.objectContaining({ itemName: "Black Coat of Midnight", category: "ARMOR", type: "CHEST" }),
+        expect.objectContaining({ itemName: "Frontliner's Helm", category: "ARMOR", type: "HELMET" }),
+      ]));
     });
   });
 });
