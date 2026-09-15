@@ -124,7 +124,11 @@ function QuickRecordForm({
     const form = new FormData(event.currentTarget);
     const lifeLogSubtype = text(form, "lifeLogSubtype") as JournalSubtype | "";
     const primaryRoleId = optionalNumber(form, "primaryRoleId");
-    const metadata = {
+    const metadata = lifeLogSubtype === "REFLECTION" ? {
+      lifeLogSubtype,
+      reflectionScope: "WEEKLY_LOOKBACK" as const,
+      ...(primaryRoleId === undefined ? {} : { primaryRoleId }),
+    } : {
       ...(lifeLogSubtype ? { lifeLogSubtype } : {}),
       ...(primaryRoleId === undefined ? {} : { primaryRoleId }),
     };

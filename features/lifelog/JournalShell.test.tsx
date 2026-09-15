@@ -281,6 +281,23 @@ describe("LifeLog Journal v7 surface", () => {
     }, expect.stringMatching(/^[0-9a-f-]{36}$/i));
   });
 
+  it("maps the existing REFLECTION subtype to weekly lookback", async () => {
+    await openQuickRecord();
+    fireEvent.change(screen.getByLabelText("Quick Record subtype"), { target: { value: "REFLECTION" } });
+    fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
+    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Weekly notes" } });
+    fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+
+    await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+    expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
+      type: "COLLECTION",
+      lifeLogSubtype: "REFLECTION",
+      reflectionScope: "WEEKLY_LOOKBACK",
+      collection: { category: "BOOK", title: "Weekly notes", quantity: 1 },
+    });
+  });
+
   it("preserves Exercise zero/optional semantics and Media partial progress", async () => {
     await openQuickRecord();
     selectQuickType("EXERCISE");
