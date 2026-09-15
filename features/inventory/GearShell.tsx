@@ -10,7 +10,10 @@ import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { candidatesForGearPart, getEquipCompatibility, slotsForGearPart } from "./model";
+import { CURRENT_CONSUMER_GEAR_CAPABILITY } from "./policy";
 import { useEquipmentQueries } from "./useEquipmentQueries";
+
+const READ_ONLY_MESSAGE = "Equipment Item content is unavailable. Gear is read-only.";
 
 function ErrorState({ text, retry }: { text: string; retry: () => void }) {
   return (
@@ -126,18 +129,22 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                 <section className="lag-gear-section" aria-labelledby="gear-candidates-title">
                   <h4 id="gear-candidates-title">Inventory Candidates</h4>
                   <div>
-                    {queries.inventory.loading && queries.inventory.data.entries.length === 0 ? <InfoCard>Loading Inventory candidates...</InfoCard> : null}
-                    {queries.inventory.error ? <ErrorState text={queries.inventory.error} retry={() => void queries.inventory.reload()} /> : null}
-                    {!queries.inventory.loading && !queries.inventory.error && candidates.length === 0 ? <InfoCard>No candidate Items.</InfoCard> : null}
-                    <div className="lag-gear-card-list">
-                      {candidates.map((item) => (
-                        <button key={item.itemInstanceId} type="button" className="lag-gear-card" data-kind="candidate" data-selected={selectedItemInstanceId === item.itemInstanceId} aria-pressed={selectedItemInstanceId === item.itemInstanceId} onClick={() => setSelectedItemInstanceId(item.itemInstanceId)}>
-                          <span aria-hidden>x{item.quantity}</span>
-                          <span><strong>{item.itemName}</strong><small>{item.rarity} · {item.category} · {item.type}</small><small>itemInstanceId {item.itemInstanceId}</small></span>
-                          <span aria-hidden>→</span>
-                        </button>
-                      ))}
-                    </div>
+                    {!CURRENT_CONSUMER_GEAR_CAPABILITY.equipmentItemsAvailable ? <InfoCard>{READ_ONLY_MESSAGE}</InfoCard> : (
+                      <>
+                        {queries.inventory.loading && queries.inventory.data.entries.length === 0 ? <InfoCard>Loading Inventory candidates...</InfoCard> : null}
+                        {queries.inventory.error ? <ErrorState text={queries.inventory.error} retry={() => void queries.inventory.reload()} /> : null}
+                        {!queries.inventory.loading && !queries.inventory.error && candidates.length === 0 ? <InfoCard>No candidate Items.</InfoCard> : null}
+                        <div className="lag-gear-card-list">
+                          {candidates.map((item) => (
+                            <button key={item.itemInstanceId} type="button" className="lag-gear-card" data-kind="candidate" data-selected={selectedItemInstanceId === item.itemInstanceId} aria-pressed={selectedItemInstanceId === item.itemInstanceId} onClick={() => setSelectedItemInstanceId(item.itemInstanceId)}>
+                              <span aria-hidden>x{item.quantity}</span>
+                              <span><strong>{item.itemName}</strong><small>{item.rarity} · {item.category} · {item.type}</small><small>itemInstanceId {item.itemInstanceId}</small></span>
+                              <span aria-hidden>→</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </section>
               </div>
@@ -173,40 +180,46 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                 <section className="lag-inventory-section">
                   <h4>Candidate and compatibility</h4>
                   <dl>
-                    <DataRow label="Candidate">{selectedCandidate ? `${selectedCandidate.itemName} · itemInstanceId ${selectedCandidate.itemInstanceId}` : "Select an Inventory candidate to equip."}</DataRow>
-                    <DataRow label="Compatibility">{compatibility?.status ?? "Not evaluated"}</DataRow>
+                    <DataRow label="Candidate">{CURRENT_CONSUMER_GEAR_CAPABILITY.equipmentItemsAvailable
+                      ? selectedCandidate ? `${selectedCandidate.itemName} · itemInstanceId ${selectedCandidate.itemInstanceId}` : "Select an Inventory candidate to equip."
+                      : "Unavailable in the current Consumer Gear slice"}</DataRow>
+                    <DataRow label="Compatibility">{CURRENT_CONSUMER_GEAR_CAPABILITY.equipmentItemsAvailable ? compatibility?.status ?? "Not evaluated" : "Not available"}</DataRow>
                   </dl>
                 </section>
-                {compatibility && compatibility.status !== "VERIFIED" ? <p role="alert" className="lag-inventory-feedback" data-state="error">{compatibility.status}: {compatibility.reason}</p> : null}
-                {queries.mutationError ? <p role="alert" className="lag-inventory-feedback" data-state="error">{queries.mutationError}</p> : null}
-                <div className="lag-inventory-actions">
-                  <button
-                    type="button"
-                    disabled={pending || compatibility?.status !== "VERIFIED" || selectedSlot.slot.itemInstanceId === selectedCandidate?.itemInstanceId}
-                    className="lag-inventory-action"
-                    onClick={() => {
-                      if (!selectedCandidate || compatibility?.status !== "VERIFIED") return;
-                      const current = selectedSlot.item?.itemName
-                        ?? (selectedSlot.slot.itemInstanceId === null ? null : `itemInstanceId ${selectedSlot.slot.itemInstanceId}`);
-                      const prompt = current
-                        ? `Replace ${current} in ${selectedSlot.slot.slotName} with ${selectedCandidate.itemName}?`
-                        : `Equip ${selectedCandidate.itemName} to ${selectedSlot.slot.slotName}?`;
-                      if (window.confirm(prompt)) void queries.equip(selectedSlot.slot.slotId, selectedCandidate.itemInstanceId);
-                    }}
-                  >{pending ? "Working..." : "Equip"}</button>
-                  {selectedSlot.slot.itemInstanceId !== null ? (
-                    <button
-                      type="button"
-                      disabled={pending}
-                      className="lag-inventory-button"
-                      data-variant="destructive"
-                      onClick={() => {
-                        const item = selectedSlot.item?.itemName ?? `itemInstanceId ${selectedSlot.slot.itemInstanceId}`;
-                        if (window.confirm(`Unequip ${item} from ${selectedSlot.slot.slotName}?`)) void queries.unequip(selectedSlot.slot.slotId);
-                      }}
-                    >Unequip</button>
-                  ) : null}
-                </div>
+                {CURRENT_CONSUMER_GEAR_CAPABILITY.actionsAvailable ? (
+                  <>
+                    {compatibility && compatibility.status !== "VERIFIED" ? <p role="alert" className="lag-inventory-feedback" data-state="error">{compatibility.status}: {compatibility.reason}</p> : null}
+                    {queries.mutationError ? <p role="alert" className="lag-inventory-feedback" data-state="error">{queries.mutationError}</p> : null}
+                    <div className="lag-inventory-actions">
+                      <button
+                        type="button"
+                        disabled={pending || compatibility?.status !== "VERIFIED" || selectedSlot.slot.itemInstanceId === selectedCandidate?.itemInstanceId}
+                        className="lag-inventory-action"
+                        onClick={() => {
+                          if (!selectedCandidate || compatibility?.status !== "VERIFIED") return;
+                          const current = selectedSlot.item?.itemName
+                            ?? (selectedSlot.slot.itemInstanceId === null ? null : `itemInstanceId ${selectedSlot.slot.itemInstanceId}`);
+                          const prompt = current
+                            ? `Replace ${current} in ${selectedSlot.slot.slotName} with ${selectedCandidate.itemName}?`
+                            : `Equip ${selectedCandidate.itemName} to ${selectedSlot.slot.slotName}?`;
+                          if (window.confirm(prompt)) void queries.equip(selectedSlot.slot.slotId, selectedCandidate.itemInstanceId);
+                        }}
+                      >{pending ? "Working..." : "Equip"}</button>
+                      {selectedSlot.slot.itemInstanceId !== null ? (
+                        <button
+                          type="button"
+                          disabled={pending}
+                          className="lag-inventory-button"
+                          data-variant="destructive"
+                          onClick={() => {
+                            const item = selectedSlot.item?.itemName ?? `itemInstanceId ${selectedSlot.slot.itemInstanceId}`;
+                            if (window.confirm(`Unequip ${item} from ${selectedSlot.slot.slotName}?`)) void queries.unequip(selectedSlot.slot.slotId);
+                          }}
+                        >Unequip</button>
+                      ) : null}
+                    </div>
+                  </>
+                ) : <p role="status" className="lag-inventory-feedback">{READ_ONLY_MESSAGE}</p>}
               </article>
             </PanelFrame>
           </PanelStage>

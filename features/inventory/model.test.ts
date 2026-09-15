@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { EquipmentSlotInfo, InventoryEntry } from "@/shared/api/types";
 import { candidatesForGearPart, composeEquipmentSlots, getEquipCompatibility, slotsForGearPart } from "./model";
+import { CURRENT_CONSUMER_GEAR_CAPABILITY } from "./policy";
 
 const slots: EquipmentSlotInfo[] = [
   { slotId: 21, slotCode: "HEAD", slotName: "Head", slotCategory: null, slotRole: null, itemInstanceId: 501 },
@@ -58,10 +59,14 @@ describe("Equipment와 Inventory를 Gear read model로 조합할 때", () => {
       expect(["weapon", "armor", "accessory", "boots"].flatMap((part) =>
         slotsForGearPart(composed, part as "weapon" | "armor" | "accessory" | "boots").map(({ slot }) => slot.slotCode),
       ).sort()).toEqual(["AURA", "BADGE", "BODY", "FEET", "HEAD", "NECK", "PROFILE_FRAME", "RING_LEFT", "WRIST"]);
-      expect(candidatesForGearPart(inventory, "weapon").map(({ itemInstanceId }) => itemInstanceId)).toEqual([501]);
-      expect(candidatesForGearPart(inventory, "armor").map(({ itemInstanceId }) => itemInstanceId)).toEqual([601]);
-      expect(candidatesForGearPart(inventory, "boots").map(({ itemInstanceId }) => itemInstanceId)).toEqual([601]);
-      expect(candidatesForGearPart(inventory, "accessory").map(({ itemInstanceId }) => itemInstanceId)).toEqual([701]);
+      expect(CURRENT_CONSUMER_GEAR_CAPABILITY).toEqual({
+        slotsReadable: true,
+        equipmentItemsAvailable: false,
+        actionsAvailable: false,
+      });
+      expect(["weapon", "armor", "accessory", "boots"].flatMap((part) =>
+        candidatesForGearPart(inventory, part as "weapon" | "armor" | "accessory" | "boots"),
+      )).toEqual([]);
     });
   });
 

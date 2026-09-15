@@ -1,5 +1,6 @@
 import type { InventoryGearPartId } from "@/entities/nav";
 import type { EquipmentSlotInfo, InventoryEntry } from "@/shared/api/types";
+import { CURRENT_CONSUMER_GEAR_CAPABILITY } from "./policy";
 
 export type EquipmentSlotView = {
   slot: EquipmentSlotInfo;
@@ -38,10 +39,12 @@ export function composeEquipmentSlots(slots: EquipmentSlotInfo[], inventory: Inv
 }
 
 export function slotsForGearPart(slots: EquipmentSlotView[], part: InventoryGearPartId): EquipmentSlotView[] {
+  if (!CURRENT_CONSUMER_GEAR_CAPABILITY.slotsReadable) return [];
   return slots.filter(({ slot }) => SLOT_CODES[part].includes(slot.slotCode));
 }
 
 export function candidatesForGearPart(inventory: InventoryEntry[], part: InventoryGearPartId): InventoryEntry[] {
+  if (!CURRENT_CONSUMER_GEAR_CAPABILITY.equipmentItemsAvailable) return [];
   return inventory.filter(({ category }) => category === ITEM_CATEGORY[part]);
 }
 
