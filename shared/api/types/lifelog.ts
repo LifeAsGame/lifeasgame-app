@@ -219,10 +219,17 @@ export type QuickRecordExerciseCategory = ExerciseCategory;
 export type QuickRecordMediaCategory = MediaCategory;
 export type QuickRecordMediaStatus = MediaStatus;
 
-type QuickRecordMetadata = {
-  lifeLogSubtype?: JournalSubtype;
-  primaryRoleId?: number;
-};
+type QuickRecordMetadata =
+  | {
+      lifeLogSubtype: "REFLECTION";
+      reflectionScope: JournalReflectionScope;
+      primaryRoleId?: number;
+    }
+  | {
+      lifeLogSubtype?: Exclude<JournalSubtype, "REFLECTION">;
+      reflectionScope?: never;
+      primaryRoleId?: number;
+    };
 
 export type QuickRecordRequest = QuickRecordMetadata & (
   | {
