@@ -128,6 +128,38 @@ describe("NotificationBell canonical surface", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("traps forward and reverse Tab at the dialog boundaries", async () => {
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }), { detail: 0 });
+    const dialog = screen.getByRole("dialog", { name: "Notifications" });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Close Notifications" })).toHaveFocus());
+    const controls = within(dialog).getAllByRole("button").filter((button) => !button.hasAttribute("disabled"));
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+
+    last.focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(first).toHaveFocus();
+
+    first.focus();
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(last).toHaveFocus();
+  });
+
+  it("isolates the background application surface and restores its prior state", async () => {
+    render(<main className="lag-app-surface" aria-hidden="false"><NotificationBell /><button type="button">Background action</button></main>);
+    const surface = screen.getByRole("main");
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+
+    expect(surface).toHaveAttribute("inert", "");
+    expect(surface).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Close Notifications" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    expect(surface).not.toHaveAttribute("inert");
+    expect(surface).toHaveAttribute("aria-hidden", "false");
+  });
+
   it("returns focus from detail to the selected visible inbox row", async () => {
     render(<NotificationBell />);
     const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });

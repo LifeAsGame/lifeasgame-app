@@ -275,8 +275,7 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
       return;
     }
     if (routePreviewOpened.current || selectedRouteId !== null || queries.routes.loading) return;
-    const currentRoute = queries.routes.data.mine.find((route) => route.playerProgress)
-      ?? queries.routes.data.catalog.find((route) => route.playerProgress);
+    const currentRoute = routes.find((route) => route.playerProgress);
     if (!currentRoute) return;
     routePreviewOpened.current = true;
     setSelectedRouteId(currentRoute.id);
