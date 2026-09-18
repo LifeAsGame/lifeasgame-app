@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 import type { NotificationInfo, NotificationType } from "@/shared/api/types";
 import { notificationPopupPosition, type FloatingPosition } from "@/shared/lib/viewport";
+import RuntimeFidelityStyles from "@/shared/ui/RuntimeFidelityStyles";
 import UtilityPortal from "@/shared/ui/UtilityPortal";
 import { useNotifications } from "./useNotifications";
 
@@ -163,6 +164,7 @@ export function NotificationBell() {
 
   return (
     <div ref={panelRef} className="lag-notification-anchor">
+      <RuntimeFidelityStyles />
       <motion.button
         ref={triggerRef}
         type="button"
@@ -185,9 +187,20 @@ export function NotificationBell() {
       <UtilityPortal>
         <AnimatePresence>
           {open ? (
-            <motion.div
+            <>
+              <motion.div
+                aria-hidden
+                className="lag-notification-backdrop"
+                key="notification-backdrop"
+                initial={reducedMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reducedMotion ? 0 : 0.16 }}
+              />
+              <motion.div
                 ref={popupRef}
                 role="dialog"
+                aria-modal="true"
                 aria-label="Notifications"
                 key="notification-dropdown"
                 initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
@@ -235,8 +248,9 @@ export function NotificationBell() {
                     </div>
                   </section>
                 ) : null}
-              </div>
-            </motion.div>
+                </div>
+              </motion.div>
+            </>
           ) : null}
         </AnimatePresence>
       </UtilityPortal>

@@ -45,7 +45,8 @@ describe("NotificationBell canonical surface", () => {
     expect(state.loadInbox).toHaveBeenCalledTimes(1);
     expect(state.markRead).not.toHaveBeenCalled();
     expect(state.markAllRead).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Notifications" })).toHaveAttribute("aria-modal", "true");
+    expect(document.querySelector(".lag-notification-backdrop")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mark all read" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Load older" })).toBeInTheDocument();
     expect(screen.queryByText(/clear|delete/i)).not.toBeInTheDocument();
@@ -106,8 +107,10 @@ describe("NotificationBell canonical surface", () => {
     expect(source).toContain("popup.offsetHeight");
     expect(source).toContain("ResizeObserver");
     const css = readFileSync("app/globals.css", "utf8");
+    const corrections = readFileSync("shared/ui/RuntimeFidelityStyles.tsx", "utf8");
     expect(css).toContain("bottom: calc(148px + env(safe-area-inset-bottom))");
-    expect(css).not.toContain(".lag-notification-backdrop");
+    expect(corrections).toContain(".lag-notification-backdrop");
+    expect(corrections).toContain("bottom: max(16px, env(safe-area-inset-bottom)) !important");
   });
 
   it.each(["Escape", "Close"])("keyboard-opens into the panel and %s restores trigger focus", async (method) => {

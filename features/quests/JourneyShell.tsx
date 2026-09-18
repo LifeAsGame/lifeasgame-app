@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import { SUBMENUS_BY_MAIN } from "@/entities/nav";
@@ -226,6 +226,7 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
   const selectedAcceptance = queries.current.data.find((item) => item.id === selectedAcceptanceId) ?? null;
   const selectedBlueprint = queries.catalog.data.find((item) => item.code === selectedCatalogCode) ?? null;
   const selectedRoute = routes.find((item) => item.id === selectedRouteId) ?? null;
+  const routePreviewOpened = useRef(false);
 
   const loadQuestDetail = async (code: string, preserve = false) => {
     const requestId = ++questDetailRequestId.current;
@@ -267,6 +268,19 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
       }
     }
   };
+
+  useEffect(() => {
+    if (surface !== "routes") {
+      routePreviewOpened.current = false;
+      return;
+    }
+    if (routePreviewOpened.current || selectedRouteId !== null || queries.routes.loading) return;
+    const currentRoute = queries.routes.data.mine.find((route) => route.playerProgress)
+      ?? queries.routes.data.catalog.find((route) => route.playerProgress);
+    if (!currentRoute) return;
+    routePreviewOpened.current = true;
+    setSelectedRouteId(currentRoute.id);
+  }, [queries.routes.data.catalog, queries.routes.data.mine, queries.routes.loading, selectedRouteId, surface]);
 
   const runMutation = async (key: string, request: () => Promise<unknown>, recover: () => Promise<void>) => {
     if (mutationLocked.current) return;

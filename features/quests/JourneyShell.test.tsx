@@ -119,6 +119,16 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       expect(screen.getByRole("button", { name: /Routes/ })).toBeInTheDocument();
       expect(screen.queryByText("No active Quest Routes.")).not.toBeInTheDocument();
     });
+
+    it("opens the existing selected Route as the progression surface", async () => {
+      api.listQuestRoutesApi.mockResolvedValue([]);
+      api.listMyQuestRoutesApi.mockResolvedValue([selectedRoute]);
+      render(<JourneyShell initialSurface="routes" />);
+
+      expect(await screen.findByText("Route progress")).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).toBeInTheDocument();
+      expect(api.getMyQuestRouteApi).not.toHaveBeenCalled();
+    });
   });
 
   describe("Journey main navigation으로 직접 진입하면", () => {
