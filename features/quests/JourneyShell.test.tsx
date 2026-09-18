@@ -119,6 +119,27 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       expect(screen.getByRole("button", { name: /Routes/ })).toBeInTheDocument();
       expect(screen.queryByText("No active Quest Routes.")).not.toBeInTheDocument();
     });
+
+    it("opens the existing selected Route as the progression surface", async () => {
+      api.listQuestRoutesApi.mockResolvedValue([]);
+      api.listMyQuestRoutesApi.mockResolvedValue([selectedRoute]);
+      render(<JourneyShell initialSurface="routes" />);
+
+      expect(await screen.findByText("Route progress")).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).toBeInTheDocument();
+      expect(api.getMyQuestRouteApi).not.toHaveBeenCalled();
+    });
+
+    it("previews the first progressed Route in displayed order", async () => {
+      const earlierCatalog = routeVariant(31, "Earlier Catalog Progress", "Earlier Step");
+      const laterMineOnly = routeVariant(32, "Later Mine-only Progress", "Later Step");
+      api.listQuestRoutesApi.mockResolvedValue([{ ...earlierCatalog, playerProgress: null }]);
+      api.listMyQuestRoutesApi.mockResolvedValue([laterMineOnly, earlierCatalog]);
+      render(<JourneyShell initialSurface="routes" />);
+
+      expect(await screen.findByText("Earlier Catalog Progress description")).toBeInTheDocument();
+      expect(screen.queryByText("Later Mine-only Progress description")).not.toBeInTheDocument();
+    });
   });
 
   describe("Journey main navigation으로 직접 진입하면", () => {

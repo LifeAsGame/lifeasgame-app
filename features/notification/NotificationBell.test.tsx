@@ -45,7 +45,8 @@ describe("NotificationBell canonical surface", () => {
     expect(state.loadInbox).toHaveBeenCalledTimes(1);
     expect(state.markRead).not.toHaveBeenCalled();
     expect(state.markAllRead).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Notifications" })).toHaveAttribute("aria-modal", "true");
+    expect(document.querySelector(".lag-notification-backdrop")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mark all read" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Load older" })).toBeInTheDocument();
     expect(screen.queryByText(/clear|delete/i)).not.toBeInTheDocument();
@@ -106,8 +107,10 @@ describe("NotificationBell canonical surface", () => {
     expect(source).toContain("popup.offsetHeight");
     expect(source).toContain("ResizeObserver");
     const css = readFileSync("app/globals.css", "utf8");
+    const corrections = readFileSync("shared/ui/RuntimeFidelityStyles.tsx", "utf8");
     expect(css).toContain("bottom: calc(148px + env(safe-area-inset-bottom))");
-    expect(css).not.toContain(".lag-notification-backdrop");
+    expect(corrections).toContain(".lag-notification-backdrop");
+    expect(corrections).toContain("bottom: max(16px, env(safe-area-inset-bottom)) !important");
   });
 
   it.each(["Escape", "Close"])("keyboard-opens into the panel and %s restores trigger focus", async (method) => {
@@ -123,6 +126,38 @@ describe("NotificationBell canonical surface", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
+  });
+
+  it("traps forward and reverse Tab at the dialog boundaries", async () => {
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }), { detail: 0 });
+    const dialog = screen.getByRole("dialog", { name: "Notifications" });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Close Notifications" })).toHaveFocus());
+    const controls = within(dialog).getAllByRole("button").filter((button) => !button.hasAttribute("disabled"));
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+
+    last.focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(first).toHaveFocus();
+
+    first.focus();
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(last).toHaveFocus();
+  });
+
+  it("isolates the background application surface and restores its prior state", async () => {
+    render(<main className="lag-app-surface" aria-hidden="false"><NotificationBell /><button type="button">Background action</button></main>);
+    const surface = screen.getByRole("main");
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+
+    expect(surface).toHaveAttribute("inert", "");
+    expect(surface).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Close Notifications" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    expect(surface).not.toHaveAttribute("inert");
+    expect(surface).toHaveAttribute("aria-hidden", "false");
   });
 
   it("returns focus from detail to the selected visible inbox row", async () => {

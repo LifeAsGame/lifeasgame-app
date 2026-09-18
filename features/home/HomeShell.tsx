@@ -147,28 +147,36 @@ export default function HomeShell({
               <h3>Current Quests</h3>
               <button type="button" className="lag-button-secondary lag-home-action" onClick={onOpenCurrentQuests}>Open Quests</button>
             </div>
-            {data.journey.currentQuests.length === 0 ? <Empty>No current Quests.</Empty> : data.journey.currentQuests.map((quest) => (
-              <button key={quest.acceptanceId} type="button" className="lag-home-card lag-home-entry" onClick={onOpenCurrentQuests}>
-                <p className="lag-home-entry-title">{quest.title}</p>
-                <Meta>{quest.status} · {quest.progressValue} / {quest.targetValue}</Meta>
-                <Meta>Accepted <time dateTime={quest.acceptedAt}>{quest.acceptedAt}</time></Meta>
-                {quest.goalReachedAt ? <Meta>Goal reached <time dateTime={quest.goalReachedAt}>{quest.goalReachedAt}</time></Meta> : null}
-              </button>
-            ))}
+            {data.journey.currentQuests.length === 0 ? <Empty>No current Quests.</Empty> : (
+              <div className="lag-home-list">
+                {data.journey.currentQuests.map((quest) => (
+                  <button key={quest.acceptanceId} type="button" className="lag-home-card lag-home-entry" onClick={onOpenCurrentQuests}>
+                    <p className="lag-home-entry-title">{quest.title}</p>
+                    <Meta>{quest.status} · {quest.progressValue} / {quest.targetValue}</Meta>
+                    <Meta>Accepted <time dateTime={quest.acceptedAt}>{quest.acceptedAt}</time></Meta>
+                    {quest.goalReachedAt ? <Meta>Goal reached <time dateTime={quest.goalReachedAt}>{quest.goalReachedAt}</time></Meta> : null}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="lag-home-journey-block">
             <div className="lag-home-subsection-header">
               <h3>Selected Routes</h3>
               <button type="button" className="lag-button-secondary lag-home-action" onClick={onOpenRoutes}>Open Routes</button>
             </div>
-            {data.journey.selectedRoutes.length === 0 ? <Empty>No selected Routes.</Empty> : data.journey.selectedRoutes.map((route) => (
-              <button key={route.routeId} type="button" className="lag-home-card lag-home-entry" onClick={onOpenRoutes}>
-                <p className="lag-home-entry-title">{route.title}</p>
-                <Meta>{route.status}</Meta>
-                <Meta>Selected <time dateTime={route.selectedAt}>{route.selectedAt}</time></Meta>
-                {route.completedAt ? <Meta>Completed <time dateTime={route.completedAt}>{route.completedAt}</time></Meta> : null}
-              </button>
-            ))}
+            {data.journey.selectedRoutes.length === 0 ? <Empty>No selected Routes.</Empty> : (
+              <div className="lag-home-list">
+                {data.journey.selectedRoutes.map((route) => (
+                  <button key={route.routeId} type="button" className="lag-home-card lag-home-entry" onClick={onOpenRoutes}>
+                    <p className="lag-home-entry-title">{route.title}</p>
+                    <Meta>{route.status}</Meta>
+                    <Meta>Selected <time dateTime={route.selectedAt}>{route.selectedAt}</time></Meta>
+                    {route.completedAt ? <Meta>Completed <time dateTime={route.completedAt}>{route.completedAt}</time></Meta> : null}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 

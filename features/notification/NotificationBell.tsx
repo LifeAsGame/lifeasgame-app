@@ -5,6 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 import type { NotificationInfo, NotificationType } from "@/shared/api/types";
 import { notificationPopupPosition, type FloatingPosition } from "@/shared/lib/viewport";
+import RuntimeFidelityStyles from "@/shared/ui/RuntimeFidelityStyles";
 import UtilityPortal from "@/shared/ui/UtilityPortal";
 import { useNotifications } from "./useNotifications";
 
@@ -74,6 +75,7 @@ export function NotificationBell() {
   const selectedTriggerRef = useRef<HTMLButtonElement | null>(null);
   const focusOnOpenRef = useRef(false);
   const focusInboxRef = useRef(false);
+  const restoreTriggerFocusRef = useRef(false);
   const [popupPosition, setPopupPosition] = useState<FloatingPosition | null>(null);
   const selected = state.inbox.find(({ id }) => id === selectedId) ?? null;
 
@@ -85,8 +87,8 @@ export function NotificationBell() {
   }, []);
 
   const close = useCallback(() => {
+    restoreTriggerFocusRef.current = true;
     dismiss();
-    triggerRef.current?.focus({ preventScroll: true });
   }, [dismiss]);
 
   const placePopup = useCallback(() => {
@@ -107,6 +109,29 @@ export function NotificationBell() {
       window.removeEventListener("resize", placePopup);
     };
   }, [open, placePopup]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const surface = panelRef.current?.closest<HTMLElement>(".lag-app-surface");
+    if (!surface) return;
+    const inert = surface.getAttribute("inert");
+    const ariaHidden = surface.getAttribute("aria-hidden");
+    surface.setAttribute("inert", "");
+    surface.setAttribute("aria-hidden", "true");
+    return () => {
+      if (inert === null) surface.removeAttribute("inert");
+      else surface.setAttribute("inert", inert);
+      if (ariaHidden === null) surface.removeAttribute("aria-hidden");
+      else surface.setAttribute("aria-hidden", ariaHidden);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open && restoreTriggerFocusRef.current) {
+      restoreTriggerFocusRef.current = false;
+      triggerRef.current?.focus({ preventScroll: true });
+    }
+  }, [open]);
 
   useLayoutEffect(() => {
     if (open && popupPosition && focusOnOpenRef.current) {
@@ -134,11 +159,31 @@ export function NotificationBell() {
 
   useEffect(() => {
     if (!open) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
+    const handleDialogKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        close();
+        return;
+      }
+      if (event.key !== "Tab" || !popupRef.current) return;
+      const focusable = Array.from(popupRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ));
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (!popupRef.current.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", handleDialogKey);
+    return () => document.removeEventListener("keydown", handleDialogKey);
   }, [close, open]);
 
   const toggle = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -163,6 +208,7 @@ export function NotificationBell() {
 
   return (
     <div ref={panelRef} className="lag-notification-anchor">
+      <RuntimeFidelityStyles />
       <motion.button
         ref={triggerRef}
         type="button"
@@ -185,9 +231,20 @@ export function NotificationBell() {
       <UtilityPortal>
         <AnimatePresence>
           {open ? (
-            <motion.div
+            <>
+              <motion.div
+                aria-hidden
+                className="lag-notification-backdrop"
+                key="notification-backdrop"
+                initial={reducedMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reducedMotion ? 0 : 0.16 }}
+              />
+              <motion.div
                 ref={popupRef}
                 role="dialog"
+                aria-modal="true"
                 aria-label="Notifications"
                 key="notification-dropdown"
                 initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
@@ -235,8 +292,9 @@ export function NotificationBell() {
                     </div>
                   </section>
                 ) : null}
-              </div>
-            </motion.div>
+                </div>
+              </motion.div>
+            </>
           ) : null}
         </AnimatePresence>
       </UtilityPortal>
