@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,17 +11,13 @@ import RoleShell from "./RoleShell";
 const api = vi.hoisted(() => ({
   archiveRoleApi: vi.fn(),
   archiveRoleRelationApi: vi.fn(),
-  cancelRoleEventApi: vi.fn(),
-  completeRoleEventApi: vi.fn(),
   createPersonApi: vi.fn(),
-  createRoleEventApi: vi.fn(),
   createRoleRelationApi: vi.fn(),
   getRoleEventApi: vi.fn(),
   listPersonsApi: vi.fn(),
   listRoleEventsApi: vi.fn(),
   listRoleRelationsApi: vi.fn(),
   updateRoleApi: vi.fn(),
-  updateRoleEventApi: vi.fn(),
   updateRoleRelationApi: vi.fn(),
 }));
 vi.mock("./api", () => api);
@@ -56,7 +52,7 @@ function Harness({ initialRoleId = 1, availableRoles = roles, loading = false, e
 
 describe("실제 Role shell을 사용할 때", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     api.listPersonsApi.mockResolvedValue([person]);
     api.listRoleRelationsApi.mockResolvedValue([relation]);
@@ -65,10 +61,6 @@ describe("실제 Role shell을 사용할 때", () => {
     api.createPersonApi.mockResolvedValue(person);
     api.createRoleRelationApi.mockResolvedValue(relation);
     api.updateRoleRelationApi.mockResolvedValue({ ...relation, relationType: "MENTOR" });
-    api.createRoleEventApi.mockResolvedValue(roleEvent);
-    api.updateRoleEventApi.mockResolvedValue({ ...roleEvent, title: "Updated review" });
-    api.completeRoleEventApi.mockResolvedValue({ ...roleEvent, status: "COMPLETED", completedAt: "2026-08-11T00:00:00Z" });
-    api.cancelRoleEventApi.mockResolvedValue({ ...roleEvent, status: "CANCELED" });
   });
 
   it("Role list/surface/detail/form이 shared semantic material만 사용한다", () => {
@@ -259,39 +251,75 @@ describe("실제 Role shell을 사용할 때", () => {
     });
   });
 
-  describe("Events surface에서 일정 lifecycle을 수행하면", () => {
-    it("list/detail/participant 표시 후 create/update/complete를 수행하되 participant 입력은 노출하지 않는다", async () => {
+  describe("Events surface를 열면", () => {
+    const gate = "역할 사건 기록은 준비 중입니다. 기록은 Journal에서 남길 수 있습니다.";
+
+    it("기존 사건과 participant는 읽되 쓰기 control은 노출하지 않는다", async () => {
       render(<Harness />);
+      expect(screen.getByText("Event history · 준비 중")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      expect(screen.getByText(gate)).toBeInTheDocument();
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
 
       expect(await screen.findByText("SERVICE_USER #99")).toBeInTheDocument();
       expect(screen.queryByLabelText(/participant/i)).not.toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole("button", { name: "Create Event" }));
-      fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Planning" } });
-      fireEvent.click(screen.getByRole("button", { name: "Save New Event" }));
-      await waitFor(() => expect(api.createRoleEventApi).toHaveBeenCalledWith(1, { title: "Planning", description: null, startsAt: null, endsAt: null }));
-
-      fireEvent.click(screen.getByRole("button", { name: "Edit Event" }));
-      fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Updated review" } });
-      fireEvent.click(screen.getByRole("button", { name: "Update Event" }));
-      await waitFor(() => expect(api.updateRoleEventApi).toHaveBeenCalledWith(1, 11, { title: "Updated review", description: "Review boundaries", startsAt: null, endsAt: null }));
-
-      fireEvent.click(screen.getByRole("button", { name: "Complete Event" }));
-      await waitFor(() => expect(api.completeRoleEventApi).toHaveBeenCalledWith(1, 11));
+      for (const name of ["Create Event", "Edit Event", "Complete Event", "Cancel Event", "Save New Event", "Update Event"]) {
+        expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+      }
+      expect(api.listRoleEventsApi).toHaveBeenCalledWith(1);
+      expect(api.getRoleEventApi).toHaveBeenCalledWith(1, 11);
     });
 
-    it("cancel은 독립 endpoint만 호출하고 LifeLog 또는 participant mutation을 만들지 않는다", async () => {
+    it("loading과 빈 목록에서도 gate를 보여주고 조회 실패는 retry로 복구한다", async () => {
+      const loading = deferred<RoleEventDetail[]>();
+      api.listRoleEventsApi.mockReturnValueOnce(loading.promise).mockResolvedValue([]);
+      const empty = render(<Harness />);
+      fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      expect(screen.getByText(gate)).toBeInTheDocument();
+      expect(screen.getByText("Loading Events...")).toBeInTheDocument();
+      await act(async () => loading.resolve([]));
+      expect(screen.getByText(gate)).toBeInTheDocument();
+      expect(screen.getByText("No Events for this Role.")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Create Event" })).not.toBeInTheDocument();
+
+      empty.unmount();
+      api.listRoleEventsApi.mockRejectedValueOnce(new Error("Event list failed"));
+      render(<Harness />);
+      fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("Event list failed");
+      expect(screen.getByText(gate)).toBeInTheDocument();
+      expect(screen.queryByText("No Events for this Role.")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      expect(await screen.findByText("No Events for this Role.")).toBeInTheDocument();
+    });
+
+    it("detail 조회 실패를 오류로 보여주고 행을 다시 선택해 복구한다", async () => {
+      api.getRoleEventApi.mockRejectedValueOnce(new Error("Event detail failed"));
+      render(<Harness />);
+      fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      const row = await screen.findByRole("button", { name: /Architecture review/ });
+      fireEvent.click(row);
+      expect(await screen.findByRole("alert")).toHaveTextContent("Event detail failed");
+      expect(screen.getByText(gate)).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Event detail" })).not.toBeInTheDocument();
+      fireEvent.click(row);
+      expect(await screen.findByText("SERVICE_USER #99")).toBeInTheDocument();
+    });
+
+    it("Role 변경 중 늦게 도착한 이전 Role detail을 보여주지 않는다", async () => {
+      const pending = deferred<RoleEventDetail>();
+      api.getRoleEventApi.mockReturnValueOnce(pending.promise);
+      api.listRoleEventsApi.mockImplementation((roleId: number) => Promise.resolve(roleId === 1 ? [roleEvent] : []));
       render(<Harness />);
       fireEvent.click(screen.getByRole("button", { name: /Events/ }));
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
-      fireEvent.click(await screen.findByRole("button", { name: "Cancel Event" }));
-
-      await waitFor(() => expect(api.cancelRoleEventApi).toHaveBeenCalledWith(1, 11));
-      expect(api.createRoleEventApi).not.toHaveBeenCalled();
-      expect(api.updateRoleEventApi).not.toHaveBeenCalled();
-      expect(api.completeRoleEventApi).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: /Family Member/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      expect(await screen.findByText("No Events for this Role.")).toBeInTheDocument();
+      await act(async () => pending.resolve(roleEvent));
+      expect(screen.getByText(gate)).toBeInTheDocument();
+      expect(screen.queryByText("SERVICE_USER #99")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Architecture review/ })).not.toBeInTheDocument();
     });
   });
 });

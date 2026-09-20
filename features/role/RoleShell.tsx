@@ -7,7 +7,6 @@ import type {
   PersonDetail,
   RoleDetail,
   RoleEventDetail,
-  RoleEventInput,
   RoleRelationDetail,
 } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
@@ -17,17 +16,13 @@ import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import {
   archiveRoleApi,
   archiveRoleRelationApi,
-  cancelRoleEventApi,
-  completeRoleEventApi,
   createPersonApi,
-  createRoleEventApi,
   createRoleRelationApi,
   getRoleEventApi,
   listPersonsApi,
   listRoleEventsApi,
   listRoleRelationsApi,
   updateRoleApi,
-  updateRoleEventApi,
   updateRoleRelationApi,
 } from "./api";
 
@@ -45,17 +40,6 @@ function value(form: FormData, key: string) {
 
 function nullable(form: FormData, key: string) {
   return value(form, key) || null;
-}
-
-function toLocalDateTime(instant: string | null) {
-  if (!instant) return "";
-  const date = new Date(instant);
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-}
-
-function toInstant(local: string) {
-  return local ? new Date(local).toISOString() : null;
 }
 
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
@@ -282,54 +266,10 @@ function RelationsSurface({ roleId }: { roleId: number }) {
   );
 }
 
-function EventForm({ roleId, event, onSaved, onCancel }: { roleId: number; event: RoleEventDetail | null; onSaved: (saved: RoleEventDetail) => Promise<void>; onCancel: () => void }) {
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = async (submitEvent: React.SubmitEvent<HTMLFormElement>) => {
-    submitEvent.preventDefault();
-    const form = new FormData(submitEvent.currentTarget);
-    const body: RoleEventInput = {
-      title: value(form, "title"),
-      description: nullable(form, "description"),
-      startsAt: toInstant(value(form, "startsAt")),
-      endsAt: toInstant(value(form, "endsAt")),
-    };
-    setPending(true);
-    setError(null);
-    try {
-      const saved = event
-        ? await updateRoleEventApi(roleId, event.id, body)
-        : await createRoleEventApi(roleId, body);
-      await onSaved(saved);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to save Event.");
-    } finally {
-      setPending(false);
-    }
-  };
-
-  return (
-    <form className="lag-role-form" onSubmit={submit}>
-      <label>Title<input className="lag-role-control" name="title" required maxLength={120} defaultValue={event?.title ?? ""} /></label>
-      <label>Description<textarea className="lag-role-control" name="description" maxLength={1000} defaultValue={event?.description ?? ""} rows={3} /></label>
-      <label>Starts At<input className="lag-role-control" name="startsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.startsAt ?? null)} /></label>
-      <label>Ends At<input className="lag-role-control" name="endsAt" type="datetime-local" defaultValue={toLocalDateTime(event?.endsAt ?? null)} /></label>
-      {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
-      <div className="lag-role-actions">
-        <button type="submit" disabled={pending} className="lag-role-action">{event ? "Update Event" : "Save New Event"}</button>
-        <button type="button" className="lag-role-button" onClick={onCancel}>Cancel</button>
-      </div>
-    </form>
-  );
-}
-
 function EventsSurface({ roleId }: { roleId: number }) {
   const [events, setEvents] = useState<RoleEventDetail[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<RoleEventDetail | null>(null);
-  const [formEvent, setFormEvent] = useState<RoleEventDetail | "create" | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -348,81 +288,49 @@ function EventsSurface({ roleId }: { roleId: number }) {
 
   const selectEvent = async (eventId: number) => {
     setError(null);
+    setSelectedEvent(null);
     try {
       setSelectedEvent(await getRoleEventApi(roleId, eventId));
-      setFormEvent(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to load Event detail.");
     }
   };
 
-  const saved = async (next: RoleEventDetail) => {
-    setSelectedEvent(next);
-    setFormEvent(null);
-    await load();
-  };
-
-  const transition = async (action: "complete" | "cancel") => {
-    if (!selectedEvent) return;
-    setPending(true);
-    setError(null);
-    try {
-      const next = action === "complete"
-        ? await completeRoleEventApi(roleId, selectedEvent.id)
-        : await cancelRoleEventApi(roleId, selectedEvent.id);
-      await saved(next);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : `Unable to ${action} Event.`);
-    } finally {
-      setPending(false);
-    }
-  };
-
-  if (loading) return <InfoCard>Loading Events...</InfoCard>;
-  if (error && events.length === 0) return <ErrorState message={error} onRetry={() => void load()} />;
-
   return (
     <div className="lag-role-detail lag-role-events">
-      {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
-      <button type="button" className="lag-role-action" onClick={() => setFormEvent("create")}>Create Event</button>
-      <div className="lag-role-event-list" aria-label="Role Events">
-        {events.length ? events.map((roleEvent) => (
-          <button key={roleEvent.id} type="button" className="lag-role-event" data-selected={selectedEvent?.id === roleEvent.id} aria-pressed={selectedEvent?.id === roleEvent.id} onClick={() => void selectEvent(roleEvent.id)}>
-            <span aria-hidden>{roleEvent.status === "PLANNED" ? "○" : roleEvent.status === "COMPLETED" ? "✓" : "×"}</span>
-            <span><strong>{roleEvent.title}</strong><small>{roleEvent.status}</small></span>
-            <span aria-hidden>→</span>
-          </button>
-        )) : <InfoCard>No Events for this Role.</InfoCard>}
-      </div>
+      <InfoCard>역할 사건 기록은 준비 중입니다. 기록은 Journal에서 남길 수 있습니다.</InfoCard>
+      {loading ? <InfoCard>Loading Events...</InfoCard> : error && events.length === 0 ? <ErrorState message={error} onRetry={() => void load()} /> : (
+        <>
+          {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
+          <div className="lag-role-event-list" aria-label="Role Events">
+            {events.length ? events.map((roleEvent) => (
+              <button key={roleEvent.id} type="button" className="lag-role-event" data-selected={selectedEvent?.id === roleEvent.id} aria-pressed={selectedEvent?.id === roleEvent.id} onClick={() => void selectEvent(roleEvent.id)}>
+                <span aria-hidden>{roleEvent.status === "PLANNED" ? "○" : roleEvent.status === "COMPLETED" ? "✓" : "×"}</span>
+                <span><strong>{roleEvent.title}</strong><small>{roleEvent.status}</small></span>
+                <span aria-hidden>→</span>
+              </button>
+            )) : <InfoCard>No Events for this Role.</InfoCard>}
+          </div>
 
-      {formEvent ? (
-        <EventForm key={formEvent === "create" ? "create" : `${formEvent.id}-${formEvent.version}`} roleId={roleId} event={formEvent === "create" ? null : formEvent} onSaved={saved} onCancel={() => setFormEvent(null)} />
-      ) : selectedEvent ? (
-        <section className="lag-role-section" aria-label="Event detail">
-          <h4>{selectedEvent.title}</h4>
-          <div className="lag-role-section-body">
-            <p className="lag-role-description">{selectedEvent.description || "No description"}</p>
-            <dl>
-              <RoleDataRow label="Status">{selectedEvent.status}</RoleDataRow>
-              <RoleDataRow label="Starts">{selectedEvent.startsAt || "Not set"}</RoleDataRow>
-              <RoleDataRow label="Ends">{selectedEvent.endsAt || "Not set"}</RoleDataRow>
-            </dl>
-            <h5 className="lag-role-subheading">Participants</h5>
-            {selectedEvent.participants.length ? selectedEvent.participants.map((participant) => (
-              <div className="lag-role-record" key={participant.participantLinkId} data-kind="participant"><strong>{participant.participantType} #{participant.participantId}</strong></div>
-            )) : <InfoCard>No participants.</InfoCard>}
-          <div className="lag-role-actions">
-            <button type="button" className="lag-role-button" onClick={() => setFormEvent(selectedEvent)}>Edit Event</button>
-            {selectedEvent.status === "PLANNED" ? (
-              <>
-                <button type="button" disabled={pending} className="lag-role-action" onClick={() => void transition("complete")}>Complete Event</button>
-                <button type="button" disabled={pending} className="lag-role-button" data-variant="destructive" onClick={() => void transition("cancel")}>Cancel Event</button>
-              </>
-            ) : null}
-          </div>
-          </div>
-        </section>
-      ) : <InfoCard>Select an Event to load its detail.</InfoCard>}
+          {selectedEvent ? (
+            <section className="lag-role-section" aria-label="Event detail">
+              <h4>{selectedEvent.title}</h4>
+              <div className="lag-role-section-body">
+                <p className="lag-role-description">{selectedEvent.description || "No description"}</p>
+                <dl>
+                  <RoleDataRow label="Status">{selectedEvent.status}</RoleDataRow>
+                  <RoleDataRow label="Starts">{selectedEvent.startsAt || "Not set"}</RoleDataRow>
+                  <RoleDataRow label="Ends">{selectedEvent.endsAt || "Not set"}</RoleDataRow>
+                </dl>
+                <h5 className="lag-role-subheading">Participants</h5>
+                {selectedEvent.participants.length ? selectedEvent.participants.map((participant) => (
+                  <div className="lag-role-record" key={participant.participantLinkId} data-kind="participant"><strong>{participant.participantType} #{participant.participantId}</strong></div>
+                )) : <InfoCard>No participants.</InfoCard>}
+              </div>
+            </section>
+          ) : <InfoCard>Select an Event to load its detail.</InfoCard>}
+        </>
+      )}
     </div>
   );
 }
@@ -499,7 +407,7 @@ export default function RoleShell({
                     <button key={item.id} type="button" className="lag-role-surface-card" aria-pressed={activeSurface === item.id} data-selected={activeSurface === item.id} onClick={() => { setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }}>
                       <span aria-hidden>{item.slotLabel}</span>
                       <strong>{item.label}</strong>
-                      <small>{item.id === "overview" ? "Real Role identity" : item.id === "relations" ? "Persons and Role Relations" : "RoleEvent lifecycle"}</small>
+                      <small>{item.id === "overview" ? "Real Role identity" : item.id === "relations" ? "Persons and Role Relations" : "Event history · 준비 중"}</small>
                       <span aria-hidden>→</span>
                     </button>
                   ))}
@@ -522,7 +430,7 @@ export default function RoleShell({
                 <RoleEditForm role={selectedRole} onSaved={async () => { await onRefresh(); closeDetail(); }} onCancel={closeDetail} />
               ) : activeSurface === "overview" ? <Overview role={selectedRole} />
                 : activeSurface === "relations" ? <RelationsSurface roleId={selectedRole.id} />
-                  : <EventsSurface roleId={selectedRole.id} />}
+                  : <EventsSurface key={selectedRole.id} roleId={selectedRole.id} />}
             </PanelFrame>
           </PanelStage>
         ) : null}

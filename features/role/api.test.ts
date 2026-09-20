@@ -4,11 +4,8 @@ import {
   archivePersonApi,
   archiveRoleApi,
   archiveRoleRelationApi,
-  cancelRoleEventApi,
-  completeRoleEventApi,
   createPersonApi,
   createRoleApi,
-  createRoleEventApi,
   createRoleRelationApi,
   getPersonApi,
   getRoleApi,
@@ -20,7 +17,6 @@ import {
   listRolesApi,
   updatePersonApi,
   updateRoleApi,
-  updateRoleEventApi,
   updateRoleRelationApi,
 } from "./api";
 import { roleMock } from "./mock";
@@ -28,7 +24,6 @@ import { roleMock } from "./mock";
 const client = vi.hoisted(() => ({
   apiDelete: vi.fn(),
   apiGet: vi.fn(),
-  apiPatch: vi.fn(),
   apiPost: vi.fn(),
   apiPut: vi.fn(),
 }));
@@ -91,25 +86,16 @@ describe("실제 Role shell API를 호출할 때", () => {
     });
   });
 
-  describe("선택된 Role의 Events를 관리하면", () => {
-    it("PATCH update와 독립 complete/cancel endpoint만 호출한다", async () => {
-      const event = { title: "Review", description: null, startsAt: null, endsAt: null };
-
+  describe("선택된 Role의 Events를 조회하면", () => {
+    it("목록과 상세만 GET하고 Event command를 보내지 않는다", async () => {
       await listRoleEventsApi(3);
       await getRoleEventApi(3, 11);
-      await createRoleEventApi(3, event);
-      await updateRoleEventApi(3, 11, event);
-      await completeRoleEventApi(3, 11);
-      await cancelRoleEventApi(3, 12);
 
       expect(client.apiGet).toHaveBeenNthCalledWith(1, "/api/v1/roles/3/events");
       expect(client.apiGet).toHaveBeenNthCalledWith(2, "/api/v1/roles/3/events/11");
-      expect(client.apiPost).toHaveBeenCalledWith("/api/v1/roles/3/events", event);
-      expect(client.apiPatch).toHaveBeenCalledWith("/api/v1/roles/3/events/11", event);
-      expect(client.apiPost).toHaveBeenCalledWith("/api/v1/roles/3/events/11/complete", {});
-      expect(client.apiPost).toHaveBeenCalledWith("/api/v1/roles/3/events/12/cancel", {});
-      expect(client.apiPost.mock.calls.some(([path]) => String(path).includes("lifelogs"))).toBe(false);
-      expect(client.apiPost.mock.calls.some(([path]) => String(path).includes("participants"))).toBe(false);
+      expect(client.apiPost).not.toHaveBeenCalled();
+      expect(client.apiPut).not.toHaveBeenCalled();
+      expect(client.apiDelete).not.toHaveBeenCalled();
     });
   });
 
