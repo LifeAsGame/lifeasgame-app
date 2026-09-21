@@ -14,10 +14,15 @@ const initial: NotificationInfo[] = Array.from({ length: 25 }, (_, index) => {
   const id = 25 - index;
   return {
     id,
-    type: types[index % types.length],
-    title: `Notification ${id}`,
-    body: `Canonical inbox item ${id}`,
-    occurredAt: `2026-08-${String(18 - Math.floor(index / 8)).padStart(2, "0")}T${String(index % 24).padStart(2, "0")}:00:00Z`,
+    type: index === 0 ? "QUEST_COMPLETED" : index === 1 ? "QUEST_REWARD_READY" : index === 3 ? "FUTURE_NOTICE" : types[index % types.length],
+    title: index === 0 ? "Quest를 완료했어요" : index === 1 ? "Quest 보상이 준비됐어요" : `Notification ${id}`,
+    body: index === 0 ? "첫 기록 완료 사실이 기록되었습니다." : index === 1 ? "첫 기록의 확인 가능한 보상이 준비되었습니다. Mailbox 또는 결과 화면에서 상태를 확인해 주세요." : `Canonical inbox item ${id}`,
+    titleCopyId: index === 0 ? "notification.ntf_quest_completed.title" : index === 1 ? "notification.ntf_quest_reward_ready.title" : null,
+    titleCopyVersion: index < 2 ? 1 : null,
+    bodyCopyId: index === 0 ? "notification.ntf_quest_completed.body" : index === 1 ? "notification.ntf_quest_reward_ready.body" : null,
+    bodyCopyVersion: index < 2 ? 1 : null,
+    copyLocale: index < 2 ? "ko-KR" : null,
+    occurredAt: index < 2 ? `2026-09-22T0${1 - index}:00:00Z` : `2026-08-${String(18 - Math.floor(index / 8)).padStart(2, "0")}T${String(index % 24).padStart(2, "0")}:00:00Z`,
     read: id % 3 === 0,
   };
 });

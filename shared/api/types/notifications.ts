@@ -12,6 +12,11 @@ export interface NotificationInfo {
   type: string;
   title: string;
   body: string;
+  titleCopyId: string | null;
+  titleCopyVersion: number | null;
+  bodyCopyId: string | null;
+  bodyCopyVersion: number | null;
+  copyLocale: string | null;
   occurredAt: string;
   read: boolean;
 }
