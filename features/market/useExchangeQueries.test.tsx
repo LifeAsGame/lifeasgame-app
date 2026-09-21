@@ -18,8 +18,11 @@ vi.mock("@/lib/api/endpoints/inventory.api", () => ({ getInventoryApi: api.getIn
 
 describe("Exchange read ownership", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    api.getWalletApi.mockResolvedValue({ amount: 900, currency: "GOLD" });
+    vi.resetAllMocks();
+    api.getWalletApi.mockResolvedValue({ amount: 900, currency: "GOLD", balances: [
+      { currency: "GOLD", available: 900, held: 20 },
+      { currency: "GEM", available: 3, held: 1 },
+    ] });
     api.getShopItemsApi.mockResolvedValue([]);
     api.getShopPurchasesApi.mockResolvedValue([]);
     api.getOpenListingsApi.mockResolvedValue([]);
@@ -31,7 +34,7 @@ describe("Exchange read ownership", () => {
   it("loads only the selected canonical surface and switches Shop data on together", async () => {
     const view = renderHook(({ surface }) => useExchangeQueries(surface), { initialProps: { surface: "wallet" as "wallet" | "shop" | "trade" | null } });
 
-    await waitFor(() => expect(view.result.current.wallet.data).toEqual({ amount: 900, currency: "GOLD" }));
+    await waitFor(() => expect(view.result.current.wallet.data?.balances[0]).toEqual({ currency: "GOLD", available: 900, held: 20 }));
     expect(api.getShopItemsApi).not.toHaveBeenCalled();
     expect(api.getTradesApi).not.toHaveBeenCalled();
 
@@ -47,13 +50,33 @@ describe("Exchange read ownership", () => {
   });
 
   it("keeps the current value on failure and exposes a working retry", async () => {
-    api.getWalletApi.mockRejectedValueOnce(new Error("Wallet offline")).mockResolvedValueOnce({ amount: 25, currency: "GEM" });
+    api.getWalletApi.mockRejectedValueOnce(new Error("Wallet offline")).mockResolvedValueOnce({ amount: 25, currency: "GOLD", balances: [
+      { currency: "GOLD", available: 25, held: 0 },
+      { currency: "GEM", available: 0, held: 0 },
+    ] });
     const { result } = renderHook(() => useExchangeQueries("wallet"));
 
     await waitFor(() => expect(result.current.wallet.error).toBe("Wallet offline"));
     await act(async () => { await result.current.wallet.reload(); });
 
-    expect(result.current.wallet.data).toEqual({ amount: 25, currency: "GEM" });
+    expect(result.current.wallet.data).toEqual({ amount: 25, currency: "GOLD", balances: [
+      { currency: "GOLD", available: 25, held: 0 },
+      { currency: "GEM", available: 0, held: 0 },
+    ] });
     expect(result.current.wallet.error).toBeNull();
+  });
+
+  it("retains only the last confirmed Wallet after a failed reload", async () => {
+    api.getWalletApi.mockResolvedValueOnce({ amount: 900, currency: "GOLD", balances: [
+      { currency: "GOLD", available: 900, held: 20 },
+      { currency: "GEM", available: 3, held: 1 },
+    ] }).mockRejectedValueOnce(new Error("Refresh failed"));
+    const { result } = renderHook(() => useExchangeQueries("wallet"));
+    await waitFor(() => expect(result.current.wallet.data?.amount).toBe(900));
+
+    await act(async () => { await result.current.wallet.reload(); });
+
+    expect(result.current.wallet.data?.balances[1]).toEqual({ currency: "GEM", available: 3, held: 1 });
+    expect(result.current.wallet.error).toBe("Refresh failed");
   });
 });

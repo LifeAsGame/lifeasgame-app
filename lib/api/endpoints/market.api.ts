@@ -16,8 +16,15 @@ import type {
 } from "@/shared/api/types";
 import { marketMock } from "../mock/market.mock";
 
-export function getWalletApi(): Promise<WalletBalance> {
-  return USE_MOCK ? Promise.resolve(marketMock.wallet()) : apiGet<WalletBalance>("/api/v1/economy/wallet");
+export async function getWalletApi(): Promise<WalletBalance> {
+  const wallet = USE_MOCK ? marketMock.wallet() : await apiGet<WalletBalance>("/api/v1/economy/wallet");
+  const balances = wallet?.balances;
+  const gold = Array.isArray(balances) ? balances.find((balance) => balance?.currency === "GOLD") : null;
+  const gem = Array.isArray(balances) ? balances.find((balance) => balance?.currency === "GEM") : null;
+  if (wallet?.currency !== "GOLD" || !Number.isFinite(wallet.amount) || balances?.length !== 2
+    || !gold || !gem || ![gold.available, gold.held, gem.available, gem.held].every(Number.isFinite)
+    || wallet.amount !== gold.available) throw new Error("Wallet response is incomplete.");
+  return wallet;
 }
 
 export async function getShopItemsApi(): Promise<ShopItem[]> {
