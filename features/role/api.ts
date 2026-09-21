@@ -1,4 +1,4 @@
-import { USE_MOCK, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/shared/api/client";
+import { USE_MOCK, apiDelete, apiGet, apiPost, apiPut } from "@/shared/api/client";
 import type {
   CreateRoleRelationRequest,
   CreateRoleRequest,
@@ -6,7 +6,6 @@ import type {
   PersonInput,
   RoleDetail,
   RoleEventDetail,
-  RoleEventInput,
   RoleRelationDetail,
   UpdateRoleRelationRequest,
   UpdateRoleRequest,
@@ -82,20 +81,4 @@ export async function listRoleEventsApi(roleId: number): Promise<RoleEventDetail
 
 export async function getRoleEventApi(roleId: number, eventId: number): Promise<RoleEventDetail> {
   return USE_MOCK ? roleMock.getEvent(roleId, eventId) : apiGet<RoleEventDetail>(`/api/v1/roles/${roleId}/events/${eventId}`);
-}
-
-export async function createRoleEventApi(roleId: number, body: RoleEventInput): Promise<RoleEventDetail> {
-  return USE_MOCK ? roleMock.createEvent(roleId, body) : apiPost<RoleEventDetail>(`/api/v1/roles/${roleId}/events`, body);
-}
-
-export async function updateRoleEventApi(roleId: number, eventId: number, body: RoleEventInput): Promise<RoleEventDetail> {
-  return USE_MOCK ? roleMock.updateEvent(roleId, eventId, body) : apiPatch<RoleEventDetail>(`/api/v1/roles/${roleId}/events/${eventId}`, body);
-}
-
-export async function completeRoleEventApi(roleId: number, eventId: number): Promise<RoleEventDetail> {
-  return USE_MOCK ? roleMock.transitionEvent(roleId, eventId, "COMPLETED") : apiPost<RoleEventDetail>(`/api/v1/roles/${roleId}/events/${eventId}/complete`, {});
-}
-
-export async function cancelRoleEventApi(roleId: number, eventId: number): Promise<RoleEventDetail> {
-  return USE_MOCK ? roleMock.transitionEvent(roleId, eventId, "CANCELED") : apiPost<RoleEventDetail>(`/api/v1/roles/${roleId}/events/${eventId}/cancel`, {});
 }
