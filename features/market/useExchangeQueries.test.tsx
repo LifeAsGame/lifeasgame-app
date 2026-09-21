@@ -67,16 +67,17 @@ describe("Exchange read ownership", () => {
   });
 
   it("retains only the last confirmed Wallet after a failed reload", async () => {
-    api.getWalletApi.mockResolvedValueOnce({ amount: 900, currency: "GOLD", balances: [
+    const confirmed = { amount: 900, currency: "GOLD", balances: [
       { currency: "GOLD", available: 900, held: 20 },
       { currency: "GEM", available: 3, held: 1 },
-    ] }).mockRejectedValueOnce(new Error("Refresh failed"));
+    ] };
+    api.getWalletApi.mockResolvedValueOnce(confirmed).mockRejectedValueOnce(new Error("Refresh failed"));
     const { result } = renderHook(() => useExchangeQueries("wallet"));
     await waitFor(() => expect(result.current.wallet.data?.amount).toBe(900));
 
     await act(async () => { await result.current.wallet.reload(); });
 
-    expect(result.current.wallet.data?.balances[1]).toEqual({ currency: "GEM", available: 3, held: 1 });
+    expect(result.current.wallet.data).toEqual(confirmed);
     expect(result.current.wallet.error).toBe("Refresh failed");
   });
 });

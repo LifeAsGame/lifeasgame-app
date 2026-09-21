@@ -17,6 +17,11 @@ const item = (id: number, read = false): NotificationInfo => ({
   type: "SYSTEM_NOTICE",
   title: `Notice ${id}`,
   body: `Body ${id}`,
+  titleCopyId: null,
+  titleCopyVersion: null,
+  bodyCopyId: null,
+  bodyCopyVersion: null,
+  copyLocale: null,
   occurredAt: "2026-08-18T00:00:00Z",
   read,
 });
@@ -59,6 +64,34 @@ describe("feature-owned Notification state", () => {
     await act(async () => { await result.current.loadOlder(); });
     expect(result.current.inbox.map(({ id }) => id)).toEqual([3, 2, 1]);
     expect(result.current.nextCursor).toBeNull();
+  });
+
+  it("keeps stored copy and provenance through cursor history, read-one, and read-all", async () => {
+    const completion: NotificationInfo = {
+      ...item(4), type: "QUEST_COMPLETED", title: "Stored completion", body: "Original quest title",
+      titleCopyId: "notification.ntf_quest_completed.title", titleCopyVersion: 1,
+      bodyCopyId: "notification.ntf_quest_completed.body", bodyCopyVersion: 1, copyLocale: "ko-KR",
+    };
+    const reward: NotificationInfo = {
+      ...item(3), type: "QUEST_REWARD_READY", title: "Stored reward", body: "Original reward text",
+      titleCopyId: "notification.ntf_quest_reward_ready.title", titleCopyVersion: 1,
+      bodyCopyId: "notification.ntf_quest_reward_ready.body", bodyCopyVersion: 1, copyLocale: "ko-KR",
+    };
+    const legacy = { ...item(2), title: "Old title", body: "Old body" };
+    const unknown = { ...item(1), type: "FUTURE_NOTICE", title: "Unknown title", body: "Unknown body" };
+    api.getNotificationsApi
+      .mockResolvedValueOnce(page([completion, reward], true, 3))
+      .mockResolvedValueOnce(page([{ ...reward, title: "Stale duplicate", titleCopyId: null }, legacy, unknown]));
+    const { result } = renderHook(() => useNotifications());
+    await act(async () => { await result.current.loadInbox(); });
+    await act(async () => { await result.current.loadOlder(); });
+    expect(api.getNotificationsApi.mock.calls).toEqual([[null, 20], [3, 20]]);
+    expect(result.current.inbox).toEqual([completion, reward, legacy, unknown]);
+
+    await act(async () => { expect(await result.current.markRead(4)).toBe(true); });
+    expect(result.current.inbox).toEqual([{ ...completion, read: true }, reward, legacy, unknown]);
+    await act(async () => { expect(await result.current.markAllRead()).toBe(true); });
+    expect(result.current.inbox).toEqual([completion, reward, legacy, unknown].map((row) => ({ ...row, read: true })));
   });
 
   it("keeps loaded inbox rows when an older cursor request fails", async () => {

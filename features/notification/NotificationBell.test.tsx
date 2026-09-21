@@ -7,9 +7,11 @@ import { NotificationBell, NotificationTimestamp } from "./NotificationBell";
 
 const state = vi.hoisted(() => ({
   inbox: [
-    { id: 2, type: "SYSTEM_NOTICE" as const, title: "Unread", body: "Canonical body", occurredAt: "2026-08-18T12:34:56Z", read: false },
-    { id: 1, type: "MAIL_RECEIVED" as const, title: "Read", body: "Older body", occurredAt: "2026-08-17T11:22:33Z", read: true },
-    { id: 0, type: "FUTURE_ANNOUNCEMENT", title: "Future title", body: "Future body", occurredAt: "2026-08-16T10:20:30Z", read: true },
+    { id: 4, type: "QUEST_COMPLETED", title: "Saved completion title", body: "Saved completion body", titleCopyId: "notification.ntf_quest_completed.title", titleCopyVersion: 1, bodyCopyId: "notification.ntf_quest_completed.body", bodyCopyVersion: 1, copyLocale: "ko-KR", occurredAt: "2026-09-22T12:34:56Z", read: false },
+    { id: 3, type: "QUEST_REWARD_READY", title: "Saved reward title", body: "Saved reward body", titleCopyId: "notification.ntf_quest_reward_ready.title", titleCopyVersion: 1, bodyCopyId: "notification.ntf_quest_reward_ready.body", bodyCopyVersion: 1, copyLocale: "ko-KR", occurredAt: "2026-09-22T12:30:00Z", read: false },
+    { id: 2, type: "SYSTEM_NOTICE" as const, title: "Unread", body: "Canonical body", titleCopyId: null, titleCopyVersion: null, bodyCopyId: null, bodyCopyVersion: null, copyLocale: null, occurredAt: "2026-08-18T12:34:56Z", read: false },
+    { id: 1, type: "MAIL_RECEIVED" as const, title: "Read", body: "Older body", titleCopyId: null, titleCopyVersion: null, bodyCopyId: null, bodyCopyVersion: null, copyLocale: null, occurredAt: "2026-08-17T11:22:33Z", read: true },
+    { id: 0, type: "FUTURE_ANNOUNCEMENT", title: "Future title", body: "Future body", titleCopyId: null, titleCopyVersion: null, bodyCopyId: null, bodyCopyVersion: null, copyLocale: null, occurredAt: "2026-08-16T10:20:30Z", read: true },
   ],
   inboxLoaded: false,
   inboxLoading: false,
@@ -89,6 +91,30 @@ describe("NotificationBell canonical surface", () => {
     expect(screen.getByText("Canonical body").closest("article")).toHaveAttribute("data-read", "false");
     expect(screen.getByText("Older body").closest("article")).toHaveAttribute("data-read", "true");
     expect(screen.getByText("2026-08-18 12:34 UTC").closest("time")).toHaveAttribute("dateTime", "2026-08-18T12:34:56Z");
+  });
+
+  it("shows persisted approval copy and legacy/unknown text without exposing provenance or marking read", () => {
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+    const dialog = screen.getByRole("dialog", { name: "Notifications" });
+    expect(within(dialog).getByText("Saved completion title")).toBeInTheDocument();
+    expect(within(dialog).getByText("Saved completion body")).toBeInTheDocument();
+    expect(within(dialog).getByText("Saved reward title")).toBeInTheDocument();
+    expect(within(dialog).getByText("Saved reward body")).toBeInTheDocument();
+    expect(within(dialog).getByText("Older body")).toBeInTheDocument();
+    expect(within(dialog).getByText("Future body")).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent("notification.ntf_");
+    expect(dialog).not.toHaveTextContent("ko-KR");
+
+    fireEvent.click(screen.getByText("Saved completion body").closest("button")!);
+    const detail = screen.getByLabelText("Notification detail");
+    expect(within(detail).getByRole("heading", { name: "Saved completion title" })).toBeInTheDocument();
+    expect(within(detail).getByText("Saved completion body")).toBeInTheDocument();
+    expect(state.markRead).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Saved reward body").closest("button")!);
+    expect(within(detail).getByRole("heading", { name: "Saved reward title" })).toBeInTheDocument();
+    expect(within(detail).getByText("Saved reward body")).toBeInTheDocument();
+    expect(state.markRead).not.toHaveBeenCalled();
   });
 
   it("dismisses on outside interaction without stealing focus from the chosen control", async () => {

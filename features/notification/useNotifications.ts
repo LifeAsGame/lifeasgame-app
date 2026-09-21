@@ -7,7 +7,11 @@ import { getNotificationsApi, getUnreadCountApi, markAllNotificationsReadApi, ma
 
 const PAGE_SIZE = 20;
 const messageOf = (caught: unknown) => caught instanceof Error ? caught.message : "Notifications are unavailable.";
-const dedupe = (items: NotificationInfo[]) => Array.from(new Map(items.map((item) => [item.id, item])).values());
+const dedupe = (items: NotificationInfo[]) => {
+  const byId = new Map<number, NotificationInfo>();
+  for (const item of items) if (!byId.has(item.id)) byId.set(item.id, item);
+  return [...byId.values()];
+};
 
 export function useNotifications() {
   const [inbox, setInbox] = useState<NotificationInfo[]>([]);
