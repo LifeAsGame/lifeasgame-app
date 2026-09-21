@@ -6,6 +6,8 @@ import * as api from "./api";
 import ConnectionsDrawer from "./ConnectionsDrawer";
 import { connectionsMock } from "./mock";
 
+vi.mock("@/shared/api/client", async (importOriginal) => ({ ...await importOriginal<typeof import("@/shared/api/client")>(), USE_MOCK: true }));
+
 describe("Connections utility drawer surface", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
