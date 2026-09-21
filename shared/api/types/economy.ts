@@ -1,8 +1,15 @@
 export type EconomyCurrency = "GOLD" | "GEM";
 
+export interface WalletCurrencyBalance {
+  currency: EconomyCurrency;
+  available: number;
+  held: number;
+}
+
 export interface WalletBalance {
   amount: number;
-  currency: EconomyCurrency;
+  currency: "GOLD";
+  balances: WalletCurrencyBalance[];
 }
 
 export interface OpenListingRequest {

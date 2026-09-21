@@ -20,19 +20,45 @@ vi.mock("@/shared/api/client", () => ({ USE_MOCK: false, ...client }));
 
 describe("canonical Economy API adapters", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     marketMock.reset();
   });
 
-  it("uses amount/currency wallet and canonical ShopItem wrappers without enrichment", async () => {
+  it("uses the GOLD compatibility fields and currency balances without enrichment", async () => {
+    const wallet = { amount: 80, currency: "GOLD", balances: [
+      { currency: "GOLD", available: 80, held: 20 },
+      { currency: "GEM", available: 7, held: 3 },
+    ] };
     client.apiGet
-      .mockResolvedValueOnce({ amount: 900, currency: "GOLD" })
+      .mockResolvedValueOnce(wallet)
       .mockResolvedValueOnce({ items: [{ id: 1, itemId: 9, price: 30, currency: "GEM", available: false, globalStockLimit: null, perPlayerLimit: 2, reservationTtlSec: 60 }] });
 
-    await expect(getWalletApi()).resolves.toEqual({ amount: 900, currency: "GOLD" });
+    await expect(getWalletApi()).resolves.toEqual(wallet);
+    expect(client.apiGet).toHaveBeenCalledWith("/api/v1/economy/wallet");
     await expect(getShopItemsApi()).resolves.toEqual([
       { id: 1, itemId: 9, price: 30, currency: "GEM", available: false, globalStockLimit: null, perPlayerLimit: 2, reservationTtlSec: 60 },
     ]);
+  });
+
+  it("rejects missing balances and API failures without substituting Mock values", async () => {
+    const mockWallet = vi.spyOn(marketMock, "wallet");
+    client.apiGet.mockResolvedValueOnce({ amount: 0, currency: "GOLD" }).mockRejectedValueOnce(new Error("API offline"));
+
+    await expect(getWalletApi()).rejects.toThrow("Wallet response is incomplete.");
+    await expect(getWalletApi()).rejects.toThrow("API offline");
+    expect(mockWallet).not.toHaveBeenCalled();
+    mockWallet.mockRestore();
+  });
+
+  it("keeps explicit Mock Wallet data in the same GOLD/GEM contract", () => {
+    expect(marketMock.wallet()).toEqual({
+      amount: 284_500,
+      currency: "GOLD",
+      balances: [
+        { currency: "GOLD", available: 284_500, held: 1_200 },
+        { currency: "GEM", available: 75, held: 5 },
+      ],
+    });
   });
 
   it("treats shop initiation as {id}, unwraps purchase history, and confirms its canonical token", async () => {

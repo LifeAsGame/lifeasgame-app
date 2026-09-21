@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { InventoryEntry, ListingSummary, ShopItem, ShopPurchaseSummary, TradeSummary } from "@/shared/api/types";
+import type { InventoryEntry, ListingSummary, ShopItem, ShopPurchaseSummary, TradeSummary, WalletBalance } from "@/shared/api/types";
 import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import ExchangeShell from "./ExchangeShell";
 
@@ -43,16 +43,30 @@ const trades: TradeSummary[] = [
   { id: 301, listingId: 88, buyerId: 7, sellerId: 24, price: 28_000, currency: "GOLD" },
   { id: 302, listingId: 56, buyerId: 13, sellerId: 7, price: 45, currency: "GEM" },
 ];
+const wallet = (gold = 284_500, goldHeld = 1_200, gem = 75, gemHeld = 5): WalletBalance => ({
+  amount: gold,
+  currency: "GOLD",
+  balances: [
+    { currency: "GOLD", available: gold, held: goldHeld },
+    { currency: "GEM", available: gem, held: gemHeld },
+  ],
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 
 describe("canonical Exchange surfaces", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(globalThis.crypto, "randomUUID")
       .mockReturnValueOnce("00000000-0000-4000-8000-000000000001")
       .mockReturnValueOnce("00000000-0000-4000-8000-000000000002")
       .mockReturnValue("00000000-0000-4000-8000-000000000003");
-    api.getWalletApi.mockResolvedValue({ amount: 284_500, currency: "GOLD" });
+    api.getWalletApi.mockResolvedValue(wallet());
     api.getShopItemsApi.mockResolvedValue(shopItems);
     api.getShopPurchasesApi.mockResolvedValue([]);
     api.getOpenListingsApi.mockResolvedValue(openListings);
@@ -68,15 +82,55 @@ describe("canonical Exchange surfaces", () => {
   });
 
   it("renders real Wallet loading/error/retry without generated history", async () => {
-    api.getWalletApi.mockRejectedValueOnce(new Error("Wallet unavailable")).mockResolvedValueOnce({ amount: 25, currency: "GEM" });
+    api.getWalletApi.mockRejectedValueOnce(new Error("Wallet unavailable")).mockResolvedValueOnce(wallet(80, 20, 7, 3));
     render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Wallet unavailable");
+    expect(screen.getByRole("alert")).toHaveTextContent("No confirmed balances are available.");
+    expect(screen.queryByRole("article", { name: "GOLD balance" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
-    expect(await screen.findByText("25")).toBeInTheDocument();
-    expect(screen.getByText("GEM")).toBeInTheDocument();
-    expect(screen.queryByText(/transaction|monthly|available|reserved balance/i)).not.toBeInTheDocument();
+    const gold = await screen.findByRole("article", { name: "GOLD balance" });
+    const gem = screen.getByRole("article", { name: "GEM balance" });
+    expect(gold).toHaveTextContent("GOLD available80GOLDHeld20 GOLD");
+    expect(gem).toHaveTextContent("GEM available7GEMHeld3 GEM");
+    expect(screen.queryByText(/transaction|monthly|reserved balance/i)).not.toBeInTheDocument();
+  });
+
+  it("shows loading before confirmation and renders both real zero balances", async () => {
+    const pending = deferred<WalletBalance>();
+    api.getWalletApi.mockReturnValueOnce(pending.promise);
+    render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading Wallet...");
+    expect(screen.queryByRole("article", { name: "GOLD balance" })).not.toBeInTheDocument();
+    pending.resolve(wallet(0, 0, 0, 0));
+
+    const gold = await screen.findByRole("article", { name: "GOLD balance" });
+    expect(gold).toHaveTextContent("GOLD available0GOLDHeld0 GOLD");
+    expect(screen.getByRole("article", { name: "GEM balance" })).toHaveTextContent("GEM available0GEMHeld0 GEM");
+    expect(screen.queryByText("No confirmed balances are available.")).not.toBeInTheDocument();
+  });
+
+  it("labels the last confirmed balances during refresh and after refresh failure", async () => {
+    const pending = deferred<WalletBalance>();
+    api.getWalletApi.mockResolvedValueOnce(wallet(80, 20, 7, 3)).mockReturnValueOnce(pending.promise);
+    const view = render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
+    await screen.findByRole("article", { name: "GOLD balance" });
+
+    view.rerender(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
+    view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Refreshing Wallet. Showing last confirmed balances.");
+    expect(screen.getByRole("article", { name: "GOLD balance" })).toHaveTextContent("80");
+    pending.resolve(wallet(0, 0, 0, 0));
+    await waitFor(() => expect(screen.getByRole("article", { name: "GEM balance" })).toHaveTextContent("0"));
+
+    view.rerender(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
+    api.getWalletApi.mockRejectedValueOnce(new Error("Refresh failed"));
+    view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Refresh failed Showing last confirmed balances.");
+    expect(screen.getByRole("article", { name: "GOLD balance" })).toHaveTextContent("0");
+    expect(screen.getByRole("article", { name: "GEM balance" })).toHaveTextContent("0");
   });
 
   it("keeps System Shop checkout unavailable and one detail frame during replacement", async () => {

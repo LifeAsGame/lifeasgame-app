@@ -2674,12 +2674,27 @@ body {
     var(--lag-panel-2);
 }
 
-.lag-exchange-balance span {
+.lag-exchange-balance > span {
   grid-column: 1 / -1;
   color: var(--lag-text-2);
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.lag-exchange-balance-held {
+  grid-column: 1 / -1;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--lag-space-3);
+  padding-top: var(--lag-space-3);
+  border-top: 1px solid var(--lag-divider);
+  color: var(--lag-text-2);
+}
+
+.lag-exchange-balance-held b {
+  color: var(--lag-text);
 }
 
 .lag-exchange-balance strong {

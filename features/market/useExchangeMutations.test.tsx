@@ -24,7 +24,10 @@ const query = <T,>(data: T, reloadValue = data) => ({ data, loading: false, erro
 
 function queries(): ExchangeQueries {
   return {
-    wallet: query({ amount: 100, currency: "GOLD" as const }),
+    wallet: query({ amount: 100, currency: "GOLD" as const, balances: [
+      { currency: "GOLD" as const, available: 100, held: 0 },
+      { currency: "GEM" as const, available: 0, held: 0 },
+    ] }),
     shopItems: query([]),
     shopPurchases: query([]),
     openListings: query([]),

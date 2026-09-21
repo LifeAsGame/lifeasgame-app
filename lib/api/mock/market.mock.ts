@@ -12,7 +12,14 @@ import type {
 } from "@/shared/api/types";
 import { inventoryMock } from "./inventory.mock";
 
-const INITIAL_WALLET: WalletBalance = { amount: 284_500, currency: "GOLD" };
+const INITIAL_WALLET: WalletBalance = {
+  amount: 284_500,
+  currency: "GOLD",
+  balances: [
+    { currency: "GOLD", available: 284_500, held: 1_200 },
+    { currency: "GEM", available: 75, held: 5 },
+  ],
+};
 const INITIAL_SHOP_ITEMS: ShopItem[] = [
   { id: 1, itemId: 1010, price: 45_000, currency: "GOLD", available: true, globalStockLimit: null, perPlayerLimit: 1, reservationTtlSec: 300 },
   { id: 2, itemId: 3010, price: 25, currency: "GEM", available: true, globalStockLimit: 1_000, perPlayerLimit: 10, reservationTtlSec: 60 },

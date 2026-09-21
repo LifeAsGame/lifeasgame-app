@@ -87,15 +87,17 @@ function WalletPanel({ query, onBack }: { query: ExchangeQuery<WalletBalance | n
       <PanelFrame title="Wallet" depth={0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
         <section className="lag-exchange-surface">
           <SurfaceHeader eyebrow="Balance" title="Wallet" description="Your current Exchange balance." accent="cyan" />
-          {query.loading && !wallet ? <Feedback state="info" role="status">Loading Wallet...</Feedback> : null}
-          {query.error ? <div className="lag-exchange-state"><Feedback>{query.error}</Feedback><button type="button" className="lag-exchange-button" onClick={() => void query.reload()}>Retry</button></div> : null}
-          {wallet ? (
-            <article className="lag-exchange-balance">
-              <span>Current amount</span>
-              <strong>{wallet.amount.toLocaleString()}</strong>
-              <em>{wallet.currency}</em>
+          {query.loading ? <Feedback state="info" role="status">{wallet ? "Refreshing Wallet. Showing last confirmed balances." : "Loading Wallet..."}</Feedback> : null}
+          {query.error ? <div className="lag-exchange-state"><Feedback>{query.error} {wallet ? "Showing last confirmed balances." : "No confirmed balances are available."}</Feedback><button type="button" className="lag-exchange-button" onClick={() => void query.reload()}>Retry</button></div> : null}
+          {!query.loading && !query.error && !wallet ? <Feedback state="info" role="status">Wallet balances are not yet confirmed.</Feedback> : null}
+          {wallet?.balances.map((balance) => (
+            <article key={balance.currency} className="lag-exchange-balance" aria-label={`${balance.currency} balance`}>
+              <span>{balance.currency} available</span>
+              <strong>{balance.available.toLocaleString()}</strong>
+              <em>{balance.currency}</em>
+              <div className="lag-exchange-balance-held"><span>Held</span><b>{balance.held.toLocaleString()} {balance.currency}</b></div>
             </article>
-          ) : null}
+          ))}
         </section>
       </PanelFrame>
     </PanelStage>
