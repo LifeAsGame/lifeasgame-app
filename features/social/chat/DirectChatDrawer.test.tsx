@@ -69,6 +69,47 @@ it("renders canonical identity fields and opens an existing read-only channel wi
   expect(css).toContain("height: calc(100dvh - 112px - env(safe-area-inset-bottom)");
 });
 
+it("keeps blocked history visible and requires explicit open or send retry", () => {
+  const retryBlockedSend = vi.fn();
+  const openFriendChat = vi.fn();
+  const send = vi.fn();
+  const chat = {
+    open: true,
+    setOpen: vi.fn(),
+    channels: [{ channelId: 10, peer: { playerId: 70, name: "A", job: null, level: 1 }, readOnly: false }],
+    channelsLoading: false,
+    channelsError: null,
+    selectedChannelId: 10,
+    messages: [{ id: 1, channelId: 10, senderId: 6, content: "history", edited: false, createdAt: "2026-08-18T00:00:00Z" }],
+    messagesLoading: false,
+    messagesError: null,
+    hasMore: true,
+    olderLoading: false,
+    loadOlder: vi.fn(),
+    draft: "saved draft",
+    setDraft: vi.fn(),
+    sending: false,
+    blocked: true,
+    sendError: null,
+    send,
+    retryBlockedSend,
+    openingPeerId: null,
+    openError: { peerPlayerId: 70, blocked: true, message: "Direct Chat is blocked." },
+    openFriendChat,
+  } as unknown as DirectChatState;
+
+  render(<DirectChatDrawer chat={chat} />);
+  expect(screen.getByText("history")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Load older" })).toBeEnabled();
+  expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("saved draft");
+  expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Retry open" }));
+  fireEvent.click(screen.getByRole("button", { name: "Retry send" }));
+  expect(openFriendChat).toHaveBeenCalledWith(70);
+  expect(retryBlockedSend).toHaveBeenCalledTimes(1);
+});
+
 it("renders an authoritative deterministic timestamp before client localization", () => {
   const createdAt = "2026-08-18T00:00:00Z";
   const localize = vi.spyOn(Date.prototype, "toLocaleString");

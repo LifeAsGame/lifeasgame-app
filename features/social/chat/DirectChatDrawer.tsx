@@ -43,7 +43,7 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
               <button type="button" aria-label="Close Direct Chat" onClick={() => chat.setOpen(false)} className="lag-social-button">Close</button>
             </header>
 
-            {chat.openError ? <p role="alert" className="lag-social-feedback" data-state="error">{chat.openError}</p> : null}
+            {chat.openError ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">{chat.openError.message}</p>{chat.openError.blocked ? <button type="button" className="lag-social-button" disabled={chat.openingPeerId !== null} onClick={() => void chat.openFriendChat(chat.openError!.peerPlayerId)}>Retry open</button> : null}</div> : null}
             <div className="lag-chat-layout">
               <section aria-label="Friend channels" className="lag-chat-channels">
                 <header><span>Friend Channels</span><strong>{chat.channels.length}</strong></header>
@@ -87,10 +87,10 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
 
                     <form className="lag-chat-composer" onSubmit={(event) => { event.preventDefault(); void chat.send(); }}>
                       {selected.readOnly ? <p role="status">This channel is read-only.</p> : null}
-                      {chat.sendError ? <p role="alert" className="lag-social-feedback" data-state="error">{chat.sendError}</p> : null}
+                      {chat.blocked ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">Direct Chat is blocked for this conversation. You can still read its messages.</p>{!selected.readOnly ? <button type="button" className="lag-social-button" disabled={chat.sending || !chat.draft.trim()} onClick={() => void chat.retryBlockedSend()}>Retry send</button> : null}</div> : chat.sendError ? <p role="alert" className="lag-social-feedback" data-state="error">{chat.sendError}</p> : null}
                       <div>
                         <textarea aria-label="Message" rows={2} placeholder={selected.readOnly ? "Read-only channel" : "Write a message"} disabled={selected.readOnly || chat.sending} value={chat.draft} onChange={(event) => chat.setDraft(event.target.value)} />
-                        <button type="submit" aria-label="Send message" disabled={selected.readOnly || chat.sending || !chat.draft.trim()}>{chat.sending ? "Sending..." : <><span>Send</span><b aria-hidden>↑</b></>}</button>
+                        <button type="submit" aria-label="Send message" disabled={selected.readOnly || chat.blocked || chat.sending || !chat.draft.trim()}>{chat.sending ? "Sending..." : <><span>Send</span><b aria-hidden>↑</b></>}</button>
                       </div>
                     </form>
                   </>

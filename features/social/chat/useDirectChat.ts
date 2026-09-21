@@ -2,11 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ApiError } from "@/shared/api/client";
 import type { ChatMessage, FriendChatChannel } from "@/shared/api/types";
 import { getFriendChannelsApi, getFriendMessagesApi, openFriendChannelApi, sendFriendMessageApi } from "./api";
 
 const PAGE_SIZE = 50;
 const messageOf = (caught: unknown) => caught instanceof Error ? caught.message : "Direct Chat is unavailable.";
+const isBlocked = (caught: unknown) => caught instanceof ApiError && caught.status === 403 && caught.code === "SOC-403-CHAT-DIRECT-BLOCKED";
+const blockedMessage = "Direct Chat is blocked for this conversation. You can still read its messages.";
+const blockedOpenMessage = "Could not open the requested Direct Chat because it is blocked. Existing conversations remain available.";
 const dedupe = (items: ChatMessage[]) => Array.from(new Map(items.map((item) => [item.id, item])).values());
 
 export function useDirectChat() {
@@ -22,15 +26,16 @@ export function useDirectChat() {
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [olderLoading, setOlderLoading] = useState(false);
   const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
+  const [sendingChannels, setSendingChannels] = useState<Set<number>>(() => new Set());
+  const [blockedChannels, setBlockedChannels] = useState<Set<number>>(() => new Set());
   const [sendError, setSendError] = useState<string | null>(null);
   const [openingPeerId, setOpeningPeerId] = useState<number | null>(null);
-  const [openError, setOpenError] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<{ peerPlayerId: number; message: string; blocked: boolean } | null>(null);
   const channelsRequest = useRef(0);
   const messagesRequest = useRef(0);
   const selectionIntent = useRef(0);
   const selectedRef = useRef<number | null>(null);
-  const sendLocked = useRef(false);
+  const sendLocked = useRef(new Set<number>());
   const openLocked = useRef(false);
 
   const reloadChannels = useCallback(async () => {
@@ -77,6 +82,7 @@ export function useDirectChat() {
     setOlderLoading(false);
     setDraft("");
     setSendError(null);
+    setOpenError(null);
     await loadLatest(channelId);
   }, [loadLatest]);
 
@@ -114,45 +120,54 @@ export function useDirectChat() {
       if (selectionIntent.current !== intent) return;
       await selectChannel(opened.id);
     } catch (caught) {
-      setOpenError(messageOf(caught));
+      const blocked = isBlocked(caught);
+      const channelId = channels.find(({ peer }) => peer.playerId === peerPlayerId)?.channelId;
+      if (blocked && channelId !== undefined) setBlockedChannels((current) => new Set(current).add(channelId));
+      if (selectionIntent.current !== intent) return;
+      setOpenError({ peerPlayerId, message: blocked ? blockedOpenMessage : messageOf(caught), blocked });
     } finally {
       openLocked.current = false;
       setOpeningPeerId(null);
     }
-  }, [reloadChannels, selectChannel]);
+  }, [channels, reloadChannels, selectChannel]);
 
-  const send = useCallback(async () => {
+  const send = useCallback(async (retryBlocked = false) => {
     const channelId = selectedRef.current;
     const content = draft.trim();
     const selected = channels.find((channel) => channel.channelId === channelId);
-    if (channelId === null || !content || !selected || selected.readOnly || sendLocked.current) return false;
-    sendLocked.current = true;
-    setSending(true);
+    if (channelId === null || !content || !selected || selected.readOnly || sendLocked.current.has(channelId) || (blockedChannels.has(channelId) && !retryBlocked)) return false;
+    sendLocked.current.add(channelId);
+    setSendingChannels((current) => new Set(current).add(channelId));
     setSendError(null);
     try {
       const saved = await sendFriendMessageApi(channelId, content);
+      setBlockedChannels((current) => { const next = new Set(current); next.delete(channelId); return next; });
       if (selectedRef.current === channelId) {
         setMessages((current) => dedupe([...current, saved]));
         setDraft("");
       }
       return true;
     } catch (caught) {
-      const error = messageOf(caught);
-      try {
-        const latest = await getFriendMessagesApi(channelId, null, PAGE_SIZE);
-        if (selectedRef.current === channelId) {
-          setMessages((current) => dedupe([...current, ...latest.messages]));
+      const blocked = isBlocked(caught);
+      const error = blocked ? blockedMessage : messageOf(caught);
+      if (blocked) setBlockedChannels((current) => new Set(current).add(channelId));
+      else {
+        try {
+          const latest = await getFriendMessagesApi(channelId, null, PAGE_SIZE);
+          if (selectedRef.current === channelId) {
+            setMessages((current) => dedupe([...current, ...latest.messages]));
+          }
+        } catch {
+          // The original send error remains authoritative; the draft and history stay intact.
         }
-      } catch {
-        // The original send error remains authoritative; the draft and history stay intact.
       }
       if (selectedRef.current === channelId) setSendError(error);
       return false;
     } finally {
-      sendLocked.current = false;
-      setSending(false);
+      sendLocked.current.delete(channelId);
+      setSendingChannels((current) => { const next = new Set(current); next.delete(channelId); return next; });
     }
-  }, [channels, draft]);
+  }, [blockedChannels, channels, draft]);
 
   useEffect(() => { void reloadChannels(); }, [reloadChannels]);
 
@@ -175,9 +190,11 @@ export function useDirectChat() {
     loadOlder,
     draft,
     setDraft,
-    sending,
+    sending: selectedChannelId !== null && sendingChannels.has(selectedChannelId),
+    blocked: selectedChannelId !== null && blockedChannels.has(selectedChannelId),
     sendError,
     send,
+    retryBlockedSend: () => send(true),
     openingPeerId,
     openError,
     openFriendChat,
