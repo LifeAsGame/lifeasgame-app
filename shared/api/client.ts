@@ -60,7 +60,7 @@ async function parseResponse<T>(response: Response, method: string, path: string
 
   if (rawResponse) return body as T;
 
-  if (!envelope || envelope.isSuccess !== true || !("result" in envelope)) {
+  if (!envelope || envelope.isSuccess !== true) {
     throw new ApiError(response.status, "INVALID_RESPONSE", `${method} ${path} returned an invalid API envelope.`);
   }
   return envelope.result as T;

@@ -66,6 +66,12 @@ describe("backend API에 요청할 때", () => {
       await expect(apiGet<{ id: number }>("/resource", { auth: false })).resolves.toEqual({ id: 7 });
     });
 
+    it("result가 생략된 정상 성공 envelope은 void로 처리한다", async () => {
+      fetchMock.mockResolvedValueOnce(response(undefined));
+
+      await expect(apiPost<void>("/api/v1/notifications/10/read", undefined)).resolves.toBeUndefined();
+    });
+
     it("실패 응답의 backend code와 message를 보존한다", async () => {
       fetchMock.mockResolvedValueOnce(response(null, 400, { isSuccess: false, code: "AUTH4001", message: "Bad credentials" }));
 

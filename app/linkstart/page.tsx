@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
 import { registerPlayerApi } from "@/features/player/api";
@@ -18,11 +18,12 @@ export default function LinkStartPage() {
   const [gender, setGender] = useState("MALE");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const createdPlayer = useRef(false);
 
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) router.replace("/login");
-    else if (playerId) router.replace("/");
+    else if (playerId && !createdPlayer.current) router.replace("/");
   }, [isAuthenticated, isLoading, playerId, router]);
 
   const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
@@ -33,6 +34,7 @@ export default function LinkStartPage() {
       const currentSession = tokenStorage.read();
       if (!currentSession) throw new Error("Authentication has expired.");
       const created = await registerPlayerApi({ name, gender });
+      createdPlayer.current = true;
       tokenStorage.write({
         userId: currentSession.userId,
         playerId: created.id,
