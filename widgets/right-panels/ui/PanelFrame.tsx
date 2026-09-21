@@ -26,7 +26,6 @@ export function PanelFrame({
   resetScrollKey,
   centerBehavior,
   backButton,
-  iconSrc,
   depth = 0,
   fixedScrollHeight,
   contentKey,
@@ -37,7 +36,6 @@ export function PanelFrame({
   resetScrollKey?: string | number | null;
   centerBehavior?: ScrollBehavior | "spring";
   backButton?: React.ReactNode;
-  iconSrc?: string;
   depth?: number;
   fixedScrollHeight?: number;
   contentKey?: React.Key;
@@ -61,22 +59,6 @@ export function PanelFrame({
       >
         <div className="flex items-center gap-2">
           {backButton}
-          {iconSrc ? (
-            <img
-              src={iconSrc}
-              alt=""
-              width={16}
-              height={16}
-              draggable={false}
-              aria-hidden
-              style={{
-                opacity: 0.72,
-                flexShrink: 0,
-                filter: "none",
-              }}
-              onError={(e) => { e.currentTarget.style.display = "none"; }}
-            />
-          ) : null}
           {/* ◆ ─── TITLE ─── ◆ */}
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div style={{ flex: 1, height: "1px", background: "var(--lag-divider)" }} />

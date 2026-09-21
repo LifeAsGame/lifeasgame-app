@@ -9,7 +9,7 @@ import SaoAlert from "@/shared/ui/SaoAlert";
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
 
-import { NAV_ICONS, actionBtnStyle } from "./ui/styles";
+import { actionBtnStyle } from "./ui/styles";
 import { GoldRow, InfoCard } from "./ui/Rows";
 import { PanelFrame } from "./ui/PanelFrame";
 import { FormPanel } from "./ui/FormPanel";
@@ -93,8 +93,6 @@ function PanelContent({
     panel.kind === "list" || isCategoryPanelRoute ? "spring" : "smooth";
   const isCompactList =
     panel.kind === "list" && (panel.items.length >= 40 || panel.context.route === "market-wallet-summary");
-  const navIconSrc =
-    "context" in panel ? NAV_ICONS[(panel as { context: { main: MainNavId } }).context.main] : undefined;
 
   const CATEGORY_ROW_GAP = 4;
   const categoryScrollHeight = isCategoryPanelRoute && panel.kind === "menu"
@@ -111,7 +109,6 @@ function PanelContent({
       centerTargetKey={centerTargetKey}
       resetScrollKey={panel.id}
       centerBehavior={centerBehavior}
-      iconSrc={navIconSrc}
       depth={depth}
       fixedScrollHeight={categoryScrollHeight}
       contentKey={panel.id}

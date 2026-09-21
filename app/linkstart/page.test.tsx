@@ -38,7 +38,7 @@ describe("Link Start를 완료할 때", () => {
       tokenStorage.write({ accessToken: "old-a", refreshToken: "old-r", userId: 1, playerId: null });
       mocks.registerPlayerApi.mockResolvedValue({ id: 77, accessToken: "new-a", refreshToken: "new-r" });
       mocks.reloadMe.mockResolvedValue({});
-      render(<LinkStartPage />);
+      const view = render(<LinkStartPage />);
 
       fireEvent.change(screen.getByLabelText("Character Name"), { target: { value: "Kirito" } });
       fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "FEMALE" } });
@@ -48,6 +48,13 @@ describe("Link Start를 완료할 때", () => {
       expect(tokenStorage.read()).toEqual({ accessToken: "new-a", refreshToken: "new-r", userId: 1, playerId: 77 });
       expect(mocks.reloadMe).toHaveBeenCalledOnce();
       expect(mocks.refreshApi).not.toHaveBeenCalled();
+
+      mocks.useAuth.mockReturnValue({
+        ...mocks.useAuth.getMockImplementation()!(),
+        playerId: 77,
+      });
+      view.rerender(<LinkStartPage />);
+      expect(mocks.replace).not.toHaveBeenCalledWith("/");
     });
   });
 });
