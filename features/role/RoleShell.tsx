@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import type {
@@ -271,6 +271,8 @@ function EventsSurface({ roleId }: { roleId: number }) {
   const [selectedEvent, setSelectedEvent] = useState<RoleEventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<{ eventId: number; message: string } | null>(null);
+  const detailRequest = useRef(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -284,15 +286,22 @@ function EventsSurface({ roleId }: { roleId: number }) {
     }
   }, [roleId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+    return () => { detailRequest.current++; };
+  }, [load]);
 
   const selectEvent = async (eventId: number) => {
-    setError(null);
+    const request = ++detailRequest.current;
+    setDetailError(null);
     setSelectedEvent(null);
     try {
-      setSelectedEvent(await getRoleEventApi(roleId, eventId));
+      const detail = await getRoleEventApi(roleId, eventId);
+      if (request === detailRequest.current) setSelectedEvent(detail);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to load Event detail.");
+      if (request === detailRequest.current) {
+        setDetailError({ eventId, message: caught instanceof Error ? caught.message : "Unable to load Event detail." });
+      }
     }
   };
 
@@ -302,6 +311,7 @@ function EventsSurface({ roleId }: { roleId: number }) {
       {loading ? <InfoCard>Loading Events...</InfoCard> : error && events.length === 0 ? <ErrorState message={error} onRetry={() => void load()} /> : (
         <>
           {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
+          {detailError ? <ErrorState message={detailError.message} onRetry={() => void selectEvent(detailError.eventId)} /> : null}
           <div className="lag-role-event-list" aria-label="Role Events">
             {events.length ? events.map((roleEvent) => (
               <button key={roleEvent.id} type="button" className="lag-role-event" data-selected={selectedEvent?.id === roleEvent.id} aria-pressed={selectedEvent?.id === roleEvent.id} onClick={() => void selectEvent(roleEvent.id)}>

@@ -29,6 +29,7 @@ const roles: RoleDetail[] = [
 const person: PersonDetail = { id: 7, linkedUserId: 44, displayName: "Alex", notes: null, birthday: null, contact: null, status: "ACTIVE", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 };
 const relation: RoleRelationDetail = { id: 9, personId: 7, personDisplayName: "Alex", linkedUserId: 44, relationType: "FRIEND", roleNotes: "Call monthly", status: "ACTIVE", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 };
 const roleEvent: RoleEventDetail = { id: 11, roleId: 1, title: "Architecture review", description: "Review boundaries", startsAt: null, endsAt: null, status: "PLANNED", completedAt: null, participants: [{ participantLinkId: 1, participantType: "SERVICE_USER", participantId: 99 }], createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 };
+const otherEvent: RoleEventDetail = { ...roleEvent, id: 12, title: "Design review", description: "Review design" };
 
 function deferred<T>() {
   let reject!: (reason?: unknown) => void;
@@ -291,9 +292,11 @@ describe("실제 Role shell을 사용할 때", () => {
       expect(screen.queryByText("No Events for this Role.")).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Retry" }));
       expect(await screen.findByText("No Events for this Role.")).toBeInTheDocument();
+      expect(api.listRoleEventsApi).toHaveBeenCalledTimes(3);
+      expect(api.getRoleEventApi).not.toHaveBeenCalled();
     });
 
-    it("detail 조회 실패를 오류로 보여주고 행을 다시 선택해 복구한다", async () => {
+    it("detail 조회 실패 후 Retry가 같은 상세만 재조회해 복구한다", async () => {
       api.getRoleEventApi.mockRejectedValueOnce(new Error("Event detail failed"));
       render(<Harness />);
       fireEvent.click(screen.getByRole("button", { name: /Events/ }));
@@ -302,8 +305,62 @@ describe("실제 Role shell을 사용할 때", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent("Event detail failed");
       expect(screen.getByText(gate)).toBeInTheDocument();
       expect(screen.queryByRole("region", { name: "Event detail" })).not.toBeInTheDocument();
-      fireEvent.click(row);
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
       expect(await screen.findByText("SERVICE_USER #99")).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(api.getRoleEventApi).toHaveBeenCalledTimes(2);
+      expect(api.getRoleEventApi).toHaveBeenNthCalledWith(2, 1, 11);
+      expect(api.listRoleEventsApi).toHaveBeenCalledTimes(1);
+    });
+
+    it("같은 Role에서 B 상세가 먼저 성공하면 늦은 A 성공을 버린다", async () => {
+      const first = deferred<RoleEventDetail>();
+      const second = deferred<RoleEventDetail>();
+      api.listRoleEventsApi.mockResolvedValue([roleEvent, otherEvent]);
+      api.getRoleEventApi.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+      render(<Harness />);
+      fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
+      await act(async () => second.resolve(otherEvent));
+      expect(screen.getByRole("region", { name: "Event detail" })).toHaveTextContent("Review design");
+      await act(async () => first.resolve(roleEvent));
+      expect(screen.getByRole("region", { name: "Event detail" })).toHaveTextContent("Review design");
+      expect(screen.queryByText("Review boundaries")).not.toBeInTheDocument();
+    });
+
+    it("B 성공 뒤 늦은 A 실패가 B 상세와 오류 상태를 바꾸지 않는다", async () => {
+      const first = deferred<RoleEventDetail>();
+      const second = deferred<RoleEventDetail>();
+      api.listRoleEventsApi.mockResolvedValue([roleEvent, otherEvent]);
+      api.getRoleEventApi.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+      render(<Harness />);
+      fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
+      await act(async () => second.resolve(otherEvent));
+      await act(async () => first.reject(new Error("Old detail failed")));
+      expect(screen.getByRole("region", { name: "Event detail" })).toHaveTextContent("Review design");
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("B 실패 뒤 늦은 A 성공이 B 오류와 Retry 대상을 바꾸지 않는다", async () => {
+      const first = deferred<RoleEventDetail>();
+      const second = deferred<RoleEventDetail>();
+      api.listRoleEventsApi.mockResolvedValue([roleEvent, otherEvent]);
+      api.getRoleEventApi.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise).mockResolvedValueOnce(otherEvent);
+      render(<Harness />);
+      fireEvent.click(screen.getByRole("button", { name: /Events/ }));
+      fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
+      await act(async () => second.reject(new Error("B detail failed")));
+      await act(async () => first.resolve(roleEvent));
+      expect(screen.getByRole("alert")).toHaveTextContent("B detail failed");
+      expect(screen.queryByRole("region", { name: "Event detail" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      expect(await screen.findByText("Review design")).toBeInTheDocument();
+      expect(api.getRoleEventApi).toHaveBeenNthCalledWith(3, 1, 12);
+      expect(api.listRoleEventsApi).toHaveBeenCalledTimes(1);
     });
 
     it("Role 변경 중 늦게 도착한 이전 Role detail을 보여주지 않는다", async () => {
