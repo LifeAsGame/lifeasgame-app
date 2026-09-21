@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "@/shared/api/client";
 import type { ChatMessage, ChatMessagePage, FriendChatChannel } from "@/shared/api/types";
 import { useDirectChat } from "./useDirectChat";
 
@@ -21,13 +22,16 @@ const page = (messages: ChatMessage[], hasMore = false, nextCursor: number | nul
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => { resolve = done; });
-  return { promise, resolve };
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
 }
+
+const blocked = () => new ApiError(403, "SOC-403-CHAT-DIRECT-BLOCKED", "Forbidden");
 
 describe("feature-owned Direct Friend Chat state", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     api.getFriendChannelsApi.mockResolvedValue(channels);
     api.getFriendMessagesApi.mockResolvedValue(page([]));
   });
@@ -135,5 +139,196 @@ describe("feature-owned Direct Friend Chat state", () => {
     expect(api.openFriendChannelApi).toHaveBeenCalledWith(80);
     expect(api.getFriendChannelsApi).toHaveBeenCalledTimes(2);
     expect(result.current.selectedChannelId).toBe(20);
+  });
+
+  it("does not select or create a channel after blocked open, and lets the user retry open", async () => {
+    api.openFriendChannelApi.mockRejectedValueOnce(blocked()).mockResolvedValueOnce({ id: 10, type: "FRIEND", name: "A", contextId: null, readOnly: false, role: "MEMBER" });
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+
+    await act(async () => { await result.current.openFriendChat(70); });
+    expect(result.current.selectedChannelId).toBeNull();
+    expect(result.current.openError).toMatchObject({ peerPlayerId: 70, blocked: true });
+    expect(api.getFriendChannelsApi).toHaveBeenCalledTimes(1);
+
+    await act(async () => { await result.current.openFriendChat(70); });
+    expect(result.current.selectedChannelId).toBe(10);
+    expect(result.current.openError).toBeNull();
+    expect(result.current.blocked).toBe(true);
+  });
+
+  it.each(["list then block", "block then list"])("reconciles a blocked peer when the initial channel %s", async (order) => {
+    const listing = deferred<FriendChatChannel[]>();
+    const opening = deferred<never>();
+    api.getFriendChannelsApi.mockReturnValue(listing.promise);
+    api.openFriendChannelApi.mockReturnValue(opening.promise);
+    const { result } = renderHook(() => useDirectChat());
+
+    let pending!: Promise<void>;
+    act(() => { pending = result.current.openFriendChat(70); });
+    const finishList = async () => {
+      await act(async () => { listing.resolve(channels); await listing.promise; });
+      expect(result.current.channels).toEqual(channels);
+    };
+    const finishBlock = async () => {
+      await act(async () => { opening.reject(blocked()); await pending; });
+      expect(result.current.openError).toMatchObject({ peerPlayerId: 70, blocked: true });
+    };
+    if (order === "list then block") {
+      await finishList();
+      await finishBlock();
+    } else {
+      await finishBlock();
+      await finishList();
+    }
+
+    await act(async () => { await result.current.selectChannel(10); });
+    expect(result.current.channels[0].readOnly).toBe(false);
+    expect(result.current.blocked).toBe(true);
+    await act(async () => { await result.current.selectChannel(20); });
+    expect(result.current.blocked).toBe(false);
+  });
+
+  it("ignores a late blocked open for A after B is selected", async () => {
+    const opening = deferred<never>();
+    api.openFriendChannelApi.mockReturnValue(opening.promise);
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+
+    let pending!: Promise<void>;
+    act(() => { pending = result.current.openFriendChat(70); });
+    await act(async () => { await result.current.selectChannel(20); });
+    await act(async () => { opening.reject(blocked()); await pending; });
+
+    expect(result.current.selectedChannelId).toBe(20);
+    expect(result.current.blocked).toBe(false);
+    expect(result.current.openError).toBeNull();
+    await act(async () => { await result.current.selectChannel(10); });
+    expect(result.current.blocked).toBe(true);
+  });
+
+  it("keeps blocked send draft and history, scopes the block to A, and retries only on request", async () => {
+    api.getFriendMessagesApi
+      .mockResolvedValueOnce(page([message(10)], true, 10))
+      .mockResolvedValueOnce(page([message(9)], false));
+    api.sendFriendMessageApi.mockRejectedValueOnce(blocked()).mockResolvedValueOnce(message(2));
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setDraft("keep me"));
+
+    await act(async () => { expect(await result.current.send()).toBe(false); });
+    expect(result.current.blocked).toBe(true);
+    expect(result.current.draft).toBe("keep me");
+    expect(result.current.messages.map(({ id }) => id)).toEqual([10]);
+    expect(result.current.hasMore).toBe(true);
+    expect(api.getFriendMessagesApi).toHaveBeenCalledTimes(1);
+    await act(async () => { await result.current.loadOlder(); });
+    expect(result.current.messages.map(({ id }) => id)).toEqual([9, 10]);
+    await act(async () => { expect(await result.current.send()).toBe(false); });
+    expect(api.sendFriendMessageApi).toHaveBeenCalledTimes(1);
+
+    await act(async () => { await result.current.selectChannel(20); });
+    expect(result.current.blocked).toBe(false);
+    act(() => result.current.setDraft("B draft"));
+    await act(async () => { await result.current.selectChannel(10); });
+    expect(result.current.blocked).toBe(true);
+    expect(result.current.draft).toBe("keep me");
+    act(() => result.current.setDraft("explicit retry"));
+    await act(async () => { expect(await result.current.retryBlockedSend()).toBe(true); });
+    expect(result.current.blocked).toBe(false);
+    expect(result.current.draft).toBe("");
+    expect(api.sendFriendMessageApi).toHaveBeenCalledTimes(2);
+    await act(async () => { await result.current.selectChannel(20); });
+    expect(result.current.draft).toBe("B draft");
+  });
+
+  it("clears only A's sent draft after its success arrives while B is selected", async () => {
+    const sending = deferred<ChatMessage>();
+    api.sendFriendMessageApi.mockReturnValue(sending.promise);
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setDraft("A draft"));
+    let pending!: Promise<boolean>;
+    act(() => { pending = result.current.send(); });
+    await act(async () => { await result.current.selectChannel(20); });
+    act(() => result.current.setDraft("B draft"));
+
+    await act(async () => { sending.resolve(message(2)); expect(await pending).toBe(true); });
+    expect(result.current.draft).toBe("B draft");
+    await act(async () => { await result.current.selectChannel(10); });
+    expect(result.current.draft).toBe("");
+  });
+
+  it("keeps a newer A draft even if it has the same text as the sent revision", async () => {
+    const sending = deferred<ChatMessage>();
+    api.sendFriendMessageApi.mockReturnValue(sending.promise);
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setDraft("same text"));
+    let pending!: Promise<boolean>;
+    act(() => { pending = result.current.send(); });
+    act(() => { result.current.setDraft("changed"); result.current.setDraft("same text"); });
+
+    await act(async () => { sending.resolve(message(2)); expect(await pending).toBe(true); });
+    expect(result.current.draft).toBe("same text");
+  });
+
+  it("keeps a late blocked send for A from disabling B", async () => {
+    const sending = deferred<ChatMessage>();
+    api.sendFriendMessageApi.mockReturnValueOnce(sending.promise).mockResolvedValueOnce(message(21, 20));
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setDraft("A"));
+    let pending!: Promise<boolean>;
+    act(() => { pending = result.current.send(); });
+    await act(async () => { await result.current.selectChannel(20); });
+    expect(result.current.sending).toBe(false);
+    act(() => result.current.setDraft("B"));
+    await act(async () => { expect(await result.current.send()).toBe(true); });
+    act(() => result.current.setDraft("B's next draft"));
+    await act(async () => { sending.reject(blocked()); await pending; });
+    expect(result.current.selectedChannelId).toBe(20);
+    expect(result.current.blocked).toBe(false);
+    expect(result.current.sendError).toBeNull();
+    expect(result.current.draft).toBe("B's next draft");
+    expect(result.current.messages.map(({ id }) => id)).toEqual([21]);
+  });
+
+  it("does not interpret other 403, auth, or general send errors as a block", async () => {
+    api.sendFriendMessageApi
+      .mockRejectedValueOnce(new ApiError(403, "FORBIDDEN", "Not a member"))
+      .mockRejectedValueOnce(new ApiError(401, "AUTH_EXPIRED", "Sign in again"))
+      .mockRejectedValueOnce(new Error("Network failed"));
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setDraft("keep"));
+
+    for (const expected of ["Not a member", "Sign in again", "Network failed"]) {
+      await act(async () => { expect(await result.current.send()).toBe(false); });
+      expect(result.current.blocked).toBe(false);
+      expect(result.current.sendError).toBe(expected);
+      expect(result.current.draft).toBe("keep");
+    }
+    expect(api.sendFriendMessageApi).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps unrelated open failures and read-only channels separate from blocks", async () => {
+    api.openFriendChannelApi.mockRejectedValue(new ApiError(403, "FORBIDDEN", "Not a member"));
+    api.getFriendChannelsApi.mockResolvedValue([{ ...channels[0], readOnly: true }]);
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toHaveLength(1));
+
+    await act(async () => { await result.current.openFriendChat(70); });
+    expect(result.current.openError).toMatchObject({ blocked: false, message: "Not a member" });
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setDraft("read only"));
+    await act(async () => { expect(await result.current.send()).toBe(false); });
+    expect(result.current.blocked).toBe(false);
+    expect(api.sendFriendMessageApi).not.toHaveBeenCalled();
   });
 });
