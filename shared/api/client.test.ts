@@ -80,6 +80,12 @@ describe("backend API에 요청할 때", () => {
       expect(error).toMatchObject({ status: 400, code: "AUTH4001", message: "Bad credentials" });
     });
 
+    it("빈 실패 응답도 성공값으로 해석하지 않는다", async () => {
+      fetchMock.mockResolvedValueOnce(new Response(null, { status: 401, headers: { "Content-Length": "0" } }));
+
+      await expect(apiGet("/protected", { auth: false })).rejects.toMatchObject({ status: 401, code: "HTTP_401" });
+    });
+
     it("raw 응답 endpoint는 result를 가정하지 않고 실제 body를 반환한다", async () => {
       fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ blueprints: [{ code: "Q_ONE" }] }), { status: 200 }));
 
