@@ -10,6 +10,7 @@ export type QueryState<T> = {
   loading: boolean;
   error: string | null;
   reload: () => Promise<T | undefined>;
+  getRequestId: () => number;
 };
 
 function message(caught: unknown, fallback: string): string {
@@ -21,6 +22,7 @@ export function useLatestQuery<T>(initial: T, load: () => Promise<T>, fallback: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
+  const getRequestId = useCallback(() => requestId.current, []);
 
   const reload = useCallback(async () => {
     const currentRequestId = ++requestId.current;
@@ -39,7 +41,7 @@ export function useLatestQuery<T>(initial: T, load: () => Promise<T>, fallback: 
   }, [fallback, load]);
 
   useEffect(() => { void reload(); }, [reload]);
-  return { data, loading, error, reload };
+  return { data, loading, error, reload, getRequestId };
 }
 
 const loadInventory = () => getInventoryApi();
@@ -64,7 +66,12 @@ export function useInventoryQueries() {
   const [mutationError, setMutationError] = useState<string | null>(null);
 
   const reloadClaimState = async () => {
-    const [nextMailbox, nextInventory] = await Promise.all([mailbox.reload(), inventory.reload()]);
+    const requests = [mailbox.reload(), inventory.reload()] as const;
+    const mailboxRequestId = mailbox.getRequestId();
+    const inventoryRequestId = inventory.getRequestId();
+    const [nextMailbox, nextInventory] = await Promise.all(requests);
+    // A completed read can be invalidated by Refresh while its peer is pending.
+    if (mailboxRequestId !== mailbox.getRequestId() || inventoryRequestId !== inventory.getRequestId()) return false;
     if (!nextMailbox || !nextInventory) return false;
     const currentMailIds = new Set(nextMailbox.entries.map((entry) => entry.mailId));
     confirmedClaims.current = new Set([...confirmedClaims.current].filter((id) => currentMailIds.has(id)));
