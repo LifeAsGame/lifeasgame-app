@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { COLLECTION_CATEGORIES } from "@/shared/api/types";
@@ -65,6 +65,50 @@ describe("Collection source surface를 사용할 때", () => {
 
         fireEvent.click(screen.getByTestId("collection-entry"));
         expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-detail", align: "forward" });
+      } finally {
+        window.removeEventListener(STAGE_FOCUS_EVENT, focus);
+      }
+    });
+
+    it("returns to the list while detail is pending without a late response refocusing it", async () => {
+      let resolveDetail: (value: CollectionInfo) => void = () => {};
+      api.getCollectionApi.mockImplementationOnce(() => new Promise<CollectionInfo>((resolve) => { resolveDetail = resolve; }));
+      const focus = vi.fn();
+      window.addEventListener(STAGE_FOCUS_EVENT, focus);
+      try {
+        render(<CollectionShell />);
+        fireEvent.click(await screen.findByTestId("collection-entry"));
+        expect(screen.getByText("Loading Collection...")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: "Back to Collection list" }));
+        expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-list", align: "back" });
+        const callsAfterReturn = focus.mock.calls.length;
+
+        await act(async () => { resolveDetail(item); });
+        expect(screen.getByText("Collection source #31")).toBeInTheDocument();
+        expect(focus).toHaveBeenCalledTimes(callsAfterReturn);
+      } finally {
+        window.removeEventListener(STAGE_FOCUS_EVENT, focus);
+      }
+    });
+
+    it("returns from a failed detail request and reopens the same item after recovery", async () => {
+      api.getCollectionApi.mockRejectedValueOnce(new Error("Detail unavailable"));
+      const focus = vi.fn();
+      window.addEventListener(STAGE_FOCUS_EVENT, focus);
+      try {
+        render(<CollectionShell />);
+        fireEvent.click(await screen.findByTestId("collection-entry"));
+        expect(await screen.findByRole("alert", { name: "" })).toHaveTextContent("Detail unavailable");
+        expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: "Back to Collection list" }));
+        expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-list", align: "back" });
+
+        fireEvent.click(screen.getByTestId("collection-entry"));
+        expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-detail", align: "forward" });
+        expect(await screen.findByText("Collection source #31")).toBeInTheDocument();
+        expect(screen.queryByText("Detail unavailable")).not.toBeInTheDocument();
       } finally {
         window.removeEventListener(STAGE_FOCUS_EVENT, focus);
       }
