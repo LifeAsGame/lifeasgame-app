@@ -10,6 +10,7 @@ import {
   type CollectionInfo,
 } from "@/shared/api/types";
 import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
 import { PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
@@ -64,6 +65,7 @@ function CreateForm({ pending, create }: { pending: boolean; create: (body: Coll
     const conditionNote = optional(form, "conditionNote");
     const acquiredFrom = optional(form, "acquiredFrom");
     const tags = text(form, "tags").split(",").map((tag) => tag.trim()).filter(Boolean);
+    const weeklyReflection = form.has("weeklyReflection");
     const saved = await create({
       category: text(form, "category") as CollectionCategory,
       title: text(form, "title"),
@@ -72,6 +74,7 @@ function CreateForm({ pending, create }: { pending: boolean; create: (body: Coll
       ...(conditionNote ? { conditionNote } : {}),
       ...(acquiredFrom ? { acquiredFrom } : {}),
       ...(tags.length > 0 ? { tags } : {}),
+      ...(weeklyReflection ? { lifeLogSubtype: "REFLECTION", reflectionScope: "WEEKLY_LOOKBACK" } as const : {}),
     });
     if (saved) element.reset();
   };
@@ -85,6 +88,7 @@ function CreateForm({ pending, create }: { pending: boolean; create: (body: Coll
       <label className="block text-xs" style={{ color: SAO.color.text.label }}>Condition note<input name="conditionNote" disabled={pending} style={INPUT_STYLE} /></label>
       <label className="block text-xs" style={{ color: SAO.color.text.label }}>Acquired from<input name="acquiredFrom" disabled={pending} style={INPUT_STYLE} /></label>
       <label className="block text-xs" style={{ color: SAO.color.text.label }}>Tags, comma separated<input name="tags" disabled={pending} style={INPUT_STYLE} /></label>
+      <label className="flex items-center gap-2 text-xs" style={{ color: SAO.color.text.label }}><input name="weeklyReflection" type="checkbox" disabled={pending} />Weekly reflection</label>
       <button type="submit" disabled={pending} style={buttonStyle}>{pending ? "Saving..." : "Create Collection"}</button>
     </form>
   );
@@ -147,6 +151,7 @@ export default function CollectionShell() {
       <PanelStage stageKey="lifelog-collection-search">
         <PanelFrame title="Collection Search" depth={2}>
         <div className="space-y-3 px-3">
+          <button type="button" className="md:hidden" style={buttonStyle} onClick={() => requestStageFocus("lifelog-collection-list", "forward")}>Back to Collections</button>
           <form className="space-y-2" onSubmit={(event) => {
             event.preventDefault();
             collections.search(category || undefined, titleLike);
@@ -172,6 +177,7 @@ export default function CollectionShell() {
       <PanelStage stageKey="lifelog-collection-list" index={1}>
         <PanelFrame title="Collections" depth={1}>
         <div className="space-y-3">
+          <button type="button" className="md:hidden mx-3" style={buttonStyle} onClick={() => requestStageFocus("lifelog-collection-search", "back")}>Search or Add Collection</button>
           {collections.list.loading && collections.list.items.length === 0 ? <InfoCard>Loading Collections...</InfoCard> : null}
           {collections.list.error ? <ErrorState message={collections.list.error} retry={() => void collections.list.reload()} /> : null}
           {!collections.list.loading && !collections.list.error && collections.list.items.length === 0 ? <InfoCard>No Collections.</InfoCard> : null}

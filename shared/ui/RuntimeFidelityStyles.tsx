@@ -15,7 +15,7 @@ const CSS = `
 }
 
 @media (max-width: 767px) {
-  .lag-app-shell:has(.lag-panel-stage[data-camera-active="true"]) {
+  .lag-app-shell:has(.lag-panel-stage[data-camera-active="true"]:not([data-stage-key="left-context"])) {
     --lag-mobile-protected-bottom: calc(148px + env(safe-area-inset-bottom));
     width: 100% !important;
     min-width: 100% !important;
@@ -24,7 +24,7 @@ const CSS = `
     padding-inline: 16px !important;
   }
 
-  .lag-app-shell:has(.lag-panel-stage[data-camera-active="true"]) .lag-left-anchor {
+  .lag-app-shell:has(.lag-panel-stage[data-camera-active="true"]:not([data-stage-key="left-context"])) .lag-left-anchor {
     position: absolute;
     width: 24px !important;
     min-width: 0;
@@ -34,7 +34,7 @@ const CSS = `
     pointer-events: none;
   }
 
-  .lag-app-shell:has(.lag-panel-stage[data-camera-active="true"]) .lag-workspace {
+  .lag-app-shell:has(.lag-panel-stage[data-camera-active="true"]:not([data-stage-key="left-context"])) .lag-workspace {
     width: 100%;
     min-width: 0 !important;
   }
@@ -65,6 +65,10 @@ const CSS = `
     overflow: hidden;
     opacity: 0;
     pointer-events: none;
+  }
+
+  .lag-panel-stage[data-camera-active="true"] {
+    z-index: 1;
   }
 
   .lag-panel-stage[data-camera-active="true"],

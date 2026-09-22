@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { COLLECTION_CATEGORIES } from "@/shared/api/types";
 import type { CollectionInfo } from "@/shared/api/types";
+import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import CollectionShell from "./CollectionShell";
 
 const api = vi.hoisted(() => ({
@@ -44,6 +45,42 @@ describe("Collection source surface를 사용할 때", () => {
   });
 
   describe("canonical create/update controls를 제출하면", () => {
+    it("lets mobile users reach the search and create panel", async () => {
+      const focus = vi.fn();
+      window.addEventListener(STAGE_FOCUS_EVENT, focus);
+      try {
+        render(<CollectionShell />);
+        await screen.findByTestId("collection-entry");
+
+        fireEvent.click(screen.getByRole("button", { name: "Search or Add Collection" }));
+        expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-search", align: "back" });
+
+        fireEvent.click(screen.getByRole("button", { name: "Back to Collections" }));
+        expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-list", align: "forward" });
+      } finally {
+        window.removeEventListener(STAGE_FOCUS_EVENT, focus);
+      }
+    });
+
+    it("weekly reflection을 full Collection create 계약으로 전송한다", async () => {
+      render(<CollectionShell />);
+      await screen.findByTestId("collection-entry");
+      fireEvent.click(screen.getByText("Add Collection"));
+      fireEvent.change(screen.getByLabelText("Create category"), { target: { value: "BOOK" } });
+      fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Weekly notes" } });
+      fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
+      fireEvent.click(screen.getByLabelText("Weekly reflection"));
+      fireEvent.click(screen.getByRole("button", { name: "Create Collection" }));
+
+      await waitFor(() => expect(api.createCollectionApi).toHaveBeenCalledWith({
+        category: "BOOK",
+        title: "Weekly notes",
+        quantity: 1,
+        lifeLogSubtype: "REFLECTION",
+        reflectionScope: "WEEKLY_LOOKBACK",
+      }));
+    });
+
     it("exact categories와 backend-supported fields만 전송한다", async () => {
       render(<CollectionShell />);
       await screen.findByTestId("collection-entry");

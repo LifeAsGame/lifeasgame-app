@@ -130,6 +130,8 @@ export type CollectionCreateRequest = {
   conditionNote?: string;
   acquiredFrom?: string;
   tags?: string[];
+  lifeLogSubtype?: "REFLECTION";
+  reflectionScope?: "WEEKLY_LOOKBACK";
 };
 
 export type CollectionUpdateRequest = {

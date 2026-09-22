@@ -212,6 +212,7 @@ function QuickRecordForm({
             <option value="">None</option>
             {JOURNAL_SUBTYPES.map((subtype) => <option key={subtype} value={subtype}>{label(subtype)}</option>)}
           </select>
+          <small>For the weekly lookback Quest, create a Weekly reflection in Lifelog → Collection → Add Collection.</small>
         </Field>
         <Field title="Quick Record role">
           <select className="lag-journal-control" name="primaryRoleId" aria-label="Quick Record role" defaultValue="" disabled={pending || rolesLoading}>
