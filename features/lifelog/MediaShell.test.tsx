@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MEDIA_CATEGORIES, MEDIA_STATUSES, type MediaInfo } from "@/shared/api/types";
 import MediaShell from "./MediaShell";
@@ -13,6 +13,7 @@ const item: MediaInfo = { id: 51, playerId: 7, category: "ANIME", title: "Friere
 const completed: MediaInfo = { ...item, id: 52, title: "Complete", currentEpisode: 28, status: "COMPLETED" };
 
 describe("Media source surface를 사용할 때", () => {
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(() => {
     vi.clearAllMocks();
     api.searchMediaApi.mockResolvedValue([item, completed]);
@@ -84,5 +85,22 @@ describe("Media source surface를 사용할 때", () => {
     expect(source).toContain("SEMANTIC_CONTROL_STYLE");
     expect(source).toContain("lag-add-control");
     expect(source).not.toContain("INPUT_STYLE");
+  });
+
+  it("native confirm cancel leaves the row; confirmed 204 removes it without an error", async () => {
+    api.searchMediaApi.mockReset().mockResolvedValueOnce([item]).mockResolvedValueOnce([]);
+    api.deleteMediaApi.mockResolvedValue(undefined);
+    vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    render(<MediaShell />);
+    fireEvent.click(await screen.findByTestId("media-entry"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(api.deleteMediaApi).not.toHaveBeenCalled();
+    expect(screen.getByText("Media source #51")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(api.deleteMediaApi).toHaveBeenCalledWith(item.id));
+    await waitFor(() => expect(screen.queryByTestId("media-entry")).not.toBeInTheDocument());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="lifelog-media-detail"]')).toHaveAttribute("aria-hidden", "true");
   });
 });

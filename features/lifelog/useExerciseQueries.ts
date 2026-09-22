@@ -151,8 +151,9 @@ export function useExerciseQueries() {
   const remove = (id: number) => mutate(
     `delete-${id}`,
     () => deleteExerciseApi(id),
-    ({ id: deletedId }) => {
-      if (selectedIdRef.current === deletedId) clearSelection();
+    () => {
+      if (selectedIdRef.current === id) clearSelection();
+      setItems((current) => current.filter((item) => item.id !== id));
     },
   );
 

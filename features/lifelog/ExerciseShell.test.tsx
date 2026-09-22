@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EXERCISE_CATEGORIES } from "@/shared/api/types";
 import type { ExerciseInfo } from "@/shared/api/types";
@@ -21,13 +21,14 @@ vi.mock("@/shared/ui/PanelCard", () => ({
 const item: ExerciseInfo = { id: 41, playerId: 7, category: "RUNNING", durationMinutes: 30, distanceKm: 5, calories: 250, exercisedOn: "2026-08-14", memo: "Morning run", createdAt: "2026-08-14T00:00:00Z", updatedAt: "2026-08-14T00:00:00Z" };
 
 describe("Exercise source surface를 사용할 때", () => {
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(() => {
     vi.clearAllMocks();
     api.searchExercisesApi.mockResolvedValue([item]);
     api.getExerciseApi.mockResolvedValue(item);
     api.createExerciseApi.mockResolvedValue({ id: 99 });
     api.updateExerciseApi.mockResolvedValue({ ...item, distanceKm: 5, calories: 250, memo: null });
-    api.deleteExerciseApi.mockResolvedValue({ id: item.id });
+    api.deleteExerciseApi.mockResolvedValue(undefined);
   });
 
   it("canonical filters/create fields와 supported partial update만 노출한다", async () => {
@@ -68,5 +69,22 @@ describe("Exercise source surface를 사용할 때", () => {
     }));
     expect(api.updateExerciseApi.mock.calls[0][1]).not.toHaveProperty("distanceKm");
     expect(api.updateExerciseApi.mock.calls[0][1]).not.toHaveProperty("calories");
+  });
+
+  it("native confirm cancel leaves the row; confirmed 204 removes it without an error", async () => {
+    api.searchExercisesApi.mockReset().mockResolvedValueOnce([item]).mockResolvedValueOnce([]);
+    vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    render(<ExerciseShell />);
+    fireEvent.click(await screen.findByTestId("exercise-entry"));
+    await screen.findByText("Exercise source #41");
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(api.deleteExerciseApi).not.toHaveBeenCalled();
+    expect(screen.getByText("Exercise source #41")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(api.deleteExerciseApi).toHaveBeenCalledWith(item.id));
+    await waitFor(() => expect(screen.queryByTestId("exercise-entry")).not.toBeInTheDocument());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="lifelog-exercise-detail"]')).toHaveAttribute("aria-hidden", "true");
   });
 });

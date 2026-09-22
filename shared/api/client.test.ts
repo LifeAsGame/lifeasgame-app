@@ -97,6 +97,13 @@ describe("backend API에 요청할 때", () => {
   });
 
   describe("method별 request body를 전송하면", () => {
+    it.each(["media", "exercises"])("%s DELETE accepts a real empty 204 response", async (source) => {
+      fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+      await expect(apiDelete<void>(`/api/v1/players/${source}/51`)).resolves.toBeUndefined();
+      expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({ method: "DELETE", body: undefined }));
+    });
+
     it("path-only DELETE는 body 없이 기존 동작을 유지한다", async () => {
       fetchMock.mockResolvedValueOnce(response(null));
 

@@ -79,7 +79,7 @@ describe("Exercise source API를 호출할 때", () => {
     client.apiGetRaw.mockResolvedValue([exercise]);
     client.apiGet.mockResolvedValue(exercise);
     client.apiPostRaw.mockResolvedValueOnce({ id: 41 }).mockResolvedValueOnce(exercise);
-    client.apiDelete.mockResolvedValue({ id: 41 });
+    client.apiDelete.mockResolvedValue(undefined);
     const create: ExerciseCreateRequest = { category: "RUNNING", durationMinutes: 30, distanceKm: 5, calories: 250, exercisedOn: "2026-08-14", memo: "Morning run" };
     const update: ExerciseUpdateRequest = { category: "YOGA", durationMinutes: 45, exercisedOn: "2026-08-15", memo: "" };
 
@@ -88,7 +88,7 @@ describe("Exercise source API를 호출할 때", () => {
     await getExerciseApi(41);
     await createExerciseApi(create);
     await updateExerciseApi(41, update);
-    await deleteExerciseApi(41);
+    expect(await deleteExerciseApi(41)).toBeUndefined();
 
     expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/exercises/recent?limit=12");
     expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/exercises/search?category=RUNNING&from=2026-08-01&to=2026-08-14&page=2&size=20");
@@ -110,7 +110,7 @@ describe("Exercise source API를 호출할 때", () => {
     for (const unsupported of ["playerId", "userId", "ownerPlayerId", "intensity", "duration", "caloriesBurned", "notes"]) expect(create).not.toHaveProperty(unsupported);
     expect(updated).toEqual(expect.objectContaining({ durationMinutes: 75, distanceKm: 0, calories: 0, memo: null }));
     expect(exerciseMock.search({ category: "CYCLING", from: "2026-08-14", to: "2026-08-14", page: 0, size: 1 }).map(({ id }) => id)).toEqual([created.id]);
-    expect(exerciseMock.delete(created.id)).toEqual({ id: created.id });
+    expect(exerciseMock.delete(created.id)).toBeUndefined();
     expect(journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId)).toEqual(journalIds);
   });
 });
@@ -188,7 +188,7 @@ describe("Media source API를 호출할 때", () => {
     client.apiGetRaw.mockResolvedValue([media]);
     client.apiPostRaw.mockResolvedValue({ id: 51 });
     client.apiPatch.mockResolvedValue(media);
-    client.apiDelete.mockResolvedValue({ id: 51 });
+    client.apiDelete.mockResolvedValue(undefined);
     const create = { category: "ANIME" as const, title: "Frieren", status: "PLANNED" as const, currentEpisode: 3 };
     const update = { currentEpisode: 4, tags: [] };
 
@@ -196,7 +196,7 @@ describe("Media source API를 호출할 때", () => {
     const found = await searchMediaApi({ category: "ANIME", status: "WATCHING", titleLike: "A/B ?", page: 2, size: 20 });
     expect(await createMediaApi(create)).toEqual({ id: 51 });
     await updateMediaApi(51, update);
-    await deleteMediaApi(51);
+    expect(await deleteMediaApi(51)).toBeUndefined();
 
     expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/media/recent?limit=12");
     expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/media/search?category=ANIME&status=WATCHING&titleLike=A%2FB+%3F&page=2&size=20");
@@ -217,7 +217,7 @@ describe("Media source API를 호출할 때", () => {
     const created = mediaMock.create({ category: "WEBTOON", title: "New", status: "PLANNED", currentEpisode: 5 });
     expect(created).toEqual({ id: expect.any(Number) });
     expect(mediaMock.search({ category: "WEBTOON", page: 0, size: 20 })[0]).toEqual(expect.objectContaining({ id: created.id, currentEpisode: 5, totalEpisode: 5 }));
-    expect(mediaMock.delete(created.id)).toEqual({ id: created.id });
+    expect(mediaMock.delete(created.id)).toBeUndefined();
     expect(journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId)).toEqual(journalIds);
   });
 

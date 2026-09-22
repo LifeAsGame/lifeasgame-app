@@ -18,7 +18,7 @@ describe("Media query/mutation state를 관리할 때", () => {
     api.searchMediaApi.mockResolvedValueOnce([first]).mockResolvedValueOnce([created, first]).mockResolvedValueOnce([updated, first]).mockResolvedValueOnce([first]);
     api.createMediaApi.mockResolvedValue({ id: created.id });
     api.updateMediaApi.mockResolvedValue(updated);
-    api.deleteMediaApi.mockResolvedValue({ id: created.id });
+    api.deleteMediaApi.mockResolvedValue(undefined);
   });
 
   it("filter change는 page를 reset하고 page navigation/reload는 filters와 raw pagination을 보존한다", async () => {
@@ -72,7 +72,28 @@ describe("Media query/mutation state를 관리할 때", () => {
     await act(async () => { await result.current.remove(created.id); });
     expect(result.current.selectedId).toBeNull();
     expect(result.current.detail).toBeNull();
+    expect(result.current.list.items).toEqual([first]);
+    expect(result.current.mutationError).toBeNull();
     expect(api.searchMediaApi).toHaveBeenCalledTimes(4);
+  });
+
+  it("failed DELETE keeps selection; successful DELETE with failed reload keeps the success result", async () => {
+    api.searchMediaApi.mockReset().mockResolvedValueOnce([first]).mockResolvedValueOnce([first]).mockRejectedValueOnce(new Error("reload failed"));
+    api.deleteMediaApi.mockRejectedValueOnce(new Error("delete failed")).mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useMediaQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+    act(() => result.current.select(first.id));
+
+    await act(async () => { expect(await result.current.remove(first.id)).toBe(false); });
+    expect(result.current.selectedId).toBe(first.id);
+    expect(result.current.list.items).toEqual([first]);
+    expect(result.current.mutationError).toContain("delete failed");
+
+    await act(async () => { expect(await result.current.remove(first.id)).toBe(true); });
+    expect(result.current.selectedId).toBeNull();
+    expect(result.current.list.items).toEqual([]);
+    expect(result.current.mutationError).toBe("Media changed, but the authoritative list could not be refreshed.");
+    expect(api.deleteMediaApi).toHaveBeenCalledTimes(2);
   });
 });
 

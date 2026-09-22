@@ -364,10 +364,9 @@ export const mediaMock = {
     };
     return replaceMedia(updated);
   },
-  delete: (id: number): { id: number } => {
+  delete: (id: number): void => {
     media(id);
     mediaEntries = mediaEntries.filter((entry) => entry.id !== id);
-    return { id };
   },
   rate: (id: number, { score }: MediaRateRequest): MediaInfo => {
     if (!Number.isFinite(score) || score < 0 || score > 5) throw new Error("Rating must be between 0 and 5.");
@@ -437,10 +436,9 @@ export const exerciseMock = {
     exerciseEntries = exerciseEntries.map((entry) => entry.id === id ? updated : entry);
     return copy(updated);
   },
-  delete: (id: number): { id: number } => {
+  delete: (id: number): void => {
     exercise(id);
     exerciseEntries = exerciseEntries.filter((entry) => entry.id !== id);
-    return { id };
   },
 };
 

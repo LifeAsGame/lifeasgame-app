@@ -7,7 +7,6 @@ import type {
   CollectionUpdateRequest,
   ExerciseCreateRequest,
   ExerciseCreated,
-  ExerciseDeleted,
   ExerciseInfo,
   ExerciseSearchParams,
   ExerciseUpdateRequest,
@@ -17,7 +16,6 @@ import type {
   MediaCreateRequest,
   MediaAdvanceRequest,
   MediaCreated,
-  MediaDeleted,
   MediaInfo,
   MediaMarkStatusRequest,
   MediaRateRequest,
@@ -54,8 +52,8 @@ export function updateMediaApi(mediaId: number, body: MediaUpdateRequest): Promi
   return USE_MOCK ? Promise.resolve().then(() => mediaMock.update(mediaId, body)) : apiPatch<MediaInfo>(`${MEDIA_PATH}/${mediaId}`, body);
 }
 
-export function deleteMediaApi(mediaId: number): Promise<MediaDeleted> {
-  return USE_MOCK ? Promise.resolve().then(() => mediaMock.delete(mediaId)) : apiDelete<MediaDeleted>(`${MEDIA_PATH}/${mediaId}`);
+export function deleteMediaApi(mediaId: number): Promise<void> {
+  return USE_MOCK ? Promise.resolve().then(() => mediaMock.delete(mediaId)) : apiDelete<void>(`${MEDIA_PATH}/${mediaId}`);
 }
 
 export function rateMediaApi(mediaId: number, body: MediaRateRequest): Promise<MediaInfo> {
@@ -110,10 +108,10 @@ export function updateExerciseApi(exerciseId: number, body: ExerciseUpdateReques
     : apiPostRaw<ExerciseInfo>(`${EXERCISE_PATH}/${exerciseId}`, body);
 }
 
-export function deleteExerciseApi(exerciseId: number): Promise<ExerciseDeleted> {
+export function deleteExerciseApi(exerciseId: number): Promise<void> {
   return USE_MOCK
     ? Promise.resolve().then(() => exerciseMock.delete(exerciseId))
-    : apiDelete<ExerciseDeleted>(`${EXERCISE_PATH}/${exerciseId}`);
+    : apiDelete<void>(`${EXERCISE_PATH}/${exerciseId}`);
 }
 
 export function recentCollectionsApi(limit: number): Promise<CollectionInfo[]> {
