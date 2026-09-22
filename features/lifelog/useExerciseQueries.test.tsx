@@ -25,7 +25,7 @@ describe("Exercise query/mutation state를 관리할 때", () => {
     api.getExerciseApi.mockImplementation(async (id: number) => id === created.id ? created : first);
     api.createExerciseApi.mockResolvedValue({ id: created.id });
     api.updateExerciseApi.mockResolvedValue(updated);
-    api.deleteExerciseApi.mockResolvedValue({ id: created.id });
+    api.deleteExerciseApi.mockResolvedValue(undefined);
   });
 
   it("search는 page를 reset하고 filters/page를 reload마다 보존한다", async () => {
@@ -67,10 +67,32 @@ describe("Exercise query/mutation state를 관리할 때", () => {
     await act(async () => { await result.current.remove(created.id); });
     expect(result.current.selectedId).toBeNull();
     expect(result.current.detail.data).toBeNull();
+    expect(result.current.list.items).toEqual([first]);
+    expect(result.current.mutationError).toBeNull();
     expect(api.searchExercisesApi.mock.calls.slice(3)).toEqual([
       [{ category: "RUNNING", from: "2026-08-01", to: "2026-08-14", page: 2, size: 20 }],
       [{ category: "RUNNING", from: "2026-08-01", to: "2026-08-14", page: 2, size: 20 }],
       [{ category: "RUNNING", from: "2026-08-01", to: "2026-08-14", page: 2, size: 20 }],
     ]);
+  });
+
+  it("failed DELETE keeps selection; successful DELETE with failed reload keeps the success result", async () => {
+    api.searchExercisesApi.mockReset().mockResolvedValueOnce([first]).mockResolvedValueOnce([first]).mockRejectedValueOnce(new Error("reload failed"));
+    api.deleteExerciseApi.mockRejectedValueOnce(new Error("delete failed")).mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useExerciseQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+    act(() => result.current.select(first.id));
+    await waitFor(() => expect(result.current.detail.data).toEqual(first));
+
+    await act(async () => { expect(await result.current.remove(first.id)).toBe(false); });
+    expect(result.current.selectedId).toBe(first.id);
+    expect(result.current.list.items).toEqual([first]);
+    expect(result.current.mutationError).toContain("delete failed");
+
+    await act(async () => { expect(await result.current.remove(first.id)).toBe(true); });
+    expect(result.current.selectedId).toBeNull();
+    expect(result.current.list.items).toEqual([]);
+    expect(result.current.mutationError).toBe("Exercise changed, but the authoritative list could not be reloaded.");
+    expect(api.deleteExerciseApi).toHaveBeenCalledTimes(2);
   });
 });

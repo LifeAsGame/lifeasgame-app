@@ -40,7 +40,6 @@ export type ExerciseUpdateRequest = {
   memo?: string | null;
 };
 export type ExerciseCreated = { id: number };
-export type ExerciseDeleted = { id: number };
 
 export const MEDIA_CATEGORIES = ["ANIME", "MOVIE", "SERIES", "BOOK", "WEBTOON", "GAME", "MUSIC"] as const;
 export type MediaCategory = typeof MEDIA_CATEGORIES[number];
@@ -96,7 +95,6 @@ export type MediaRateRequest = { score: number };
 export type MediaAdvanceRequest = { step?: number };
 export type MediaMarkStatusRequest = { status: MediaStatus };
 export type MediaCreated = { id: number };
-export type MediaDeleted = { id: number };
 
 export const COLLECTION_CATEGORIES = ["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "OTHER"] as const;
 export type CollectionCategory = typeof COLLECTION_CATEGORIES[number];

@@ -107,7 +107,7 @@ export function useMediaQueries() {
       const next = await reload();
       if (!next) {
         setMutationError("Media changed, but the authoritative list could not be refreshed.");
-        return false;
+        return true;
       }
       onReload?.(result, next);
       return true;
@@ -139,8 +139,9 @@ export function useMediaQueries() {
     });
   };
 
-  const remove = (id: number) => mutate(`delete-${id}`, () => deleteMediaApi(id), (deleted) => {
-    if (selectedIdRef.current === deleted.id) clearSelection();
+  const remove = (id: number) => mutate(`delete-${id}`, () => deleteMediaApi(id), () => {
+    if (selectedIdRef.current === id) clearSelection();
+    setItems((current) => current.filter((item) => item.id !== id));
   });
 
   const command = (key: string, id: number, request: () => Promise<MediaInfo>) => {
