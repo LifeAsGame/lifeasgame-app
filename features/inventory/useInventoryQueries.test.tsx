@@ -97,6 +97,192 @@ describe("Inventory server query state를 관리할 때", () => {
     });
   });
 
+  it("confirmed Claim 뒤 list GET 실패는 재전송 없이 조회만 다시 시도한다", async () => {
+    const { result } = renderHook(() => useInventoryQueries());
+    await waitFor(() => expect(result.current.mailbox.data).toEqual(mailbox));
+    api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed")).mockResolvedValueOnce({ entries: [] });
+    api.getInventoryApi.mockResolvedValue({ entries: [{ ...item, quantity: 2 }] });
+
+    await act(async () => { await result.current.claimMail(mail); });
+    expect(result.current.confirmedClaimMailIds.has(mail.mailId)).toBe(true);
+    expect(result.current.mutationError).toContain("Claim succeeded");
+    expect(result.current.mailbox.data.entries).toEqual([mail]);
+    expect(result.current.mailbox.error).toBe("Mailbox GET failed");
+
+    await act(async () => {
+      await result.current.claimMail(mail);
+      await result.current.retryClaimRecovery();
+    });
+    expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+    expect(result.current.mutationError).toBeNull();
+    expect(result.current.mailbox.data.entries).toEqual([]);
+    expect(result.current.inventory.data.entries[0].quantity).toBe(2);
+  });
+
+  it("confirmed Claim 뒤 Inventory GET만 실패해도 Mailbox 성공과 수령 상태를 유지한다", async () => {
+    const { result } = renderHook(() => useInventoryQueries());
+    await waitFor(() => expect(result.current.mailbox.data).toEqual(mailbox));
+    api.getMailboxApi.mockResolvedValue({ entries: [] });
+    api.getInventoryApi.mockRejectedValueOnce(new Error("Inventory GET failed")).mockResolvedValueOnce({ entries: [{ ...item, quantity: 2 }] });
+
+    await act(async () => { await result.current.claimMail(mail); });
+    expect(result.current.mailbox.data.entries).toEqual([]);
+    expect(result.current.claimRecoveryNeeded).toBe(true);
+    expect(result.current.mutationError).toContain("Claim succeeded");
+
+    await act(async () => { await result.current.retryClaimRecovery(); });
+    expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+    expect(result.current.claimRecoveryNeeded).toBe(false);
+    expect(result.current.inventory.data.entries[0].quantity).toBe(2);
+  });
+
+  it("two confirmed mails cannot make the first stale Claim available again", async () => {
+    const secondMail = { ...mail, mailId: 702, slotIndex: 5 };
+    api.getMailboxApi.mockResolvedValue({ entries: [mail, secondMail] });
+    const { result } = renderHook(() => useInventoryQueries());
+    await waitFor(() => expect(result.current.mailbox.data.entries).toHaveLength(2));
+
+    api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed"));
+    await act(async () => { await result.current.claimMail(mail); });
+    await act(async () => {
+      await result.current.claimMail(secondMail);
+      await result.current.deleteMail(secondMail);
+    });
+    expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+    expect(api.deleteMailApi).not.toHaveBeenCalled();
+
+    await act(async () => { await result.current.retryClaimRecovery(); });
+    expect(result.current.claimRecoveryNeeded).toBe(false);
+    expect(result.current.confirmedClaimMailIds.has(mail.mailId)).toBe(true);
+    api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed again"));
+    await act(async () => { await result.current.claimMail(secondMail); });
+    await act(async () => { await result.current.claimMail(mail); });
+    expect(api.claimMailApi).toHaveBeenCalledTimes(2);
+    expect(api.claimMailApi).toHaveBeenNthCalledWith(2, { slotIndex: 5, quantity: 3 });
+  });
+
+  it("an invalidated Retry success cannot clear a newer Mailbox failure", async () => {
+    const { result } = renderHook(() => useInventoryQueries());
+    await waitFor(() => expect(result.current.mailbox.data).toEqual(mailbox));
+    api.getMailboxApi.mockRejectedValueOnce(new Error("initial Mailbox failure"));
+    await act(async () => { await result.current.claimMail(mail); });
+    expect(result.current.claimRecoveryNeeded).toBe(true);
+
+    const stale = deferred<MailboxEntriesResponse>();
+    api.getMailboxApi.mockReturnValueOnce(stale.promise).mockRejectedValueOnce(new Error("latest Mailbox failure"));
+    let firstRetry!: Promise<void>;
+    act(() => { firstRetry = result.current.retryClaimRecovery(); });
+    await waitFor(() => expect(api.getMailboxApi).toHaveBeenCalledTimes(3));
+    await act(async () => { await result.current.retryClaimRecovery(); });
+    await act(async () => {
+      stale.resolve({ entries: [] });
+      await firstRetry;
+    });
+
+    expect(result.current.mailbox.data).toEqual(mailbox);
+    expect(result.current.mailbox.error).toBe("latest Mailbox failure");
+    expect(result.current.claimRecoveryNeeded).toBe(true);
+    expect(result.current.mutationError).toContain("Claim succeeded");
+    expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+  });
+
+  it("a normal Refresh invalidates an older Retry and a valid pair restores actions", async () => {
+    const secondMail = { ...mail, mailId: 702, slotIndex: 5 };
+    api.getMailboxApi.mockResolvedValue({ entries: [mail, secondMail] });
+    const { result } = renderHook(() => useInventoryQueries());
+    await waitFor(() => expect(result.current.mailbox.data.entries).toHaveLength(2));
+    api.getMailboxApi.mockRejectedValueOnce(new Error("claim refresh failed"));
+    await act(async () => { await result.current.claimMail(mail); });
+
+    const stale = deferred<MailboxEntriesResponse>();
+    api.getMailboxApi.mockReturnValueOnce(stale.promise).mockRejectedValueOnce(new Error("manual Refresh failed"));
+    let retry!: Promise<void>;
+    act(() => { retry = result.current.retryClaimRecovery(); });
+    await waitFor(() => expect(api.getMailboxApi).toHaveBeenCalledTimes(3));
+    await act(async () => { await result.current.mailbox.reload(); });
+    await act(async () => {
+      stale.resolve({ entries: [] });
+      await retry;
+    });
+    expect(result.current.claimRecoveryNeeded).toBe(true);
+    expect(result.current.mailbox.error).toBe("manual Refresh failed");
+
+    api.getMailboxApi.mockResolvedValue({ entries: [secondMail] });
+    await act(async () => { await result.current.retryClaimRecovery(); });
+    expect(result.current.claimRecoveryNeeded).toBe(false);
+    expect(result.current.confirmedClaimMailIds.size).toBe(0);
+    await act(async () => { await result.current.claimMail(secondMail); });
+    expect(api.claimMailApi).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["mailbox", "inventory"] as const)(
+    "a completed %s Retry read invalidated while its peer is pending cannot finish recovery",
+    async (first) => {
+      const secondMail = { ...mail, mailId: 702, slotIndex: 5 };
+      const thirdMail = { ...mail, mailId: 703, slotIndex: 6 };
+      const remainingMailbox = { entries: [secondMail, thirdMail] };
+      api.getMailboxApi.mockResolvedValue({ entries: [mail, secondMail, thirdMail] });
+      const { result } = renderHook(() => useInventoryQueries());
+      await waitFor(() => expect(result.current.mailbox.data.entries).toHaveLength(3));
+      api.getMailboxApi.mockRejectedValueOnce(new Error("claim refresh failed"));
+      await act(async () => { await result.current.claimMail(mail); });
+      expect(result.current.claimRecoveryNeeded).toBe(true);
+      const recoveryError = result.current.mutationError;
+
+      const mailboxRead = deferred<MailboxEntriesResponse>();
+      const inventoryRead = deferred<InventoryEntriesResponse>();
+      api.getMailboxApi.mockReturnValueOnce(mailboxRead.promise);
+      api.getInventoryApi.mockReturnValueOnce(inventoryRead.promise);
+      let retry!: Promise<void>;
+      act(() => { retry = result.current.retryClaimRecovery(); });
+      await act(async () => {
+        if (first === "mailbox") mailboxRead.resolve(remainingMailbox);
+        else inventoryRead.resolve(inventory);
+      });
+      expect(result.current[first].loading).toBe(false);
+      expect(result.current[first === "mailbox" ? "inventory" : "mailbox"].loading).toBe(true);
+
+      const refreshedApi = first === "mailbox" ? api.getMailboxApi : api.getInventoryApi;
+      refreshedApi.mockRejectedValueOnce(new Error("manual Refresh failed"));
+      await act(async () => { await result.current[first].reload(); });
+      await act(async () => {
+        if (first === "mailbox") inventoryRead.resolve(inventory);
+        else mailboxRead.resolve(remainingMailbox);
+        await retry;
+      });
+
+      expect(result.current[first].error).toBe("manual Refresh failed");
+      expect(result.current.claimRecoveryNeeded).toBe(true);
+      expect(result.current.mutationError).toBe(recoveryError);
+      expect(result.current.confirmedClaimMailIds).toEqual(new Set([mail.mailId]));
+      await act(async () => {
+        await result.current.claimMail(mail);
+        await result.current.claimMail(secondMail);
+        await result.current.deleteMail(thirdMail);
+      });
+      expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+      expect(api.deleteMailApi).not.toHaveBeenCalled();
+
+      api.getMailboxApi.mockResolvedValue(remainingMailbox);
+      await act(async () => { await result.current.retryClaimRecovery(); });
+      expect(result.current.mailbox.error).toBeNull();
+      expect(result.current.inventory.error).toBeNull();
+      expect(result.current.claimRecoveryNeeded).toBe(false);
+      expect(result.current.mutationError).toBeNull();
+      expect(result.current.confirmedClaimMailIds.size).toBe(0);
+      expect(api.getMailboxApi).toHaveBeenCalledTimes(first === "mailbox" ? 5 : 4);
+      expect(api.getInventoryApi).toHaveBeenCalledTimes(first === "inventory" ? 5 : 4);
+      expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+      expect(api.deleteMailApi).not.toHaveBeenCalled();
+
+      await act(async () => { await result.current.claimMail(secondMail); });
+      await act(async () => { await result.current.deleteMail(thirdMail); });
+      expect(api.claimMailApi).toHaveBeenCalledTimes(2);
+      expect(api.claimMailApi).toHaveBeenLastCalledWith({ slotIndex: 5, quantity: 3 });
+      expect(api.deleteMailApi).toHaveBeenCalledWith({ slotIndex: 6 });
+    },
+  );
+
   describe("Mail Delete를 수행하면", () => {
     it("요청 중에는 server entry를 유지하고 ambiguous failure 후에도 mailbox만 reload한다", async () => {
       const request = deferred<void>();

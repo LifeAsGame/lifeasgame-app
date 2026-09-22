@@ -104,8 +104,10 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                 <section className="lag-gear-section" aria-labelledby="gear-slots-title">
                   <h4 id="gear-slots-title">Equipment Slots</h4>
                   <div>
+                    {!queries.equipment.loading && !queries.equipment.error ? <button type="button" className="lag-inventory-button" onClick={() => void queries.equipment.reload()}>Refresh Equipment</button> : null}
                     {queries.equipment.loading && queries.equipment.data.length === 0 ? <InfoCard>Loading Equipment...</InfoCard> : null}
                     {queries.equipment.error ? <ErrorState text={queries.equipment.error} retry={() => void queries.equipment.reload()} /> : null}
+                    {queries.equipment.error && queries.equipment.data.length > 0 ? <p role="status" className="lag-inventory-feedback">Previously loaded slots are shown below. Current server state could not be confirmed.</p> : null}
                     {!queries.equipment.loading && !queries.equipment.error && slots.length === 0 ? <InfoCard>No matching Equipment slots.</InfoCard> : null}
                     <div className="lag-gear-card-list">
                       {slots.map(({ slot, item, enrichmentMissing }) => (

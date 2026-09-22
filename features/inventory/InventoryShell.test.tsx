@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { InventoryEntriesResponse, InventoryEntry, MailboxEntriesResponse, MailEntry } from "@/shared/api/types";
@@ -64,7 +64,7 @@ function expectData(label: string, value: string) {
 
 describe("Inventory Items와 Inbox surface를 사용할 때", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     api.getInventoryApi.mockResolvedValue(inventory);
     api.getMailboxApi.mockResolvedValue(mailbox);
@@ -144,6 +144,18 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       expect(await screen.findByText("No Items.")).toBeInTheDocument();
     });
 
+    it("existing Items 재조회 실패 시 이전 값을 명시하고 Retry로 복구한다", async () => {
+      render(<InventoryShell surface="items" />);
+      expect(await screen.findByRole("button", { name: /Server Sword/ })).toBeInTheDocument();
+      api.getInventoryApi.mockRejectedValueOnce(new Error("Items GET failed")).mockResolvedValueOnce({ entries: [secondItem] });
+
+      fireEvent.click(screen.getByRole("button", { name: "Refresh Items" }));
+      expect(await screen.findByText(/Previously loaded entries are shown below/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Server Sword/ })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      expect(await screen.findByRole("button", { name: /Second Sword/ })).toBeInTheDocument();
+    });
+
     it("item 교체는 detail frame을 유지하고 Back은 list를 focus하며 submenu 전환은 stale detail을 닫는다", async () => {
       api.getInventoryApi.mockResolvedValue({ entries: [item, secondItem] });
       const focus = vi.fn();
@@ -220,6 +232,41 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
   });
 
   describe("Inbox claim을 확인하면", () => {
+    it("failed recovery blocks another stale mail's Claim and Delete on screen", async () => {
+      const secondMail = { ...mail, mailId: 702, slotIndex: 5, itemName: "Second Server Mail" };
+      api.getMailboxApi.mockResolvedValue({ entries: [mail, secondMail] });
+      render(<InventoryShell surface="inbox" />);
+      fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
+      api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed"));
+
+      fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+      expect(await screen.findByText(/Claim succeeded, but Mailbox or Inventory could not be refreshed/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Second Server Mail/ }));
+      expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+      expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+      expect(api.deleteMailApi).not.toHaveBeenCalled();
+
+      api.getMailboxApi.mockResolvedValue({ entries: [secondMail] });
+      fireEvent.click(within(document.querySelector('[data-stage-key="inventory-inbox-detail"]') as HTMLElement).getByRole("button", { name: "Retry" }));
+      expect(await screen.findByRole("button", { name: "Claim" })).toBeInTheDocument();
+    });
+
+    it("confirmed Claim 뒤 Mailbox GET 실패를 성공으로 안내하고 stale action을 막는다", async () => {
+      render(<InventoryShell surface="inbox" />);
+      fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
+      api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed")).mockResolvedValueOnce({ entries: [] });
+      api.getInventoryApi.mockResolvedValue({ entries: [{ ...item, quantity: 2 }] });
+
+      fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+      expect(await screen.findByText(/Claim succeeded, but Mailbox or Inventory could not be refreshed/)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
+      fireEvent.click(within(document.querySelector('[data-stage-key="inventory-inbox-detail"]') as HTMLElement).getByRole("button", { name: "Retry" }));
+
+      expect(await screen.findByText("No mail.")).toBeInTheDocument();
+      expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+    });
+
     it("authoritative payload를 한 번만 보내고 pending 동안 duplicate action을 막은 뒤 두 list를 reload한다", async () => {
       const request = deferred<void>();
       api.claimMailApi.mockReturnValue(request.promise);

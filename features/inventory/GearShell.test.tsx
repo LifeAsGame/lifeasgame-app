@@ -150,6 +150,21 @@ describe("Gear surface를 사용할 때", () => {
   });
 
   describe("Equipment 또는 Inventory query가 비정상이면", () => {
+    it("existing slots 재조회 실패 시 이전 값을 명시하고 Retry한다", () => {
+      const { rerender } = render(<GearShell />);
+      fireEvent.click(screen.getByRole("button", { name: /Armor/ }));
+      fireEvent.click(screen.getByRole("button", { name: "Refresh Equipment" }));
+      expect(hook.current.equipment.reload).toHaveBeenCalledTimes(1);
+
+      hook.current = makeState();
+      hook.current.equipment.error = "Equipment GET failed";
+      rerender(<GearShell />);
+      expect(screen.getByText(/Previously loaded slots are shown below/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Wrist/ })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      expect(hook.current.equipment.reload).toHaveBeenCalledTimes(1);
+    });
+
     it("loading, error/retry, no-slot, no-candidate state를 각각 표시한다", () => {
       hook.current = makeState([], []);
       hook.current.equipment.loading = true;
