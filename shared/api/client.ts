@@ -35,7 +35,7 @@ function authExpired(): void {
 }
 
 async function parseResponse<T>(response: Response, method: string, path: string, rawResponse = false): Promise<T> {
-  if (response.status === 204 || response.headers.get("content-length") === "0") {
+  if (response.ok && (response.status === 204 || response.headers.get("content-length") === "0")) {
     return undefined as T;
   }
 
