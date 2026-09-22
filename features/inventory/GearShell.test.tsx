@@ -91,22 +91,27 @@ describe("Gear surface를 사용할 때", () => {
     const workspace = document.querySelector('[data-stage-key="inventory-gear-workspace"]');
     expect(workspace).toBeInTheDocument();
     expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(2);
-    fireEvent.click(screen.getByRole("button", { name: /Head/ }));
+    const headButton = screen.getByRole("button", { name: /Head/ });
+    fireEvent.click(headButton);
     expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(3);
 
     const action = document.querySelector('[data-stage-key="inventory-gear-action"]');
-    fireEvent.click(screen.getByRole("button", { name: /Body.*Chest Armor/ }));
+    const bodyButton = screen.getByRole("button", { name: /Body.*Chest Armor/ });
+    fireEvent.click(bodyButton);
     expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).toBe(action);
 
     fireEvent.click(screen.getByRole("button", { name: "Back to Armor Workspace" }));
     await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).not.toBeInTheDocument());
     expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).toBe(workspace);
+    await waitFor(() => expect(bodyButton).toHaveFocus());
 
-    fireEvent.click(screen.getByRole("button", { name: /Accessory/ }));
+    const accessoryButton = screen.getByRole("button", { name: /Accessory/ });
+    fireEvent.click(accessoryButton);
     expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).toBe(workspace);
     expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Back to Gear Parts" }));
     await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).not.toBeInTheDocument());
+    await waitFor(() => expect(accessoryButton).toHaveFocus());
   });
 
   describe("current Consumer Equipment Item content가 gated이면", () => {
