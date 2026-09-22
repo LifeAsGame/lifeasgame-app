@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import { INVENTORY_GEAR_PARTS } from "@/entities/nav";
@@ -30,6 +30,8 @@ function DataRow({ label, children }: { label: string; children: React.ReactNode
 
 export default function GearShell({ onBack }: { onBack?: () => void }) {
   const queries = useEquipmentQueries();
+  const partButton = useRef<HTMLButtonElement | null>(null);
+  const slotButton = useRef<HTMLButtonElement | null>(null);
   const [part, setPart] = useState<InventoryGearPartId | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
   const [selectedItemInstanceId, setSelectedItemInstanceId] = useState<number | null>(null);
@@ -64,12 +66,14 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
     setSelectedSlotId(null);
     setSelectedItemInstanceId(null);
     requestStageFocus("inventory-gear-parts", "back");
+    requestAnimationFrame(() => partButton.current?.focus());
   };
 
   const closeAction = () => {
     setSelectedSlotId(null);
     setSelectedItemInstanceId(null);
     requestStageFocus("inventory-gear-workspace", "back");
+    requestAnimationFrame(() => slotButton.current?.focus());
   };
 
   return (
@@ -80,7 +84,7 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
             <header><p>Select the real equipment taxonomy before choosing a slot.</p></header>
             <div>
               {INVENTORY_GEAR_PARTS.map((item) => (
-                <button key={item.id} type="button" className="lag-gear-part" aria-pressed={part === item.id} data-selected={part === item.id} onClick={() => selectPart(item.id as InventoryGearPartId)}>
+                <button key={item.id} type="button" className="lag-gear-part" aria-pressed={part === item.id} data-selected={part === item.id} onClick={(event) => { partButton.current = event.currentTarget; selectPart(item.id as InventoryGearPartId); }}>
                   <span aria-hidden>{item.slotLabel}</span>
                   <strong>{item.label}</strong>
                   <small>{item.id}</small>
@@ -105,7 +109,8 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                     {!queries.equipment.loading && !queries.equipment.error && slots.length === 0 ? <InfoCard>No matching Equipment slots.</InfoCard> : null}
                     <div className="lag-gear-card-list">
                       {slots.map(({ slot, item, enrichmentMissing }) => (
-                        <button key={slot.slotId} type="button" className="lag-gear-card" data-kind="slot" data-selected={selectedSlotId === slot.slotId} aria-pressed={selectedSlotId === slot.slotId} onClick={() => {
+                        <button key={slot.slotId} type="button" className="lag-gear-card" data-kind="slot" data-selected={selectedSlotId === slot.slotId} aria-pressed={selectedSlotId === slot.slotId} onClick={(event) => {
+                          slotButton.current = event.currentTarget;
                           setSelectedSlotId(slot.slotId);
                           setSelectedItemInstanceId(null);
                         }}>

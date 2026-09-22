@@ -164,6 +164,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Back to Items" }));
       await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).not.toBeInTheDocument());
       expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "inventory-items-list", align: "back" } });
+      await waitFor(() => expect(entries[1]).toHaveFocus());
       fireEvent.click(screen.getByRole("button", { name: "Back to Inventory" }));
       expect(onBack).toHaveBeenCalledTimes(1);
 
@@ -222,7 +223,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
     it("authoritative payload를 한 번만 보내고 pending 동안 duplicate action을 막은 뒤 두 list를 reload한다", async () => {
       const request = deferred<void>();
       api.claimMailApi.mockReturnValue(request.promise);
-      render(<InventoryShell surface="inbox" />);
+      render(<InventoryShell surface="inbox" onBack={() => {}} />);
       fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
 
       fireEvent.click(screen.getByRole("button", { name: "Claim" }));
@@ -240,6 +241,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       });
 
       await waitFor(() => expect(screen.getByText("No mail.")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole("button", { name: "Back to Inventory" })).toHaveFocus());
       expect(api.getInventoryApi).toHaveBeenCalledTimes(2);
       expect(api.getMailboxApi).toHaveBeenCalledTimes(2);
     });

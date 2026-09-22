@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import type { InventoryEntry, MailEntry } from "@/shared/api/types";
@@ -51,9 +51,9 @@ function Attributes({ attrs }: { attrs: Record<string, unknown> }) {
   );
 }
 
-function InventoryTile({ entry, selected, kind, onSelect }: { entry: InventoryEntry | MailEntry; selected: boolean; kind: "item" | "mail"; onSelect: () => void }) {
+function InventoryTile({ entry, selected, kind, onSelect }: { entry: InventoryEntry | MailEntry; selected: boolean; kind: "item" | "mail"; onSelect: (button: HTMLButtonElement) => void }) {
   return (
-    <button type="button" className="lag-inventory-tile" data-testid="inventory-entry" data-selected={selected} aria-pressed={selected} onClick={onSelect}>
+    <button type="button" className="lag-inventory-tile" data-testid="inventory-entry" data-selected={selected} aria-pressed={selected} onClick={(event) => onSelect(event.currentTarget)}>
       <span className="lag-inventory-tile-mark" aria-hidden>x{entry.quantity}</span>
       <span className="lag-inventory-tile-copy">
         <strong>{entry.itemName}</strong>
@@ -132,6 +132,7 @@ function MailDetail({ mail, pending, onClaim, onDelete }: { mail: MailEntry; pen
 
 export default function InventoryShell({ surface, onBack }: { surface: InventorySurface; onBack?: () => void }) {
   const queries = useInventoryQueries();
+  const selectedEntryButton = useRef<HTMLButtonElement | null>(null);
   const [selectedItemInstanceId, setSelectedItemInstanceId] = useState<number | null>(null);
   const [selectedMailId, setSelectedMailId] = useState<number | null>(null);
   const [category, setCategory] = useState("ALL");
@@ -147,10 +148,24 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
   const selectedMail = items ? null : queries.mailbox.data.entries.find(({ mailId }) => mailId === selectedMailId) ?? null;
   const query = items ? queries.inventory : queries.mailbox;
 
+  const focusList = useCallback(() => requestAnimationFrame(() => {
+    const target = selectedEntryButton.current?.isConnected
+      ? selectedEntryButton.current
+      : document.querySelector<HTMLElement>(`[data-stage-key="inventory-${surface}-list"] button, [data-stage-key="inventory-${surface}-list"] .lag-inventory-surface`);
+    target?.focus();
+  }), [surface]);
+
   useEffect(() => {
     setSelectedItemInstanceId(null);
     setSelectedMailId(null);
   }, [surface]);
+
+  useEffect(() => {
+    if (!items && selectedMailId !== null && !selectedMail && !query.loading) {
+      setSelectedMailId(null);
+      focusList();
+    }
+  }, [focusList, items, selectedMail, selectedMailId, query.loading]);
 
   useEffect(() => {
     if (category !== "ALL" && !categories.includes(category)) {
@@ -170,13 +185,14 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
     setSelectedItemInstanceId(null);
     setSelectedMailId(null);
     requestStageFocus(`inventory-${surface}-list`, "back");
+    focusList();
   };
 
   return (
     <div className="lag-panel-rail lag-inventory-shell relative" data-testid="inventory-shell">
       <PanelStage stageKey={`inventory-${surface}-list`}>
         <PanelFrame title={items ? "Items" : "Inbox"} depth={1} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
-          <section className="lag-inventory-surface" aria-label={items ? "Inventory Items" : "Inbox Mail"}>
+          <section className="lag-inventory-surface" aria-label={items ? "Inventory Items" : "Inbox Mail"} tabIndex={-1}>
             <header><p>{items ? "Owned InventoryEntry data" : "Mailbox entries pending Claim or Delete"}</p></header>
             {items && categories.length > 0 ? (
               <div className="lag-inventory-filters" aria-label="Item category filters">
@@ -192,8 +208,8 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
             {queries.mutationError ? <p role="alert" className="lag-inventory-feedback" data-state="error">{queries.mutationError}</p> : null}
             <div className="lag-inventory-grid">
               {items
-                ? visibleItems.map((item) => <InventoryTile key={item.itemInstanceId} entry={item} kind="item" selected={selectedItemInstanceId === item.itemInstanceId} onSelect={() => setSelectedItemInstanceId(item.itemInstanceId)} />)
-                : queries.mailbox.data.entries.map((mail) => <InventoryTile key={mail.mailId} entry={mail} kind="mail" selected={selectedMailId === mail.mailId} onSelect={() => setSelectedMailId(mail.mailId)} />)}
+                ? visibleItems.map((item) => <InventoryTile key={item.itemInstanceId} entry={item} kind="item" selected={selectedItemInstanceId === item.itemInstanceId} onSelect={(button) => { selectedEntryButton.current = button; setSelectedItemInstanceId(item.itemInstanceId); }} />)
+                : queries.mailbox.data.entries.map((mail) => <InventoryTile key={mail.mailId} entry={mail} kind="mail" selected={selectedMailId === mail.mailId} onSelect={(button) => { selectedEntryButton.current = button; setSelectedMailId(mail.mailId); }} />)}
             </div>
           </section>
         </PanelFrame>
