@@ -2,7 +2,6 @@ import { USE_MOCK, apiDelete, apiGet, apiGetRaw, apiPatch, apiPost, apiPostRaw }
 import type {
   CollectionCreateRequest,
   CollectionCreated,
-  CollectionDeleted,
   CollectionInfo,
   CollectionSearchParams,
   CollectionUpdateRequest,
@@ -152,10 +151,10 @@ export function updateCollectionApi(collectionId: number, body: CollectionUpdate
     : apiPostRaw<CollectionInfo>(`${COLLECTION_PATH}/${collectionId}`, body);
 }
 
-export function deleteCollectionApi(collectionId: number): Promise<CollectionDeleted> {
+export function deleteCollectionApi(collectionId: number): Promise<void> {
   return USE_MOCK
     ? Promise.resolve().then(() => collectionMock.delete(collectionId))
-    : apiDelete<CollectionDeleted>(`${COLLECTION_PATH}/${collectionId}`);
+    : apiDelete<void>(`${COLLECTION_PATH}/${collectionId}`);
 }
 
 export function listJournalApi(params: JournalListParams): Promise<JournalPage> {

@@ -155,8 +155,9 @@ export function useCollectionQueries() {
   const remove = (id: number) => mutate(
     `delete-${id}`,
     () => deleteCollectionApi(id),
-    (deleted) => {
-      if (selectedIdRef.current === deleted.id) clearSelection();
+    () => {
+      if (selectedIdRef.current === id) clearSelection();
+      setItems((current) => current.filter((item) => item.id !== id));
     },
   );
 

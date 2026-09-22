@@ -40,11 +40,32 @@ describe("Collection source surface를 사용할 때", () => {
     api.getCollectionApi.mockResolvedValue(item);
     api.createCollectionApi.mockResolvedValue({ id: 99 });
     api.updateCollectionApi.mockResolvedValue({ ...item, quantity: 2, conditionNote: "Used", acquiredFrom: "Gift" });
-    api.deleteCollectionApi.mockResolvedValue({ id: item.id });
+    api.deleteCollectionApi.mockResolvedValue(undefined);
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   describe("canonical create/update controls를 제출하면", () => {
+    it("handles native delete cancellation and a bodyless success without an error banner", async () => {
+      api.searchCollectionsApi.mockResolvedValueOnce([item]).mockResolvedValueOnce([]);
+      const confirm = vi.mocked(window.confirm);
+      render(<CollectionShell />);
+      fireEvent.click(await screen.findByTestId("collection-entry"));
+      await screen.findByText("Collection source #31");
+
+      confirm.mockReturnValueOnce(false);
+      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      expect(api.deleteCollectionApi).not.toHaveBeenCalled();
+      expect(screen.getByText("Collection source #31")).toBeInTheDocument();
+
+      confirm.mockReturnValueOnce(true);
+      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      await waitFor(() => expect(api.deleteCollectionApi).toHaveBeenCalledWith(item.id));
+      await waitFor(() => expect(screen.queryByTestId("collection-entry")).not.toBeInTheDocument());
+      await waitFor(() => expect(screen.queryByText("Collection source #31")).not.toBeInTheDocument());
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(api.searchCollectionsApi).toHaveBeenCalledTimes(2);
+    });
+
     it("lets mobile users reach the search and create panel", async () => {
       const focus = vi.fn();
       window.addEventListener(STAGE_FOCUS_EVENT, focus);

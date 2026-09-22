@@ -126,7 +126,7 @@ describe("Collection source API를 호출할 때", () => {
       client.apiGetRaw.mockResolvedValue([collection]);
       client.apiGet.mockResolvedValue(collection);
       client.apiPostRaw.mockResolvedValueOnce({ id: 31 }).mockResolvedValueOnce(collection);
-      client.apiDelete.mockResolvedValue({ id: 31 });
+      client.apiDelete.mockResolvedValue(undefined);
       const create: CollectionCreateRequest = { category: "BOOK", title: "Architecture Notes", quantity: 1 };
       const update: CollectionUpdateRequest = { quantity: 2, conditionNote: "Used", acquiredFrom: "Gift" };
 
@@ -135,7 +135,7 @@ describe("Collection source API를 호출할 때", () => {
       await getCollectionApi(31);
       await createCollectionApi(create);
       await updateCollectionApi(31, update);
-      await deleteCollectionApi(31);
+      expect(await deleteCollectionApi(31)).toBeUndefined();
 
       expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/collections/recent?limit=12");
       expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/collections/search?category=BOOK&titleLike=A%2FB+%3F&page=2&size=20");
@@ -171,7 +171,7 @@ describe("Collection source API를 호출할 때", () => {
       expect(collectionMock.get(created.id)).toEqual(expect.objectContaining({ title: "New card", category: "CARD", quantity: 1 }));
       const updated = collectionMock.update(created.id, { quantity: 2, conditionNote: "Sleeved", acquiredFrom: "Trade" });
       expect(updated).toEqual(expect.objectContaining({ title: "New card", category: "CARD", quantity: 2, conditionNote: "Sleeved", acquiredFrom: "Trade" }));
-      expect(collectionMock.delete(created.id)).toEqual({ id: created.id });
+      expect(collectionMock.delete(created.id)).toBeUndefined();
       expect(() => collectionMock.get(created.id)).toThrow("Collection not found.");
       expect(journalMock.page({ page: 0, size: 20 }).content.map(({ lifeLogId }) => lifeLogId)).toEqual(journalIds);
     });

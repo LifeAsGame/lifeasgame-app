@@ -36,7 +36,7 @@ describe("Collection query/mutation state를 관리할 때", () => {
     api.getCollectionApi.mockImplementation(async (id: number) => id === created.id ? created : first);
     api.createCollectionApi.mockResolvedValue({ id: created.id });
     api.updateCollectionApi.mockResolvedValue({ ...created, quantity: 3, conditionNote: "Updated" });
-    api.deleteCollectionApi.mockResolvedValue({ id: created.id });
+    api.deleteCollectionApi.mockResolvedValue(undefined);
   });
 
   describe("search와 server page를 변경하면", () => {
@@ -84,16 +84,48 @@ describe("Collection query/mutation state를 관리할 때", () => {
       expect(api.updateCollectionApi).toHaveBeenCalledWith(created.id, { quantity: 3, conditionNote: "Updated", acquiredFrom: "Gift" });
       expect(result.current.detail.data).toEqual(expect.objectContaining({ quantity: 3, conditionNote: "Updated" }));
 
-      await act(async () => { await result.current.remove(created.id); });
+      await act(async () => { expect(await result.current.remove(created.id)).toBe(true); });
       expect(api.deleteCollectionApi).toHaveBeenCalledWith(created.id);
       expect(result.current.selectedId).toBeNull();
       expect(result.current.detail.data).toBeNull();
+      expect(result.current.list.items).toEqual([first]);
+      expect(result.current.mutationError).toBeNull();
       expect(api.searchCollectionsApi).toHaveBeenCalledTimes(6);
       expect(api.searchCollectionsApi.mock.calls.slice(3)).toEqual([
         [{ category: "BOOK", titleLike: "Architecture", page: 2, size: 20 }],
         [{ category: "BOOK", titleLike: "Architecture", page: 2, size: 20 }],
         [{ category: "BOOK", titleLike: "Architecture", page: 2, size: 20 }],
       ]);
+    });
+
+    it("keeps a confirmed deletion when only the list reload fails", async () => {
+      api.searchCollectionsApi.mockResolvedValueOnce([first]).mockRejectedValueOnce(new Error("List unavailable"));
+      const { result } = renderHook(() => useCollectionQueries());
+      await waitFor(() => expect(result.current.list.items).toEqual([first]));
+      act(() => result.current.select(first.id));
+      await waitFor(() => expect(result.current.detail.data).toEqual(first));
+
+      await act(async () => { expect(await result.current.remove(first.id)).toBe(true); });
+
+      expect(result.current.selectedId).toBeNull();
+      expect(result.current.list.items).toEqual([]);
+      expect(result.current.list.error).toBe("List unavailable");
+      expect(result.current.mutationError).toMatch(/Collection changed, but the authoritative list could not be reloaded/);
+      expect(result.current.mutationError).not.toMatch(/Request outcome was not confirmed/);
+    });
+
+    it("does not clear the selection or claim success when DELETE fails", async () => {
+      api.deleteCollectionApi.mockRejectedValueOnce(new Error("Delete failed"));
+      const { result } = renderHook(() => useCollectionQueries());
+      await waitFor(() => expect(result.current.list.items).toEqual([first]));
+      act(() => result.current.select(first.id));
+      await waitFor(() => expect(result.current.detail.data).toEqual(first));
+
+      await act(async () => { expect(await result.current.remove(first.id)).toBe(false); });
+
+      expect(result.current.selectedId).toBe(first.id);
+      expect(result.current.list.items).toEqual([first]);
+      expect(result.current.mutationError).toMatch(/Request outcome was not confirmed.*Delete failed/);
     });
   });
 });
