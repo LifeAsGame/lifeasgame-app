@@ -57,10 +57,13 @@ export function useInventoryQueries() {
   const inventory = useInventoryEntries();
   const mailbox = useMailboxEntries();
   const mutationLocked = useRef(false);
+  const confirmedClaim = useRef<number | null>(null);
+  const [confirmedClaimMailId, setConfirmedClaimMailId] = useState<number | null>(null);
+  const [claimRecoveryNeeded, setClaimRecoveryNeeded] = useState(false);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
-  const runMutation = async (key: string, request: () => Promise<void>, recover: () => Promise<unknown>) => {
+  const runMutation = async (key: string, request: () => Promise<void>, recover: () => Promise<boolean>, recoveryError?: string) => {
     if (mutationLocked.current) return;
     mutationLocked.current = true;
     setPendingKey(key);
@@ -71,25 +74,47 @@ export function useInventoryQueries() {
     } catch (caught) {
       requestError = caught;
     }
-    await recover();
+    const recovered = await recover();
+    if (recoveryError) setClaimRecoveryNeeded(!requestError && !recovered);
     if (requestError) {
-      setMutationError(`Request outcome was not confirmed. Server state was reloaded. ${message(requestError, "")}`.trim());
+      setMutationError(`Request outcome was not confirmed. Server state ${recovered ? "was reloaded" : "could not be fully reloaded"}. ${message(requestError, "")}`.trim());
+    } else if (!recovered && recoveryError) {
+      setMutationError(recoveryError);
     }
     mutationLocked.current = false;
     setPendingKey(null);
   };
 
-  const claimMail = (mail: MailEntry) => runMutation(
-    `claim-${mail.mailId}`,
-    () => claimMailApi({ slotIndex: mail.slotIndex, quantity: mail.quantity }),
-    () => Promise.all([mailbox.reload(), inventory.reload()]),
-  );
+  const claimMail = (mail: MailEntry) => {
+    if (confirmedClaim.current === mail.mailId) return Promise.resolve();
+    return runMutation(
+      `claim-${mail.mailId}`,
+      async () => {
+        await claimMailApi({ slotIndex: mail.slotIndex, quantity: mail.quantity });
+        confirmedClaim.current = mail.mailId;
+        setConfirmedClaimMailId(mail.mailId);
+      },
+      async () => {
+        const [nextMailbox, nextInventory] = await Promise.all([mailbox.reload(), inventory.reload()]);
+        return Boolean(nextMailbox && nextInventory);
+      },
+      "Claim succeeded, but Mailbox or Inventory could not be refreshed. Retry synchronization; do not Claim again.",
+    );
+  };
+
+  const retryClaimRecovery = async () => {
+    const [nextMailbox, nextInventory] = await Promise.all([mailbox.reload(), inventory.reload()]);
+    if (nextMailbox && nextInventory) {
+      setClaimRecoveryNeeded(false);
+      setMutationError(null);
+    }
+  };
 
   const deleteMail = (mail: MailEntry) => runMutation(
     `delete-${mail.mailId}`,
     () => deleteMailApi({ slotIndex: mail.slotIndex }),
-    () => mailbox.reload(),
+    async () => Boolean(await mailbox.reload()),
   );
 
-  return { inventory, mailbox, pendingKey, mutationError, claimMail, deleteMail };
+  return { inventory, mailbox, pendingKey, mutationError, confirmedClaimMailId, claimRecoveryNeeded, claimMail, deleteMail, retryClaimRecovery };
 }

@@ -98,11 +98,11 @@ function ItemDetail({ item }: { item: InventoryEntry }) {
   );
 }
 
-function MailDetail({ mail, pending, onClaim, onDelete }: { mail: MailEntry; pending: boolean; onClaim: () => void; onDelete: () => void }) {
+function MailDetail({ mail, pending, claimed, recoveryError, onClaim, onDelete, onRetry }: { mail: MailEntry; pending: boolean; claimed: boolean; recoveryError: string | null; onClaim: () => void; onDelete: () => void; onRetry: () => void }) {
   return (
     <article className="lag-inventory-detail">
       <header className="lag-inventory-hero">
-        <span>Inbox Entry · Not yet owned</span>
+        <span>{claimed ? "Claim succeeded · list refresh pending" : "Inbox Entry · Not yet owned"}</span>
         <h4>{mail.itemName}</h4>
         <div><span>{mail.rarity}</span><span>{mail.category}</span><span>{mail.type}</span></div>
       </header>
@@ -122,10 +122,16 @@ function MailDetail({ mail, pending, onClaim, onDelete }: { mail: MailEntry; pen
         <DataRow label="Durability">{mail.durability ?? "Not recorded"}</DataRow>
       </DetailSection>
       <Attributes attrs={mail.instanceAttrs} />
-      <div className="lag-inventory-actions">
-        <button type="button" disabled={pending} className="lag-inventory-action" onClick={onClaim}>{pending ? "Working..." : "Claim"}</button>
-        <button type="button" disabled={pending} className="lag-inventory-button" data-variant="destructive" onClick={onDelete}>Delete</button>
-      </div>
+      {claimed ? (
+        recoveryError
+          ? <ErrorState text={recoveryError} retry={onRetry} />
+          : <p role="status" className="lag-inventory-feedback">Claim succeeded. Refreshing Mailbox and Inventory...</p>
+      ) : (
+        <div className="lag-inventory-actions">
+          <button type="button" disabled={pending} className="lag-inventory-action" onClick={onClaim}>{pending ? "Working..." : "Claim"}</button>
+          <button type="button" disabled={pending} className="lag-inventory-button" data-variant="destructive" onClick={onDelete}>Delete</button>
+        </div>
+      )}
     </article>
   );
 }
@@ -193,7 +199,10 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
       <PanelStage stageKey={`inventory-${surface}-list`}>
         <PanelFrame title={items ? "Items" : "Inbox"} depth={1} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
           <section className="lag-inventory-surface" aria-label={items ? "Inventory Items" : "Inbox Mail"} tabIndex={-1}>
-            <header><p>{items ? "Owned InventoryEntry data" : "Mailbox entries pending Claim or Delete"}</p></header>
+            <header>
+              <p>{items ? "Owned InventoryEntry data" : "Mailbox entries pending Claim or Delete"}</p>
+              {!query.loading && !query.error ? <button type="button" className="lag-inventory-button" onClick={() => void query.reload()}>Refresh {items ? "Items" : "Inbox"}</button> : null}
+            </header>
             {items && categories.length > 0 ? (
               <div className="lag-inventory-filters" aria-label="Item category filters">
                 {["ALL", ...categories].map((filter) => (
@@ -202,10 +211,16 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
               </div>
             ) : null}
             {query.loading && query.data.entries.length === 0 ? <InfoCard>Loading {items ? "Items" : "Inbox"}...</InfoCard> : null}
-            {query.error ? <ErrorState text={query.error} retry={() => void query.reload()} /> : null}
+            {query.error ? <ErrorState text={query.error} retry={() => void (queries.claimRecoveryNeeded ? queries.retryClaimRecovery() : query.reload())} /> : null}
+            {query.error && query.data.entries.length > 0 ? <p role="status" className="lag-inventory-feedback">Previously loaded entries are shown below. Current server state could not be confirmed.</p> : null}
             {!query.loading && !query.error && query.data.entries.length === 0 ? <InfoCard>No {items ? "Items" : "mail"}.</InfoCard> : null}
             {items && !query.loading && !query.error && query.data.entries.length > 0 && visibleItems.length === 0 ? <InfoCard>No Items in this category.</InfoCard> : null}
-            {queries.mutationError ? <p role="alert" className="lag-inventory-feedback" data-state="error">{queries.mutationError}</p> : null}
+            {queries.mutationError && (!selectedMail || queries.confirmedClaimMailId !== selectedMail.mailId) ? (
+              <div className="lag-inventory-state">
+                <p role="alert" className="lag-inventory-feedback" data-state="error">{queries.mutationError}</p>
+                {queries.claimRecoveryNeeded ? <button type="button" className="lag-inventory-button" onClick={() => void queries.retryClaimRecovery()}>Retry synchronization</button> : null}
+              </div>
+            ) : null}
             <div className="lag-inventory-grid">
               {items
                 ? visibleItems.map((item) => <InventoryTile key={item.itemInstanceId} entry={item} kind="item" selected={selectedItemInstanceId === item.itemInstanceId} onSelect={(button) => { selectedEntryButton.current = button; setSelectedItemInstanceId(item.itemInstanceId); }} />)
@@ -224,6 +239,9 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
                 <MailDetail
                   mail={selectedMail}
                   pending={queries.pendingKey !== null}
+                  claimed={queries.confirmedClaimMailId === selectedMail.mailId}
+                  recoveryError={queries.mutationError}
+                  onRetry={() => void queries.retryClaimRecovery()}
                   onClaim={() => {
                     if (window.confirm(`Claim ${selectedMail.itemName} x${selectedMail.quantity}?`)) void queries.claimMail(selectedMail);
                   }}

@@ -97,6 +97,45 @@ describe("Inventory server query state를 관리할 때", () => {
     });
   });
 
+  it("confirmed Claim 뒤 list GET 실패는 재전송 없이 조회만 다시 시도한다", async () => {
+    const { result } = renderHook(() => useInventoryQueries());
+    await waitFor(() => expect(result.current.mailbox.data).toEqual(mailbox));
+    api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed")).mockResolvedValueOnce({ entries: [] });
+    api.getInventoryApi.mockResolvedValue({ entries: [{ ...item, quantity: 2 }] });
+
+    await act(async () => { await result.current.claimMail(mail); });
+    expect(result.current.confirmedClaimMailId).toBe(mail.mailId);
+    expect(result.current.mutationError).toContain("Claim succeeded");
+    expect(result.current.mailbox.data.entries).toEqual([mail]);
+    expect(result.current.mailbox.error).toBe("Mailbox GET failed");
+
+    await act(async () => {
+      await result.current.claimMail(mail);
+      await result.current.retryClaimRecovery();
+    });
+    expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+    expect(result.current.mutationError).toBeNull();
+    expect(result.current.mailbox.data.entries).toEqual([]);
+    expect(result.current.inventory.data.entries[0].quantity).toBe(2);
+  });
+
+  it("confirmed Claim 뒤 Inventory GET만 실패해도 Mailbox 성공과 수령 상태를 유지한다", async () => {
+    const { result } = renderHook(() => useInventoryQueries());
+    await waitFor(() => expect(result.current.mailbox.data).toEqual(mailbox));
+    api.getMailboxApi.mockResolvedValue({ entries: [] });
+    api.getInventoryApi.mockRejectedValueOnce(new Error("Inventory GET failed")).mockResolvedValueOnce({ entries: [{ ...item, quantity: 2 }] });
+
+    await act(async () => { await result.current.claimMail(mail); });
+    expect(result.current.mailbox.data.entries).toEqual([]);
+    expect(result.current.claimRecoveryNeeded).toBe(true);
+    expect(result.current.mutationError).toContain("Claim succeeded");
+
+    await act(async () => { await result.current.retryClaimRecovery(); });
+    expect(api.claimMailApi).toHaveBeenCalledTimes(1);
+    expect(result.current.claimRecoveryNeeded).toBe(false);
+    expect(result.current.inventory.data.entries[0].quantity).toBe(2);
+  });
+
   describe("Mail Delete를 수행하면", () => {
     it("요청 중에는 server entry를 유지하고 ambiguous failure 후에도 mailbox만 reload한다", async () => {
       const request = deferred<void>();
