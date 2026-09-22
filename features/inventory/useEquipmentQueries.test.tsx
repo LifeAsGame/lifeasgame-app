@@ -175,14 +175,15 @@ describe("Gear server query state를 관리할 때", () => {
       const { result } = renderHook(() => useEquipmentQueries());
       await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
       equipmentApi.getEquippedGearApi.mockReturnValueOnce(stale.promise).mockResolvedValueOnce(recovered);
-      act(() => { void result.current.equipment.reload(); });
+      let staleReload!: Promise<EquipmentSlotInfo[] | undefined>;
+      act(() => { staleReload = result.current.equipment.reload(); });
 
       await act(async () => { await result.current.equip(21, 501); });
       expect(result.current.equipment.data).toEqual(recovered);
 
       await act(async () => {
         stale.resolve(slots);
-        await stale.promise;
+        expect(await staleReload).toBeUndefined();
       });
       expect(result.current.equipment.data).toEqual(recovered);
       expect(result.current.equipment.error).toBeNull();

@@ -29,7 +29,7 @@ export function useLatestQuery<T>(initial: T, load: () => Promise<T>, fallback: 
     try {
       const next = await load();
       if (currentRequestId === requestId.current) setData(next);
-      return next;
+      return currentRequestId === requestId.current ? next : undefined;
     } catch (caught) {
       if (currentRequestId === requestId.current) setError(message(caught, fallback));
       return undefined;
@@ -57,14 +57,23 @@ export function useInventoryQueries() {
   const inventory = useInventoryEntries();
   const mailbox = useMailboxEntries();
   const mutationLocked = useRef(false);
-  const confirmedClaim = useRef<number | null>(null);
-  const [confirmedClaimMailId, setConfirmedClaimMailId] = useState<number | null>(null);
+  const confirmedClaims = useRef(new Set<number>());
+  const [confirmedClaimMailIds, setConfirmedClaimMailIds] = useState<ReadonlySet<number>>(new Set());
   const [claimRecoveryNeeded, setClaimRecoveryNeeded] = useState(false);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
+  const reloadClaimState = async () => {
+    const [nextMailbox, nextInventory] = await Promise.all([mailbox.reload(), inventory.reload()]);
+    if (!nextMailbox || !nextInventory) return false;
+    const currentMailIds = new Set(nextMailbox.entries.map((entry) => entry.mailId));
+    confirmedClaims.current = new Set([...confirmedClaims.current].filter((id) => currentMailIds.has(id)));
+    setConfirmedClaimMailIds(new Set(confirmedClaims.current));
+    return true;
+  };
+
   const runMutation = async (key: string, request: () => Promise<void>, recover: () => Promise<boolean>, recoveryError?: string) => {
-    if (mutationLocked.current) return;
+    if (mutationLocked.current || claimRecoveryNeeded) return;
     mutationLocked.current = true;
     setPendingKey(key);
     setMutationError(null);
@@ -86,25 +95,21 @@ export function useInventoryQueries() {
   };
 
   const claimMail = (mail: MailEntry) => {
-    if (confirmedClaim.current === mail.mailId) return Promise.resolve();
+    if (confirmedClaims.current.has(mail.mailId)) return Promise.resolve();
     return runMutation(
       `claim-${mail.mailId}`,
       async () => {
         await claimMailApi({ slotIndex: mail.slotIndex, quantity: mail.quantity });
-        confirmedClaim.current = mail.mailId;
-        setConfirmedClaimMailId(mail.mailId);
+        confirmedClaims.current.add(mail.mailId);
+        setConfirmedClaimMailIds(new Set(confirmedClaims.current));
       },
-      async () => {
-        const [nextMailbox, nextInventory] = await Promise.all([mailbox.reload(), inventory.reload()]);
-        return Boolean(nextMailbox && nextInventory);
-      },
+      reloadClaimState,
       "Claim succeeded, but Mailbox or Inventory could not be refreshed. Retry synchronization; do not Claim again.",
     );
   };
 
   const retryClaimRecovery = async () => {
-    const [nextMailbox, nextInventory] = await Promise.all([mailbox.reload(), inventory.reload()]);
-    if (nextMailbox && nextInventory) {
+    if (await reloadClaimState()) {
       setClaimRecoveryNeeded(false);
       setMutationError(null);
     }
@@ -116,5 +121,5 @@ export function useInventoryQueries() {
     async () => Boolean(await mailbox.reload()),
   );
 
-  return { inventory, mailbox, pendingKey, mutationError, confirmedClaimMailId, claimRecoveryNeeded, claimMail, deleteMail, retryClaimRecovery };
+  return { inventory, mailbox, pendingKey, mutationError, confirmedClaimMailIds, claimRecoveryNeeded, claimMail, deleteMail, retryClaimRecovery };
 }

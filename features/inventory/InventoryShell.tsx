@@ -98,7 +98,7 @@ function ItemDetail({ item }: { item: InventoryEntry }) {
   );
 }
 
-function MailDetail({ mail, pending, claimed, recoveryError, onClaim, onDelete, onRetry }: { mail: MailEntry; pending: boolean; claimed: boolean; recoveryError: string | null; onClaim: () => void; onDelete: () => void; onRetry: () => void }) {
+function MailDetail({ mail, pending, claimed, recoveryBlocked, recoveryError, onClaim, onDelete, onRetry }: { mail: MailEntry; pending: boolean; claimed: boolean; recoveryBlocked: boolean; recoveryError: string | null; onClaim: () => void; onDelete: () => void; onRetry: () => void }) {
   return (
     <article className="lag-inventory-detail">
       <header className="lag-inventory-hero">
@@ -126,6 +126,8 @@ function MailDetail({ mail, pending, claimed, recoveryError, onClaim, onDelete, 
         recoveryError
           ? <ErrorState text={recoveryError} retry={onRetry} />
           : <p role="status" className="lag-inventory-feedback">Claim succeeded. Refreshing Mailbox and Inventory...</p>
+      ) : recoveryBlocked ? (
+        <ErrorState text="Mailbox synchronization is pending. Retry before Claim or Delete." retry={onRetry} />
       ) : (
         <div className="lag-inventory-actions">
           <button type="button" disabled={pending} className="lag-inventory-action" onClick={onClaim}>{pending ? "Working..." : "Claim"}</button>
@@ -215,7 +217,7 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
             {query.error && query.data.entries.length > 0 ? <p role="status" className="lag-inventory-feedback">Previously loaded entries are shown below. Current server state could not be confirmed.</p> : null}
             {!query.loading && !query.error && query.data.entries.length === 0 ? <InfoCard>No {items ? "Items" : "mail"}.</InfoCard> : null}
             {items && !query.loading && !query.error && query.data.entries.length > 0 && visibleItems.length === 0 ? <InfoCard>No Items in this category.</InfoCard> : null}
-            {queries.mutationError && (!selectedMail || queries.confirmedClaimMailId !== selectedMail.mailId) ? (
+            {queries.mutationError && (!selectedMail || !queries.confirmedClaimMailIds.has(selectedMail.mailId)) ? (
               <div className="lag-inventory-state">
                 <p role="alert" className="lag-inventory-feedback" data-state="error">{queries.mutationError}</p>
                 {queries.claimRecoveryNeeded ? <button type="button" className="lag-inventory-button" onClick={() => void queries.retryClaimRecovery()}>Retry synchronization</button> : null}
@@ -239,7 +241,8 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
                 <MailDetail
                   mail={selectedMail}
                   pending={queries.pendingKey !== null}
-                  claimed={queries.confirmedClaimMailId === selectedMail.mailId}
+                  claimed={queries.confirmedClaimMailIds.has(selectedMail.mailId)}
+                  recoveryBlocked={queries.claimRecoveryNeeded}
                   recoveryError={queries.mutationError}
                   onRetry={() => void queries.retryClaimRecovery()}
                   onClaim={() => {
