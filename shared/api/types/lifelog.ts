@@ -141,7 +141,6 @@ export type CollectionUpdateRequest = {
 };
 
 export type CollectionCreated = { id: number };
-export type CollectionDeleted = { id: number };
 
 export type JournalSourceType = "COLLECTION" | "EXERCISE" | "MEDIA";
 export type JournalEntryMode = "FULL" | "QUICK";

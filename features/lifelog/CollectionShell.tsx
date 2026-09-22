@@ -208,6 +208,7 @@ export default function CollectionShell() {
         {collections.selectedId ? (
           <PanelStage stageKey="lifelog-collection-detail" index={2}>
             <PanelFrame title="Collection Detail" depth={0} contentKey={collections.selectedId}>
+              <button type="button" className="md:hidden mx-3" style={buttonStyle} onClick={() => requestStageFocus("lifelog-collection-list", "back")}>Back to Collection list</button>
               {collections.detail.loading && !collections.detail.data ? <InfoCard>Loading Collection...</InfoCard> : null}
               {collections.detail.error ? <ErrorState message={collections.detail.error} retry={() => void collections.detail.retry()} /> : null}
               {collections.detail.data ? (

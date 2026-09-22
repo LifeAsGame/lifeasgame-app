@@ -9,6 +9,7 @@ import type {
   CollectionSearchParams,
   CollectionUpdateRequest,
 } from "@/shared/api/types";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import {
   createCollectionApi,
   deleteCollectionApi,
@@ -90,6 +91,7 @@ export function useCollectionQueries() {
     setSelectedId(id);
     setDetail(null);
     void loadDetail(id);
+    requestStageFocus("lifelog-collection-detail", "forward");
   }, [loadDetail]);
 
   const search = (category?: CollectionCategory, titleLike?: string) => {
@@ -153,8 +155,9 @@ export function useCollectionQueries() {
   const remove = (id: number) => mutate(
     `delete-${id}`,
     () => deleteCollectionApi(id),
-    (deleted) => {
-      if (selectedIdRef.current === deleted.id) clearSelection();
+    () => {
+      if (selectedIdRef.current === id) clearSelection();
+      setItems((current) => current.filter((item) => item.id !== id));
     },
   );
 

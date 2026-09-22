@@ -484,10 +484,9 @@ export const collectionMock = {
     collectionEntries = collectionEntries.map((entry) => entry.id === id ? updated : entry);
     return copy(updated);
   },
-  delete: (id: number): { id: number } => {
+  delete: (id: number): void => {
     collection(id);
     collectionEntries = collectionEntries.filter((entry) => entry.id !== id);
-    return { id };
   },
 };
 
