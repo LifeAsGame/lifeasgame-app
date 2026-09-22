@@ -57,6 +57,14 @@ describe("Collection source surface를 사용할 때", () => {
 
         fireEvent.click(screen.getByRole("button", { name: "Back to Collections" }));
         expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-list", align: "forward" });
+
+        fireEvent.click(screen.getByTestId("collection-entry"));
+        await screen.findByText("Collection source #31");
+        fireEvent.click(screen.getByRole("button", { name: "Back to Collection list" }));
+        expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-list", align: "back" });
+
+        fireEvent.click(screen.getByTestId("collection-entry"));
+        expect(focus.mock.lastCall?.[0].detail).toEqual({ key: "lifelog-collection-detail", align: "forward" });
       } finally {
         window.removeEventListener(STAGE_FOCUS_EVENT, focus);
       }

@@ -9,6 +9,7 @@ import type {
   CollectionSearchParams,
   CollectionUpdateRequest,
 } from "@/shared/api/types";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import {
   createCollectionApi,
   deleteCollectionApi,
@@ -90,6 +91,7 @@ export function useCollectionQueries() {
     setSelectedId(id);
     setDetail(null);
     void loadDetail(id);
+    requestStageFocus("lifelog-collection-detail", "forward");
   }, [loadDetail]);
 
   const search = (category?: CollectionCategory, titleLike?: string) => {

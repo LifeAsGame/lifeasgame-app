@@ -117,6 +117,7 @@ function CollectionDetail({
 
   return (
     <div className="space-y-3 px-3">
+      <button type="button" className="md:hidden" style={buttonStyle} onClick={() => requestStageFocus("lifelog-collection-list", "back")}>Back to Collection list</button>
       <InfoCard>{item.title}</InfoCard>
       <GoldRow>Collection source #{item.id}</GoldRow>
       <GoldRow>Category: {item.category}</GoldRow>
