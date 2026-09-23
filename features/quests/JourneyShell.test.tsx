@@ -13,6 +13,7 @@ const api = vi.hoisted(() => ({
   getMyQuestRouteApi: vi.fn(),
   getMyQuestRouteStepApi: vi.fn(),
   getPlayerQuestApi: vi.fn(),
+  getQuestRewardSettlementApi: vi.fn(),
   getQuestRouteApi: vi.fn(),
   listMyQuestRoutesApi: vi.fn(),
   listPlayerQuestsApi: vi.fn(),
@@ -104,6 +105,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     api.getQuestRouteApi.mockResolvedValue(unselectedRoute);
     api.getMyQuestRouteApi.mockResolvedValue(selectedRoute);
     api.getMyQuestRouteStepApi.mockResolvedValue(readyStepDetail);
+    api.getQuestRewardSettlementApi.mockRejectedValue(new Error("Settlement unavailable"));
     api.acceptQuestApi.mockResolvedValue(current[0]);
     api.manualCheckQuestApi.mockResolvedValue(current[0]);
     api.cancelQuestApi.mockResolvedValue({ playerId: 1, questId: 1, questCode: "Q_ONE" });
@@ -168,6 +170,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "Back to Current" }));
       await waitFor(() => expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument());
       expect(document.querySelector('[data-stage-key="journey-list"]')).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByRole("button", { name: /흔적 세 개 이어보기/ })).toHaveFocus());
 
       fireEvent.click(screen.getByRole("button", { name: /흔적 세 개 이어보기/ }));
       await screen.findByText(/Quest progress/);

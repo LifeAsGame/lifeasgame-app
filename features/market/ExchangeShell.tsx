@@ -311,8 +311,13 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
     mutations.clearError();
   };
   const closeDetail = () => {
+    const trigger = document.querySelector<HTMLButtonElement>('[data-stage-key="market-stage-1"] .lag-exchange-row[data-selected="true"]');
     clearDetailState();
     requestStageFocus("market-stage-1", "back");
+    requestAnimationFrame(() => {
+      const target = trigger?.isConnected ? trigger : document.querySelector<HTMLButtonElement>('.lag-exchange-tabs button[data-selected="true"]');
+      target?.focus({ preventScroll: true });
+    });
   };
 
   return (
@@ -321,6 +326,9 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
         <PanelFrame title="Shop" depth={detailIdentity ? 1 : 0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
           <section className="lag-exchange-surface">
             <SurfaceHeader eyebrow="Exchange Shop" title="Shop" description="Browse System Shop items and player listings, or sell an inventory item." accent="cyan" />
+            {mutations.completedTrades.map((trade) => <Feedback key={trade.id} state="info" role="status">Purchase completed · Trade #{trade.id} · Listing #{trade.listingId}. Check Wallet, Items and Trade History for the latest state.</Feedback>)}
+            {mutations.marketplaceRefreshError ? <Feedback>{mutations.marketplaceRefreshError}</Feedback> : null}
+            <button type="button" className="lag-exchange-button" disabled={mutations.pendingKey !== null} onClick={() => void mutations.refreshMarketplace()}>{mutations.marketplaceRefreshError ? "Retry Exchange lookup" : "Refresh Exchange"}</button>
             <div className="lag-exchange-tabs" aria-label="Shop surfaces">
               {([
                 ["system-shop", "System Shop"],
@@ -339,7 +347,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
             {shopSurface === "marketplace" ? (
               <QueryState query={queries.openListings} empty="No open Marketplace listings.">
                 <div className="lag-exchange-list">
-                  {queries.openListings.data.map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={itemIdentity(listing.itemId)} meta={listing.sellerId === playerId ? "Your listing" : `Seller · Player #${listing.sellerId}`} value={formatCurrency(listing.price, listing.currency)} status={listing.status} onClick={() => { setSelectedListingId(listing.id); setListingReservation(null); setSelectedShopItemId(null); }} />)}
+                  {queries.openListings.data.filter((listing) => !mutations.completedTrades.some((trade) => trade.listingId === listing.id)).map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={itemIdentity(listing.itemId)} meta={listing.sellerId === playerId ? "Your listing" : `Seller · Player #${listing.sellerId}`} value={formatCurrency(listing.price, listing.currency)} status={listing.status} onClick={() => { setSelectedListingId(listing.id); setListingReservation(null); setSelectedShopItemId(null); }} />)}
                 </div>
               </QueryState>
             ) : null}

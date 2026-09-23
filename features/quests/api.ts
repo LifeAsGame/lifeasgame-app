@@ -12,10 +12,15 @@ import type {
   QuestRoutesResponse,
   QuestRouteStepDetail,
   QuestStatus,
+  RewardSettlement,
 } from "@/shared/api/types";
 import { journeyMock } from "./mock";
 
 const playerQuestPath = (questCode: string) => `/api/v1/players/quests/${encodeURIComponent(questCode)}`;
+
+export function getQuestRewardSettlementApi(questAcceptanceId: number): Promise<RewardSettlement> {
+  return apiGet<RewardSettlement>(`/api/v1/reward-settlements/quest-completions/${questAcceptanceId}`);
+}
 
 export async function listQuestCatalogApi(): Promise<QuestBlueprint[]> {
   if (USE_MOCK) return journeyMock.catalog();

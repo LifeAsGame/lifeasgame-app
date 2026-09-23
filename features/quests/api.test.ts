@@ -7,6 +7,7 @@ import {
   getMyQuestRouteApi,
   getMyQuestRouteStepApi,
   getPlayerQuestApi,
+  getQuestRewardSettlementApi,
   getQuestRouteApi,
   listMyQuestRoutesApi,
   listPlayerQuestsApi,
@@ -49,6 +50,14 @@ describe("Journey API를 실제 backend에 연결할 때", () => {
       expect(client.apiGetRaw).toHaveBeenNthCalledWith(3, "/api/v1/players/quests/Q%2FONE%20%3F");
       expect(client.apiGet).not.toHaveBeenCalled();
     });
+  });
+
+  it("reads a reward settlement by acceptance ID through the envelope GET only", async () => {
+    client.apiGet.mockResolvedValue({ sourceId: 31, status: "NOT_ELIGIBLE", lines: [] });
+    await expect(getQuestRewardSettlementApi(31)).resolves.toEqual({ sourceId: 31, status: "NOT_ELIGIBLE", lines: [] });
+    expect(client.apiGet).toHaveBeenCalledWith("/api/v1/reward-settlements/quest-completions/31");
+    expect(client.apiPost).not.toHaveBeenCalled();
+    expect(client.apiDelete).not.toHaveBeenCalled();
   });
 
   describe("Quest mutation 계약을 사용하면", () => {
