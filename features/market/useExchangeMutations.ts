@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-import type { EconomyCurrency, InventoryEntry, ListingSummary, ShopItem, ShopPurchaseSummary } from "@/shared/api/types";
+import type { EconomyCurrency, InventoryEntry, ListingSummary, ShopItem, ShopPurchaseSummary, TradeSummary } from "@/shared/api/types";
 import {
   cancelListingApi,
   confirmShopPurchaseApi,
@@ -24,6 +24,9 @@ export function useExchangeMutations(queries: ExchangeQueries) {
   const intentKeys = useRef(new Map<string, string>());
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [completedTrades, setCompletedTrades] = useState<TradeSummary[]>([]);
+  const confirmedTrades = useRef(new Map<number, TradeSummary>());
+  const [marketplaceRefreshError, setMarketplaceRefreshError] = useState<string | null>(null);
 
   const keyFor = (intent: string) => {
     const current = intentKeys.current.get(intent);
@@ -107,9 +110,7 @@ export function useExchangeMutations(queries: ExchangeQueries) {
     return reservation;
   });
 
-  const purchaseListing = (listing: ListingSummary, reservationToken: string) => run(`listing-purchase-${listing.id}`, async () => {
-    const intent = `listing-purchase:${listing.id}:${reservationToken}`;
-    const trade = await purchaseListingApi(listing.id, reservationToken, keyFor(intent));
+  const reloadMarketplace = async () => {
     const refreshes = await Promise.allSettled([
       queries.openListings.reload(),
       queries.myListings.reload(),
@@ -117,8 +118,19 @@ export function useExchangeMutations(queries: ExchangeQueries) {
       queries.wallet.reload(),
       queries.inventory.reload(),
     ]);
-    if (fullyReloaded(refreshes)) intentKeys.current.delete(intent);
-    else setError("Purchase completed, but some Exchange data could not be refreshed.");
+    setMarketplaceRefreshError(fullyReloaded(refreshes) ? null : "Some Exchange data could not be refreshed. Previously loaded data may be out of date.");
+  };
+
+  const refreshMarketplace = () => run("marketplace-refresh", reloadMarketplace);
+
+  const purchaseListing = (listing: ListingSummary, reservationToken: string) => run(`listing-purchase-${listing.id}`, async () => {
+    const confirmed = confirmedTrades.current.get(listing.id);
+    if (confirmed) return confirmed;
+    const intent = `listing-purchase:${listing.id}:${reservationToken}`;
+    const trade = await purchaseListingApi(listing.id, reservationToken, keyFor(intent));
+    confirmedTrades.current.set(listing.id, trade);
+    setCompletedTrades([...confirmedTrades.current.values()]);
+    await reloadMarketplace();
     return trade;
   });
 
@@ -137,6 +149,9 @@ export function useExchangeMutations(queries: ExchangeQueries) {
   return {
     pendingKey,
     error,
+    completedTrades,
+    marketplaceRefreshError,
+    refreshMarketplace,
     clearError: () => setError(null),
     startShopPurchase,
     refreshShopPurchase,

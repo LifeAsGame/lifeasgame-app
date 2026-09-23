@@ -92,27 +92,24 @@ describe("Exchange command ownership", () => {
     expect(globalThis.crypto.randomUUID).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the Marketplace purchase key when the command succeeds but an authoritative reload rejects", async () => {
-    api.purchaseListingApi
-      .mockResolvedValueOnce({ id: 9, listingId: 8, buyerId: 7, sellerId: 4, price: 70, currency: "GOLD" })
-      .mockResolvedValueOnce({ id: 9, listingId: 8, buyerId: 7, sellerId: 4, price: 70, currency: "GOLD" })
-      .mockResolvedValueOnce({ id: 10, listingId: 8, buyerId: 7, sellerId: 4, price: 70, currency: "GOLD" });
+  it("preserves a confirmed Marketplace purchase and retries only reads after GET failure", async () => {
+    const trade = { id: 9, listingId: 8, buyerId: 7, sellerId: 4, price: 70, currency: "GOLD" };
+    api.purchaseListingApi.mockResolvedValue(trade);
     const state = queries();
     vi.mocked(state.openListings.reload).mockRejectedValueOnce(new Error("listings unavailable")).mockResolvedValue([]);
     const { result } = renderHook(() => useExchangeMutations(state));
     const listing = { id: 8, itemId: 90, sellerId: 4, price: 70, currency: "GOLD" as const, status: "OPEN" };
-
     await act(async () => { await result.current.purchaseListing(listing, "listing-token"); });
+    expect(result.current.completedTrades).toEqual([trade]);
+    expect(result.current.marketplaceRefreshError).toContain("could not be refreshed");
+    await act(async () => { await result.current.refreshMarketplace(); });
     await act(async () => { await result.current.purchaseListing(listing, "listing-token"); });
-    await act(async () => { await result.current.purchaseListing(listing, "listing-token"); });
-
-    const keys = api.purchaseListingApi.mock.calls.map(([, , key]) => key);
-    expect(keys).toEqual([UUIDS[0], UUIDS[0], UUIDS[1]]);
-    expect(globalThis.crypto.randomUUID).toHaveBeenCalledTimes(2);
-    expect(state.openListings.reload).toHaveBeenCalledTimes(3);
-    expect(state.trades.reload).toHaveBeenCalledTimes(3);
-    expect(state.wallet.reload).toHaveBeenCalledTimes(3);
-    expect(state.inventory.reload).toHaveBeenCalledTimes(3);
+    expect(result.current.marketplaceRefreshError).toBeNull();
+    expect(api.purchaseListingApi).toHaveBeenCalledTimes(1);
+    expect(state.openListings.reload).toHaveBeenCalledTimes(2);
+    expect(state.wallet.reload).toHaveBeenCalledTimes(2);
+    expect(state.trades.reload).toHaveBeenCalledTimes(2);
+    expect(state.inventory.reload).toHaveBeenCalledTimes(2);
   });
 
   it("keeps an accepted purchase id when history has not caught up instead of starting again", async () => {

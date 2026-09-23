@@ -6,6 +6,7 @@ import { AnimatePresence } from "framer-motion";
 import type { InventoryEntry, MailEntry } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
+import ItemDescription from "@/shared/ui/ItemDescription";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useInventoryQueries } from "./useInventoryQueries";
@@ -71,6 +72,7 @@ function ItemDetail({ item }: { item: InventoryEntry }) {
       <header className="lag-inventory-hero">
         <span>Inventory Entry</span>
         <h4>{item.itemName}</h4>
+        <ItemDescription itemId={item.itemId} />
         <div><span>{item.rarity}</span><span>{item.category}</span><span>{item.type}</span></div>
       </header>
       <DetailSection title="Identity">
@@ -104,6 +106,7 @@ function MailDetail({ mail, pending, claimed, recoveryBlocked, recoveryError, on
       <header className="lag-inventory-hero">
         <span>{claimed ? "Claim succeeded · list refresh pending" : "Inbox Entry · Not yet owned"}</span>
         <h4>{mail.itemName}</h4>
+        <ItemDescription itemId={mail.itemId} />
         <div><span>{mail.rarity}</span><span>{mail.category}</span><span>{mail.type}</span></div>
       </header>
       <DetailSection title="Mail identity">

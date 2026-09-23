@@ -1,5 +1,32 @@
 export type QuestStatus = "IN_PROGRESS" | "GOAL_REACHED" | "COMPLETED" | "CANCELED";
 
+export interface RewardSettlement {
+  settlementId: number;
+  sourceType: "QUEST_COMPLETION";
+  sourceId: number;
+  rewardProfileId: number;
+  rewardProfileCode: string;
+  status: "PENDING" | "PARTIAL_FAILED" | "FAILED" | "COMPLETED" | "NOT_ELIGIBLE";
+  createdAt: string;
+  updatedAt: string;
+  lines: RewardSettlementLine[];
+}
+
+export interface RewardSettlementLine {
+  lineId: number;
+  rewardDefinitionId: number;
+  rewardDefinitionCode: string;
+  rewardType: "GOLD" | "ITEM" | "EXP";
+  amount: number;
+  itemId: number | null;
+  itemCode: string | null;
+  sortOrder: number;
+  status: "PENDING" | "SUCCEEDED" | "FAILED";
+  failureCode: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface QuestBlueprint {
   code: string;
   title: string;

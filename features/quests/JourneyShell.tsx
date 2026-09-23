@@ -35,6 +35,7 @@ import {
   QUEST_STATUS_LABEL,
 } from "./model";
 import { useJourneyQueries } from "./useJourneyQueries";
+import RewardSettlementPanel from "./RewardSettlementPanel";
 
 const SURFACE_COPY: Record<QuestsSubId, string> = {
   current: "Review accepted Quests and their canonical progress.",
@@ -207,14 +208,18 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
   };
 
   const closeDetail = () => {
+    const trigger = document.querySelector<HTMLButtonElement>('[data-stage-key="journey-list"] button[aria-pressed="true"]');
     clearDetail();
     requestStageFocus("journey-list", "back");
+    requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
   };
 
   const closeList = () => {
+    const trigger = document.querySelector<HTMLButtonElement>('[data-stage-key="journey-root"] button[aria-pressed="true"]');
     clearDetail();
     setSurface(null);
     requestStageFocus("journey-root", "back");
+    requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
   };
 
   const mineById = new Map(queries.routes.data.mine.map((route) => [route.id, route]));
@@ -428,6 +433,8 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
           <DetailRow name="Repeat" value={humanize(selectedAcceptance.repeatPolicy ?? selectedAcceptance.repeatRule)} />
         </DetailSection>
         {selectedAcceptance.status === "GOAL_REACHED" ? <p className="lag-journey-feedback" data-state="warning">Goal reached. This is not the same as Completed.</p> : null}
+        {selectedAcceptance.code === "Q_ADVENTURE_PREPARATION" ? <p className="lag-journey-feedback">수락 후 직접 작성한 서로 다른 기록 3건을 남기세요. 보상은 GOLD 100과 기록 결정 1개이며 계정당 한 번 지급됩니다.</p> : null}
+        <RewardSettlementPanel key={selectedAcceptance.id} acceptanceId={selectedAcceptance.id} />
         {(canManualCheckQuest(selectedAcceptance) || canCancelQuest(selectedAcceptance)) ? (
           <section className="lag-journey-actions" aria-label="Available Quest actions">
             {canManualCheckQuest(selectedAcceptance) ? (
@@ -466,8 +473,10 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
           <DetailRow name="Target" value={`${humanize(selectedBlueprint.targetType)} × ${selectedBlueprint.targetValue}`} />
           <DetailRow name="Completion policy" value={humanize(selectedBlueprint.completionPolicy)} />
           <DetailRow name="Repeat" value={humanize(selectedBlueprint.repeatPolicy ?? selectedBlueprint.repeatRule)} />
-          <DetailRow name="Reward profile" value={selectedBlueprint.rewardProfileCode ?? "None"} />
+          <DetailRow name="Rewards" value={selectedBlueprint.code === "Q_ADVENTURE_PREPARATION" ? "GOLD 100 + 기록 결정 × 1 · once per account" : "Check the reward settlement after completion."} />
         </DetailSection>
+        {selectedBlueprint.code === "Q_ADVENTURE_PREPARATION" ? <p className="lag-journey-feedback">수락 후 직접 작성한 서로 다른 기록 3건을 남기세요. 기록 결정은 보관하거나 선택적으로 거래할 수 있습니다. 거래는 성장의 필수 단계가 아닙니다.</p> : null}
+        {acceptance ? <RewardSettlementPanel key={acceptance.id} acceptanceId={acceptance.id} /> : null}
         {!acceptanceKnown ? <p className="lag-journey-feedback" data-state="warning">Acceptance state unavailable. Accept is disabled until Current reloads.</p> : null}
         {acceptAction ? (
           <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => {

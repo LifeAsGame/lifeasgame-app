@@ -285,6 +285,39 @@ describe("canonical Exchange surfaces", () => {
     expect(api.reserveListingApi).toHaveBeenCalledWith(201, 300);
   });
 
+  it("keeps purchase success visible after GET failures and Retry cannot purchase again", async () => {
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Marketplace" }));
+    fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
+    await screen.findByRole("button", { name: "Purchase reserved listing" });
+    api.getOpenListingsApi.mockRejectedValue(new Error("Listing lookup unavailable"));
+    api.getWalletApi.mockRejectedValue(new Error("Wallet lookup unavailable"));
+    fireEvent.click(screen.getByRole("button", { name: "Purchase reserved listing" }));
+    expect(await screen.findByText(/Purchase completed · Trade #401/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Purchase reserved listing" })).not.toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /Item #3011/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Some Exchange data could not be refreshed/)).toBeInTheDocument();
+    api.getOpenListingsApi.mockResolvedValue([openListings[0]]);
+    api.getWalletApi.mockResolvedValue(wallet());
+    fireEvent.click(screen.getByRole("button", { name: "Retry Exchange lookup" }));
+    await waitFor(() => expect(screen.queryByText(/Some Exchange data could not be refreshed/)).not.toBeInTheDocument());
+    expect(screen.getByText(/Purchase completed · Trade #401/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Marketplace" })).toHaveFocus());
+    expect(api.purchaseListingApi).toHaveBeenCalledTimes(1);
+    expect(api.reserveListingApi).toHaveBeenCalledTimes(1);
+    expect(api.createListingApi).not.toHaveBeenCalled();
+  });
+
+  it("returns keyboard focus to the listing when detail closes", async () => {
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Marketplace" }));
+    const listing = screen.getByRole("button", { name: /Item #3011/ });
+    fireEvent.click(listing);
+    fireEvent.click(screen.getByRole("button", { name: "Back to Marketplace" }));
+    await waitFor(() => expect(listing).toHaveFocus());
+  });
+
   it("creates a whole-entry listing from a real InventoryEntry with only total price and GOLD/GEM", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: "My Listings" }));

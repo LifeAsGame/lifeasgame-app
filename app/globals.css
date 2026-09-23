@@ -3894,6 +3894,28 @@ textarea.lag-journal-control {
   text-transform: uppercase;
 }
 
+.lag-quest-rewards {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.lag-quest-rewards > p,
+.lag-quest-rewards > ul,
+.lag-quest-rewards > button {
+  margin: var(--lag-space-3) var(--lag-space-4);
+}
+
+.lag-quest-rewards > button {
+  width: calc(100% - 2 * var(--lag-space-4));
+}
+
+.lag-quest-rewards li + li {
+  margin-top: var(--lag-space-4);
+  padding-top: var(--lag-space-3);
+  border-top: 1px solid var(--lag-divider);
+}
+
 .lag-journey-detail-row {
   display: grid;
   grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
