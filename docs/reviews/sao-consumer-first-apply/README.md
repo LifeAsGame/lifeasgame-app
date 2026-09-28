@@ -13,7 +13,7 @@ Quest rows show status and progress once. Titles, completion rules and reward
 settlement remain distinct, with fewer nested borders and no internal layout copy.
 Legacy mobile rail overrides are scoped out so the menu stays vertical, labels remain visible and the selected circle is not clipped. API clients, command payloads, authentication and restricted features are unchanged.
 
-## Current browser evidence
+## Original visual evidence (before Retry follow-up)
 
 These captures use a fixed **production build with NEXT_PUBLIC_USE_MOCK=true** in
 macOS Chrome, with desktop pointer and mobile touch emulation. They are not real API
@@ -34,26 +34,50 @@ replaces the earlier shell-only motion observation and the earlier Linux recordi
 
 ## Validation
 
-See `validation.json` for the actual checks of this revision. The matrix covers
+See `validation.json` for the original implementation checks, before the Retry follow-up. The matrix covers
 1440/390/360/768/1024, both themes and normal/reduced motion. Additional short-height
 checks cover nonzero Home/list scroll, selected-first menu order, the other six
 domain entries, keyboard focus, interrupted close/reopen, and clipped connection endpoints.
 Unit tests cover command-once recovery, late responses, URL read restoration and
 confirmed settlement retention across failed rereads/404; these are simulated responses.
 
+## Direct URL Retry follow-up
+
+Route and Current URL restoration now waits for the corresponding list to succeed.
+An error exposes Retry without deciding absence or Route ownership. Successful
+restoration is applied once; unrelated queries cannot restart it. Navigating away
+invalidates pending reads, including a return to the previous URL during a failed
+or loading list.
+
+- [Follow-up validation](retry-validation.json): 103 files / 688 tests, TypeScript,
+  lint (0 errors / 7 existing warnings), API-mode production build.
+- [Injected browser responses](retry-browser-results.json): 9 cases, desktop/mobile
+  Retry and URL preservation, settlement reread/failure retention, five late-response
+  scenarios. Every API request was GET; zero commands. All responses and the session
+  were synthetic. This does **not** validate real authentication or backend data.
+- [Recovered Route](retry-routes-1440.png),
+  [confirmed rewards retained after injected failure](retry-current-preserved-390.png).
+
 ## Real API gate
 
-**Real API validation remains unverified.** The existing 18084 instance responds to
-the health read and uses a separate CFC network, MySQL database and named volume.
-Its runtime/JAR and dedicated account evidence paths are empty, so its source version
-and an approved test account could not be established. No login, authenticated read,
-Quest command or reward mutation was attempted. Existing containers, servers and data
-were preserved; no environment or account was created.
+**Real API validation remains unverified.** Existing 18084 runtime/JAR and dedicated
+account records could not establish its running SHA or approved account. The observed
+latest backend develop is `32651b3903283f0b92e4c156379425ecc3f2f95e`; this is a candidate
+source revision, not the version of 18084.
 
-The environment observation and exact missing access information are in
-`validation.json`. Completion requires an approved runtime/source manifest and a
-local dedicated-account file or identified authenticated test browser. Mock success
-and automated review do not close the integration gate.
+The follow-up authorizes a new isolated stack, but explicitly prohibits starting it
+when Docker memory is insufficient. The VM reported MemAvailable **999220 KiB**
+(about 976 MiB), SwapFree **1248 KiB** of 1 GiB. The existing adventure app/MySQL/Redis
+already use about 1160 MiB without startup headroom. No new stack or account was
+created; no real login, authenticated read, Quest command or reward mutation ran.
+
+Reusable local configuration, source SHA, missing-record locations, memory evidence
+and planned account-file location are recorded outside Git at
+`lifeasgame-app/.codex-local/pr126-api/environment.json`. No account file exists yet.
+Existing servers, containers and DBs were preserved. No admin grants or SQL writes
+were used. After memory is available, the integration gate still requires normal
+signup/onboarding and normal Quest/reward progression in a separate project/volume,
+then real-response checks distinguished from injected failures/delays.
 
 Other domains retain their existing product content inside the common shell. Full
 visual conversion, physical mobile devices, Safari, soft keyboards and screen readers

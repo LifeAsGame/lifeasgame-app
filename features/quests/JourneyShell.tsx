@@ -195,6 +195,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     onNavigate?.(nextSurface, detail);
   };
   const queries = useJourneyQueries(true);
+  const navigationQuery = navigation?.surface ? queries[navigation.surface] : null;
+  const navigationPending = Boolean(navigation?.detail && navigationQuery && (navigationQuery.loading || navigationQuery.error));
   const [surface, setSurface] = useState<QuestsSubId | null>(initialSurface);
   const [selectedAcceptanceId, setSelectedAcceptanceId] = useState<number | null>(null);
   const [selectedCatalogCode, setSelectedCatalogCode] = useState<string | null>(null);
@@ -314,13 +316,16 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     if (!navigation) return;
     const key = `${navigation.surface ?? ""}/${navigation.detail ?? ""}`;
     if (appliedRoute.current === key) return;
-    if (navigation.detail && (queries.current.loading || queries.catalog.loading || queries.routes.loading)) return;
-    appliedRoute.current = key;
+    appliedRoute.current = null;
     const returnTarget = document.querySelector<HTMLButtonElement>(navigation.surface
       ? '[data-stage-key="journey-list"] button[aria-pressed="true"]'
       : '[data-stage-key="journey-root"] button[aria-pressed="true"]');
     clearDetail();
     setSurface(navigation.surface);
+    // A failed list cannot establish absence or Route ownership. Keep restoration
+    // pending through Retry, while exposing its list and invalidating stale reads.
+    if (navigationPending) return;
+    appliedRoute.current = key;
     if (!navigation.detail) {
       requestAnimationFrame(() => {
         if (appliedRoute.current === key && returnTarget?.isConnected && !returnTarget.closest("[inert]")) returnTarget.focus({ preventScroll: true });
@@ -341,7 +346,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     }
     // Navigation snapshots restore read state. The request IDs invalidate earlier reads.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigation?.surface, navigation?.detail, queries.current.loading, queries.catalog.loading, queries.routes.loading]);
+  }, [navigation?.surface, navigation?.detail, navigationPending]);
 
   useEffect(() => () => {
     navigationEpoch.current += 1;
@@ -639,7 +644,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
             <PanelFrame title={listTitle} depth={1} contentKey={surface} backButton={<BackButton label="Back to Journey" onClick={closeList} />}>
               <section className="lag-journey-list-surface" aria-label={`${listTitle} list`}>
                 <p className="lag-journey-list-intro">{SURFACE_COPY[surface]}</p>
-                {navigation?.detail && !detailContentKey && !queries.current.loading && !queries.catalog.loading && !queries.routes.loading ? <p role="status" className="lag-journey-feedback">Requested detail is unavailable in the current results. Return to Journey or choose another entry.</p> : null}
+                {navigation?.detail && !detailContentKey && !navigationPending ? <p role="status" className="lag-journey-feedback">Requested detail is unavailable in the current results. Return to Journey or choose another entry.</p> : null}
                 {surface === "current" ? renderCurrentList() : surface === "catalog" ? renderCatalogList() : renderRouteList()}
               </section>
             </PanelFrame>

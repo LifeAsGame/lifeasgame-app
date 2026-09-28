@@ -629,6 +629,83 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     expect(api.advanceQuestRouteApi).not.toHaveBeenCalled();
   });
 
+  it.each(["current", "routes"] as const)("restores direct %s detail only after the failed list recovers, without commands or navigation", async (surface) => {
+    const quest = current[0];
+    const navigation = { surface, detail: String(surface === "routes" ? selectedRoute.id : quest.id) };
+    const onNavigate = vi.fn();
+    const list = surface === "routes" ? api.listMyQuestRoutesApi : api.listPlayerQuestsApi;
+    list.mockRejectedValueOnce(new Error("Initial list failure"))
+      .mockRejectedValueOnce(new Error("Retry list failure"))
+      .mockResolvedValue(surface === "routes" ? [selectedRoute] : current);
+    const view = render(<JourneyShell navigation={navigation} onNavigate={onNavigate} />);
+
+    for (const error of ["Initial list failure", "Retry list failure"]) {
+      await screen.findByText(`Load failed: ${error}`);
+      expect(screen.queryByText(/Requested detail is unavailable/)).not.toBeInTheDocument();
+      expect(api.getQuestRouteApi).not.toHaveBeenCalled();
+      expect(api.getMyQuestRouteApi).not.toHaveBeenCalled();
+      expect(api.getPlayerQuestApi).not.toHaveBeenCalled();
+      expect(screen.queryByRole("button", { name: "Select Route" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    }
+
+    if (surface === "routes") {
+      await screen.findByText("Current Step Detail: 첫 흔적 남기기 · READY_TO_ADVANCE");
+      expect(screen.getByText("Status: IN_PROGRESS")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Select Route" })).not.toBeInTheDocument();
+      expect(api.getMyQuestRouteApi.mock.calls).toEqual([[selectedRoute.id]]);
+      expect(api.getMyQuestRouteStepApi.mock.calls).toEqual([[selectedRoute.id, selectedRoute.playerProgress!.currentStepId]]);
+      expect(api.getQuestRouteApi).not.toHaveBeenCalled();
+    } else {
+      await screen.findByText("Quest progress");
+      expect(api.getPlayerQuestApi.mock.calls).toEqual([[quest.code]]);
+    }
+    const stage = document.querySelector('[data-stage-key="journey-detail"]');
+    const calls = Object.fromEntries(Object.entries(api).map(([name, mock]) => [name, mock.mock.calls.length]));
+    view.rerender(<JourneyShell navigation={{ ...navigation }} onNavigate={onNavigate} />);
+    expect(document.querySelector('[data-stage-key="journey-detail"]')).toBe(stage);
+    expect(Object.fromEntries(Object.entries(api).map(([name, mock]) => [name, mock.mock.calls.length]))).toEqual(calls);
+    expect(list).toHaveBeenCalledTimes(3);
+    expect(onNavigate).not.toHaveBeenCalled();
+    for (const command of [api.acceptQuestApi, api.cancelQuestApi, api.manualCheckQuestApi, api.selectQuestRouteApi, api.advanceQuestRouteApi]) {
+      expect(command).not.toHaveBeenCalled();
+    }
+  });
+
+  it("does not restore an abandoned Route URL when its delayed Retry finishes", async () => {
+    const retry = deferred<QuestRoute[]>();
+    api.listMyQuestRoutesApi.mockRejectedValueOnce(new Error("Route list failure")).mockReturnValueOnce(retry.promise);
+    const onNavigate = vi.fn();
+    const view = render(<JourneyShell navigation={{ surface: "routes", detail: String(selectedRoute.id) }} onNavigate={onNavigate} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+    view.rerender(<JourneyShell navigation={{ surface: "current", detail: String(current[0].id) }} onNavigate={onNavigate} />);
+    await screen.findByText("Quest progress");
+    await act(async () => { retry.resolve([selectedRoute]); await retry.promise; });
+    expect(screen.getByText("Quest progress")).toBeInTheDocument();
+    expect(api.getMyQuestRouteApi).not.toHaveBeenCalled();
+    expect(api.getQuestRouteApi).not.toHaveBeenCalled();
+    expect(api.getPlayerQuestApi).toHaveBeenCalledTimes(1);
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("restores the previous URL after leaving it for a still-pending list", async () => {
+    const routes = deferred<QuestRoute[]>();
+    api.listMyQuestRoutesApi.mockReturnValueOnce(routes.promise);
+    const onNavigate = vi.fn();
+    const currentNavigation = { surface: "current" as const, detail: String(current[0].id) };
+    const view = render(<JourneyShell navigation={currentNavigation} onNavigate={onNavigate} />);
+    await screen.findByText("Quest progress");
+    view.rerender(<JourneyShell navigation={{ surface: "routes", detail: String(selectedRoute.id) }} onNavigate={onNavigate} />);
+    await screen.findByText("Loading Quest Routes...");
+    view.rerender(<JourneyShell navigation={currentNavigation} onNavigate={onNavigate} />);
+    await screen.findByText("Quest progress");
+    await act(async () => { routes.resolve([selectedRoute]); await routes.promise; });
+    expect(screen.getByText("Quest progress")).toBeInTheDocument();
+    expect(api.getPlayerQuestApi.mock.calls).toEqual([[current[0].code], [current[0].code]]);
+    expect(api.getMyQuestRouteApi).not.toHaveBeenCalled();
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
   it("refreshes reads after a late command without replacing the newer Quest selection", async () => {
     const pending = deferred<QuestAcceptance>();
     api.manualCheckQuestApi.mockReturnValue(pending.promise);
