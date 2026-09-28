@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
-import PanelStage from "./PanelStage";
+import PanelStage, { StageContentTransition } from "./PanelStage";
 
 describe("PanelStage camera contract", () => {
   const focus = vi.fn();
@@ -29,6 +29,19 @@ describe("PanelStage camera contract", () => {
     view.rerender(<PanelStage stageKey="detail"><span>Detail B</span></PanelStage>);
 
     expect(focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves the visual container while replacing selection-owned content", () => {
+    const view = render(<StageContentTransition identity="a"><input defaultValue="A" /></StageContentTransition>);
+    const container = view.container.firstElementChild;
+    const content = view.container.querySelector("input");
+    for (const identity of ["b", "a", "c"]) {
+      view.rerender(<StageContentTransition identity={identity}><input defaultValue={identity} /></StageContentTransition>);
+      expect(view.container.firstElementChild).toBe(container);
+      expect(container).toHaveAttribute("data-content-identity", identity);
+      expect(view.container.querySelector("input")).not.toBe(content);
+      expect(view.container.querySelector("input")).toHaveValue(identity);
+    }
   });
 
   it("preserves opt-out topology metadata and reduced-motion panel behavior", () => {

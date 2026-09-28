@@ -1,0 +1,236 @@
+{
+  "mode": "production build; explicit Mock",
+  "date": "2026-09-28T14:26:22.720Z",
+  "results": [
+    {
+      "width": 1440,
+      "connections": {
+        "rowCenter": 692.96875,
+        "bottom": 583,
+        "expectedY": 464,
+        "path": "M587,42 H591 V464 H607",
+        "left": "M523,42 H521 V42 H503"
+      }
+    },
+    {
+      "width": 1440,
+      "homeScroll": 150,
+      "listScroll": 198
+    },
+    {
+      "width": 1440,
+      "domain": "player",
+      "child": "Growth",
+      "order": [
+        "player",
+        "inventory",
+        "quests",
+        "role",
+        "lifelog",
+        "market",
+        "system"
+      ]
+    },
+    {
+      "width": 1440,
+      "domain": "inventory",
+      "child": "Items",
+      "order": [
+        "inventory",
+        "player",
+        "quests",
+        "role",
+        "lifelog",
+        "market",
+        "system"
+      ]
+    },
+    {
+      "width": 1440,
+      "domain": "role",
+      "child": "Overview",
+      "order": [
+        "role",
+        "player",
+        "inventory",
+        "quests",
+        "lifelog",
+        "market",
+        "system"
+      ]
+    },
+    {
+      "width": 1440,
+      "domain": "lifelog",
+      "child": "Journal",
+      "order": [
+        "lifelog",
+        "player",
+        "inventory",
+        "quests",
+        "role",
+        "market",
+        "system"
+      ]
+    },
+    {
+      "width": 1440,
+      "domain": "market",
+      "child": "Shop",
+      "order": [
+        "market",
+        "player",
+        "inventory",
+        "quests",
+        "role",
+        "lifelog",
+        "system"
+      ]
+    },
+    {
+      "width": 1440,
+      "domain": "system",
+      "child": "Options",
+      "order": [
+        "system",
+        "player",
+        "inventory",
+        "quests",
+        "role",
+        "lifelog",
+        "market"
+      ]
+    },
+    {
+      "width": 1440,
+      "checks": [
+        "keyboard focus",
+        "close/reopen during fade",
+        "detail back/reopen during entry"
+      ]
+    },
+    {
+      "width": 390,
+      "homeScroll": 150,
+      "listScroll": 254
+    },
+    {
+      "width": 390,
+      "domain": "player",
+      "child": "Growth",
+      "order": [
+        "player",
+        "inventory",
+        "quests",
+        "role",
+        "lifelog",
+        "market",
+        "system"
+      ]
+    },
+    {
+      "width": 390,
+      "domain": "inventory",
+      "child": "Items",
+      "order": [
+        "inventory",
+        "player",
+        "quests",
+        "role",
+        "lifelog",
+        "market",
+        "system"
+      ]
+    },
+    {
+      "width": 390,
+      "domain": "role",
+      "child": "Overview",
+      "order": [
+        "role",
+        "player",
+        "inventory",
+        "quests",
+        "lifelog",
+        "market",
+        "system"
+      ]
+    },
+    {
+      "width": 390,
+      "domain": "lifelog",
+      "child": "Journal",
+      "order": [
+        "lifelog",
+        "player",
+        "inventory",
+        "quests",
+        "role",
+        "market",
+        "system"
+      ]
+    },
+    {
+      "width": 390,
+      "domain": "market",
+      "child": "Shop",
+      "order": [
+        "market",
+        "player",
+        "inventory",
+        "quests",
+        "role",
+        "lifelog",
+        "system"
+      ]
+    },
+    {
+      "width": 390,
+      "domain": "system",
+      "child": "Options",
+      "order": [
+        "system",
+        "player",
+        "inventory",
+        "quests",
+        "role",
+        "lifelog",
+        "market"
+      ]
+    },
+    {
+      "width": 390,
+      "checks": [
+        "keyboard focus",
+        "close/reopen during fade",
+        "detail back/reopen during entry"
+      ]
+    },
+    {
+      "width": 390,
+      "blockedFonts": 1,
+      "fallback": "PASS: macOS Korean fallback glyphs and layout visually inspected with bundled font blocked"
+    },
+    {
+      "width": 1440,
+      "height": 440,
+      "menuScroll": 257,
+      "checks": [
+        "End/Home keyboard navigation",
+        "focus follows scrolled menu",
+        "select resets menu scroll"
+      ]
+    },
+    {
+      "width": 390,
+      "height": 440,
+      "menuScroll": 187,
+      "checks": [
+        "End/Home keyboard navigation",
+        "focus follows scrolled menu",
+        "select resets menu scroll"
+      ]
+    }
+  ],
+  "errors": []
+}

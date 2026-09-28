@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import { SUBMENUS_BY_MAIN } from "@/entities/nav";
@@ -38,9 +38,9 @@ import { useJourneyQueries } from "./useJourneyQueries";
 import RewardSettlementPanel from "./RewardSettlementPanel";
 
 const SURFACE_COPY: Record<QuestsSubId, string> = {
-  current: "Review accepted Quests and their canonical progress.",
-  catalog: "Explore available Quest blueprints and acceptance rules.",
-  routes: "Choose and advance independent long-term directions.",
+  current: "Track your accepted Quests.",
+  catalog: "Find your next Quest.",
+  routes: "Choose a long-term direction.",
 };
 
 function message(caught: unknown, fallback: string): string {
@@ -177,7 +177,23 @@ type RouteDetailState = {
   error: string | null;
 };
 
-export default function JourneyShell({ initialSurface = null }: { initialSurface?: QuestsSubId | null }) {
+function subscribeCompact(notify: () => void) {
+  const media = window.matchMedia("(max-width: 899px)");
+  media.addEventListener("change", notify);
+  return () => media.removeEventListener("change", notify);
+}
+
+export default function JourneyShell({ initialSurface = null, navigation, onNavigate }: {
+  initialSurface?: QuestsSubId | null;
+  navigation?: { surface: QuestsSubId | null; detail: string | null };
+  onNavigate?: (surface: QuestsSubId | null, detail: string | null) => void;
+}) {
+  const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
+  const appliedRoute = useRef<string | null>(null);
+  const writeRoute = (nextSurface: QuestsSubId | null, detail: string | null = null) => {
+    appliedRoute.current = `${nextSurface ?? ""}/${detail ?? ""}`;
+    onNavigate?.(nextSurface, detail);
+  };
   const queries = useJourneyQueries(true);
   const [surface, setSurface] = useState<QuestsSubId | null>(initialSurface);
   const [selectedAcceptanceId, setSelectedAcceptanceId] = useState<number | null>(null);
@@ -188,10 +204,12 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
   const [pending, setPending] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const mutationLocked = useRef(false);
+  const navigationEpoch = useRef(0);
   const questDetailRequestId = useRef(0);
   const routeDetailRequestId = useRef(0);
 
   const clearDetail = () => {
+    navigationEpoch.current += 1;
     setSelectedAcceptanceId(null);
     setSelectedCatalogCode(null);
     setSelectedRouteId(null);
@@ -205,11 +223,13 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
   const selectSurface = (next: QuestsSubId) => {
     clearDetail();
     setSurface(next);
+    writeRoute(next);
   };
 
   const closeDetail = () => {
     const trigger = document.querySelector<HTMLButtonElement>('[data-stage-key="journey-list"] button[aria-pressed="true"]');
     clearDetail();
+    writeRoute(surface);
     requestStageFocus("journey-list", "back");
     requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
   };
@@ -218,16 +238,20 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
     const trigger = document.querySelector<HTMLButtonElement>('[data-stage-key="journey-root"] button[aria-pressed="true"]');
     clearDetail();
     setSurface(null);
+    writeRoute(null);
     requestStageFocus("journey-root", "back");
     requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
   };
 
   const mineById = new Map(queries.routes.data.mine.map((route) => [route.id, route]));
-  const catalogIds = new Set(queries.routes.data.catalog.map((route) => route.id));
-  const routes = [
-    ...queries.routes.data.catalog.map((route) => mineById.get(route.id) ?? route),
-    ...queries.routes.data.mine.filter((route) => !catalogIds.has(route.id)),
-  ];
+  const routes = useMemo(() => {
+    const mine = new Map(queries.routes.data.mine.map((route) => [route.id, route]));
+    const catalog = new Set(queries.routes.data.catalog.map((route) => route.id));
+    return [
+      ...queries.routes.data.catalog.map((route) => mine.get(route.id) ?? route),
+      ...queries.routes.data.mine.filter((route) => !catalog.has(route.id)),
+    ];
+  }, [queries.routes.data.catalog, queries.routes.data.mine]);
   const selectedAcceptance = queries.current.data.find((item) => item.id === selectedAcceptanceId) ?? null;
   const selectedBlueprint = queries.catalog.data.find((item) => item.code === selectedCatalogCode) ?? null;
   const selectedRoute = routes.find((item) => item.id === selectedRouteId) ?? null;
@@ -275,7 +299,7 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
   };
 
   useEffect(() => {
-    if (surface !== "routes") {
+    if (onNavigate || surface !== "routes") {
       routePreviewOpened.current = false;
       return;
     }
@@ -284,13 +308,53 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
     if (!currentRoute) return;
     routePreviewOpened.current = true;
     setSelectedRouteId(currentRoute.id);
-  }, [queries.routes.data.catalog, queries.routes.data.mine, queries.routes.loading, selectedRouteId, surface]);
+  }, [onNavigate, routes, queries.routes.loading, selectedRouteId, surface]);
 
-  const runMutation = async (key: string, request: () => Promise<unknown>, recover: () => Promise<void>) => {
+  useEffect(() => {
+    if (!navigation) return;
+    const key = `${navigation.surface ?? ""}/${navigation.detail ?? ""}`;
+    if (appliedRoute.current === key) return;
+    if (navigation.detail && (queries.current.loading || queries.catalog.loading || queries.routes.loading)) return;
+    appliedRoute.current = key;
+    const returnTarget = document.querySelector<HTMLButtonElement>(navigation.surface
+      ? '[data-stage-key="journey-list"] button[aria-pressed="true"]'
+      : '[data-stage-key="journey-root"] button[aria-pressed="true"]');
+    clearDetail();
+    setSurface(navigation.surface);
+    if (!navigation.detail) {
+      requestAnimationFrame(() => {
+        if (appliedRoute.current === key && returnTarget?.isConnected && !returnTarget.closest("[inert]")) returnTarget.focus({ preventScroll: true });
+      });
+      return;
+    }
+    if (navigation.surface === "current") {
+      const quest = queries.current.data.find((item) => String(item.id) === navigation.detail);
+      setSelectedAcceptanceId(Number(navigation.detail));
+      if (quest) void loadQuestDetail(quest.code);
+    } else if (navigation.surface === "catalog") {
+      setSelectedCatalogCode(navigation.detail);
+      void loadQuestDetail(navigation.detail);
+    } else if (navigation.surface === "routes") {
+      const id = Number(navigation.detail);
+      setSelectedRouteId(id);
+      if (Number.isSafeInteger(id) && id > 0) void loadRouteDetail(id, mineById.has(id));
+    }
+    // Navigation snapshots restore read state. The request IDs invalidate earlier reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation?.surface, navigation?.detail, queries.current.loading, queries.catalog.loading, queries.routes.loading]);
+
+  useEffect(() => () => {
+    navigationEpoch.current += 1;
+    questDetailRequestId.current += 1;
+    routeDetailRequestId.current += 1;
+  }, []);
+
+  const runMutation = async (key: string, request: () => Promise<unknown>, recover: (isCurrent: () => boolean) => Promise<void>) => {
     if (mutationLocked.current) return;
     mutationLocked.current = true;
     setPending(key);
     setMutationError(null);
+    const epoch = navigationEpoch.current;
     let requestError: unknown = null;
     try {
       await request();
@@ -298,33 +362,33 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
       requestError = caught;
     }
     try {
-      await recover();
+      await recover(() => epoch === navigationEpoch.current);
     } finally {
-      if (requestError) setMutationError(`Request outcome was not confirmed. Server state was reloaded. ${message(requestError, "")}`.trim());
+      if (requestError && epoch === navigationEpoch.current) setMutationError(`Request outcome was not confirmed. Server state was reloaded. ${message(requestError, "")}`.trim());
       mutationLocked.current = false;
       setPending(null);
     }
   };
 
-  const recoverQuest = async (code: string) => {
+  const recoverQuest = async (code: string, isCurrent: () => boolean) => {
     await Promise.all([queries.current.reload(), queries.catalog.reload()]);
-    await loadQuestDetail(code, true);
+    if (isCurrent()) await loadQuestDetail(code, true);
   };
 
   const selectRoute = async (route: QuestRoute) => {
     if (!window.confirm(`Select Route ${route.title}?`)) return;
-    await runMutation(`select-${route.id}`, () => selectQuestRouteApi(route.id), async () => {
+    await runMutation(`select-${route.id}`, () => selectQuestRouteApi(route.id), async (isCurrent) => {
       const latest = await queries.routes.reload();
-      await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
+      if (isCurrent()) await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
     });
   };
 
   const advanceRoute = async (route: QuestRoute) => {
     const expectedStepId = route.playerProgress?.currentStepId;
     if (!expectedStepId || !window.confirm("Advance the current Route Step?")) return;
-    await runMutation(`advance-${route.id}`, () => advanceQuestRouteApi(route.id, expectedStepId), async () => {
+    await runMutation(`advance-${route.id}`, () => advanceQuestRouteApi(route.id, expectedStepId), async (isCurrent) => {
       const latest = await queries.routes.reload();
-      await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
+      if (isCurrent()) await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
     });
   };
 
@@ -340,11 +404,13 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
             key={quest.id}
             badge={quest.status === "GOAL_REACHED" ? "GR" : quest.status.slice(0, 2)}
             title={quest.title}
-            supporting={`${QUEST_STATUS_LABEL[quest.status]} · ${quest.progressValue}/${quest.targetValue}`}
-            badges={[QUEST_STATUS_LABEL[quest.status], humanize(quest.completionPolicy)]}
+            supporting={QUEST_STATUS_LABEL[quest.status]}
+            badges={[humanize(quest.completionPolicy)]}
             progress={{ percent, valueText: `${quest.progressValue} / ${quest.targetValue} (${percent}%)` }}
             selected={selectedAcceptanceId === quest.id}
             onClick={() => {
+              navigationEpoch.current += 1;
+              writeRoute("current", String(quest.id));
               setSelectedAcceptanceId(quest.id);
               void loadQuestDetail(quest.code);
             }}
@@ -371,6 +437,8 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
             badges={[...(category ? [humanize(category)] : []), humanize(quest.completionPolicy), humanize(quest.repeatPolicy ?? quest.repeatRule)]}
             selected={selectedCatalogCode === quest.code}
             onClick={() => {
+              navigationEpoch.current += 1;
+              writeRoute("catalog", quest.code);
               setSelectedCatalogCode(quest.code);
               void loadQuestDetail(quest.code);
             }}
@@ -397,6 +465,8 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
             badges={[route.playerProgress ? "Selected" : "Not selected", `${route.steps.length} steps`]}
             selected={selectedRouteId === route.id}
             onClick={() => {
+              navigationEpoch.current += 1;
+              writeRoute("routes", String(route.id));
               setSelectedRouteId(route.id);
               void loadRouteDetail(route.id, Boolean(route.playerProgress));
             }}
@@ -438,11 +508,11 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
         {(canManualCheckQuest(selectedAcceptance) || canCancelQuest(selectedAcceptance)) ? (
           <section className="lag-journey-actions" aria-label="Available Quest actions">
             {canManualCheckQuest(selectedAcceptance) ? (
-              <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void runMutation(`manual-${selectedAcceptance.code}`, () => manualCheckQuestApi(selectedAcceptance.code), () => recoverQuest(selectedAcceptance.code))}>Manual Check</button>
+              <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void runMutation(`manual-${selectedAcceptance.code}`, () => manualCheckQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent))}>Manual Check</button>
             ) : null}
             {canCancelQuest(selectedAcceptance) ? (
               <button type="button" className="lag-journey-button" data-variant="destructive" disabled={Boolean(pending)} onClick={() => {
-                if (window.confirm(`Cancel Quest ${selectedAcceptance.title}?`)) void runMutation(`cancel-${selectedAcceptance.code}`, () => cancelQuestApi(selectedAcceptance.code), () => recoverQuest(selectedAcceptance.code));
+                if (window.confirm(`Cancel Quest ${selectedAcceptance.title}?`)) void runMutation(`cancel-${selectedAcceptance.code}`, () => cancelQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent));
               }}>Cancel Quest</button>
             ) : null}
           </section>
@@ -480,7 +550,7 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
         {!acceptanceKnown ? <p className="lag-journey-feedback" data-state="warning">Acceptance state unavailable. Accept is disabled until Current reloads.</p> : null}
         {acceptAction ? (
           <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => {
-            if (window.confirm(`${acceptLabel} ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), () => recoverQuest(selectedBlueprint.code));
+            if (window.confirm(`${acceptLabel} ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), (isCurrent) => recoverQuest(selectedBlueprint.code, isCurrent));
           }}>{acceptLabel}</button>
         ) : null}
       </article>
@@ -539,13 +609,13 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
 
   return (
     <div className="lag-panel-rail lag-journey-shell relative" data-testid="journey-shell">
-      <PanelStage stageKey="journey-root">
+      <PanelStage stageKey="journey-root" inactive={Boolean(surface)}>
         <PanelFrame title="Journey / Quest Route" depth={2}>
           <div className="lag-journey-root">
             <header>
               <p className="lag-journey-eyebrow">Journey</p>
-              <h4>Choose your next depth.</h4>
-              <p>Quests are actionable units. Routes remain independent long-term directions.</p>
+              <h4>Choose your next Quest.</h4>
+              <p>Continue a Quest, explore the catalog, or follow a Route.</p>
             </header>
             <div className="lag-journey-root-grid">
               {SUBMENUS_BY_MAIN.quests.map((item) => (
@@ -565,10 +635,11 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
 
       <AnimatePresence initial={false}>
         {surface ? (
-          <PanelStage stageKey="journey-list">
+          <PanelStage stageKey="journey-list" inactive={compact && Boolean(detailContentKey)}>
             <PanelFrame title={listTitle} depth={1} contentKey={surface} backButton={<BackButton label="Back to Journey" onClick={closeList} />}>
               <section className="lag-journey-list-surface" aria-label={`${listTitle} list`}>
-                <header><p className="lag-journey-eyebrow">Journey child surface</p><h4>{listTitle}</h4><p>{SURFACE_COPY[surface]}</p></header>
+                <p className="lag-journey-list-intro">{SURFACE_COPY[surface]}</p>
+                {navigation?.detail && !detailContentKey && !queries.current.loading && !queries.catalog.loading && !queries.routes.loading ? <p role="status" className="lag-journey-feedback">Requested detail is unavailable in the current results. Return to Journey or choose another entry.</p> : null}
                 {surface === "current" ? renderCurrentList() : surface === "catalog" ? renderCatalogList() : renderRouteList()}
               </section>
             </PanelFrame>
@@ -578,7 +649,7 @@ export default function JourneyShell({ initialSurface = null }: { initialSurface
 
       <AnimatePresence initial={false} mode="popLayout">
         {detailContentKey ? (
-          <PanelStage stageKey="journey-detail">
+          <PanelStage stageKey="journey-detail" side={compact ? "right" : "left"}>
             <PanelFrame title={detailTitle} depth={0} contentKey={detailContentKey} backButton={<BackButton label={`Back to ${listTitle}`} onClick={closeDetail} />}>
               {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
             </PanelFrame>

@@ -209,6 +209,7 @@ export function useStageCamera(
   viewportRef: React.RefObject<HTMLDivElement | null>,
   workspaceRef: React.RefObject<HTMLDivElement | null>,
   mainSelectionKey: string,
+  enabled = true,
 ) {
   const [profile, setProfile] = useState<CameraProfile>(() =>
     cameraProfileForWidth(typeof window === "undefined" ? 1200 : window.innerWidth),
@@ -246,11 +247,12 @@ export function useStageCamera(
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     const context = mainSelectionKey;
-    const owner = profile === "mobile" ? viewportRef.current : workspaceRef.current;
+    const owner = profile === "mobile" && !workspaceRef.current?.closest(".sao-menu-layer") ? viewportRef.current : workspaceRef.current;
     if (!owner) return;
     const viewport = viewportRef.current;
-    const usesWideComposition = profile === "wide" && viewport !== null && viewport !== owner;
+    const usesWideComposition = profile === "wide" && viewport !== null && viewport !== owner && !owner.closest(".sao-menu-layer");
     const inactiveOwner = profile === "mobile" ? workspaceRef.current : viewportRef.current;
     if (inactiveOwner && inactiveOwner !== owner && inactiveOwner.scrollLeft !== 0) {
       inactiveOwner.scrollTo({ left: 0, behavior: "auto" });
@@ -462,5 +464,5 @@ export function useStageCamera(
         owner.style.removeProperty("--lag-wide-stage-max");
       }
     };
-  }, [mainSelectionKey, profile, viewportRef, viewportRevision, workspaceRef]);
+  }, [enabled, mainSelectionKey, profile, viewportRef, viewportRevision, workspaceRef]);
 }

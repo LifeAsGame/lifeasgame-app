@@ -14,8 +14,8 @@ describe("shared staged motion grammar", () => {
 
   it("removes spatial entry and exit when reduced motion is requested", () => {
     const source = readFileSync("shared/ui/PanelStage.tsx", "utf8");
-    expect(source).toContain('initial={reducedMotion ? false : MOTION.panelSlot.initial}');
-    expect(source).toContain('exit={reducedMotion ? { opacity: 0 } : MOTION.panelSlot.exit}');
+    expect(source).toContain('initial={reducedMotion ? false');
+    expect(source).toContain('x: reducedMotion ? 0 : side');
     expect(source).toContain('transition={reducedMotion ? { duration: 0 }');
     expect(source).toContain("useLayoutEffect");
   });

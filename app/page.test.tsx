@@ -22,6 +22,7 @@ vi.mock("@/features/role/useRoles", () => roleHook);
 vi.mock("@/features/player/api", () => growthApi);
 vi.mock("@/features/player/usePlayerContext", () => ({ usePlayerContext: playerContextHook.usePlayerContext }));
 vi.mock("@/shared/hooks/usePanScroll", () => ({ usePanScroll: vi.fn() }));
+vi.mock("@/widgets/consumer-shell/ConsumerShell", () => ({ default: ({ home, utilities, children, onOpen }: { home: React.ReactNode; utilities: React.ReactNode; children: React.ReactNode; onOpen: () => void }) => <>{home}{utilities}{children}<button onClick={onOpen}>시스템 메뉴</button></> }));
 vi.mock("@/widgets/left-context/LeftContext", () => ({ default: () => null }));
 vi.mock("@/widgets/orb-nav/OrbNav", () => ({
   default: ({ items, selectedId, onSelect }: { items: Array<{ id: MainNavId; label: string }>; selectedId: MainNavId | null; onSelect: (id: MainNavId) => void }) => (
@@ -83,8 +84,16 @@ vi.mock("@/features/market/ExchangeShell", () => ({
     : null,
 }));
 
+function renderHome() {
+  const view = render(<Home />);
+  const trigger = screen.queryByRole("button", { name: /시스템 메뉴/ });
+  if (trigger) fireEvent.click(trigger);
+  return view;
+}
+
 describe("Home shell에서 feature surface를 routing할 때", () => {
   beforeEach(() => {
+    window.history.replaceState(null, "", "/");
     vi.clearAllMocks();
     auth.state = { isAuthenticated: true, playerId: 7, isLoading: false, logout: vi.fn() };
     playerContextHook.usePlayerContext.mockReturnValue({ data: null, loading: false, error: null, reload: playerContextHook.reload });
@@ -100,7 +109,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("authenticated Player authority를 연결하면", () => {
     it("Player context는 proven composed query를 사용하고 unsupported sheet/mock authority를 포함하지 않는다", () => {
-      render(<Home />);
+      renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
 
       expect(playerContextHook.usePlayerContext).toHaveBeenLastCalledWith(true);
@@ -108,7 +117,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     });
 
     it("unsupported Skills capability를 production navigation과 active route에서 제거한다", () => {
-      render(<Home />);
+      renderHome();
 
       expect(screen.queryByRole("button", { name: "Skills" })).not.toBeInTheDocument();
       expect(readFileSync("app/page.tsx", "utf8")).not.toMatch(/SkillsShell|skills\/catalog|players\/skills/);
@@ -142,7 +151,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 player가 처음 진입하면", () => {
     it("Home을 표시하고 Home Orb나 active Orb를 만들지 않으며 Role API도 기다리게 한다", () => {
-      render(<Home />);
+      renderHome();
 
       expect(screen.getByTestId("home-shell")).toBeInTheDocument();
       expect(screen.getByTestId("social-utility")).toBeInTheDocument();
@@ -154,10 +163,10 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("main Orb를 선택하면", () => {
     it("feature를 열고 active Orb를 다시 누르면 Home으로 돌아간다", () => {
-      render(<Home />);
+      renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
-      expect(screen.queryByTestId("home-shell")).not.toBeInTheDocument();
+      expect(screen.getByTestId("home-shell")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Player" })).toHaveAttribute("aria-pressed", "true");
 
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
@@ -168,28 +177,28 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("Home card에서 canonical surface를 열면", () => {
     it("Journal, Quest, Route, Achievement, Role state만 orchestration한다", () => {
-      const { unmount } = render(<Home />);
+      const { unmount } = renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Home Journal" }));
       expect(screen.getByTestId("journal-shell")).toBeInTheDocument();
       unmount();
 
-      const quest = render(<Home />);
+      const quest = renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Home Quest" }));
       expect(screen.getByTestId("journey-shell")).toHaveTextContent("current");
       quest.unmount();
 
-      const route = render(<Home />);
+      const route = renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Home Route" }));
       expect(screen.getByTestId("journey-shell")).toHaveTextContent("routes");
       route.unmount();
 
-      const achievement = render(<Home />);
+      const achievement = renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Home Achievement" }));
       expect(screen.getByRole("button", { name: "Achievement" })).toBeInTheDocument();
       expect(screen.getByTestId("achievement-shell")).toBeInTheDocument();
       achievement.unmount();
 
-      render(<Home />);
+      renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Home Role" }));
       expect(screen.getByTestId("role-shell")).toHaveTextContent("Role Shell · 1");
     });
@@ -197,7 +206,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 player가 Journal을 선택하면", () => {
     it("기존 LifeLog submenu를 유지한 채 feature-owned JournalShell과 Role options를 연결한다", () => {
-      render(<Home />);
+      renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Lifelog" }));
       fireEvent.click(screen.getByRole("button", { name: "Journal" }));
@@ -221,7 +230,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     });
 
     it("Role과 Journey feature shell routing을 그대로 유지한다", () => {
-      render(<Home />);
+      renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Role" }));
       expect(screen.getByTestId("role-shell")).toBeInTheDocument();
@@ -232,7 +241,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 player가 Credentials를 선택하면", () => {
     it("generic static panels 대신 feature-owned CertificationShell로 routing한다", () => {
-      render(<Home />);
+      renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
       fireEvent.click(screen.getByRole("button", { name: "Credentials" }));
@@ -244,7 +253,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("Player child stage를 전환하거나 내부 detail을 선택하면", () => {
     it("Player root/menu DOM instance를 계속 유지한다", () => {
-      render(<Home />);
+      renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
       const root = screen.getByTestId("right-panels");
 
@@ -259,7 +268,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 player가 Growth를 선택하면", () => {
     it("첫 Player submenu에서 backend-owned overview와 ordered history를 렌더한다", async () => {
-      render(<Home />);
+      renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
 
       const submenu = screen.getByTestId("right-panels").querySelectorAll("button");
@@ -287,7 +296,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 player가 Title을 선택하면", () => {
     it("generic static panels 대신 feature-owned TitleShell로 routing한다", () => {
-      render(<Home />);
+      renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
       fireEvent.click(screen.getByRole("button", { name: "Title" }));
@@ -297,7 +306,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     });
 
     it("다른 Player submenu로 전환했다 돌아오면 이전 detail state를 복원하지 않는다", () => {
-      render(<Home />);
+      renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
       fireEvent.click(screen.getByRole("button", { name: "Title" }));
@@ -312,7 +321,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 player가 Interests를 선택하면", () => {
     it("generic static panels 대신 feature-owned HobbyShell로 routing한다", () => {
-      render(<Home />);
+      renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Player" }));
       fireEvent.click(screen.getByRole("button", { name: "Interests" }));
       expect(screen.getByTestId("hobby-shell")).toBeInTheDocument();
@@ -322,7 +331,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 player가 Inventory를 선택하면", () => {
     it("Items와 Inbox는 feature-owned shell에 연결하고 기존 Gear route는 유지한다", () => {
-      render(<Home />);
+      renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Inventory" }));
       fireEvent.click(screen.getByRole("button", { name: "Items" }));
@@ -339,7 +348,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 user가 System Options를 선택하면", () => {
     it("page-owned form 대신 feature-owned Settings shell로 routing한다", () => {
-      render(<Home />);
+      renderHome();
       fireEvent.click(screen.getByRole("button", { name: "System" }));
       expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Options" }));
@@ -356,7 +365,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
   describe("인증된 player가 Exchange를 선택하면", () => {
     it("market internal key는 유지하고 feature-owned canonical surface로 routing한다", () => {
-      render(<Home />);
+      renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Exchange" }));
       expect(screen.getByRole("button", { name: "Wallet" })).toBeInTheDocument();
@@ -378,13 +387,13 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   describe("auth 또는 onboarding guard가 충족되지 않으면", () => {
     it("login과 linkstart redirect를 기존대로 수행하고 app shell을 숨긴다", async () => {
       auth.state = { isAuthenticated: false, playerId: null, isLoading: false, logout: vi.fn() };
-      const { unmount } = render(<Home />);
+      const { unmount } = renderHome();
       await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/login"));
       expect(screen.queryByTestId("journal-shell")).not.toBeInTheDocument();
       unmount();
 
       auth.state = { isAuthenticated: true, playerId: null, isLoading: false, logout: vi.fn() };
-      render(<Home />);
+      renderHome();
       await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/linkstart"));
       expect(screen.queryByTestId("journal-shell")).not.toBeInTheDocument();
     });

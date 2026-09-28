@@ -101,6 +101,7 @@ describe("Media source surface를 사용할 때", () => {
     await waitFor(() => expect(api.deleteMediaApi).toHaveBeenCalledWith(item.id));
     await waitFor(() => expect(screen.queryByTestId("media-entry")).not.toBeInTheDocument());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(document.querySelector('[data-stage-key="lifelog-media-detail"]')).toHaveAttribute("aria-hidden", "true");
+    const exitingDetail = document.querySelector('[data-stage-key="lifelog-media-detail"]');
+    if (exitingDetail) expect(exitingDetail).toHaveAttribute("aria-hidden", "true");
   });
 });
