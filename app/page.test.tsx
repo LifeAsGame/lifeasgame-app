@@ -38,7 +38,7 @@ vi.mock("@/widgets/right-panels/RightPanels", () => ({
     </div>
   ),
 }));
-vi.mock("@/features/lifelog/JournalShell", () => ({ default: ({ roles: roleOptions }: { roles: RoleDetail[] }) => <div data-testid="journal-shell">Journal · {roleOptions.map(({ name }) => name).join(", ")}</div> }));
+vi.mock("@/features/lifelog/JournalShell", () => ({ default: ({ roles: roleOptions, onBack }: { roles: RoleDetail[]; onBack: () => void }) => <div data-testid="journal-shell">Journal · {roleOptions.map(({ name }) => name).join(", ")}<button onClick={onBack}>Back to Lifelog</button></div> }));
 vi.mock("@/features/lifelog/CollectionShell", () => ({ default: () => <div data-testid="collection-shell">Collection Shell</div> }));
 vi.mock("@/features/lifelog/ExerciseShell", () => ({ default: () => <div data-testid="exercise-shell">Exercise Shell</div> }));
 vi.mock("@/features/lifelog/MediaShell", () => ({ default: () => <div data-testid="media-shell">Media Shell</div> }));
@@ -205,13 +205,14 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   });
 
   describe("인증된 player가 Journal을 선택하면", () => {
-    it("기존 LifeLog submenu를 유지한 채 feature-owned JournalShell과 Role options를 연결한다", () => {
+    it("Journal과 Role options를 연결하고 Back으로 기존 LifeLog submenu를 복원한다", () => {
       renderHome();
 
       fireEvent.click(screen.getByRole("button", { name: "Lifelog" }));
       fireEvent.click(screen.getByRole("button", { name: "Journal" }));
 
       expect(screen.getByTestId("journal-shell")).toHaveTextContent("Backend Engineer");
+      fireEvent.click(screen.getByRole("button", { name: "Back to Lifelog" }));
       expect(screen.getByRole("button", { name: "Collection" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Media" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Exercise" })).toBeInTheDocument();

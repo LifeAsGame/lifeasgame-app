@@ -172,3 +172,75 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-journey-detail-progress { padding:0; }
 .sao-stage .lag-quest-rewards > p, .sao-stage .lag-quest-rewards > ul, .sao-stage .lag-quest-rewards > button { margin:10px 0; }
 .sao-stage .lag-quest-rewards > button { width:100%; }
+
+/* Journal shares the approved list / left detail geometry and reading surface. */
+.sao-menu-layer:has(.lag-journal-shell) :is(.lag-app-surface,.lag-workspace) { overflow:visible !important; }
+.sao-menu-layer:has(.lag-journal-shell) .lag-orb-column { position:absolute !important; left:var(--sao-rail-x) !important; z-index:4; }
+.sao-menu-layer:has(.lag-journal-shell) .lag-workspace { position:absolute; inset:0; width:100%; display:block; }
+.sao-stage .lag-journal-shell { position:relative; width:100%; min-width:0; }
+.sao-stage .lag-journal-shell > [data-stage-key] { position:absolute; top:0; max-width:none; }
+.sao-stage [data-stage-key=lifelog-journal] { left:calc(var(--sao-rail-x) + 84px); width:var(--sao-right-width); }
+.sao-menu-layer[data-detail=true] [data-stage-key=lifelog-journal] { width:var(--sao-left-width); }
+.sao-stage :is([data-stage-key=lifelog-journal-detail],[data-stage-key=lifelog-quick-record]) { left:var(--sao-detail-left); width:var(--sao-left-width); }
+.sao-stage .lag-journal-shell [data-stage-key] .lag-panel-frame { width:100% !important; max-width:none !important; }
+.sao-stage :is(.lag-journal-surface,.lag-quick-record-form,.lag-journal-state) { padding-inline:0; }
+.sao-stage :is(.lag-quick-record-surface,.lag-journal-detail) { padding-inline:20px; gap:20px; }
+.sao-stage .lag-journal-toolbar { padding:0 20px 16px; border:0; background:none; flex-wrap:wrap; gap:12px; }
+.sao-stage .lag-journal-toolbar > div { flex:1 1 180px; }
+.sao-stage .lag-journal-eyebrow { font-size:11px; }
+.sao-stage :is(.lag-journal-intro,.lag-journal-field small) { font-size:12px; line-height:1.55; }
+.sao-stage .lag-journal-filter-disclosure { padding:0 20px; }
+.sao-stage .lag-journal-filter-disclosure summary { min-height:44px; padding:10px 0; cursor:pointer; color:var(--lag-text-2); font-size:13px; }
+.sao-stage .lag-journal-filter-disclosure summary:focus-visible { outline:2px solid var(--lag-focus); outline-offset:2px; }
+.sao-stage .lag-journal-filters { padding-bottom:16px; }
+.sao-stage .lag-journal-archive { border:0; padding:0; gap:0; background:none; }
+.sao-stage .lag-journal-section-heading { padding:12px 20px; margin:0; }
+.sao-stage .lag-journal-list { gap:0; }
+.sao-stage .lag-journal-entry { grid-template-columns:32px minmax(0,1fr); gap:8px 12px; min-height:96px; padding:16px 20px; border:0; border-bottom:1px solid var(--lag-divider); border-radius:0; background:transparent; }
+.sao-stage .lag-journal-entry:not([data-selected=true]):hover { background:var(--lag-hover); }
+.sao-stage .lag-journal-entry[data-selected=true] { background:var(--lag-gold); color:#332708; box-shadow:none; }
+.sao-stage .lag-journal-entry[data-selected=true] :is(span,strong,time) { color:#332708; }
+.sao-stage .lag-journal-source { width:32px; height:32px; border-radius:50%; background:none; font-size:10px; letter-spacing:0; align-self:start; }
+.sao-stage .lag-journal-entry-copy { gap:6px; }
+.sao-stage .lag-journal-entry-copy strong { font-size:15px; font-weight:400; line-height:1.5; }
+.sao-stage .lag-journal-entry-summary { font-size:12px; }
+.sao-stage .lag-journal-entry-chips > span { background:none; border:0; padding:0; font-size:11px; }
+.sao-stage .lag-journal-entry time { grid-column:2; justify-self:start; white-space:normal; overflow-wrap:anywhere; font-size:11px; }
+.sao-stage .lag-journal-pagination { padding:16px 20px; border:0; font-size:12px; gap:8px; }
+.sao-stage .lag-journal-pagination button { min-width:0; padding:8px; }
+.sao-stage .lag-journal-action { background:var(--lag-gold); border-color:var(--lag-gold); color:#332708; min-width:0; font-size:13px; font-weight:400; }
+.sao-stage .lag-journal-action:not(:disabled):hover { background:#dda510; border-color:#dda510; }
+.sao-stage .lag-journal-detail-hero { padding:0; border:0; background:none; gap:10px; }
+.sao-stage .lag-journal-detail-hero h4 { font-size:21px; font-weight:400; overflow-wrap:anywhere; }
+.sao-stage .lag-journal-detail-hero time { color:var(--lag-text-2); font-size:12px; }
+.sao-stage .lag-journal-detail-hero p { white-space:pre-wrap; overflow-wrap:anywhere; }
+.sao-stage .lag-journal-detail-section { border:0; border-top:1px solid var(--lag-divider); border-radius:0; background:none; }
+.sao-stage .lag-journal-detail-section h4 { padding:12px 0; border:0; background:none; color:var(--lag-text-2); font-size:11px; }
+.sao-stage .lag-journal-detail-item { padding:10px 0; }
+.sao-stage .lag-journal-detail-item dt { font-size:11px; letter-spacing:0; }
+.sao-stage .lag-journal-detail-item dd { font-size:13px; white-space:pre-wrap; }
+.sao-stage .lag-quick-record-surface > div:first-child > h4 { font-size:21px; font-weight:400; }
+.sao-stage .lag-journal-form-grid { grid-template-columns:minmax(0,1fr); gap:17px; }
+.sao-stage .lag-journal-field > span { font-size:13px; line-height:1.55; letter-spacing:0; text-transform:none; font-weight:400; }
+.sao-stage .lag-journal-segments { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.sao-stage .lag-journal-chip { min-width:0; padding:8px 4px; border-radius:2px; font-size:11px; letter-spacing:0; }
+.sao-stage .lag-journal-chip:last-child:nth-child(odd) { grid-column:auto; }
+.sao-stage .lag-journal-chip[data-selected=true] { background:var(--lag-gold); color:#332708; }
+.sao-stage .lag-quick-record-fields { padding:0; background:none; border:0; min-height:0; }
+.sao-stage .lag-journal-control { font-size:14px; scroll-margin-block:12px; }
+.sao-stage .lag-journal-shell .lag-panel-stage[data-stage-key=lifelog-quick-record] .lag-panel-body { scroll-padding-block:16px 96px; }
+.sao-stage .lag-journal-submit { position:sticky; bottom:-24px; padding:12px 0; background:var(--lag-panel); box-shadow:0 -8px 12px var(--lag-panel); z-index:2; }
+.sao-stage .lag-journal-submit button { width:100%; }
+.sao-stage .lag-journal-feedback { font-size:13px; line-height:1.55; background:var(--lag-panel); }
+.sao-stage .lag-journal-feedback[data-state=error] { color:var(--lag-error); }
+.sao-stage .lag-journal-feedback[data-state=success] { color:var(--lag-success); }
+@media(max-width:899px) {
+  .sao-menu-layer:has(.lag-journal-shell) .lag-orb-column { left:0 !important; }
+  .sao-menu-layer:has(.lag-journal-shell) .lag-workspace { inset:82px 0 0; }
+  .sao-menu-layer .lag-journal-shell > [data-stage-key] { left:0; width:100%; }
+  .sao-stage :is(.lag-quick-record-surface,.lag-journal-detail) { padding-inline:18px; }
+  .sao-stage .lag-journal-control { font-size:16px; }
+  .sao-stage .lag-journal-toolbar { flex-direction:column; align-items:stretch; }
+  .sao-stage .lag-journal-toolbar > div { flex:auto; }
+  .sao-stage .lag-journal-source { width:32px; height:32px; }
+}

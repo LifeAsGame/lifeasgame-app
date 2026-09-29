@@ -59,9 +59,11 @@ function expectDetail(name: string, value: string) {
   expect(term.nextElementSibling).toHaveTextContent(value);
 }
 
-describe("LifeLog Journal v7 surface", () => {
+describe("LifeLog Journal consumer surface", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     api.listJournalApi.mockResolvedValue(mixedPage);
     api.getJournalDetailApi.mockImplementation(async (lifeLogId: number) => journalMock.detail(lifeLogId));
     api.quickRecordApi.mockResolvedValue(quickResult);
@@ -70,11 +72,11 @@ describe("LifeLog Journal v7 surface", () => {
   it("uses semantic Journal classes without legacy local styling", () => {
     const source = readFileSync("features/lifelog/JournalShell.tsx", "utf8");
     expect(source).toContain("lag-journal-surface");
-    expect(source).not.toMatch(/INPUT_STYLE|\bSAO\b|GoldRow|<details/);
+    expect(source).not.toMatch(/INPUT_STYLE|\bSAO\b|GoldRow/);
 
     const css = readFileSync("app/globals.css", "utf8");
     expect(css).toContain('[data-stage-key="lifelog-journal"]');
-    expect(css).toContain('max-width: min(820px, calc(100vw - 500px))');
+
     expect(css).toContain("var(--lag-control-bg)");
     expect(css).toContain("@media (max-width: 767px)");
     expect(css).toContain(".lag-orb-column");
@@ -273,6 +275,7 @@ describe("LifeLog Journal v7 surface", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
 
     await screen.findByText("✓ Quick Record saved.");
+    expect(screen.getByRole("status")).toHaveFocus();
     expect(api.quickRecordApi).toHaveBeenCalledWith({
       type: "COLLECTION",
       lifeLogSubtype: "PROJECT",
@@ -290,6 +293,7 @@ describe("LifeLog Journal v7 surface", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
 
     await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
+    expect(screen.getByRole("status")).toHaveFocus();
     expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
       type: "COLLECTION",
       lifeLogSubtype: "REFLECTION",
@@ -337,6 +341,7 @@ describe("LifeLog Journal v7 surface", () => {
 
     await screen.findByRole("button", { name: "Retry same record" });
     expect(screen.getByRole("alert")).toHaveTextContent("Outcome unknown");
+    expect(screen.getByRole("alert")).toHaveFocus();
     const firstKey = api.quickRecordApi.mock.calls[0][1];
     fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Edited retry" } });
     fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
@@ -357,4 +362,37 @@ describe("LifeLog Journal v7 surface", () => {
     await renderJournal();
     expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument();
   });
+  it("preserves a new draft after leaving a pending save and supports keyboard type selection", async () => {
+    const request = deferred<QuickRecordResult>();
+    api.quickRecordApi.mockReturnValueOnce(request.promise);
+    await openQuickRecord();
+    fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
+    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Old draft" } });
+    fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    await screen.findByRole("button", { name: "Saving..." });
+    expect(screen.getByRole("status")).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Journal" }));
+    await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Quick Record" }));
+    expect(screen.getByRole("radio", { name: "COLLECTION" })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("radio", { name: "COLLECTION" }), { key: "ArrowRight" });
+    expect(screen.getByRole("radio", { name: "EXERCISE" })).toHaveFocus();
+    fireEvent.change(screen.getByLabelText("Memo"), { target: { value: "New draft stays" } });
+    await act(async () => { request.resolve(quickResult); await request.promise; });
+    expect(screen.getByLabelText("Memo")).toHaveValue("New draft stays");
+    expect(screen.queryByText(/Quick Record saved/)).not.toBeInTheDocument();
+    expect(api.quickRecordApi).toHaveBeenCalledOnce();
+    expect(api.getJournalDetailApi).not.toHaveBeenCalled();
+  });
+
+  it("moves mobile keyboard focus into the detail while it loads", async () => {
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    api.getJournalDetailApi.mockReturnValue(new Promise(() => {}));
+    await renderJournal();
+    fireEvent.click(screen.getAllByTestId("journal-entry")[0]);
+    expect(screen.getByRole("button", { name: "Back to Journal" })).toHaveFocus();
+    expect(screen.getByText("Loading Journal detail...")).toBeInTheDocument();
+  });
+
 });

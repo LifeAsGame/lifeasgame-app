@@ -169,7 +169,7 @@ export default function Home() {
     navigateConsumer(panel.context.main, selectedSubByMain[panel.context.main] === itemId ? null : itemId);
   };
 
-  const closeFeatureSubmenu = (main: "player" | "inventory" | "market") => {
+  const closeFeatureSubmenu = (main: "player" | "inventory" | "market" | "lifelog") => {
     navigateConsumer(main);
     requestStageFocus(`${main}-stage-0`, "back");
   };
@@ -298,14 +298,7 @@ export default function Home() {
               />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
-            <div className="flex w-fit items-center gap-3">
-              <RightPanels
-                selectedMain="lifelog"
-                panelStack={panelStack.slice(0, 1)}
-                onPanelItemSelect={handlePanelItemSelect}
-              />
-              <JournalShell roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} />
-            </div>
+            <JournalShell roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} />
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "collection" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels

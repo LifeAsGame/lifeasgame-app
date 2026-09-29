@@ -156,49 +156,21 @@ const CSS = `
     display: none;
   }
 
-  .lag-quick-record-surface,
-  .lag-quick-record-form {
-    gap: 12px;
-    padding-inline: 12px;
-  }
-
-  .lag-panel-stage[data-camera-active="true"] .lag-quick-record-form .lag-journal-form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .lag-panel-stage[data-camera-active="true"] .lag-quick-record-fields {
-    min-height: 0;
-    padding: 12px;
-  }
-
   .lag-notification-dropdown {
     bottom: max(16px, env(safe-area-inset-bottom)) !important;
   }
 }
 
 @media (min-width: 1200px) {
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    [data-stage-key="lifelog-journal"],
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    [data-stage-key="lifelog-journal"] > .lag-panel-frame {
-    width: min(1040px, calc(100vw - 560px)) !important;
-    max-width: min(1040px, calc(100vw - 560px)) !important;
-  }
-
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"])),
   .lag-growth-shell {
     height: calc(100svh - 64px);
     align-items: stretch;
   }
 
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    [data-stage-key="lifelog-journal"],
   .lag-growth-shell > .lag-panel-stage {
     height: 100%;
   }
 
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    [data-stage-key="lifelog-journal"] > .lag-panel-frame,
   .lag-growth-shell > .lag-panel-stage > .lag-panel-frame {
     display: flex;
     height: 100%;
@@ -206,25 +178,16 @@ const CSS = `
     flex-direction: column;
   }
 
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    [data-stage-key="lifelog-journal"] > .lag-panel-frame > div:last-child,
   .lag-growth-shell > .lag-panel-stage > .lag-panel-frame > div:last-child {
     min-height: 0;
     flex: 1 1 auto;
   }
 
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    [data-stage-key="lifelog-journal"] > .lag-panel-frame .lag-panel-body,
   .lag-growth-shell > .lag-panel-stage > .lag-panel-frame .lag-panel-body {
     height: 100%;
     max-height: none !important;
   }
 
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    .lag-journal-entry {
-    min-height: 104px;
-    padding: 12px 16px;
-  }
 
   .lag-workspace > div:has(> .lag-growth-shell)
     > .lag-panel-rail[data-main="player"] .lag-panel-title {

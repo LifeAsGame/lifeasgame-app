@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import { COLLECTION_CATEGORIES } from "@/shared/api/types";
@@ -52,7 +52,7 @@ function label(value: string) {
 }
 
 function displayTimestamp(value: string) {
-  return value.replace("T", " ").replace("Z", " UTC");
+  return value.replace(/\.\d+/, "").replace("T", " ").replace("Z", " UTC");
 }
 
 function Field({ children, title }: { children: React.ReactNode; title: string }) {
@@ -97,6 +97,7 @@ function QuickRecordForm({
   onSubmit,
   onRetry,
   onEdit,
+  onRefresh,
 }: {
   roles: RoleDetail[];
   rolesLoading: boolean;
@@ -109,9 +110,19 @@ function QuickRecordForm({
   onSubmit: (body: QuickRecordRequest) => Promise<QuickRecordResult | undefined>;
   onRetry: () => Promise<QuickRecordResult | undefined>;
   onEdit: () => void;
+  onRefresh: () => void;
 }) {
   const [type, setType] = useState<QuickRecordType>("COLLECTION");
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    formRef.current?.querySelector<HTMLButtonElement>('[role="radio"][aria-checked="true"]')?.focus({ preventScroll: true });
+  }, []);
+  const feedbackRef = useRef<HTMLParagraphElement>(null);
+  const feedbackRole = error ? "alert" : pending || result ? "status" : null;
+  useEffect(() => {
+    feedbackRef.current?.focus({ preventScroll: true });
+  }, [feedbackRole]);
 
   const resetAfter = (saved: QuickRecordResult | undefined) => {
     if (!saved) return;
@@ -185,16 +196,29 @@ function QuickRecordForm({
   };
 
   return (
-    <form ref={formRef} className="lag-quick-record-form" onSubmit={submit} onChangeCapture={onEdit}>
+    <form ref={formRef} aria-busy={pending} className="lag-quick-record-form" onSubmit={submit} onChangeCapture={onEdit} onFocusCapture={(event) => {
+      if (event.target.matches("input, select, textarea, [role=status], [role=alert]")) {
+        event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    }}>
       <div>
         <p className="lag-journal-eyebrow">Record type</p>
-        <div className="lag-journal-segments" role="radiogroup" aria-label="Quick Record type">
+        <div className="lag-journal-segments" role="radiogroup" aria-label="Quick Record type" onKeyDown={(event) => {
+          const types = ["COLLECTION", "EXERCISE", "MEDIA"] as const;
+          const direction = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
+          if (!direction || pending) return;
+          event.preventDefault();
+          const index = (types.indexOf(type) + direction + types.length) % types.length;
+          chooseType(types[index]);
+          event.currentTarget.querySelectorAll<HTMLButtonElement>("button")[index]?.focus();
+        }}>
           {(["COLLECTION", "EXERCISE", "MEDIA"] as const).map((value) => (
             <button
               key={value}
               type="button"
               role="radio"
               aria-checked={type === value}
+              tabIndex={type === value ? 0 : -1}
               className="lag-journal-chip"
               data-selected={type === value}
               disabled={pending}
@@ -257,18 +281,20 @@ function QuickRecordForm({
         </StageContentTransition>
       </div>
 
-      {error ? <p role="alert" className="lag-journal-feedback" data-state="error">Save failed: {error}</p> : null}
-      {result ? <p role="status" className="lag-journal-feedback" data-state="success">✓ {result.replay ? "Quick Record replay confirmed." : "Quick Record saved."}</p> : null}
-      {refreshError ? <p role="alert" className="lag-journal-feedback" data-state="error">Refresh failed: {refreshError}</p> : null}
-      {canRetry ? (
-        <button type="button" className="lag-journal-action" data-variant="retry" disabled={pending} onClick={() => void onRetry().then(resetAfter)}>
-          {pending ? "Retrying..." : "Retry same record"}
-        </button>
-      ) : (
-        <button type="submit" className="lag-journal-action" disabled={pending}>
-          {pending ? "Saving..." : "Save Quick Record"}
-        </button>
-      )}
+      <div className="lag-journal-submit">
+        {error ? <p ref={feedbackRef} role="alert" tabIndex={-1} className="lag-journal-feedback" data-state="error">Save failed: {error}</p> : null}
+        {pending || result ? <p ref={feedbackRef} role="status" tabIndex={-1} className="lag-journal-feedback" data-state={result ? "success" : undefined}>{result ? `✓ ${result.replay ? "Quick Record replay confirmed." : "Quick Record saved."}` : "Saving Quick Record..."}</p> : null}
+        {refreshError ? <div className="lag-journal-state"><p role="alert" className="lag-journal-feedback" data-state="error">{refreshError}</p><button type="button" className="lag-journal-button" onClick={onRefresh}>Refresh Journal</button></div> : null}
+        {canRetry ? (
+          <button type="button" className="lag-journal-action" data-variant="retry" disabled={pending} onClick={() => void onRetry().then(resetAfter)}>
+            {pending ? "Retrying..." : "Retry same record"}
+          </button>
+        ) : (
+          <button type="submit" className="lag-journal-action" disabled={pending}>
+            {pending ? "Saving..." : "Save Quick Record"}
+          </button>
+        )}
+      </div>
     </form>
   );
 }
@@ -375,20 +401,40 @@ function SourceDetail({ detail }: { detail: JournalDetail }) {
   }
 }
 
-export default function JournalShell({ roles, rolesLoading = false, rolesError = null }: { roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null }) {
+function subscribeCompact(notify: () => void) {
+  const media = window.matchMedia("(max-width: 899px)");
+  media.addEventListener("change", notify);
+  return () => media.removeEventListener("change", notify);
+}
+
+export default function JournalShell({ roles, rolesLoading = false, rolesError = null, onBack }: { roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void }) {
+  const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
+  const caller = useRef<HTMLButtonElement | null>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const journal = useJournalQueries();
   const [quickRecordOpen, setQuickRecordOpen] = useState(false);
   const { data: page, loading, error } = journal.list;
   const detail = journal.detail.data;
+  useEffect(() => {
+    if (compact && journal.selectedLifeLogId !== null && !quickRecordOpen) {
+      shellRef.current?.querySelector<HTMLButtonElement>('[data-stage-key="lifelog-journal-detail"] button')?.focus({ preventScroll: true });
+    }
+  }, [compact, journal.selectedLifeLogId, quickRecordOpen]);
   const previousDisabled = loading || journal.params.page === 0;
   const nextDisabled = loading || page.totalPages === 0 || journal.params.page + 1 >= page.totalPages;
 
-  const returnToJournal = () => requestStageFocus("lifelog-journal", "back");
-  const openQuickRecord = () => {
+  const returnToJournal = () => {
+    requestStageFocus("lifelog-journal", "back");
+    requestAnimationFrame(() => caller.current?.isConnected && caller.current.focus({ preventScroll: true }));
+  };
+  const openQuickRecord = (event: React.MouseEvent<HTMLButtonElement>) => {
+    caller.current = event.currentTarget;
+    journal.quickRecord.reset();
     journal.clearSelection();
     setQuickRecordOpen(true);
   };
   const closeQuickRecord = () => {
+    journal.quickRecord.reset();
     setQuickRecordOpen(false);
     journal.clearSelection();
     returnToJournal();
@@ -399,18 +445,20 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
   };
 
   return (
-    <div className="lag-panel-rail lag-journal-shell relative" data-testid="journal-shell">
-      <PanelStage stageKey="lifelog-journal">
-        <PanelFrame title="Journal / LifeLog" depth={1}>
+    <div ref={shellRef} className="lag-panel-rail lag-journal-shell relative" data-testid="journal-shell">
+      <PanelStage stageKey="lifelog-journal" inactive={compact && (quickRecordOpen || journal.selectedLifeLogId !== null)}>
+        <PanelFrame title="Journal / LifeLog" depth={1} resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={onBack ? <BackButton label="Back to Lifelog" onClick={onBack} /> : undefined}>
           <div className="lag-journal-surface">
             <div className="lag-journal-toolbar">
               <div>
                 <p className="lag-journal-eyebrow">Archive</p>
                 <p className="lag-journal-intro">Browse your recorded collections, exercise, and media.</p>
               </div>
-              <button type="button" className="lag-journal-action" onClick={openQuickRecord}>Quick Record</button>
+              <button type="button" className="lag-journal-action" data-selected={quickRecordOpen} aria-expanded={quickRecordOpen} onClick={openQuickRecord}>Quick Record</button>
             </div>
 
+            <details className="lag-journal-filter-disclosure">
+              <summary>Filters · Role / Subtype</summary>
             <div className="lag-journal-filters" aria-label="Journal filters">
               <Field title="Role">
                 <select
@@ -435,6 +483,7 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                 </select>
               </Field>
             </div>
+            </details>
             {rolesLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
             {rolesError ? <p role="alert" className="lag-journal-feedback" data-state="error">Role filter unavailable: {rolesError}</p> : null}
 
@@ -458,7 +507,11 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                       data-testid="journal-entry"
                       data-selected={journal.selectedLifeLogId === entry.lifeLogId}
                       aria-pressed={journal.selectedLifeLogId === entry.lifeLogId}
-                      onClick={() => journal.selectEntry(entry.lifeLogId)}
+                      onClick={(event) => {
+                        caller.current = event.currentTarget;
+                        if (quickRecordOpen) { journal.quickRecord.reset(); setQuickRecordOpen(false); }
+                        journal.selectEntry(entry.lifeLogId);
+                      }}
                     >
                       <span className="lag-journal-source" aria-hidden>{entry.sourceType.slice(0, 2)}</span>
                       <span className="lag-journal-entry-copy">
@@ -489,13 +542,13 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
 
       <AnimatePresence initial={false}>
         {quickRecordOpen ? (
-          <PanelStage stageKey="lifelog-quick-record">
+          <PanelStage stageKey="lifelog-quick-record" side={compact ? "right" : "left"}>
             <PanelFrame title="Quick Record" depth={0} backButton={<BackButton label="Back to Journal" onClick={closeQuickRecord} />}>
               <div className="lag-quick-record-surface">
                 <div>
-                  <p className="lag-journal-eyebrow">Journal child surface</p>
+                  <p className="lag-journal-eyebrow">Quick Record</p>
                   <h4>Record what matters now.</h4>
-                  <p>Choose a real record type, then add its current supported details.</p>
+                  <p>Save a collection, an exercise session, or media progress to your Journal.</p>
                 </div>
                 <QuickRecordForm
                   roles={roles}
@@ -509,6 +562,7 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                   onSubmit={journal.quickRecord.submit}
                   onRetry={journal.quickRecord.retry}
                   onEdit={journal.quickRecord.invalidateRetry}
+                  onRefresh={() => void journal.list.reload()}
                 />
               </div>
             </PanelFrame>
@@ -518,7 +572,7 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
 
       <AnimatePresence initial={false}>
         {!quickRecordOpen && journal.selectedLifeLogId ? (
-          <PanelStage stageKey="lifelog-journal-detail">
+          <PanelStage stageKey="lifelog-journal-detail" side={compact ? "right" : "left"}>
             <PanelFrame
               title="Journal Detail"
               depth={0}
@@ -532,8 +586,10 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                   {journal.detail.error ? <p role="alert" className="lag-journal-feedback" data-state="error">Refresh failed: {journal.detail.error}</p> : null}
                   <div className="lag-journal-detail-hero">
                     <span>{label(detail.sourceType)}</span>
-                    <strong>Journal entry #{detail.lifeLogId}</strong>
+                    <h4>{detail.sourceType === "EXERCISE" ? `${label(detail.source.category)} · ${detail.source.exercisedOn}` : detail.source.title}</h4>
+                    <time dateTime={detail.recordedAt}>{displayTimestamp(detail.recordedAt)}</time>
                   </div>
+                  <SourceDetail detail={detail} />
                   <DetailSection title="Record context">
                     <DetailItem name="Source type" value={label(detail.sourceType)} />
                     <DetailItem name="Recorded at" value={displayTimestamp(detail.recordedAt)} />
@@ -544,7 +600,6 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                     {detail.primaryRoleId !== null ? <DetailItem name="Role context" value={roleName(detail.primaryRoleId, roles)} /> : null}
                     {detail.roleEventId !== null ? <DetailItem name="RoleEvent context" value={`#${detail.roleEventId}`} /> : null}
                   </DetailSection>
-                  <SourceDetail detail={detail} />
                 </article>
               ) : null}
             </PanelFrame>

@@ -63,8 +63,6 @@ describe("PanelStage camera contract", () => {
     expect(source).toContain("height: calc(100dvh - 32px - var(--lag-mobile-protected-bottom))");
     expect(source).toContain('> .lag-panel-frame .lag-panel-body');
     expect(source).toContain("width: calc(100vw - 32px)");
-    expect(source).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
-    expect(source).toContain("width: min(1040px, calc(100vw - 560px)) !important");
     expect(source).toContain('.lag-growth-shell > .lag-panel-stage > .lag-panel-frame');
     expect(source).toContain('.lag-panel-card > div:last-child > p:first-child');
   });

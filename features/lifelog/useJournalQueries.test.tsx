@@ -283,4 +283,57 @@ describe("Journal server query state를 관리할 때", () => {
       expect(result.current.list.error).toBe("Journal refresh unavailable");
     });
   });
+  it.each(["success", "failure"])("ignores a late %s after a new Quick Record session starts", async (outcome) => {
+    const old = deferred<QuickRecordResult>();
+    const latest = deferred<QuickRecordResult>();
+    api.quickRecordApi.mockReturnValueOnce(old.promise).mockReturnValueOnce(latest.promise);
+    const { result } = renderHook(() => useJournalQueries());
+    await waitFor(() => expect(result.current.list.data).toEqual(page));
+    act(() => { void result.current.quickRecord.submit(quickBody); });
+    act(() => { result.current.quickRecord.reset(); });
+    act(() => { void result.current.quickRecord.submit(quickBody); });
+    await act(async () => {
+      if (outcome === "success") old.resolve(quickResult); else old.reject(new Error("old failure"));
+      await old.promise.catch(() => undefined);
+    });
+    expect(result.current.quickRecord.pending).toBe(true);
+    expect(result.current.quickRecord.result).toBeNull();
+    expect(result.current.quickRecord.error).toBeNull();
+    expect(api.listJournalApi).toHaveBeenCalledOnce();
+    expect(api.getJournalDetailApi).not.toHaveBeenCalled();
+    await act(async () => { latest.resolve(quickResult); await latest.promise; });
+    expect(result.current.quickRecord.result).toEqual(quickResult);
+    expect(result.current.quickRecord.pending).toBe(false);
+    expect(api.quickRecordApi.mock.calls[0][1]).not.toBe(api.quickRecordApi.mock.calls[1][1]);
+  });
+
+  it("does not replace a newer selection when post-save refresh finishes late", async () => {
+    const refresh = deferred<JournalPage>();
+    api.listJournalApi.mockResolvedValueOnce(page).mockReturnValueOnce(refresh.promise);
+    const { result } = renderHook(() => useJournalQueries());
+    await waitFor(() => expect(result.current.list.data).toEqual(page));
+    act(() => { void result.current.quickRecord.submit(quickBody); });
+    await waitFor(() => expect(result.current.quickRecord.result).toEqual(quickResult));
+    act(() => { result.current.quickRecord.reset(); result.current.selectEntry(103); });
+    await waitFor(() => expect(result.current.detail.data?.lifeLogId).toBe(103));
+    await act(async () => { refresh.resolve(pageWithQuick); await refresh.promise; });
+    expect(result.current.selectedLifeLogId).toBe(103);
+    expect(result.current.detail.data?.lifeLogId).toBe(103);
+    expect(result.current.quickRecord.result).toBeNull();
+    expect(api.quickRecordApi).toHaveBeenCalledOnce();
+  });
+
+  it("does not start post-save reads after unmount", async () => {
+    const request = deferred<QuickRecordResult>();
+    api.quickRecordApi.mockReturnValueOnce(request.promise);
+    const { result, unmount } = renderHook(() => useJournalQueries());
+    await waitFor(() => expect(result.current.list.data).toEqual(page));
+    act(() => { void result.current.quickRecord.submit(quickBody); });
+    unmount();
+    await act(async () => { request.resolve(quickResult); await request.promise; });
+    expect(api.listJournalApi).toHaveBeenCalledOnce();
+    expect(api.getJournalDetailApi).not.toHaveBeenCalled();
+    expect(api.quickRecordApi).toHaveBeenCalledOnce();
+  });
+
 });
