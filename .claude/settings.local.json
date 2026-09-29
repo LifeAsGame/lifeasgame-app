@@ -1,8 +1,0 @@
-{
-    "includeCoAuthoredBy": false,
-    "permissions": {
-    "allow": [
-      "Bash(npx tsc *)"
-    ]
-  }
-}
