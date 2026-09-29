@@ -40,7 +40,7 @@ export function useCertificationQueries() {
       setCatalog(next);
       return next;
     } catch (caught) {
-      setCatalogError(message(caught, "Unable to load Certification catalog."));
+      setCatalogError(message(caught, "자격증 카탈로그를 조회하지 못했습니다."));
       return undefined;
     } finally {
       setCatalogLoading(false);
@@ -59,7 +59,7 @@ export function useCertificationQueries() {
       }
       return next;
     } catch (caught) {
-      setOwnedError(message(caught, "Unable to load owned Certifications."));
+      setOwnedError(message(caught, "내 자격증을 조회하지 못했습니다."));
       return undefined;
     } finally {
       setOwnedLoading(false);
@@ -97,7 +97,7 @@ export function useCertificationQueries() {
       return true;
     } catch (caught) {
       await reloadOwned();
-      setMutationError(`Request outcome was not confirmed. Server state was reloaded. ${message(caught, "")}`.trim());
+      setMutationError(`요청 결과가 확정되지 않았습니다. 다시 조회한 서버 상태를 확인하세요. ${message(caught, "")}`.trim());
       return false;
     } finally {
       mutationLocked.current = false;

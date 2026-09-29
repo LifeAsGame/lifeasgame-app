@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { PersonDetail, RoleRelationDetail } from "@/shared/api/types";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import CreateSlot, { CreateCategory } from "@/shared/ui/CreateSlot";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { archiveRoleRelationApi, createRoleRelationApi, getRoleRelationApi, listPersonsApi, listRoleRelationsApi, resolveRelationPersonStatus, updateRoleRelationApi } from "./api";
@@ -16,6 +18,7 @@ function personState(status: string | null | undefined) {
 }
 
 export default function RelationPanels({ roleId, roleName, createRequest, onBack }: { roleId: number; roleName: string; createRequest: number; onBack: () => void }) {
+  const { confirm, dialog } = useSaoConfirm();
   const load = useCallback(async () => {
     const [relations, persons] = await Promise.all([listRoleRelationsApi(roleId), listPersonsApi().catch(() => null)]);
     return { relations: await resolveRelationPersonStatus(relations, persons ?? []), persons: persons ?? [], personsUnavailable: persons === null };
@@ -67,7 +70,7 @@ export default function RelationPanels({ roleId, roleName, createRequest, onBack
     finally { lock.current = false; if (active.current) setPending(false); }
   };
   const archive = async (relation: RoleRelationDetail) => {
-    if (lock.current || !window.confirm(`역할 “${roleName}”의 “${relation.personDisplayName}” 관계를 보관할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
+    if (lock.current || !await confirm(`역할 “${roleName}”의 “${relation.personDisplayName}” 관계를 보관할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
     const id = ++request.current; lock.current = true; setPending(true); setError(null);
     try {
       await archiveRoleRelationApi(roleId, relation.id);
@@ -84,18 +87,18 @@ export default function RelationPanels({ roleId, roleName, createRequest, onBack
     {list.data.personsUnavailable && !relation ? <p role="alert">연결할 인물을 조회하지 못했습니다. <button type="button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
     <div className="lag-role-actions"><button type="submit" className="lag-role-action" disabled={pending || (!relation && !list.data.persons.some((person) => person.status === "ACTIVE"))}>{pending ? "저장 중…" : relation ? "관계 저장" : "관계 연결"}</button><button type="button" className="lag-role-button" onClick={close}>취소</button></div>
   </form>;
-  return <div ref={root} className="lag-panel-rail lag-role-relations">
+  return <div ref={root} className="lag-panel-rail lag-role-relations">{dialog}
     <PanelStage stageKey="role-detail" inactive={compact && (mode === "detail" || mode === "edit")}>
       <PanelFrame title={mode === "create" ? "기존 인물 연결" : `${roleName} · 관계`} backButton={<BackButton label={mode === "create" ? "관계 목록으로" : `역할 ${roleName}로`} onClick={mode === "create" ? close : onBack} />}>
-        <div hidden={mode === "create"} className="lag-role-detail">
-          <button type="button" className="lag-role-action" onClick={() => { remember(); request.current++; setMode("create"); setError(null); }}>관계 추가</button>
+        <CreateCategory title="관계" onOpen={close} onCreate={() => { remember(); request.current++; setMode("create"); setError(null); setLoading(false); }} />
+        <CreateSlot showCancel={false} creating={mode === "create"} pending={pending} onClose={close} list={<div className="lag-role-detail">
+          <p className="lag-create-hint">관계 분류를 왼쪽으로 당기거나 Alt+Enter로 기존 인물을 연결합니다.</p>
           {list.loading ? <p role="status">관계를 불러오는 중…</p> : null}
           {list.error ? <p role="alert">{list.error} <button type="button" className="lag-role-button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
           {error && mode === "list" ? <p role="alert">{error}</p> : null}
           {!list.loading && !list.error && !list.data.relations.length ? <p>연결된 인물이 없습니다.</p> : null}
           {list.data.relations.map((relation) => <div key={relation.id} data-relation-id={relation.id}><RecordRow title={relation.personDisplayName} subtitle={`${relation.relationType} · ${personState(relation.personStatus)}`} selected={selectedId === relation.id} disabled={pending} onSelect={() => void select(relation.id)} onEdit={() => void select(relation.id, true)} onArchive={() => void archive(relation)} /></div>)}
-        </div>
-        {mode === "create" ? form() : null}
+        </div>}>{form()}</CreateSlot>
       </PanelFrame>
     </PanelStage>
     {mode === "detail" || mode === "edit" ? <PanelStage stageKey="role-relation-detail">

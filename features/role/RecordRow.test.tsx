@@ -27,3 +27,16 @@ it("드래그는 기준과 방향을 구분해 선택지만 열며 click 중복�
   fireEvent.click(screen.getByRole("button", { name: "보관" }), { detail: 0 }); expect(onArchive).toHaveBeenCalledOnce();
   fireEvent.click(row, { detail: 0 }); expect(onSelect).toHaveBeenCalledOnce();
 });
+
+it("터치 캡처가 자식에서 행으로 이동해도 진행 중인 스와이프를 유지한다", () => {
+  render(<RecordRow title="Touch" onSelect={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} />);
+  const row = screen.getByRole("button", { name: "Touch" });
+  Object.defineProperty(row, "hasPointerCapture", { configurable: true, value: () => true });
+  Object.defineProperty(row, "releasePointerCapture", { configurable: true, value: vi.fn() });
+  pointer(row, "pointerdown", 200, 100);
+  pointer(row, "pointermove", 170, 100);
+  pointer(row.querySelector("strong")!, "lostpointercapture", 170, 100);
+  pointer(row, "pointermove", 100, 100);
+  pointer(row, "pointerup", 100, 100);
+  expect(screen.getByRole("button", { name: "보관" })).toBeInTheDocument();
+});

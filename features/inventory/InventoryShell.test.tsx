@@ -1,3 +1,4 @@
+import { answerDialog } from "@/shared/ui/dialogTest";
 import { readFileSync } from "node:fs";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -65,7 +66,6 @@ function expectData(label: string, value: string) {
 describe("Inventory Items와 Inbox surface를 사용할 때", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     api.getInventoryApi.mockResolvedValue(inventory);
     api.getMailboxApi.mockResolvedValue(mailbox);
     api.claimMailApi.mockResolvedValue(undefined);
@@ -75,7 +75,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
   it("uses semantic Inventory/Gear classes without screenshot-only data or theme branches", () => {
     const inventorySource = readFileSync("features/inventory/InventoryShell.tsx", "utf8");
     const gearSource = readFileSync("features/inventory/GearShell.tsx", "utf8");
-    expect(`${inventorySource}\n${gearSource}`).not.toMatch(/SAO|PanelCard|GoldRow|MK300|Telecaster|Notebook|Owned Lv\.|MEMORY filter|LETTER filter|data-theme/i);
+    expect(`${inventorySource}\n${gearSource}`).not.toMatch(/\bSAO\b|PanelCard|GoldRow|MK300|Telecaster|Notebook|Owned Lv\.|MEMORY filter|LETTER filter|data-theme/i);
 
     const css = readFileSync("app/globals.css", "utf8");
     const fidelityCss = css.slice(css.indexOf("/* v7 Inventory/Gear"), css.indexOf(".lag-semantic-controls"));
@@ -240,6 +240,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed"));
 
       fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+    await answerDialog();
       expect(await screen.findByText(/Claim succeeded, but Mailbox or Inventory could not be refreshed/)).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Second Server Mail/ }));
       expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
@@ -259,6 +260,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       api.getInventoryApi.mockResolvedValue({ entries: [{ ...item, quantity: 2 }] });
 
       fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+    await answerDialog();
       expect(await screen.findByText(/Claim succeeded, but Mailbox or Inventory could not be refreshed/)).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
       fireEvent.click(within(document.querySelector('[data-stage-key="inventory-inbox-detail"]') as HTMLElement).getByRole("button", { name: "Retry" }));
@@ -274,7 +276,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
 
       fireEvent.click(screen.getByRole("button", { name: "Claim" }));
-      expect(window.confirm).toHaveBeenCalledWith("Claim Server Potion x3?");
+    await answerDialog();
       expect(api.claimMailApi).toHaveBeenCalledWith({ slotIndex: 4, quantity: 3 });
       expect(screen.getByRole("button", { name: "Working..." })).toBeDisabled();
       fireEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -299,8 +301,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       api.getMailboxApi.mockResolvedValue({ entries: [] });
 
       fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-
-      expect(window.confirm).toHaveBeenCalledWith("Delete Server Potion mail?");
+    await answerDialog();
       await waitFor(() => expect(api.deleteMailApi).toHaveBeenCalledWith({ slotIndex: 4 }));
       await waitFor(() => expect(screen.getByText("No mail.")).toBeInTheDocument());
       expect(api.getInventoryApi).toHaveBeenCalledTimes(1);

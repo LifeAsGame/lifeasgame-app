@@ -86,7 +86,7 @@ it("Escape cancels only the nested confirmation and restores focus without closi
   }
   render(<Confirmation />);
   const caller = screen.getByRole("button", { name: "저장 확인" }); caller.focus(); fireEvent.click(caller);
-  const dialog = screen.getByRole("dialog", { name: "저장할까요?" }); expect(dialog).toHaveFocus();
+  const dialog = screen.getByRole("dialog", { name: "저장할까요?" }); await waitFor(() => expect(screen.getByRole("button", { name: "취소" })).toHaveFocus());
   fireEvent.keyDown(dialog, { key: "Escape" });
   await waitFor(() => expect(caller).toHaveFocus());
   expect(back).not.toHaveBeenCalled(); expect(submit).not.toHaveBeenCalled();

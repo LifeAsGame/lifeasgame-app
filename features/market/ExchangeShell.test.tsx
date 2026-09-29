@@ -1,3 +1,4 @@
+import { answerDialog } from "@/shared/ui/dialogTest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -63,7 +64,6 @@ function deferred<T>() {
 describe("canonical Exchange surfaces", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(globalThis.crypto, "randomUUID")
       .mockReturnValueOnce("00000000-0000-4000-8000-000000000001")
       .mockReturnValueOnce("00000000-0000-4000-8000-000000000002")
@@ -387,9 +387,9 @@ describe("canonical Exchange surfaces", () => {
     fireEvent.click(await screen.findByRole("button", { name: "My Listings" }));
     fireEvent.click(screen.getByRole("button", { name: /Item #1003/ }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel Listing" }));
+    await answerDialog();
 
     await waitFor(() => expect(api.cancelListingApi).toHaveBeenCalledWith(101));
-    expect(window.confirm).toHaveBeenCalledWith("Cancel listing #101?");
     expect(api.getMyListingsApi).toHaveBeenCalledTimes(2);
     expect(api.getOpenListingsApi).toHaveBeenCalledTimes(2);
     expect(api.getInventoryApi).toHaveBeenCalledTimes(2);

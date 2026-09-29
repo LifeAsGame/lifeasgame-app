@@ -32,9 +32,9 @@ beforeEach(() => {
 
 it("separates deposits, delivery, ownership and server item description without internal reward codes", async () => {
   render(<RewardSettlementPanel acceptanceId={31} />);
-  expect(await screen.findByText("GOLD × 100 · 성공")).toBeInTheDocument();
-  expect(screen.getByText("아이템 × 1 · 성공")).toBeInTheDocument();
-  expect(screen.getByText("경험치 × 20 · 성공")).toBeInTheDocument();
+  expect(await screen.findByText(resultLine("GOLD × 100 · 성공"))).toBeInTheDocument();
+  expect(screen.getByText(resultLine("아이템 × 1 · 성공"))).toBeInTheDocument();
+  expect(screen.getByText(resultLine("경험치 × 20 · 성공"))).toBeInTheDocument();
   expect(await screen.findByText(/활동 기록 퀘스트에서 얻는 수집품/)).toBeInTheDocument();
   expect(screen.getByText(/현재 잔액이 아닙니다/)).toBeInTheDocument();
   expect(screen.getByText(/현재 소유나 수령 완료가 확정되지는 않습니다/)).toBeInTheDocument();
@@ -50,7 +50,7 @@ it.each([
   api.getQuestRewardSettlementApi.mockResolvedValue(settlement(status, [line("GOLD", status === "PENDING" ? "PENDING" : "SUCCEEDED"), line("ITEM", itemStatus)]));
   render(<RewardSettlementPanel acceptanceId={31} />);
   expect(await screen.findByText(new RegExp(copy))).toBeInTheDocument();
-  expect(screen.getByText(`아이템 × 1 · ${itemStatus === "PENDING" ? "대기 중" : "실패"}`)).toBeInTheDocument();
+  expect(screen.getByText(resultLine(`아이템 × 1 · ${itemStatus === "PENDING" ? "대기 중" : "실패"}`))).toBeInTheDocument();
   expect(screen.queryByText(/정산이 완료됐습니다/)).not.toBeInTheDocument();
 });
 
@@ -87,12 +87,12 @@ it.each([new ApiError(404, "HTTP_404", "wrong route"), new Error("network failur
 it("preserves confirmed lines when a later GET fails and item detail failure stays independent", async () => {
   api.getItemApi.mockRejectedValue(new Error("item unavailable"));
   render(<RewardSettlementPanel acceptanceId={31} />);
-  await screen.findByText("GOLD × 100 · 성공");
+  await screen.findByText(resultLine("GOLD × 100 · 성공"));
   await screen.findByText(/Item description unavailable/);
   api.getQuestRewardSettlementApi.mockRejectedValueOnce(new Error("offline"));
   fireEvent.click(screen.getByRole("button", { name: "정산 새로고침" }));
   await screen.findByText(/마지막으로 확인한 정산/);
-  expect(screen.getByText("GOLD × 100 · 성공")).toBeInTheDocument();
+  expect(screen.getByText(resultLine("GOLD × 100 · 성공"))).toBeInTheDocument();
   api.getItemApi.mockResolvedValue({ id: 7, name: "기록 결정", description: "Server description" });
   fireEvent.click(screen.getByRole("button", { name: "Retry item details" }));
   expect(await screen.findByText(/Server description/)).toBeInTheDocument();
@@ -106,7 +106,7 @@ it("discards a previous Quest response after selection and after logout unmount"
   view.rerender(<RewardSettlementPanel key={32} acceptanceId={32} />);
   await screen.findByText(/이번 완료에는 보상이 없습니다/);
   await act(async () => { stale.resolve(settlement()); });
-  expect(screen.queryByText("GOLD × 100 · 성공")).not.toBeInTheDocument();
+  expect(screen.queryByText(resultLine("GOLD × 100 · 성공"))).not.toBeInTheDocument();
   const loggedOut = deferred<RewardSettlement>();
   api.getQuestRewardSettlementApi.mockReturnValueOnce(loggedOut.promise);
   fireEvent.click(screen.getByRole("button", { name: "정산 새로고침" }));
@@ -125,3 +125,5 @@ it("keeps the latest of overlapping reads when effects restart", async () => {
   expect(within(screen.getByRole("region", { name: "보상 정산" })).queryByText(/정산이 완료됐습니다/)).not.toBeInTheDocument();
   await waitFor(() => expect(api.getQuestRewardSettlementApi).toHaveBeenCalledTimes(2));
 });
+
+function resultLine(text: string) { return (_: string, node: Element | null) => node?.matches(".lag-reward-result") === true && node.textContent === text; }

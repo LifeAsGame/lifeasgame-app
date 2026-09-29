@@ -60,7 +60,7 @@ export function useExerciseQueries() {
       if (selectedIdRef.current !== null && !next.some(({ id }) => id === selectedIdRef.current)) clearSelection();
       return next;
     } catch (caught) {
-      if (requestId === listRequestId.current) setListError(message(caught, "Unable to load Exercises."));
+      if (requestId === listRequestId.current) setListError(message(caught, "운동 기록 목록을 조회하지 못했습니다."));
       return undefined;
     } finally {
       if (requestId === listRequestId.current) setListLoading(false);
@@ -78,7 +78,7 @@ export function useExerciseQueries() {
       if (requestId === detailRequestId.current) setDetail(next);
       return next;
     } catch (caught) {
-      if (requestId === detailRequestId.current) setDetailError(message(caught, "Unable to load Exercise."));
+      if (requestId === detailRequestId.current) setDetailError(message(caught, "운동 기록을 조회하지 못했습니다."));
       return undefined;
     } finally {
       if (requestId === detailRequestId.current) setDetailLoading(false);
@@ -125,7 +125,7 @@ export function useExerciseQueries() {
       return true;
     } catch (caught) {
       await reload();
-      setMutationError(`Request outcome was not confirmed. Server state was reloaded. ${message(caught, "")}`.trim());
+      setMutationError(`요청 결과가 확정되지 않았습니다. 다시 조회한 서버 상태를 확인하세요. ${message(caught, "")}`.trim());
       return false;
     } finally {
       mutationLocked.current = false;

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import { INVENTORY_GEAR_PARTS } from "@/entities/nav";
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { InventoryGearPartId } from "@/entities/nav";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
@@ -29,6 +30,7 @@ function DataRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 export default function GearShell({ onBack }: { onBack?: () => void }) {
+  const { confirm, dialog } = useSaoConfirm();
   const queries = useEquipmentQueries();
   const partButton = useRef<HTMLButtonElement | null>(null);
   const slotButton = useRef<HTMLButtonElement | null>(null);
@@ -77,7 +79,7 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
   };
 
   return (
-    <div className="lag-panel-rail lag-gear-shell relative" data-testid="gear-shell">
+    <div className="lag-panel-rail lag-gear-shell relative" data-testid="gear-shell">{dialog}
       <PanelStage stageKey="inventory-gear-parts">
         <PanelFrame title="Gear Parts" depth={2} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
           <section className="lag-gear-parts" aria-label="Gear Parts">
@@ -202,14 +204,14 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                         type="button"
                         disabled={pending || compatibility?.status !== "VERIFIED" || selectedSlot.slot.itemInstanceId === selectedCandidate?.itemInstanceId}
                         className="lag-inventory-action"
-                        onClick={() => {
+                        onClick={async () => {
                           if (!selectedCandidate || compatibility?.status !== "VERIFIED") return;
                           const current = selectedSlot.item?.itemName
                             ?? (selectedSlot.slot.itemInstanceId === null ? null : `itemInstanceId ${selectedSlot.slot.itemInstanceId}`);
                           const prompt = current
                             ? `Replace ${current} in ${selectedSlot.slot.slotName} with ${selectedCandidate.itemName}?`
                             : `Equip ${selectedCandidate.itemName} to ${selectedSlot.slot.slotName}?`;
-                          if (window.confirm(prompt)) void queries.equip(selectedSlot.slot.slotId, selectedCandidate.itemInstanceId);
+                          if (await confirm(prompt)) void queries.equip(selectedSlot.slot.slotId, selectedCandidate.itemInstanceId);
                         }}
                       >{pending ? "Working..." : "Equip"}</button>
                       {selectedSlot.slot.itemInstanceId !== null ? (
@@ -218,9 +220,9 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                           disabled={pending}
                           className="lag-inventory-button"
                           data-variant="destructive"
-                          onClick={() => {
+                          onClick={async () => {
                             const item = selectedSlot.item?.itemName ?? `itemInstanceId ${selectedSlot.slot.itemInstanceId}`;
-                            if (window.confirm(`Unequip ${item} from ${selectedSlot.slot.slotName}?`)) void queries.unequip(selectedSlot.slot.slotId);
+                            if (await confirm(`“${selectedSlot.slot.slotName}”의 “${item}” 장비를 해제할까요?`)) void queries.unequip(selectedSlot.slot.slotId);
                           }}
                         >Unequip</button>
                       ) : null}

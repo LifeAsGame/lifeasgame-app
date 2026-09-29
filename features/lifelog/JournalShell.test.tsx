@@ -45,9 +45,9 @@ async function renderJournal() {
 
 async function openQuickRecord() {
   await renderJournal();
-  expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Quick Record" }));
-  return document.querySelector('[data-stage-key="lifelog-quick-record"]')!;
+  expect(document.querySelector('[data-create-form]')).not.toBeInTheDocument();
+  fireEvent.keyDown(screen.getByRole("button", { name: "일상 기록" }), { key: "Enter", altKey: true });
+  return document.querySelector('[data-stage-key="lifelog-journal"]')!;
 }
 
 function selectQuickType(type: "COLLECTION" | "EXERCISE" | "MEDIA") {
@@ -67,6 +67,21 @@ describe("LifeLog Journal consumer surface", () => {
     api.listJournalApi.mockResolvedValue(mixedPage);
     api.getJournalDetailApi.mockImplementation(async (lifeLogId: number) => journalMock.detail(lifeLogId));
     api.quickRecordApi.mockResolvedValue(quickResult);
+  });
+
+  it("빈 목록 클릭은 생성하지 않고 Alt+Enter·Escape가 같은 슬롯을 전환한다", async () => {
+    api.listJournalApi.mockReset().mockResolvedValue({ ...mixedPage, content: [], totalElements: 0, totalPages: 0 });
+    render(<JournalShell roles={roles} />);
+    await screen.findByText("일상 기록이 없습니다.");
+    const category = screen.getByRole("button", { name: "일상 기록" });
+    const slot = document.querySelector(".lag-create-slot");
+    fireEvent.click(category);
+    expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
+    fireEvent.keyDown(category, { key: "Enter", altKey: true });
+    expect(document.querySelector("[data-create-form]")?.closest(".lag-create-slot")).toBe(slot);
+    fireEvent.keyDown(document.querySelector("[data-create-form]")!, { key: "Escape" });
+    expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("일상 기록이 없습니다.")).toBeVisible());
   });
 
   it("uses semantic Journal classes without legacy local styling", () => {
@@ -97,8 +112,8 @@ describe("LifeLog Journal consumer surface", () => {
     ]);
     expect(within(entries[0]).getByText("COLLECTION")).toBeInTheDocument();
     expect(within(entries[0]).getByText("Backend Engineer")).toBeInTheDocument();
-    expect(within(entries[0]).getByText("Event #11")).toBeInTheDocument();
-    expect(within(entries[1]).getByText("Quick")).toBeInTheDocument();
+    expect(within(entries[0]).getByText("일정 #11")).toBeInTheDocument();
+    expect(within(entries[1]).getByText("간편")).toBeInTheDocument();
   });
 
   it("keeps nullable metrics absent while preserving real zero values", async () => {
@@ -115,11 +130,11 @@ describe("LifeLog Journal consumer surface", () => {
     await renderJournal();
 
     const entry = screen.getByTestId("journal-entry");
-    expect(entry).toHaveTextContent("0 min · 240 kcal");
+    expect(entry).toHaveTextContent("0 분 · 240 kcal");
     expect(entry).not.toHaveTextContent("km");
   });
 
-  it("changes Role/subtype query immediately and preserves bounded pagination", async () => {
+  it("changes 역할/subtype query immediately and preserves bounded pagination", async () => {
     api.listJournalApi.mockImplementation(async (params: { primaryRoleId?: number; subtype?: string; page: number; size: number }): Promise<JournalPage> => ({
       content: MOCK_JOURNAL_ENTRIES.filter((entry) =>
         (params.primaryRoleId === undefined || entry.primaryRoleId === params.primaryRoleId)
@@ -132,16 +147,16 @@ describe("LifeLog Journal consumer surface", () => {
     }));
     await renderJournal();
 
-    expect(screen.getByText("Page 1 / 2")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Role filter"), { target: { value: "2" } });
+    expect(screen.getByText("페이지 1 / 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이전" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("역할 필터"), { target: { value: "2" } });
     await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, page: 0, size: 20 }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "다음" }));
     await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, page: 1, size: 20 }));
-    expect(await screen.findByText("Page 2 / 2")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+    expect(await screen.findByText("페이지 2 / 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다음" })).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("Subtype filter"), { target: { value: "REFLECTION" } });
+    fireEvent.change(screen.getByLabelText("기록 분류 필터"), { target: { value: "REFLECTION" } });
     await waitFor(() => expect(api.listJournalApi).toHaveBeenLastCalledWith({ primaryRoleId: 2, subtype: "REFLECTION", page: 0, size: 20 }));
   });
 
@@ -156,16 +171,16 @@ describe("LifeLog Journal consumer surface", () => {
     await screen.findByText("Annotated");
     const detailStage = document.querySelector('[data-stage-key="lifelog-journal-detail"]');
     expect(detailStage).toBeInTheDocument();
-    expectDetail("Condition", "Annotated");
+    expectDetail("상태 메모", "Annotated");
 
     focus.mockClear();
     fireEvent.click(entries[1]);
     await screen.findByText("Morning run");
     expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).toBe(detailStage);
-    expectDetail("Entry mode", "QUICK");
+    expectDetail("기록 방식", "QUICK");
     expect(focus).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Back to Journal" }));
+    fireEvent.click(screen.getByRole("button", { name: "일상 기록 목록으로" }));
     await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument());
     expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "lifelog-journal", align: "back" } });
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
@@ -176,16 +191,16 @@ describe("LifeLog Journal consumer surface", () => {
     const entries = screen.getAllByTestId("journal-entry");
 
     fireEvent.click(entries[3]);
-    await screen.findByText("Collection");
-    expectDetail("Original title", "Not recorded");
-    expectDetail("Quantity", "Not recorded");
-    expectDetail("Condition", "Not recorded");
-    expectDetail("Acquired from", "Not recorded");
-    expectDetail("Tags", "Not recorded");
+    await screen.findByText("수집 기록");
+    expectDetail("원제", "미등록");
+    expectDetail("수량", "미등록");
+    expectDetail("상태 메모", "미등록");
+    expectDetail("입수처", "미등록");
+    expectDetail("태그", "미등록");
 
     fireEvent.click(entries[2]);
-    await screen.findByText("Rewatch count");
-    expectDetail("Rewatch count", "0");
+    await screen.findByText("재감상 횟수");
+    expectDetail("재감상 횟수", "0");
     expect(screen.queryByRole("button", { name: /edit|delete|complete event/i })).not.toBeInTheDocument();
   });
 
@@ -194,18 +209,31 @@ describe("LifeLog Journal consumer surface", () => {
     api.getJournalDetailApi.mockReturnValueOnce(first.promise).mockResolvedValueOnce(journalMock.detail(104));
     await renderJournal();
     fireEvent.click(screen.getAllByTestId("journal-entry")[0]);
-    expect(screen.getByText("Loading Journal detail...")).toBeInTheDocument();
+    expect(screen.getByText("일상 기록 상세를 불러오는 중…")).toBeInTheDocument();
 
     await act(async () => {
-      first.reject(new Error("Detail unavailable"));
+      first.reject(new Error("설명 unavailable"));
       await first.promise.catch(() => undefined);
     });
-    expect(screen.getByRole("alert")).toHaveTextContent("Detail unavailable");
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("설명 unavailable");
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
 
     await screen.findByText("Annotated");
     expect(api.getJournalDetailApi).toHaveBeenNthCalledWith(1, 104);
     expect(api.getJournalDetailApi).toHaveBeenNthCalledWith(2, 104);
+  });
+
+  it("생성 취소는 기존 선택을 유지하며 상세를 다시 열지 않고 분류로 포커스를 돌린다", async () => {
+    await renderJournal();
+    const entry = screen.getAllByTestId("journal-entry")[0];
+    fireEvent.click(entry);
+    await screen.findByText("Annotated");
+    const category = screen.getByRole("button", { name: "일상 기록" });
+    fireEvent.keyDown(category, { key: "Enter", altKey: true });
+    fireEvent.keyDown(screen.getByLabelText("수집 제목"), { key: "Escape" });
+    await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument());
+    expect(entry).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(category).toHaveFocus());
   });
 
   it("does not reopen stale detail after leaving and returning", async () => {
@@ -218,24 +246,24 @@ describe("LifeLog Journal consumer surface", () => {
     expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument();
   });
 
-  it("opens Quick Record explicitly, keeps its frame stable across real types, and Back returns", async () => {
+  it("opens 간편 기록 explicitly, keeps its frame stable across real types, and Back returns", async () => {
     const stage = await openQuickRecord();
     const frame = stage.querySelector(".lag-panel-frame");
     expect(screen.getByRole("radio", { name: "COLLECTION" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByLabelText("Collection category")).toBeInTheDocument();
+    expect(screen.getByLabelText("수집 분류")).toBeInTheDocument();
 
     selectQuickType("EXERCISE");
-    expect(screen.getByLabelText("Duration minutes")).toBeInTheDocument();
-    expect(document.querySelector('[data-stage-key="lifelog-quick-record"] .lag-panel-frame')).toBe(frame);
+    expect(screen.getByLabelText("운동 시간 (분)")).toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="lifelog-journal"] .lag-panel-frame')).toBe(frame);
     selectQuickType("MEDIA");
-    expect(screen.getByLabelText("Media status")).toBeInTheDocument();
-    expect(document.querySelector('[data-stage-key="lifelog-quick-record"] .lag-panel-frame')).toBe(frame);
+    expect(screen.getByLabelText("감상 상태")).toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="lifelog-journal"] .lag-panel-frame')).toBe(frame);
 
-    fireEvent.click(screen.getByRole("button", { name: "Back to Journal" }));
-    await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "목록으로" }));
+    await waitFor(() => expect(document.querySelector('[data-create-form]')).not.toBeInTheDocument());
   });
 
-  it("keeps mobile Quick Record labels and its Save action in the shared scroll contract", () => {
+  it("keeps mobile 간편 기록 labels and its Save action in the shared scroll contract", () => {
     const css = readFileSync("app/globals.css", "utf8");
     const panelFrame = readFileSync("widgets/right-panels/ui/PanelFrame.tsx", "utf8");
     const mobile = css.slice(css.indexOf("@media (max-width: 767px)"));
@@ -248,34 +276,35 @@ describe("LifeLog Journal consumer surface", () => {
     expect(panelFrame).toContain("panelContentBottomSafePadding");
   });
 
-  it("represents every current Quick Record type-specific field", async () => {
+  it("represents every current 간편 기록 type-specific field", async () => {
     await openQuickRecord();
-    expect(screen.getByLabelText("Collection category")).toBeInTheDocument();
-    expect(screen.getByLabelText("Collection title")).toBeInTheDocument();
-    expect(screen.getByLabelText("Quantity")).toBeInTheDocument();
+    expect(screen.getByLabelText("수집 분류")).toBeInTheDocument();
+    expect(screen.getByLabelText("수집 제목")).toBeInTheDocument();
+    expect(screen.getByLabelText("수량")).toBeInTheDocument();
 
     selectQuickType("EXERCISE");
-    for (const name of ["Exercise category", "Duration minutes", "Exercised on", "Distance km", "Calories", "Memo"]) {
+    for (const name of ["운동 분류", "운동 시간 (분)", "운동 날짜", "거리 (km)", "칼로리", "메모"]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument();
     }
 
     selectQuickType("MEDIA");
-    for (const name of ["Media category", "Media title", "Media status", "Current episode", "Total episodes"]) {
+    for (const name of ["감상 분류", "감상 제목", "감상 상태", "현재 회차", "전체 회차"]) {
       expect(screen.getByLabelText(name)).toBeInTheDocument();
     }
   });
 
-  it("submits the exact Collection contract and shows success", async () => {
+  it("submits the exact 수집 기록 contract and shows success", async () => {
     await openQuickRecord();
-    fireEvent.change(screen.getByLabelText("Quick Record subtype"), { target: { value: "PROJECT" } });
-    fireEvent.change(screen.getByLabelText("Quick Record role"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
-    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "The Pragmatic Programmer" } });
-    fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    fireEvent.change(screen.getByLabelText("간편 기록 분류"), { target: { value: "PROJECT" } });
+    fireEvent.change(screen.getByLabelText("간편 기록 역할"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("수집 분류"), { target: { value: "BOOK" } });
+    fireEvent.change(screen.getByLabelText("수집 제목"), { target: { value: "The Pragmatic Programmer" } });
+    fireEvent.change(screen.getByLabelText("수량"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "간편 기록 저장" }));
 
-    await screen.findByText("✓ Quick Record saved.");
-    expect(screen.getByRole("status")).toHaveFocus();
+    await waitFor(() => expect(screen.queryByLabelText("수집 제목")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByLabelText("수집 제목")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "일상 기록" })).toHaveFocus());
     expect(api.quickRecordApi).toHaveBeenCalledWith({
       type: "COLLECTION",
       lifeLogSubtype: "PROJECT",
@@ -286,14 +315,15 @@ describe("LifeLog Journal consumer surface", () => {
 
   it("maps the existing REFLECTION subtype to weekly lookback", async () => {
     await openQuickRecord();
-    fireEvent.change(screen.getByLabelText("Quick Record subtype"), { target: { value: "REFLECTION" } });
-    fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
-    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Weekly notes" } });
-    fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    fireEvent.change(screen.getByLabelText("간편 기록 분류"), { target: { value: "REFLECTION" } });
+    fireEvent.change(screen.getByLabelText("수집 분류"), { target: { value: "BOOK" } });
+    fireEvent.change(screen.getByLabelText("수집 제목"), { target: { value: "Weekly notes" } });
+    fireEvent.change(screen.getByLabelText("수량"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "간편 기록 저장" }));
 
     await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
-    expect(screen.getByRole("status")).toHaveFocus();
+    await waitFor(() => expect(screen.queryByLabelText("수집 제목")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: "일상 기록" })).toHaveFocus());
     expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
       type: "COLLECTION",
       lifeLogSubtype: "REFLECTION",
@@ -302,15 +332,15 @@ describe("LifeLog Journal consumer surface", () => {
     });
   });
 
-  it("preserves Exercise zero/optional semantics and Media partial progress", async () => {
+  it("preserves 운동 기록 zero/optional semantics and 감상 기록 partial progress", async () => {
     await openQuickRecord();
     selectQuickType("EXERCISE");
-    fireEvent.change(screen.getByLabelText("Exercise category"), { target: { value: "RUNNING" } });
-    fireEvent.change(screen.getByLabelText("Duration minutes"), { target: { value: "30" } });
-    fireEvent.change(screen.getByLabelText("Exercised on"), { target: { value: "2026-08-14" } });
-    fireEvent.change(screen.getByLabelText("Distance km"), { target: { value: "0" } });
-    fireEvent.change(screen.getByLabelText("Calories"), { target: { value: "0" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    fireEvent.change(screen.getByLabelText("운동 분류"), { target: { value: "RUNNING" } });
+    fireEvent.change(screen.getByLabelText("운동 시간 (분)"), { target: { value: "30" } });
+    fireEvent.change(screen.getByLabelText("운동 날짜"), { target: { value: "2026-08-14" } });
+    fireEvent.change(screen.getByLabelText("거리 (km)"), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText("칼로리"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "간편 기록 저장" }));
     await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
     expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
       type: "EXERCISE",
@@ -318,12 +348,13 @@ describe("LifeLog Journal consumer surface", () => {
     });
 
     api.quickRecordApi.mockClear();
+    fireEvent.keyDown(screen.getByRole("button", { name: "일상 기록" }), { key: "Enter", altKey: true });
     selectQuickType("MEDIA");
-    fireEvent.change(screen.getByLabelText("Media category"), { target: { value: "ANIME" } });
-    fireEvent.change(screen.getByLabelText("Media title"), { target: { value: "Frieren" } });
-    fireEvent.change(screen.getByLabelText("Media status"), { target: { value: "WATCHING" } });
-    fireEvent.change(screen.getByLabelText("Current episode"), { target: { value: "0" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    fireEvent.change(screen.getByLabelText("감상 분류"), { target: { value: "ANIME" } });
+    fireEvent.change(screen.getByLabelText("감상 제목"), { target: { value: "Frieren" } });
+    fireEvent.change(screen.getByLabelText("감상 상태"), { target: { value: "WATCHING" } });
+    fireEvent.change(screen.getByLabelText("현재 회차"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "간편 기록 저장" }));
     await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
     expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
       type: "MEDIA",
@@ -334,17 +365,17 @@ describe("LifeLog Journal consumer surface", () => {
   it("keeps failure retry available and edit creates a new logical submission", async () => {
     api.quickRecordApi.mockRejectedValueOnce(new Error("Outcome unknown")).mockResolvedValueOnce(quickResult);
     await openQuickRecord();
-    fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
-    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Retry me" } });
-    fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    fireEvent.change(screen.getByLabelText("수집 분류"), { target: { value: "BOOK" } });
+    fireEvent.change(screen.getByLabelText("수집 제목"), { target: { value: "다시 시도 me" } });
+    fireEvent.change(screen.getByLabelText("수량"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "간편 기록 저장" }));
 
-    await screen.findByRole("button", { name: "Retry same record" });
+    await screen.findByRole("button", { name: "같은 기록 다시 시도" });
     expect(screen.getByRole("alert")).toHaveTextContent("Outcome unknown");
     expect(screen.getByRole("alert")).toHaveFocus();
     const firstKey = api.quickRecordApi.mock.calls[0][1];
-    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Edited retry" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
+    fireEvent.change(screen.getByLabelText("수집 제목"), { target: { value: "Edited retry" } });
+    fireEvent.click(screen.getByRole("button", { name: "간편 기록 저장" }));
     await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledTimes(2));
     expect(api.quickRecordApi.mock.calls[1][0]).toEqual({
       type: "COLLECTION",
@@ -353,34 +384,34 @@ describe("LifeLog Journal consumer surface", () => {
     expect(api.quickRecordApi.mock.calls[1][1]).not.toBe(firstKey);
   });
 
-  it("does not reopen stale Quick Record after leaving and returning", async () => {
+  it("does not reopen stale 간편 기록 after leaving and returning", async () => {
     const view = await renderJournal();
-    fireEvent.click(screen.getByRole("button", { name: "Quick Record" }));
-    expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("button", { name: "일상 기록" }), { key: "Enter", altKey: true });
+    expect(document.querySelector('[data-create-form]')).toBeInTheDocument();
     view.unmount();
 
     await renderJournal();
-    expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-create-form]')).not.toBeInTheDocument();
   });
   it("preserves a new draft after leaving a pending save and supports keyboard type selection", async () => {
     const request = deferred<QuickRecordResult>();
     api.quickRecordApi.mockReturnValueOnce(request.promise);
     await openQuickRecord();
-    fireEvent.change(screen.getByLabelText("Collection category"), { target: { value: "BOOK" } });
-    fireEvent.change(screen.getByLabelText("Collection title"), { target: { value: "Old draft" } });
-    fireEvent.change(screen.getByLabelText("Quantity"), { target: { value: "1" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Quick Record" }));
-    await screen.findByRole("button", { name: "Saving..." });
+    fireEvent.change(screen.getByLabelText("수집 분류"), { target: { value: "BOOK" } });
+    fireEvent.change(screen.getByLabelText("수집 제목"), { target: { value: "Old draft" } });
+    fireEvent.change(screen.getByLabelText("수량"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "간편 기록 저장" }));
+    await screen.findByRole("button", { name: "저장 중…" });
     expect(screen.getByRole("status")).toHaveFocus();
-    fireEvent.click(screen.getByRole("button", { name: "Back to Journal" }));
-    await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-quick-record"]')).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Quick Record" }));
+    fireEvent.click(screen.getByRole("button", { name: "목록으로" }));
+    await waitFor(() => expect(document.querySelector('[data-create-form]')).not.toBeInTheDocument());
+    fireEvent.keyDown(screen.getByRole("button", { name: "일상 기록" }), { key: "Enter", altKey: true });
     expect(screen.getByRole("radio", { name: "COLLECTION" })).toHaveFocus();
     fireEvent.keyDown(screen.getByRole("radio", { name: "COLLECTION" }), { key: "ArrowRight" });
     expect(screen.getByRole("radio", { name: "EXERCISE" })).toHaveFocus();
-    fireEvent.change(screen.getByLabelText("Memo"), { target: { value: "New draft stays" } });
+    fireEvent.change(screen.getByLabelText("메모"), { target: { value: "New draft stays" } });
     await act(async () => { request.resolve(quickResult); await request.promise; });
-    expect(screen.getByLabelText("Memo")).toHaveValue("New draft stays");
+    expect(screen.getByLabelText("메모")).toHaveValue("New draft stays");
     expect(screen.queryByText(/Quick Record saved/)).not.toBeInTheDocument();
     expect(api.quickRecordApi).toHaveBeenCalledOnce();
     expect(api.getJournalDetailApi).not.toHaveBeenCalled();
@@ -391,8 +422,8 @@ describe("LifeLog Journal consumer surface", () => {
     api.getJournalDetailApi.mockReturnValue(new Promise(() => {}));
     await renderJournal();
     fireEvent.click(screen.getAllByTestId("journal-entry")[0]);
-    expect(screen.getByRole("button", { name: "Back to Journal" })).toHaveFocus();
-    expect(screen.getByText("Loading Journal detail...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "일상 기록 목록으로" })).toHaveFocus();
+    expect(screen.getByText("일상 기록 상세를 불러오는 중…")).toBeInTheDocument();
   });
 
 });

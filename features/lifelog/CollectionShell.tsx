@@ -5,6 +5,9 @@ import { AnimatePresence } from "framer-motion";
 
 import { COLLECTION_CATEGORIES, type CollectionCategory, type CollectionCreateRequest, type CollectionInfo, type CollectionUpdateRequest } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import CreateSlot, { CreateCategory, useCreateMode } from "@/shared/ui/CreateSlot";
+import { RecordRow } from "@/features/role/RecordRow";
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
@@ -25,8 +28,8 @@ function Feedback({ pending, error, success, refreshError, reload }: {
   const state = error ? "error" : success ? "success" : pending ? "pending" : null;
   useEffect(() => { ref.current?.focus({ preventScroll: true }); }, [state]);
   return <>
-    {state ? <p ref={ref} tabIndex={-1} role={error ? "alert" : "status"} className="lag-journal-feedback" data-state={state}>{error ?? success ?? "Saving changes..."}</p> : null}
-    {refreshError ? <div className="lag-journal-state"><p role="alert" className="lag-journal-feedback" data-state="error">{refreshError}</p><button type="button" className="lag-journal-button" onClick={reload}>Refresh Collections</button></div> : null}
+    {state ? <p ref={ref} tabIndex={-1} role={error ? "alert" : "status"} className="lag-journal-feedback" data-state={state}>{error ?? success ?? "변경 사항 저장 중…"}</p> : null}
+    {refreshError ? <div className="lag-journal-state"><p role="alert" className="lag-journal-feedback" data-state="error">{refreshError}</p><button type="button" className="lag-journal-button" onClick={reload}>수집 목록 다시 조회</button></div> : null}
   </>;
 }
 
@@ -54,33 +57,33 @@ function CollectionForm({ item, pending, create, update, cancel, children }: {
   return <form className="lag-collection-form" aria-busy={pending} onSubmit={submit} onFocusCapture={(event) => {
     if (event.target.matches("input, select, textarea, [role=status], [role=alert]")) event.target.scrollIntoView({ block: "nearest", inline: "nearest" });
   }}>
-    <p className="lag-journal-intro">{item ? "Edit quantity, condition note, and acquired from." : "Add a collection to your Journal."} Required fields are marked *.</p>
+    <p className="lag-journal-intro">{item ? "수량·상태 메모·입수처를 수정합니다." : "일상 기록에 수집 기록을 남깁니다."} * 표시는 필수입니다.</p>
     <fieldset disabled={pending} className="lag-journal-form-grid">
       {!item ? <>
-        <Field title="Category *"><select name="category" aria-label="Create category" required defaultValue="" className="lag-journal-control"><option value="">Select...</option>{COLLECTION_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
-        <Field title="Title *"><input name="title" aria-label="Title" required className="lag-journal-control" /></Field>
-        <Field title="Original title (optional)"><input name="originalTitle" aria-label="Original title" className="lag-journal-control" /></Field>
+        <Field title="분류 *"><select name="category" aria-label="등록할 분류" required defaultValue="" className="lag-journal-control"><option value="">선택…</option>{COLLECTION_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
+        <Field title="제목 *"><input name="title" aria-label="제목" required className="lag-journal-control" /></Field>
+        <Field title="원제 (선택)"><input name="originalTitle" aria-label="원제" className="lag-journal-control" /></Field>
       </> : null}
-      <Field title="Quantity *"><input name="quantity" aria-label={item ? "Update quantity" : "Quantity"} type="number" min={1} required defaultValue={item?.quantity} className="lag-journal-control" /></Field>
-      <Field title="Condition note (optional)"><textarea name="conditionNote" aria-label={item ? "Update condition note" : "Condition note"} rows={4} defaultValue={item?.conditionNote ?? ""} className="lag-journal-control" /></Field>
-      <Field title="Acquired from (optional)"><input name="acquiredFrom" aria-label={item ? "Update acquired from" : "Acquired from"} defaultValue={item?.acquiredFrom ?? ""} className="lag-journal-control" /></Field>
+      <Field title="수량 *"><input name="quantity" aria-label={item ? "변경할 수량" : "수량"} type="number" min={1} required defaultValue={item?.quantity} className="lag-journal-control" /></Field>
+      <Field title="상태 메모 (선택)"><textarea name="conditionNote" aria-label={item ? "변경할 상태 메모" : "상태 메모"} rows={4} defaultValue={item?.conditionNote ?? ""} className="lag-journal-control" /></Field>
+      <Field title="입수처 (선택)"><input name="acquiredFrom" aria-label={item ? "변경할 입수처" : "입수처"} defaultValue={item?.acquiredFrom ?? ""} className="lag-journal-control" /></Field>
       {!item ? <>
-        <Field title="Tags (optional, comma separated)"><input name="tags" aria-label="Tags, comma separated" className="lag-journal-control" /></Field>
-        <label className="lag-collection-check"><input name="weeklyReflection" type="checkbox" />Weekly reflection</label>
-        <p className="lag-journal-intro">Weekly reflection creates a FULL reflection for the current week. Quick Record does not satisfy the weekly lookback Quest.</p>
+        <Field title="태그 (선택, 쉼표로 구분)"><input name="tags" aria-label="태그 (쉼표로 구분)" className="lag-journal-control" /></Field>
+        <label className="lag-collection-check"><input name="weeklyReflection" type="checkbox" />주간 회고</label>
+        <p className="lag-journal-intro">주간 회고는 이번 주의 전체 회고를 생성합니다. 간편 기록은 주간 회고 퀘스트 조건을 충족하지 않습니다.</p>
       </> : null}
     </fieldset>
-    <div className="lag-collection-actions">{children}<button type="submit" disabled={pending} className="lag-journal-action">{pending ? "Saving..." : item ? "Update Collection" : "Create Collection"}</button><button type="button" className="lag-journal-button" onClick={cancel}>Cancel</button></div>
+    <div className="lag-collection-actions">{children}<button type="submit" disabled={pending} className="lag-journal-action">{pending ? "저장 중…" : "수집 기록 저장"}</button><button type="button" className="lag-journal-button" onClick={cancel}>취소</button></div>
   </form>;
 }
 
 function CollectionDetail({ item }: { item: CollectionInfo }) {
   return <article className="lag-journal-detail">
-    <div className="lag-journal-detail-hero"><span>{item.category}</span><h4>{item.title}</h4><p className="lag-collection-quantity">{item.quantity} <small>PIECES</small></p></div>
-    <p className="lag-collection-note">{item.conditionNote || "No condition note"}</p>
+    <div className="lag-journal-detail-hero"><span>{item.category}</span><h4>{item.title}</h4><p className="lag-collection-quantity">{item.quantity} <small>개</small></p></div>
+    <p className="lag-collection-note">{item.conditionNote || "상태 메모 없음"}</p>
     <dl className="lag-journal-detail-section">{[
-      ["Acquired from", item.acquiredFrom || "Not recorded"], ["Original title", item.originalTitle || "Not recorded"], ["Tags", item.tags.join(" · ") || "Not recorded"],
-      ["Created", item.createdAt], ["Updated", item.updatedAt], ["Source", `Collection source #${item.id}`],
+      ["입수처", item.acquiredFrom || "미등록"], ["원제", item.originalTitle || "미등록"], ["태그", item.tags.join(" · ") || "미등록"],
+      ["생성일", item.createdAt], ["수정일", item.updatedAt], ["출처", `수집 기록 #${item.id}`],
     ].map(([name, value]) => <div key={name} className="lag-journal-detail-item"><dt>{name}</dt><dd>{value}</dd></div>)}</dl>
   </article>;
 }
@@ -91,15 +94,20 @@ function subscribeCompact(notify: () => void) {
   return () => media.removeEventListener("change", notify);
 }
 
-export default function CollectionShell({ onBack }: { onBack?: () => void }) {
+export default function CollectionShell({ onBack, createRequest = 0 }: { onBack?: () => void; createRequest?: number }) {
+  const creation = useCreateMode(createRequest);
+  const { confirm, dialog } = useSaoConfirm();
   const collections = useCollectionQueries();
+  const [detailVisible, setDetailVisible] = useState(true);
+  useEffect(() => { if (creation.creating) setDetailVisible(false); }, [creation.creating]);
+  const select = (id: number) => { caller.current = document.activeElement instanceof HTMLButtonElement ? document.activeElement : null; setDetailVisible(true); collections.select(id); };
   const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
-  const [mode, setMode] = useState<"create" | "edit" | null>(null);
+  const [mode, setMode] = useState<"edit" | null>(null);
   const [category, setCategory] = useState<CollectionCategory | "">("");
   const [titleLike, setTitleLike] = useState("");
   const shell = useRef<HTMLDivElement>(null), caller = useRef<HTMLButtonElement | null>(null), editButton = useRef<HTMLButtonElement | null>(null);
   const pending = collections.pendingMutation !== null, item = collections.detail.data;
-  const activeKey = mode ? "lifelog-collection-form" : collections.selectedId !== null ? "lifelog-collection-detail" : null;
+  const activeKey = creation.creating || !detailVisible ? null : mode === "edit" ? "lifelog-collection-form" : collections.selectedId !== null ? "lifelog-collection-detail" : null;
   useEffect(() => {
     if (!activeKey || (!compact && !mode)) return;
     shell.current?.querySelector<HTMLElement>(mode ? '[data-stage-key="lifelog-collection-form"] :is(input, select, textarea)' : '[data-stage-key="lifelog-collection-detail"] button')?.focus({ preventScroll: true });
@@ -107,9 +115,9 @@ export default function CollectionShell({ onBack }: { onBack?: () => void }) {
   const returnToList = (reset = true) => {
     if (reset) collections.resetMutation();
     collections.clearSelection();
-    setMode(null);
+    setMode(null); creation.close();
     requestStageFocus("lifelog-collection-list", "back");
-    requestAnimationFrame(() => (caller.current?.isConnected ? caller.current : shell.current?.querySelector<HTMLButtonElement>('[aria-label="Add Collection"]'))?.focus({ preventScroll: true }));
+    requestAnimationFrame(() => (caller.current?.isConnected ? caller.current : shell.current?.querySelector<HTMLButtonElement>('.lag-create-category button'))?.focus({ preventScroll: true }));
   };
   const cancelForm = () => {
     collections.resetMutation();
@@ -121,31 +129,31 @@ export default function CollectionShell({ onBack }: { onBack?: () => void }) {
   };
   const feedback = <Feedback pending={pending} error={collections.mutationError} success={collections.mutationSuccess} refreshError={collections.refreshError} reload={() => void collections.list.reload(true)} />;
   const list = collections.list;
-  return <div ref={shell} className="lag-panel-rail lag-collection-shell relative">
+  return <div ref={shell} className="lag-panel-rail lag-collection-shell relative">{dialog}
     <PanelStage stageKey="lifelog-collection-list" panelRole="list" inactive={compact && activeKey !== null}>
-      <PanelFrame title="Collections" depth={1} resetScrollKey={`${collections.params.page}:${collections.params.category ?? ""}:${collections.params.titleLike ?? ""}`} backButton={onBack ? <BackButton label="Back to Lifelog" onClick={onBack} /> : undefined}>
-        <div className="lag-journal-surface">
-          <div className="lag-journal-toolbar"><div><p className="lag-journal-eyebrow">Collection</p><p className="lag-journal-intro">The stories behind the things you keep.</p></div><button type="button" aria-label="Add Collection" className="lag-journal-action" data-selected={mode === "create"} aria-expanded={mode === "create"} onClick={(event) => { caller.current = event.currentTarget; collections.resetMutation(); collections.clearSelection(); setMode("create"); }}>Add Collection</button></div>
-          <details className="lag-journal-filter-disclosure"><summary>Filters · Category / Title</summary><form className="lag-journal-filters" onSubmit={(event) => { event.preventDefault(); setMode(null); collections.search(category || undefined, titleLike); }}>
-            <Field title="Category"><select aria-label="Category filter" value={category} onChange={(event) => setCategory(event.target.value as CollectionCategory | "")} className="lag-journal-control"><option value="">All Categories</option>{COLLECTION_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
-            <Field title="Title search"><input aria-label="Title search" value={titleLike} onChange={(event) => setTitleLike(event.target.value)} className="lag-journal-control" /></Field><button type="submit" className="lag-journal-button">Search</button>
+      <PanelFrame title="수집 기록" depth={1} resetScrollKey={`${collections.params.page}:${collections.params.category ?? ""}:${collections.params.titleLike ?? ""}`} backButton={creation.creating ? <BackButton label="목록으로" onClick={creation.close} /> : onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
+        <CreateCategory title="수집 기록" onOpen={creation.close} onCreate={() => { collections.resetMutation(); setMode(null); creation.open(); }} />
+        <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} list={<div className="lag-journal-surface">
+          <details className="lag-journal-filter-disclosure"><summary>필터 · 분류 / 제목</summary><form className="lag-journal-filters" onSubmit={(event) => { event.preventDefault(); setMode(null); collections.search(category || undefined, titleLike); }}>
+            <Field title="분류"><select aria-label="분류 필터" value={category} onChange={(event) => setCategory(event.target.value as CollectionCategory | "")} className="lag-journal-control"><option value="">전체 분류</option>{COLLECTION_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
+            <Field title="제목 검색"><input aria-label="제목 검색" value={titleLike} onChange={(event) => setTitleLike(event.target.value)} className="lag-journal-control" /></Field><button type="submit" className="lag-journal-button">검색</button>
           </form></details>
           {!activeKey && (pending || collections.mutationError || collections.mutationSuccess || collections.refreshError) ? <div className="lag-collection-feedback">{feedback}</div> : null}
-          {list.loading && !list.items.length ? <InfoCard>Loading Collections...</InfoCard> : null}
-          {list.error ? <div className="lag-collection-feedback"><p role="alert" className="lag-journal-feedback" data-state="error">{list.error}</p><button type="button" className="lag-journal-button" onClick={() => void list.reload(true)}>Retry list</button></div> : null}
-          {!list.loading && !list.error && !list.items.length ? <InfoCard>No Collections.</InfoCard> : null}
-          <div className="lag-journal-list">{list.items.map((row) => <button key={row.id} type="button" className="lag-journal-entry" aria-pressed={collections.selectedId === row.id} data-selected={collections.selectedId === row.id} onClick={(event) => { caller.current = event.currentTarget; setMode(null); collections.select(row.id); }}><span className="lag-journal-source" aria-hidden>CO</span><span className="lag-journal-entry-copy"><strong>{row.title}</strong><span className="lag-journal-entry-summary">{row.category} · Quantity {row.quantity}</span><span className="lag-journal-entry-summary">{row.conditionNote || "No condition note"}</span></span></button>)}</div>
-          <div className="lag-journal-pagination"><button type="button" className="lag-journal-button" disabled={list.loading || collections.params.page === 0} onClick={() => { setMode(null); collections.changePage(collections.params.page - 1); }}>Previous</button><span>Page {collections.params.page + 1}</span><button type="button" className="lag-journal-button" disabled={list.loading || list.items.length < collections.params.size} onClick={() => { setMode(null); collections.changePage(collections.params.page + 1); }}>Next</button></div>
-        </div>
+          {list.loading && !list.items.length ? <InfoCard>수집 기록을 불러오는 중…</InfoCard> : null}
+          {list.error ? <div className="lag-collection-feedback"><p role="alert" className="lag-journal-feedback" data-state="error">{list.error}</p><button type="button" className="lag-journal-button" onClick={() => void list.reload(true)}>목록 다시 조회</button></div> : null}
+          {!list.loading && !list.error && !list.items.length ? <InfoCard>수집 기록이 없습니다.</InfoCard> : null}
+          <div className="lag-journal-list">{list.items.map((row) => <RecordRow key={row.id} title={row.title} subtitle={`${row.category} · 수량 ${row.quantity}`} selected={collections.selectedId === row.id} disabled={pending} archiveLabel="삭제" onSelect={() => { setMode(null); select(row.id); }} onEdit={() => { select(row.id); setMode("edit"); }} onArchive={async () => { if (await confirm(`“${row.title}” 수집 기록을 삭제할까요?`)) await collections.remove(row.id); }} />)}</div>
+          <div className="lag-journal-pagination"><button type="button" className="lag-journal-button" disabled={list.loading || collections.params.page === 0} onClick={() => { setMode(null); collections.changePage(collections.params.page - 1); }}>이전</button><span>페이지 {collections.params.page + 1}</span><button type="button" className="lag-journal-button" disabled={list.loading || list.items.length < collections.params.size} onClick={() => { setMode(null); collections.changePage(collections.params.page + 1); }}>다음</button></div>
+        </div>} showCancel={false}><div className="lag-collection-form-surface"><CollectionForm pending={pending} cancel={creation.close} create={(body) => creation.save(() => collections.create(body))} update={async () => false}>{feedback}</CollectionForm></div></CreateSlot>
       </PanelFrame>
     </PanelStage>
     <AnimatePresence initial={false}>
-      {activeKey ? <PanelStage key={activeKey} stageKey={activeKey} panelRole="detail" side={compact ? "right" : "left"}>
-        <PanelFrame title={mode === "create" ? "Add Collection" : mode === "edit" ? "Edit Collection" : "Collection Detail"} depth={0} contentKey={`${mode ?? "detail"}:${collections.selectedId ?? "new"}`} backButton={<BackButton label={mode === "edit" ? "Back to Collection detail" : "Back to Collection list"} onClick={mode ? cancelForm : () => returnToList()} />}>
-          {mode ? <div className="lag-collection-form-surface"><CollectionForm item={mode === "edit" && item ? item : undefined} pending={pending} cancel={cancelForm} create={async (body) => { const saved = await collections.create(body); if (saved) setMode(null); return saved; }} update={async (body) => { const saved = item ? await collections.update(item.id, body) : false; if (saved) { setMode(null); requestStageFocus("lifelog-collection-detail", "back"); } return saved; }}>{feedback}</CollectionForm></div> : <>
-            {collections.detail.loading && !item ? <InfoCard>Loading Collection...</InfoCard> : null}
-            {collections.detail.error ? <div className="lag-collection-feedback"><p role="alert" className="lag-journal-feedback" data-state="error">{collections.detail.error}</p><button type="button" className="lag-journal-button" onClick={() => void collections.detail.retry()}>Retry detail</button></div> : null}
-            {item ? <><CollectionDetail item={item} /><div className="lag-collection-detail-actions">{feedback}<button ref={editButton} type="button" className="lag-journal-action" disabled={pending} onClick={() => { collections.resetMutation(); setMode("edit"); }}>Edit Collection</button><button type="button" className="lag-journal-button" disabled={pending} onClick={async () => { if (window.confirm(`Delete ${item.title}?`)) { if (await collections.remove(item.id)) returnToList(false); } }}>Delete</button></div></> : null}
+      {activeKey ? <PanelStage key={activeKey} stageKey={activeKey} panelRole="detail" side="right">
+        <PanelFrame title={mode === "edit" ? "수집 기록 수정" : "수집 기록 상세"} depth={0} contentKey={`${mode ?? "detail"}:${collections.selectedId ?? "new"}`} backButton={<BackButton label={mode === "edit" ? "수집 기록 상세로" : "수집 기록 목록으로"} onClick={mode ? cancelForm : () => returnToList()} />}>
+          {mode && !item ? <InfoCard>수집 기록을 불러오는 중…</InfoCard> : mode ? <div className="lag-collection-form-surface"><CollectionForm item={mode === "edit" && item ? item : undefined} pending={pending} cancel={cancelForm} create={async (body) => { const saved = await collections.create(body); if (saved) setMode(null); return saved; }} update={async (body) => { const saved = item ? await collections.update(item.id, body) : false; if (saved) { setMode(null); requestStageFocus("lifelog-collection-detail", "back"); } return saved; }}>{feedback}</CollectionForm></div> : <>
+            {collections.detail.loading && !item ? <InfoCard>수집 기록을 불러오는 중…</InfoCard> : null}
+            {collections.detail.error ? <div className="lag-collection-feedback"><p role="alert" className="lag-journal-feedback" data-state="error">{collections.detail.error}</p><button type="button" className="lag-journal-button" onClick={() => void collections.detail.retry()}>상세 다시 조회</button></div> : null}
+            {item ? <><CollectionDetail item={item} /><div className="lag-collection-detail-actions">{feedback}<button ref={editButton} type="button" className="lag-journal-action" disabled={pending} onClick={() => { collections.resetMutation(); setMode("edit"); }}>수집 기록 수정</button><button type="button" className="lag-journal-button" disabled={pending} onClick={async () => { if (await confirm(`“${item.title}” 수집 기록을 삭제할까요?`)) { if (await collections.remove(item.id)) returnToList(false); } }}>삭제</button></div></> : null}
           </>}
         </PanelFrame>
       </PanelStage> : null}

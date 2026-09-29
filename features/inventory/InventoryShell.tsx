@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { InventoryEntry, MailEntry } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
@@ -142,6 +143,7 @@ function MailDetail({ mail, pending, claimed, recoveryBlocked, recoveryError, on
 }
 
 export default function InventoryShell({ surface, onBack }: { surface: InventorySurface; onBack?: () => void }) {
+  const { confirm, dialog } = useSaoConfirm();
   const queries = useInventoryQueries();
   const selectedEntryButton = useRef<HTMLButtonElement | null>(null);
   const [selectedItemInstanceId, setSelectedItemInstanceId] = useState<number | null>(null);
@@ -200,7 +202,7 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
   };
 
   return (
-    <div className="lag-panel-rail lag-inventory-shell relative" data-testid="inventory-shell">
+    <div className="lag-panel-rail lag-inventory-shell relative" data-testid="inventory-shell">{dialog}
       <PanelStage stageKey={`inventory-${surface}-list`}>
         <PanelFrame title={items ? "Items" : "Inbox"} depth={1} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
           <section className="lag-inventory-surface" aria-label={items ? "Inventory Items" : "Inbox Mail"} tabIndex={-1}>
@@ -248,11 +250,11 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
                   recoveryBlocked={queries.claimRecoveryNeeded}
                   recoveryError={queries.mutationError}
                   onRetry={() => void queries.retryClaimRecovery()}
-                  onClaim={() => {
-                    if (window.confirm(`Claim ${selectedMail.itemName} x${selectedMail.quantity}?`)) void queries.claimMail(selectedMail);
+                  onClaim={async () => {
+                    if (await confirm(`“${selectedMail.itemName}” ${selectedMail.quantity}개를 수령할까요?`)) void queries.claimMail(selectedMail);
                   }}
-                  onDelete={() => {
-                    if (window.confirm(`Delete ${selectedMail.itemName} mail?`)) void queries.deleteMail(selectedMail);
+                  onDelete={async () => {
+                    if (await confirm(`“${selectedMail.itemName}” 우편을 삭제할까요? 수령하지 않은 내용이 제거됩니다.`)) void queries.deleteMail(selectedMail);
                   }}
                 />
               ) : null}

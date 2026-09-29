@@ -18,6 +18,7 @@ import type {
   RoleDetail,
 } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import CreateSlot, { CreateCategory, useCreateMode } from "@/shared/ui/CreateSlot";
 import PanelStage, { StageContentTransition } from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
@@ -78,7 +79,7 @@ function SelectField({
   return (
     <Field title={title}>
       <select className="lag-journal-control" name={name} required defaultValue="" disabled={disabled}>
-        <option value="" disabled>Select...</option>
+        <option value="" disabled>선택…</option>
         {values.map((value) => <option key={value} value={value}>{label(value)}</option>)}
       </select>
     </Field>
@@ -202,8 +203,8 @@ function QuickRecordForm({
       }
     }}>
       <div>
-        <p className="lag-journal-eyebrow">Record type</p>
-        <div className="lag-journal-segments" role="radiogroup" aria-label="Quick Record type" onKeyDown={(event) => {
+        <p className="lag-journal-eyebrow">기록 유형</p>
+        <div className="lag-journal-segments" role="radiogroup" aria-label="간편 기록 유형" onKeyDown={(event) => {
           const types = ["COLLECTION", "EXERCISE", "MEDIA"] as const;
           const direction = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
           if (!direction || pending) return;
@@ -231,23 +232,23 @@ function QuickRecordForm({
       </div>
 
       <div className="lag-journal-form-grid">
-        <Field title="Quick Record subtype">
-          <select className="lag-journal-control" name="lifeLogSubtype" aria-label="Quick Record subtype" defaultValue="" disabled={pending}>
-            <option value="">None</option>
+        <Field title="간편 기록 분류">
+          <select className="lag-journal-control" name="lifeLogSubtype" aria-label="간편 기록 분류" defaultValue="" disabled={pending}>
+            <option value="">없음</option>
             {JOURNAL_SUBTYPES.map((subtype) => <option key={subtype} value={subtype}>{label(subtype)}</option>)}
           </select>
-          <small>For the weekly lookback Quest, create a Weekly reflection in Lifelog → Collection → Add Collection.</small>
+          <small>주간 회고 퀘스트는 생활 기록의 수집 분류를 당겨 전체 주간 회고를 작성하세요.</small>
         </Field>
-        <Field title="Quick Record role">
-          <select className="lag-journal-control" name="primaryRoleId" aria-label="Quick Record role" defaultValue="" disabled={pending || rolesLoading}>
-            <option value="">No Role</option>
+        <Field title="간편 기록 역할">
+          <select className="lag-journal-control" name="primaryRoleId" aria-label="간편 기록 역할" defaultValue="" disabled={pending || rolesLoading}>
+            <option value="">역할 없음</option>
             {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
           </select>
         </Field>
       </div>
 
-      {rolesLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
-      {rolesError ? <p role="alert" className="lag-journal-feedback" data-state="error">Role selection unavailable: {rolesError}</p> : null}
+      {rolesLoading ? <InfoCard>역할을 불러오는 중…</InfoCard> : null}
+      {rolesError ? <p role="alert" className="lag-journal-feedback" data-state="error">역할 selection unavailable: {rolesError}</p> : null}
 
       <div className="lag-quick-record-fields" data-testid="quick-record-fields">
         <StageContentTransition identity={type}>
@@ -255,26 +256,26 @@ function QuickRecordForm({
             <legend className="sr-only">{label(type)} fields</legend>
             {type === "COLLECTION" ? (
               <>
-                <SelectField name="collectionCategory" title="Collection category" values={COLLECTION_CATEGORIES} disabled={pending} />
-                <Field title="Collection title"><input className="lag-journal-control" name="collectionTitle" required /></Field>
-                <Field title="Quantity"><input className="lag-journal-control" name="quantity" type="number" min={1} required /></Field>
+                <SelectField name="collectionCategory" title="수집 분류" values={COLLECTION_CATEGORIES} disabled={pending} />
+                <Field title="수집 제목"><input className="lag-journal-control" name="collectionTitle" required /></Field>
+                <Field title="수량"><input className="lag-journal-control" name="quantity" type="number" min={1} required /></Field>
               </>
             ) : type === "EXERCISE" ? (
               <>
-                <SelectField name="exerciseCategory" title="Exercise category" values={EXERCISE_CATEGORIES} disabled={pending} />
-                <Field title="Duration minutes"><input className="lag-journal-control" name="durationMinutes" type="number" min={1} required /></Field>
-                <Field title="Exercised on"><input className="lag-journal-control" name="exercisedOn" type="date" required /></Field>
-                <Field title="Distance km"><input className="lag-journal-control" name="distanceKm" type="number" min={0} step="any" /></Field>
-                <Field title="Calories"><input className="lag-journal-control" name="calories" type="number" min={0} /></Field>
-                <Field title="Memo"><textarea className="lag-journal-control" name="memo" rows={3} /></Field>
+                <SelectField name="exerciseCategory" title="운동 분류" values={EXERCISE_CATEGORIES} disabled={pending} />
+                <Field title="운동 시간 (분)"><input className="lag-journal-control" name="durationMinutes" type="number" min={1} required /></Field>
+                <Field title="운동 날짜"><input className="lag-journal-control" name="exercisedOn" type="date" required /></Field>
+                <Field title="거리 (km)"><input className="lag-journal-control" name="distanceKm" type="number" min={0} step="any" /></Field>
+                <Field title="칼로리"><input className="lag-journal-control" name="calories" type="number" min={0} /></Field>
+                <Field title="메모"><textarea className="lag-journal-control" name="memo" rows={3} /></Field>
               </>
             ) : (
               <>
-                <SelectField name="mediaCategory" title="Media category" values={MEDIA_CATEGORIES} disabled={pending} />
-                <Field title="Media title"><input className="lag-journal-control" name="mediaTitle" required /></Field>
-                <SelectField name="mediaStatus" title="Media status" values={MEDIA_STATUSES} disabled={pending} />
-                <Field title="Current episode"><input className="lag-journal-control" name="currentEpisode" type="number" min={0} /></Field>
-                <Field title="Total episodes"><input className="lag-journal-control" name="totalEpisode" type="number" min={1} /></Field>
+                <SelectField name="mediaCategory" title="감상 분류" values={MEDIA_CATEGORIES} disabled={pending} />
+                <Field title="감상 제목"><input className="lag-journal-control" name="mediaTitle" required /></Field>
+                <SelectField name="mediaStatus" title="감상 상태" values={MEDIA_STATUSES} disabled={pending} />
+                <Field title="현재 회차"><input className="lag-journal-control" name="currentEpisode" type="number" min={0} /></Field>
+                <Field title="전체 회차"><input className="lag-journal-control" name="totalEpisode" type="number" min={1} /></Field>
               </>
             )}
           </fieldset>
@@ -282,16 +283,16 @@ function QuickRecordForm({
       </div>
 
       <div className="lag-journal-submit">
-        {error ? <p ref={feedbackRef} role="alert" tabIndex={-1} className="lag-journal-feedback" data-state="error">Save failed: {error}</p> : null}
-        {pending || result ? <p ref={feedbackRef} role="status" tabIndex={-1} className="lag-journal-feedback" data-state={result ? "success" : undefined}>{result ? `✓ ${result.replay ? "Quick Record replay confirmed." : "Quick Record saved."}` : "Saving Quick Record..."}</p> : null}
-        {refreshError ? <div className="lag-journal-state"><p role="alert" className="lag-journal-feedback" data-state="error">{refreshError}</p><button type="button" className="lag-journal-button" onClick={onRefresh}>Refresh Journal</button></div> : null}
+        {error ? <p ref={feedbackRef} role="alert" tabIndex={-1} className="lag-journal-feedback" data-state="error">저장 실패: {error}</p> : null}
+        {pending || result ? <p ref={feedbackRef} role="status" tabIndex={-1} className="lag-journal-feedback" data-state={result ? "success" : undefined}>{result ? `✓ ${result.replay ? "간편 기록 재시도가 확인됐습니다." : "간편 기록을 저장했습니다."}` : "간편 기록 저장 중…"}</p> : null}
+        {refreshError ? <div className="lag-journal-state"><p role="alert" className="lag-journal-feedback" data-state="error">{refreshError}</p><button type="button" className="lag-journal-button" onClick={onRefresh}>일상 기록 다시 조회</button></div> : null}
         {canRetry ? (
           <button type="button" className="lag-journal-action" data-variant="retry" disabled={pending} onClick={() => void onRetry().then(resetAfter)}>
-            {pending ? "Retrying..." : "Retry same record"}
+            {pending ? "재시도 중…" : "같은 기록 다시 시도"}
           </button>
         ) : (
           <button type="submit" className="lag-journal-action" disabled={pending}>
-            {pending ? "Saving..." : "Save Quick Record"}
+            {pending ? "저장 중…" : "간편 기록 저장"}
           </button>
         )}
       </div>
@@ -302,8 +303,8 @@ function QuickRecordForm({
 function ErrorState({ message, retry }: { message: string; retry: () => void }) {
   return (
     <div className="lag-journal-state">
-      <p role="alert" className="lag-journal-feedback" data-state="error">Load failed: {message}</p>
-      <button type="button" className="lag-journal-button" onClick={retry}>Retry</button>
+      <p role="alert" className="lag-journal-feedback" data-state="error">조회 실패: {message}</p>
+      <button type="button" className="lag-journal-button" onClick={retry}>다시 시도</button>
     </div>
   );
 }
@@ -313,13 +314,13 @@ function entryPresentation(entry: JournalEntry) {
     case "COLLECTION":
       return {
         title: entry.preview.title,
-        summary: [entry.preview.category, entry.preview.quantity !== null ? `Quantity ${entry.preview.quantity}` : null].filter(Boolean).join(" · "),
+        summary: [entry.preview.category, entry.preview.quantity !== null ? `수량 ${entry.preview.quantity}` : null].filter(Boolean).join(" · "),
       };
     case "EXERCISE":
       return {
         title: `${label(entry.preview.category)} · ${entry.preview.exercisedOn}`,
         summary: [
-          entry.preview.durationMinutes !== null ? `${entry.preview.durationMinutes} min` : null,
+          entry.preview.durationMinutes !== null ? `${entry.preview.durationMinutes} 분` : null,
           entry.preview.distanceKm !== null ? `${entry.preview.distanceKm} km` : null,
           entry.preview.calories !== null ? `${entry.preview.calories} kcal` : null,
         ].filter(Boolean).join(" · "),
@@ -331,7 +332,7 @@ function entryPresentation(entry: JournalEntry) {
 
 function roleName(primaryRoleId: number | null, roles: RoleDetail[]) {
   if (primaryRoleId === null) return null;
-  return roles.find(({ id }) => id === primaryRoleId)?.name ?? `Role #${primaryRoleId}`;
+  return roles.find(({ id }) => id === primaryRoleId)?.name ?? `역할 #${primaryRoleId}`;
 }
 
 function DetailItem({ name, value }: { name: string; value: React.ReactNode }) {
@@ -356,46 +357,46 @@ function SourceDetail({ detail }: { detail: JournalDetail }) {
   switch (detail.sourceType) {
     case "COLLECTION":
       return (
-        <DetailSection title="Collection">
-          <DetailItem name="Category" value={label(detail.source.category)} />
-          <DetailItem name="Title" value={detail.source.title} />
-          <DetailItem name="Original title" value={detail.source.originalTitle ?? "Not recorded"} />
-          <DetailItem name="Quantity" value={detail.source.quantity ?? "Not recorded"} />
-          <DetailItem name="Condition" value={detail.source.conditionNote ?? "Not recorded"} />
-          <DetailItem name="Acquired from" value={detail.source.acquiredFrom ?? "Not recorded"} />
-          <DetailItem name="Tags" value={detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "Not recorded"} />
-          <DetailItem name="Created" value={displayTimestamp(detail.source.createdAt)} />
-          <DetailItem name="Updated" value={displayTimestamp(detail.source.updatedAt)} />
+        <DetailSection title="수집 기록">
+          <DetailItem name="분류" value={label(detail.source.category)} />
+          <DetailItem name="제목" value={detail.source.title} />
+          <DetailItem name="원제" value={detail.source.originalTitle ?? "미등록"} />
+          <DetailItem name="수량" value={detail.source.quantity ?? "미등록"} />
+          <DetailItem name="상태 메모" value={detail.source.conditionNote ?? "미등록"} />
+          <DetailItem name="입수처" value={detail.source.acquiredFrom ?? "미등록"} />
+          <DetailItem name="태그" value={detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "미등록"} />
+          <DetailItem name="생성일" value={displayTimestamp(detail.source.createdAt)} />
+          <DetailItem name="수정일" value={displayTimestamp(detail.source.updatedAt)} />
         </DetailSection>
       );
     case "EXERCISE":
       return (
-        <DetailSection title="Exercise">
-          <DetailItem name="Category" value={label(detail.source.category)} />
-          <DetailItem name="Duration" value={detail.source.durationMinutes === null ? "Not recorded" : `${detail.source.durationMinutes} min`} />
-          <DetailItem name="Distance" value={detail.source.distanceKm === null ? "Not recorded" : `${detail.source.distanceKm} km`} />
-          <DetailItem name="Calories" value={detail.source.calories === null ? "Not recorded" : `${detail.source.calories} kcal`} />
-          <DetailItem name="Exercised on" value={detail.source.exercisedOn} />
-          <DetailItem name="Memo" value={detail.source.memo ?? "Not recorded"} />
-          <DetailItem name="Created" value={displayTimestamp(detail.source.createdAt)} />
-          <DetailItem name="Updated" value={displayTimestamp(detail.source.updatedAt)} />
+        <DetailSection title="운동 기록">
+          <DetailItem name="분류" value={label(detail.source.category)} />
+          <DetailItem name="운동 시간" value={detail.source.durationMinutes === null ? "미등록" : `${detail.source.durationMinutes} 분`} />
+          <DetailItem name="거리" value={detail.source.distanceKm === null ? "미등록" : `${detail.source.distanceKm} km`} />
+          <DetailItem name="칼로리" value={detail.source.calories === null ? "미등록" : `${detail.source.calories} kcal`} />
+          <DetailItem name="운동 날짜" value={detail.source.exercisedOn} />
+          <DetailItem name="메모" value={detail.source.memo ?? "미등록"} />
+          <DetailItem name="생성일" value={displayTimestamp(detail.source.createdAt)} />
+          <DetailItem name="수정일" value={displayTimestamp(detail.source.updatedAt)} />
         </DetailSection>
       );
     case "MEDIA":
       return (
-        <DetailSection title="Media">
-          <DetailItem name="Category" value={label(detail.source.category)} />
-          <DetailItem name="Title" value={detail.source.title} />
-          <DetailItem name="Original title" value={detail.source.originalTitle ?? "Not recorded"} />
-          <DetailItem name="Progress" value={`${detail.source.currentEpisode}/${detail.source.totalEpisode}`} />
-          <DetailItem name="Status" value={label(detail.source.status)} />
-          <DetailItem name="Rating" value={detail.source.rating ?? "Not recorded"} />
-          <DetailItem name="Tags" value={detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "Not recorded"} />
-          <DetailItem name="Rewatch count" value={detail.source.rewatchCount} />
-          <DetailItem name="Started" value={detail.source.startedOn ?? "Not recorded"} />
-          <DetailItem name="Finished" value={detail.source.finishedOn ?? "Not recorded"} />
-          <DetailItem name="Created" value={displayTimestamp(detail.source.createdAt)} />
-          <DetailItem name="Updated" value={displayTimestamp(detail.source.updatedAt)} />
+        <DetailSection title="감상 기록">
+          <DetailItem name="분류" value={label(detail.source.category)} />
+          <DetailItem name="제목" value={detail.source.title} />
+          <DetailItem name="원제" value={detail.source.originalTitle ?? "미등록"} />
+          <DetailItem name="진행" value={`${detail.source.currentEpisode}/${detail.source.totalEpisode}`} />
+          <DetailItem name="상태" value={label(detail.source.status)} />
+          <DetailItem name="평점" value={detail.source.rating ?? "미등록"} />
+          <DetailItem name="태그" value={detail.source.tags.length > 0 ? detail.source.tags.join(", ") : "미등록"} />
+          <DetailItem name="재감상 횟수" value={detail.source.rewatchCount} />
+          <DetailItem name="시작일" value={detail.source.startedOn ?? "미등록"} />
+          <DetailItem name="완료일" value={detail.source.finishedOn ?? "미등록"} />
+          <DetailItem name="생성일" value={displayTimestamp(detail.source.createdAt)} />
+          <DetailItem name="수정일" value={displayTimestamp(detail.source.updatedAt)} />
         </DetailSection>
       );
   }
@@ -407,19 +408,23 @@ function subscribeCompact(notify: () => void) {
   return () => media.removeEventListener("change", notify);
 }
 
-export default function JournalShell({ roles, rolesLoading = false, rolesError = null, onBack }: { roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void }) {
+export default function JournalShell({ createRequest = 0, roles, rolesLoading = false, rolesError = null, onBack }: { createRequest?: number; roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void }) {
   const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
   const caller = useRef<HTMLButtonElement | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const journal = useJournalQueries();
-  const [quickRecordOpen, setQuickRecordOpen] = useState(false);
+  const creation = useCreateMode(createRequest);
+  const quickRecordOpen = creation.creating;
+  const [detailVisible, setDetailVisible] = useState(true);
+  const resetQuickRecord = journal.quickRecord.reset;
+  useEffect(() => { if (quickRecordOpen) { setDetailVisible(false); resetQuickRecord(); } }, [quickRecordOpen, resetQuickRecord]);
   const { data: page, loading, error } = journal.list;
   const detail = journal.detail.data;
   useEffect(() => {
-    if (compact && journal.selectedLifeLogId !== null && !quickRecordOpen) {
+    if (compact && detailVisible && journal.selectedLifeLogId !== null && !quickRecordOpen) {
       shellRef.current?.querySelector<HTMLButtonElement>('[data-stage-key="lifelog-journal-detail"] button')?.focus({ preventScroll: true });
     }
-  }, [compact, journal.selectedLifeLogId, quickRecordOpen]);
+  }, [compact, detailVisible, journal.selectedLifeLogId, quickRecordOpen]);
   const previousDisabled = loading || journal.params.page === 0;
   const nextDisabled = loading || page.totalPages === 0 || journal.params.page + 1 >= page.totalPages;
 
@@ -427,17 +432,9 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
     requestStageFocus("lifelog-journal", "back");
     requestAnimationFrame(() => caller.current?.isConnected && caller.current.focus({ preventScroll: true }));
   };
-  const openQuickRecord = (event: React.MouseEvent<HTMLButtonElement>) => {
-    caller.current = event.currentTarget;
-    journal.quickRecord.reset();
-    journal.clearSelection();
-    setQuickRecordOpen(true);
-  };
   const closeQuickRecord = () => {
     journal.quickRecord.reset();
-    setQuickRecordOpen(false);
-    journal.clearSelection();
-    returnToJournal();
+    creation.close();
   };
   const closeDetail = () => {
     journal.clearSelection();
@@ -446,55 +443,49 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
 
   return (
     <div ref={shellRef} className="lag-panel-rail lag-journal-shell relative" data-testid="journal-shell">
-      <PanelStage stageKey="lifelog-journal" panelRole="list" inactive={compact && (quickRecordOpen || journal.selectedLifeLogId !== null)}>
-        <PanelFrame title="Journal / LifeLog" depth={1} resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={onBack ? <BackButton label="Back to Lifelog" onClick={onBack} /> : undefined}>
-          <div className="lag-journal-surface">
-            <div className="lag-journal-toolbar">
-              <div>
-                <p className="lag-journal-eyebrow">Archive</p>
-                <p className="lag-journal-intro">Browse your recorded collections, exercise, and media.</p>
-              </div>
-              <button type="button" className="lag-journal-action" data-selected={quickRecordOpen} aria-expanded={quickRecordOpen} onClick={openQuickRecord}>Quick Record</button>
-            </div>
-
+      <PanelStage stageKey="lifelog-journal" panelRole="list" inactive={compact && detailVisible && !quickRecordOpen && journal.selectedLifeLogId !== null}>
+        <PanelFrame title="일상 기록" depth={1} resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeQuickRecord} /> : onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
+          <CreateCategory title="일상 기록" onOpen={closeQuickRecord} onCreate={creation.open} />
+            <CreateSlot creating={quickRecordOpen} pending={journal.quickRecord.pending} onClose={closeQuickRecord} list={<div className="lag-journal-surface">
             <details className="lag-journal-filter-disclosure">
-              <summary>Filters · Role / Subtype</summary>
-            <div className="lag-journal-filters" aria-label="Journal filters">
-              <Field title="Role">
+              <summary>필터 · 역할 / 기록 분류</summary>
+            <div className="lag-journal-filters" aria-label="일상 기록 필터">
+              <Field title="역할">
                 <select
                   className="lag-journal-control"
-                  aria-label="Role filter"
+                  aria-label="역할 필터"
                   value={journal.params.primaryRoleId ?? ""}
                   onChange={(event) => journal.changeRoleFilter(event.target.value ? Number(event.target.value) : undefined)}
                 >
-                  <option value="">All Roles</option>
+                  <option value="">전체 역할</option>
                   {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
                 </select>
               </Field>
-              <Field title="Subtype">
+              <Field title="기록 분류">
                 <select
                   className="lag-journal-control"
-                  aria-label="Subtype filter"
+                  aria-label="기록 분류 필터"
                   value={journal.params.subtype ?? ""}
                   onChange={(event) => journal.changeSubtypeFilter(event.target.value ? event.target.value as JournalSubtype : undefined)}
                 >
-                  <option value="">All Subtypes</option>
+                  <option value="">전체 기록 분류</option>
                   {JOURNAL_SUBTYPES.map((subtype) => <option key={subtype} value={subtype}>{label(subtype)}</option>)}
                 </select>
               </Field>
             </div>
             </details>
-            {rolesLoading ? <InfoCard>Loading Roles...</InfoCard> : null}
-            {rolesError ? <p role="alert" className="lag-journal-feedback" data-state="error">Role filter unavailable: {rolesError}</p> : null}
+            {journal.quickRecord.refreshError ? <div><p role="alert">{journal.quickRecord.refreshError}</p><button className="lag-journal-button" onClick={() => void journal.list.reload()}>일상 기록 다시 조회</button></div> : null}
+            {rolesLoading ? <InfoCard>역할을 불러오는 중…</InfoCard> : null}
+            {rolesError ? <p role="alert" className="lag-journal-feedback" data-state="error">역할 필터 조회 실패: {rolesError}</p> : null}
 
-            <section className="lag-journal-archive" aria-label="Journal archive">
+            <section className="lag-journal-archive" aria-label="일상 기록 목록">
               <div className="lag-journal-section-heading">
-                <h4>Records</h4>
-                <span>{page.totalElements} total</span>
+                <h4>기록</h4>
+                <span>{page.totalElements}개 기록</span>
               </div>
-              {loading ? <InfoCard>Loading Journal...</InfoCard> : null}
+              {loading ? <InfoCard>일상 기록을 불러오는 중…</InfoCard> : null}
               {error ? <ErrorState message={error} retry={() => void journal.list.reload()} /> : null}
-              {!loading && !error && page.content.length === 0 ? <InfoCard>No Journal entries.</InfoCard> : null}
+              {!loading && !error && page.content.length === 0 ? <InfoCard>일상 기록이 없습니다.</InfoCard> : null}
               <div className="lag-journal-list">
                 {page.content.map((entry) => {
                   const presentation = entryPresentation(entry);
@@ -509,7 +500,8 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                       aria-pressed={journal.selectedLifeLogId === entry.lifeLogId}
                       onClick={(event) => {
                         caller.current = event.currentTarget;
-                        if (quickRecordOpen) { journal.quickRecord.reset(); setQuickRecordOpen(false); }
+                        setDetailVisible(true);
+                        if (quickRecordOpen) { journal.quickRecord.reset(); creation.close(); }
                         journal.selectEntry(entry.lifeLogId);
                       }}
                     >
@@ -520,9 +512,9 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                         <span className="lag-journal-entry-chips">
                           <span>{label(entry.sourceType)}</span>
                           {entry.subtype ? <span>{label(entry.subtype)}</span> : null}
-                          {entry.entryMode === "QUICK" ? <span>Quick</span> : null}
+                          {entry.entryMode === "QUICK" ? <span>간편</span> : null}
                           {role ? <span>{role}</span> : null}
-                          {entry.roleEventId !== null ? <span>Event #{entry.roleEventId}</span> : null}
+                          {entry.roleEventId !== null ? <span>일정 #{entry.roleEventId}</span> : null}
                         </span>
                       </span>
                       <time dateTime={entry.recordedAt}>{displayTimestamp(entry.recordedAt)}</time>
@@ -530,25 +522,18 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                   );
                 })}
               </div>
-              <div className="lag-journal-pagination" aria-label="Journal pages">
-                <button type="button" className="lag-journal-button" disabled={previousDisabled} onClick={() => journal.changePage(journal.params.page - 1)}>Previous</button>
-                <span>Page {page.totalPages === 0 ? 0 : page.page + 1} / {page.totalPages}</span>
-                <button type="button" className="lag-journal-button" disabled={nextDisabled} onClick={() => journal.changePage(journal.params.page + 1)}>Next</button>
+              <div className="lag-journal-pagination" aria-label="일상 기록 페이지">
+                <button type="button" className="lag-journal-button" disabled={previousDisabled} onClick={() => journal.changePage(journal.params.page - 1)}>이전</button>
+                <span>페이지 {page.totalPages === 0 ? 0 : page.page + 1} / {page.totalPages}</span>
+                <button type="button" className="lag-journal-button" disabled={nextDisabled} onClick={() => journal.changePage(journal.params.page + 1)}>다음</button>
               </div>
             </section>
-          </div>
-        </PanelFrame>
-      </PanelStage>
-
-      <AnimatePresence initial={false}>
-        {quickRecordOpen ? (
-          <PanelStage stageKey="lifelog-quick-record" panelRole="detail" side={compact ? "right" : "left"}>
-            <PanelFrame title="Quick Record" depth={0} backButton={<BackButton label="Back to Journal" onClick={closeQuickRecord} />}>
+          </div>}>
               <div className="lag-quick-record-surface">
                 <div>
-                  <p className="lag-journal-eyebrow">Quick Record</p>
-                  <h4>Record what matters now.</h4>
-                  <p>Save a collection, an exercise session, or media progress to your Journal.</p>
+                  <p className="lag-journal-eyebrow">간편 기록</p>
+                  <h4>지금의 경험을 기록하세요.</h4>
+                  <p>수집·운동·감상을 일상 기록에 저장합니다.</p>
                 </div>
                 <QuickRecordForm
                   roles={roles}
@@ -559,46 +544,45 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
                   result={journal.quickRecord.result}
                   refreshError={journal.quickRecord.refreshError}
                   canRetry={journal.quickRecord.canRetry}
-                  onSubmit={journal.quickRecord.submit}
-                  onRetry={journal.quickRecord.retry}
+                  onSubmit={(body) => creation.save(() => journal.quickRecord.submit(body))}
+                  onRetry={() => creation.save(journal.quickRecord.retry)}
                   onEdit={journal.quickRecord.invalidateRetry}
                   onRefresh={() => void journal.list.reload()}
                 />
               </div>
-            </PanelFrame>
-          </PanelStage>
-        ) : null}
-      </AnimatePresence>
+            </CreateSlot>
+        </PanelFrame>
+      </PanelStage>
 
       <AnimatePresence initial={false}>
-        {!quickRecordOpen && journal.selectedLifeLogId ? (
+        {detailVisible && !quickRecordOpen && journal.selectedLifeLogId ? (
           <PanelStage stageKey="lifelog-journal-detail" panelRole="detail" side={compact ? "right" : "left"}>
             <PanelFrame
-              title="Journal Detail"
+              title="일상 기록 상세"
               depth={0}
               contentKey={journal.selectedLifeLogId}
-              backButton={<BackButton label="Back to Journal" onClick={closeDetail} />}
+              backButton={<BackButton label="일상 기록 목록으로" onClick={closeDetail} />}
             >
-              {journal.detail.loading && !detail ? <InfoCard>Loading Journal detail...</InfoCard> : null}
+              {journal.detail.loading && !detail ? <InfoCard>일상 기록 상세를 불러오는 중…</InfoCard> : null}
               {journal.detail.error && !detail ? <ErrorState message={journal.detail.error} retry={journal.detail.retry} /> : null}
               {detail ? (
                 <article className="lag-journal-detail">
-                  {journal.detail.error ? <p role="alert" className="lag-journal-feedback" data-state="error">Refresh failed: {journal.detail.error}</p> : null}
+                  {journal.detail.error ? <p role="alert" className="lag-journal-feedback" data-state="error">다시 조회 실패: {journal.detail.error}</p> : null}
                   <div className="lag-journal-detail-hero">
                     <span>{label(detail.sourceType)}</span>
                     <h4>{detail.sourceType === "EXERCISE" ? `${label(detail.source.category)} · ${detail.source.exercisedOn}` : detail.source.title}</h4>
                     <time dateTime={detail.recordedAt}>{displayTimestamp(detail.recordedAt)}</time>
                   </div>
                   <SourceDetail detail={detail} />
-                  <DetailSection title="Record context">
-                    <DetailItem name="Source type" value={label(detail.sourceType)} />
-                    <DetailItem name="Recorded at" value={displayTimestamp(detail.recordedAt)} />
-                    {detail.subtype ? <DetailItem name="Subtype" value={label(detail.subtype)} /> : null}
-                    {detail.entryMode ? <DetailItem name="Entry mode" value={label(detail.entryMode)} /> : null}
-                    {detail.reflectionScope ? <DetailItem name="Reflection scope" value={label(detail.reflectionScope)} /> : null}
-                    {detail.periodKey ? <DetailItem name="Period" value={detail.periodKey} /> : null}
-                    {detail.primaryRoleId !== null ? <DetailItem name="Role context" value={roleName(detail.primaryRoleId, roles)} /> : null}
-                    {detail.roleEventId !== null ? <DetailItem name="RoleEvent context" value={`#${detail.roleEventId}`} /> : null}
+                  <DetailSection title="기록 정보">
+                    <DetailItem name="기록 유형" value={label(detail.sourceType)} />
+                    <DetailItem name="기록 일시" value={displayTimestamp(detail.recordedAt)} />
+                    {detail.subtype ? <DetailItem name="기록 분류" value={label(detail.subtype)} /> : null}
+                    {detail.entryMode ? <DetailItem name="기록 방식" value={label(detail.entryMode)} /> : null}
+                    {detail.reflectionScope ? <DetailItem name="회고 범위" value={label(detail.reflectionScope)} /> : null}
+                    {detail.periodKey ? <DetailItem name="기간" value={detail.periodKey} /> : null}
+                    {detail.primaryRoleId !== null ? <DetailItem name="역할 정보" value={roleName(detail.primaryRoleId, roles)} /> : null}
+                    {detail.roleEventId !== null ? <DetailItem name="역할 일정 정보" value={`#${detail.roleEventId}`} /> : null}
                   </DetailSection>
                 </article>
               ) : null}

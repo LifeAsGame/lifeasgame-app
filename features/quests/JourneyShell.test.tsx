@@ -1,3 +1,4 @@
+import { answerDialog } from "@/shared/ui/dialogTest";
 import { readFileSync } from "node:fs";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -97,7 +98,6 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
   beforeEach(() => {
     vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
     vi.resetAllMocks();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     api.listPlayerQuestsApi.mockResolvedValue(current);
     api.listQuestCatalogApi.mockResolvedValue(catalog);
     api.listQuestRoutesApi.mockResolvedValue([unselectedRoute]);
@@ -253,6 +253,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
 
       fireEvent.click(await screen.findByRole("button", { name: /흔적 세 개 이어보기/ }));
       fireEvent.click(await screen.findByRole("button", { name: "퀘스트 취소" }));
+    await answerDialog();
 
       await waitFor(() => expect(api.cancelQuestApi).toHaveBeenCalledWith("Q_RECORD_THREE_TRACES"));
       await waitFor(() => expect(screen.getByText("상태: 취소됨")).toBeInTheDocument());
@@ -335,6 +336,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /10분 쉬어가기/ }));
       fireEvent.click(await screen.findByRole("button", { name: "퀘스트 수락" }));
+    await answerDialog();
 
       await waitFor(() => expect(api.acceptQuestApi).toHaveBeenCalledTimes(1));
       expect(await screen.findByText(/요청 결과가 확정되지 않았습니다/)).toBeInTheDocument();
@@ -370,6 +372,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /한 가지에 25분 집중하기/ }));
       expect((await screen.findAllByText("수락 상태: 완료")).length).toBeGreaterThan(0);
       fireEvent.click(screen.getByRole("button", { name: "다시 수락" }));
+    await answerDialog();
 
       await waitFor(() => expect(api.acceptQuestApi).toHaveBeenCalledWith("Q_GROWTH_ONE_FOCUS"));
       expect(api.acceptQuestApi).toHaveBeenCalledTimes(1);
@@ -392,6 +395,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /퀘스트 목록/ }));
       fireEvent.click(await screen.findByRole("button", { name: /한 가지에 25분 집중하기/ }));
       fireEvent.click(await screen.findByRole("button", { name: "다시 수락" }));
+    await answerDialog();
 
       await waitFor(() => expect(api.acceptQuestApi).toHaveBeenCalledTimes(1));
       expect(api.listPlayerQuestsApi).toHaveBeenCalledTimes(2);
@@ -472,10 +476,10 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       expect(screen.getAllByText("조건: 미충족")).toHaveLength(2);
       expect(screen.getByText("조건: 충족")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "경로 선택" }));
-
-      expect(window.confirm).toHaveBeenCalledWith("기록으로 시작하기 경로를 선택할까요?");
+    await answerDialog();
       expect(await screen.findByText("현재 단계 상세: 첫 흔적 남기기 · 전진 가능")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "다음 단계로" }));
+    await answerDialog();
 
       await waitFor(() => expect(api.advanceQuestRouteApi).toHaveBeenCalledWith(1, 11));
       expect(api.advanceQuestRouteApi).toHaveBeenCalledTimes(1);
@@ -557,6 +561,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /경로/ }));
       fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
       fireEvent.click(await screen.findByRole("button", { name: "다음 단계로" }));
+    await answerDialog();
 
       await waitFor(() => expect(api.advanceQuestRouteApi).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(api.getMyQuestRouteApi).toHaveBeenCalledTimes(2));

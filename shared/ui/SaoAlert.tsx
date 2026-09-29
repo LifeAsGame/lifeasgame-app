@@ -1,220 +1,41 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useRef } from "react";
-import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, SAO_ICON } from "@/shared/design/tokens";
+import UtilityPortal from "./UtilityPortal";
+import { MOTION } from "@/shared/lib/motion";
 
-export type SaoAlertProps = {
-  isOpen: boolean;
-  title: string;
-  message?: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  confirmLabel?: string;
-  cancelLabel?: string;
-};
+export type SaoAlertProps = { isOpen: boolean; title: string; message?: string; onConfirm: () => void; onCancel: () => void; confirmLabel?: string; cancelLabel?: string; alertOnly?: boolean };
 
-export default function SaoAlert({
-  isOpen,
-  title,
-  message,
-  onConfirm,
-  onCancel,
-  confirmLabel = "확인",
-  cancelLabel = "취소",
-}: SaoAlertProps) {
-  const dialog = useRef<HTMLDivElement>(null);
+function OpenDialog({ isOpen, title, message, onConfirm, onCancel, confirmLabel = "확인", cancelLabel = "취소", alertOnly = false }: SaoAlertProps) {
+  const dialog = useRef<HTMLDivElement>(null), cancel = useRef<HTMLButtonElement>(null), confirm = useRef<HTMLButtonElement>(null);
+  const reduced = useReducedMotion();
   useEffect(() => {
     if (!isOpen) return;
     const caller = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    dialog.current?.focus();
-    return () => { if (caller?.isConnected) caller.focus({ preventScroll: true }); };
-  }, [isOpen]);
+    (alertOnly ? confirm : cancel).current?.focus({ preventScroll: true });
+    const frame = requestAnimationFrame(() => (alertOnly ? confirm : cancel).current?.focus({ preventScroll: true }));
+    return () => { cancelAnimationFrame(frame); if (caller?.isConnected) caller.focus({ preventScroll: true }); };
+  }, [isOpen, alertOnly]);
+  return <motion.div className="lag-dialog-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduced ? { duration: 0 } : MOTION.panelContentSwap.transition}>
+    <motion.div ref={dialog} className="lag-sao-dialog" role={alertOnly ? "alertdialog" : "dialog"} aria-modal="true" aria-label={title} aria-description={message} tabIndex={-1}
+      initial={reduced ? false : MOTION.hologramIn.initial} animate={MOTION.hologramIn.animate} exit={reduced ? { opacity: 0 } : MOTION.hologramIn.exit} transition={reduced ? { duration: 0 } : MOTION.hologramIn.transition}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onCancel(); }
+        if (event.key === "Enter" && event.target === dialog.current) event.preventDefault();
+        if (event.key === "Tab") {
+          const first = confirm.current, last = alertOnly ? first : cancel.current;
+          if (event.shiftKey && (event.target === first || event.target === dialog.current)) { event.preventDefault(); last?.focus(); }
+          else if (!event.shiftKey && (event.target === last || event.target === dialog.current)) { event.preventDefault(); first?.focus(); }
+        }
+      }}>
+      <header><h3>{title}</h3></header><div className="lag-dialog-message">{message}</div>
+      <footer><button ref={confirm} type="button" className="lag-dialog-confirm" onClick={onConfirm}><span aria-hidden>○</span>{confirmLabel}</button>
+        {!alertOnly ? <button ref={cancel} type="button" className="lag-dialog-cancel" onClick={onCancel}><span aria-hidden>×</span>{cancelLabel}</button> : null}</footer>
+    </motion.div>
+  </motion.div>;
+}
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Tab") {
-        const buttons = dialog.current?.querySelectorAll<HTMLButtonElement>("button");
-        const first = buttons?.[0], last = buttons?.[buttons.length - 1];
-        if (e.shiftKey && (e.target === first || e.target === dialog.current)) { e.preventDefault(); last?.focus(); }
-        else if (!e.shiftKey && e.target === last) { e.preventDefault(); first?.focus(); }
-      }
-      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onCancel(); }
-      if (e.key === "Enter" && e.target === dialog.current) { e.preventDefault(); onConfirm(); }
-    };
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [isOpen, onCancel, onConfirm]);
-
-  return (
-    <AnimatePresence>
-      {isOpen ? (
-        <motion.div
-          key="sao-alert-overlay"
-          ref={dialog} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          className="fixed inset-0 flex items-center justify-center"
-          style={{
-            zIndex: 9999999,
-            backdropFilter: "blur(2px)",
-            background: SAO.color.bg.overlay,
-          }}
-          onClick={onCancel}
-        >
-          <motion.div
-            key="sao-alert-panel"
-            initial={{ scale: 0.88, opacity: 0, y: 8 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.92, opacity: 0, y: 4 }}
-            transition={{ type: "spring", stiffness: 340, damping: 28 }}
-            className="relative overflow-hidden"
-            style={{
-              ...PANEL_STYLE,
-              width: 380,
-              boxShadow: `0 24px 60px rgba(0,0,0,0.55), ${SAO.shadow.panelInset}`,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Grid overlay */}
-            <div style={GRID_OVERLAY_STYLE} />
-
-            {/* Corner ornaments */}
-            {[
-              { top: 4, left: 4, borderTop: "1.5px solid rgba(218,178,55,0.62)", borderLeft: "1.5px solid rgba(218,178,55,0.62)" },
-              { top: 4, right: 4, borderTop: "1.5px solid rgba(218,178,55,0.62)", borderRight: "1.5px solid rgba(218,178,55,0.62)" },
-              { bottom: 4, left: 4, borderBottom: "1.5px solid rgba(218,178,55,0.62)", borderLeft: "1.5px solid rgba(218,178,55,0.62)" },
-              { bottom: 4, right: 4, borderBottom: "1.5px solid rgba(218,178,55,0.62)", borderRight: "1.5px solid rgba(218,178,55,0.62)" },
-            ].map((c, i) => (
-              <div key={i} aria-hidden style={{ position: "absolute", width: 12, height: 12, pointerEvents: "none", zIndex: 30, ...c }} />
-            ))}
-
-            {/* Header */}
-            <div
-              className="relative px-6 py-4"
-              style={{
-                background: "rgba(0,0,0,0.32)",
-                borderBottom: "1px solid rgba(200,165,50,0.22)",
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <div style={{ flex: 1, height: "1px", background: "linear-gradient(90deg, transparent, rgba(200,165,50,0.42))" }} />
-                <span aria-hidden style={{ color: "rgba(218,178,55,0.55)", fontSize: "9px" }}>◆</span>
-                <p
-                  className="text-sm font-semibold uppercase"
-                  style={{ letterSpacing: "0.20em", color: SAO.color.text.primary }}
-                >
-                  {title}
-                </p>
-                <span aria-hidden style={{ color: "rgba(218,178,55,0.55)", fontSize: "9px" }}>◆</span>
-                <div style={{ flex: 1, height: "1px", background: "linear-gradient(90deg, rgba(200,165,50,0.42), transparent)" }} />
-              </div>
-            </div>
-
-            {/* Body */}
-            {message ? (
-              <div className="relative px-6 py-5">
-                <div
-                  className="px-4 py-3"
-                  style={{
-                    background: "rgba(218,178,55,0.06)",
-                    border: `1px solid rgba(200,165,50,0.22)`,
-                    borderRadius: "10px",
-                  }}
-                >
-                  <p
-                    className="text-sm leading-relaxed"
-                    style={{
-                      letterSpacing: "0.06em",
-                      color: SAO.color.text.secondary,
-                    }}
-                  >
-                    {message}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="h-5" />
-            )}
-
-            {/* Actions */}
-            <div className="relative flex items-end justify-around pb-6 pt-2">
-              {/* Confirm — Blue O (Yes.svg) */}
-              <button
-                type="button"
-                onClick={onConfirm}
-                className="flex flex-col items-center gap-2 transition-transform active:scale-95"
-              >
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-full overflow-hidden"
-                  style={{
-                    border: `2px solid ${SAO.color.action.blue}`,
-                    boxShadow: `0 0 12px rgba(59,130,246,0.4)`,
-                    background: "rgba(255,255,255,0.1)",
-                  }}
-                >
-                  <img
-                    src={SAO_ICON.yes}
-                    alt=""
-                    width={40}
-                    height={40}
-                    style={{ display: "block" }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                      e.currentTarget.parentElement!.innerHTML =
-                        '<span style="font-size:1.5rem;font-weight:bold;color:#3b82f6">O</span>';
-                    }}
-                  />
-                </div>
-                <span
-                  className="text-xs"
-                  style={{ letterSpacing: "0.14em", color: SAO.color.text.secondary }}
-                >
-                  {confirmLabel}
-                </span>
-              </button>
-
-              {/* Cancel — Pink X (No.svg) */}
-              <button
-                type="button"
-                onClick={onCancel}
-                className="flex flex-col items-center gap-2 transition-transform active:scale-95"
-              >
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-full overflow-hidden"
-                  style={{
-                    border: `2px solid ${SAO.color.action.red}`,
-                    boxShadow: `0 0 12px rgba(224,62,99,0.4)`,
-                    background: "rgba(255,255,255,0.1)",
-                  }}
-                >
-                  <img
-                    src={SAO_ICON.no}
-                    alt=""
-                    width={40}
-                    height={40}
-                    style={{ display: "block" }}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                      e.currentTarget.parentElement!.innerHTML =
-                        '<span style="font-size:1.5rem;font-weight:bold;color:#e03e63">X</span>';
-                    }}
-                  />
-                </div>
-                <span
-                  className="text-xs"
-                  style={{ letterSpacing: "0.14em", color: SAO.color.text.secondary }}
-                >
-                  {cancelLabel}
-                </span>
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
-  );
+export default function SaoAlert(props: SaoAlertProps) {
+  return <UtilityPortal>{props.isOpen ? <OpenDialog {...props} /> : null}</UtilityPortal>;
 }

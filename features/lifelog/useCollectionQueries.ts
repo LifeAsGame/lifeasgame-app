@@ -80,7 +80,7 @@ export function useCollectionQueries() {
       if (!preserveSelection && selectedIdRef.current !== null && !next.some(({ id }) => id === selectedIdRef.current)) clearSelection();
       return next;
     } catch (caught) {
-      if (requestId === listRequestId.current) setListError(message(caught, "Unable to load Collections."));
+      if (requestId === listRequestId.current) setListError(message(caught, "수집 기록 목록을 조회하지 못했습니다."));
       return undefined;
     } finally {
       if (requestId === listRequestId.current) setListLoading(false);
@@ -98,7 +98,7 @@ export function useCollectionQueries() {
       if (requestId === detailRequestId.current) setDetail(next);
       return next;
     } catch (caught) {
-      if (requestId === detailRequestId.current) setDetailError(message(caught, "Unable to load Collection."));
+      if (requestId === detailRequestId.current) setDetailError(message(caught, "수집 기록을 조회하지 못했습니다."));
       return undefined;
     } finally {
       if (requestId === detailRequestId.current) setDetailLoading(false);
@@ -152,13 +152,13 @@ export function useCollectionQueries() {
       const next = await reload(true);
       if (requestId !== mutationRequestId.current) return false;
       if (next && selectionId === detailRequestId.current) onReload?.(result, next);
-      if (!next) setRefreshError("The change succeeded, but the list could not be refreshed. Retry the lookup; do not submit the change again.");
+      if (!next) setRefreshError("변경은 저장됐지만 목록을 다시 조회하지 못했습니다. 저장을 반복하지 말고 조회를 다시 시도하세요.");
       return true;
     } catch (caught) {
       if (requestId !== mutationRequestId.current) return false;
       const next = await reload(true);
       if (requestId !== mutationRequestId.current) return false;
-      setMutationError(`Request outcome was not confirmed. ${next ? "The list was refreshed." : "The list could not be refreshed."} Check the current record before submitting again. ${message(caught, "")}`.trim());
+      setMutationError(`요청 결과가 확정되지 않았습니다. ${next ? "목록을 다시 조회했습니다." : "목록을 다시 조회하지 못했습니다."} 다시 저장하기 전에 현재 기록을 확인하세요. ${message(caught, "")}`.trim());
       return false;
     } finally {
       if (requestId === mutationRequestId.current) {

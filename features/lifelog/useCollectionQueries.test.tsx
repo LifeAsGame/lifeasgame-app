@@ -111,7 +111,7 @@ describe("Collection query/mutation state를 관리할 때", () => {
       expect(result.current.list.items).toEqual([]);
       expect(result.current.list.error).toBe("List unavailable");
       expect(result.current.mutationSuccess).toBe("Collection deleted.");
-      expect(result.current.refreshError).toMatch(/change succeeded/);
+      expect(result.current.refreshError).toMatch(/변경은 저장됐지만/);
       expect(result.current.mutationError).toBeNull();
     });
 
@@ -126,7 +126,7 @@ describe("Collection query/mutation state를 관리할 때", () => {
 
       expect(result.current.selectedId).toBe(first.id);
       expect(result.current.list.items).toEqual([first]);
-      expect(result.current.mutationError).toMatch(/Request outcome was not confirmed.*Delete failed/);
+      expect(result.current.mutationError).toMatch(/요청 결과가 확정되지 않았습니다.*Delete failed/);
     });
   });
   it.each(["create", "update", "remove"] as const)("ignores late %s completion after leaving and starting a new draft", async (command) => {
@@ -174,7 +174,7 @@ describe("Collection query/mutation state를 관리할 때", () => {
     await act(async () => { expect(await result.current.create({ category: "BOOK", title: "New", quantity: 1 })).toBe(true); });
     expect(result.current.mutationSuccess).toBe("Collection created.");
     expect(result.current.mutationError).toBeNull();
-    expect(result.current.refreshError).toMatch(/change succeeded/);
+    expect(result.current.refreshError).toMatch(/변경은 저장됐지만/);
     await act(async () => { await result.current.list.reload(); });
     expect(result.current.mutationSuccess).toBe("Collection created.");
     expect(result.current.refreshError).toBeNull();
