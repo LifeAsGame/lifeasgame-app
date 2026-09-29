@@ -58,26 +58,45 @@ or loading list.
 - [Recovered Route](retry-routes-1440.png),
   [confirmed rewards retained after injected failure](retry-current-preserved-390.png).
 
-## Real API gate
+## Real API verification — completed 2026-09-29
 
-**Real API validation remains unverified.** Existing 18084 runtime/JAR and dedicated
-account records could not establish its running SHA or approved account. The observed
-latest backend develop is `32651b3903283f0b92e4c156379425ecc3f2f95e`; this is a candidate
-source revision, not the version of 18084.
+The previously blocked real API gate is now **PASS** against an isolated local
+backend built from approved SHA `32651b3903283f0b92e4c156379425ecc3f2f95e`.
+The tested FE is `e23ddcf0f3dbaae8abd404795cd16df342c8c2c7`; this follow-up changes
+only evidence. The existing API-mode production build was reused, with source hashes
+verified. The earlier `validation.json` and `retry-validation.json` retain the
+historical blocked/synthetic-only observations and are superseded for this gate.
 
-The follow-up authorizes a new isolated stack, but explicitly prohibits starting it
-when Docker memory is insufficient. The VM reported MemAvailable **999220 KiB**
-(about 976 MiB), SwapFree **1248 KiB** of 1 GiB. The existing adventure app/MySQL/Redis
-already use about 1160 MiB without startup headroom. No new stack or account was
-created; no real login, authenticated read, Quest command or reward mutation ran.
+- [Environment, normal API flow and resource evidence](real-api-validation.json).
+- [16 browser cases and sanitized request metadata](real-api-browser-results.json):
+  real form login; authenticated lists/details; selected Route/current Step; confirmed
+  reward rereads; desktop 1440 and mobile 390, normal motion.
+- Two cases use actual successful server responses throughout. Fourteen cases inject
+  503 or delay **after fetching actual responses**. Synthetic success responses: zero.
+  Actual backend outages were not induced.
+- Normal signup/onboarding and three normal records completed three Quests. Adventure
+  settled GOLD 100 and Item 1. The Route was selected and explicitly advanced once.
+  No admin grants, SQL data writes, or preloaded DB fixtures were used.
+- Route/Current initial-list Retry preserved URL and restored own detail/current Step.
+  Confirmed reward DOM/lines survived reread errors with no duplicate presentation.
+  Five delayed read types could not replace a newer selection at either width.
+  Read-verification commands: zero. Real Wallet, Mailbox and Route remained unchanged.
+- Screens: [desktop Route](real-api-actual-route-1440.png),
+  [mobile Route](real-api-actual-route-390.png),
+  [actual settlement](real-api-actual-settlement-1440.png),
+  [mobile retained result after injected error](real-api-injected-error-preserved-390.png).
 
-Reusable local configuration, source SHA, missing-record locations, memory evidence
-and planned account-file location are recorded outside Git at
-`lifeasgame-app/.codex-local/pr126-api/environment.json`. No account file exists yet.
-Existing servers, containers and DBs were preserved. No admin grants or SQL writes
-were used. After memory is available, the integration gate still requires normal
-signup/onboarding and normal Quest/reward progression in a separate project/volume,
-then real-response checks distinguished from injected failures/delays.
+Only the five explicitly approved 83/85 containers were stopped, in the requested
+order, after preserving the 83 JAR and recovery metadata outside temporary storage.
+Measured Docker MemAvailable increased by 1248124 KiB (about 1.19 GiB). The other 15
+containers and frontend 3027 kept their original running state. The new project
+`lag-pr126-retry`, port 18126, has its own network and MySQL/Redis volumes. It was
+stopped after verification, along with FE 3039; data and recovery artifacts remain.
+Approved 83/85 containers were not restarted. No containers/volumes/files were deleted.
+
+Reusable environment, source, Compose, JAR/hash and private account files remain at
+`lifeasgame-app/.codex-local/pr126-api/`, outside Git. Account and runtime secrets are
+mode 0600. This verification makes no production or deployment claim.
 
 Other domains retain their existing product content inside the common shell. Full
 visual conversion, physical mobile devices, Safari, soft keyboards and screen readers

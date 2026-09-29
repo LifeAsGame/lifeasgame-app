@@ -1,0 +1,2446 @@
+{
+  "startedAt": "2026-09-29T00:56:35.965Z",
+  "feHead": "e23ddcf0f3dbaae8abd404795cd16df342c8c2c7",
+  "beSha": "32651b3903283f0b92e4c156379425ecc3f2f95e",
+  "mode": "Actual isolated backend; normal account and normal Quest/reward data. No synthetic success responses.",
+  "cases": [
+    {
+      "name": "actual login/list/detail/selected Route/Step/settlement reread 1440",
+      "kind": "REAL_SERVER",
+      "commandsDuringVerification": 0,
+      "confirmedLineDomPreserved": true,
+      "duplicateRewardLines": 0,
+      "newDialogs": 0,
+      "walletAndMailboxUnchanged": true,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1/steps/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1/steps/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/items/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "actual login/list/detail/selected Route/Step/settlement reread 390",
+      "kind": "REAL_SERVER",
+      "commandsDuringVerification": 0,
+      "confirmedLineDomPreserved": true,
+      "duplicateRewardLines": 0,
+      "newDialogs": 0,
+      "walletAndMailboxUnchanged": true,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1/steps/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1/steps/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/items/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "routes initial list failure + Retry 1440",
+      "kind": "REAL_SERVER_WITH_INJECTED_503",
+      "urlPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 503,
+          "delayed": false,
+          "injected": "503 replaces a real server response"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1/steps/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "current initial list failure + Retry 1440",
+      "kind": "REAL_SERVER_WITH_INJECTED_503",
+      "urlPreserved": true,
+      "commandsDuringVerification": 0,
+      "confirmedResultsPreserved": true,
+      "walletAndMailboxUnchanged": true,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 503,
+          "delayed": false,
+          "injected": "503 replaces a real server response"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/items/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 503,
+          "delayed": false,
+          "injected": "503 replaces a real server response"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "routes initial list failure + Retry 390",
+      "kind": "REAL_SERVER_WITH_INJECTED_503",
+      "urlPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 503,
+          "delayed": false,
+          "injected": "503 replaces a real server response"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1/steps/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "current initial list failure + Retry 390",
+      "kind": "REAL_SERVER_WITH_INJECTED_503",
+      "urlPreserved": true,
+      "commandsDuringVerification": 0,
+      "confirmedResultsPreserved": true,
+      "walletAndMailboxUnchanged": true,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 503,
+          "delayed": false,
+          "injected": "503 replaces a real server response"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/items/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 503,
+          "delayed": false,
+          "injected": "503 replaces a real server response"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late list-retry after leaving selection 1440",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 503,
+          "delayed": false,
+          "injected": "503 replaces a real server response"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late route-detail after leaving selection 1440",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late route-step after leaving selection 1440",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1/steps/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late quest-detail after leaving selection 1440",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late settlement after leaving selection 1440",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late list-retry after leaving selection 390",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 503,
+          "delayed": false,
+          "injected": "503 replaces a real server response"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late route-detail after leaving selection 390",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late route-step after leaving selection 390",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my/1/steps/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late quest-detail after leaving selection 390",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    },
+    {
+      "name": "late settlement after leaving selection 390",
+      "kind": "REAL_SERVER_WITH_INJECTED_DELAY",
+      "latestUrlAndDetailPreserved": true,
+      "commandsDuringVerification": 0,
+      "requests": [
+        {
+          "phase": "login",
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "login",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/1",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": true
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_RECORD_FIRST_TRACE",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/2",
+          "serverStatus": 200,
+          "deliveredStatus": 200,
+          "delayed": false
+        }
+      ]
+    }
+  ],
+  "pageErrors": [],
+  "unexpectedHttpErrors": [],
+  "finishedAt": "2026-09-29T00:57:00.808Z",
+  "result": "PASS"
+}
