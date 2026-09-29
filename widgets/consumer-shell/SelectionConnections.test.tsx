@@ -4,7 +4,7 @@ import SelectionConnections from "./SelectionConnections";
 
 afterEach(() => vi.restoreAllMocks());
 
-it.each([["journey-list", "journey-detail"], ["lifelog-journal", "lifelog-journal-detail"], ["lifelog-journal", "lifelog-quick-record"]])("tracks %s and %s bounds, clamps scrolling, and removes hidden connections", (listKey, detailKey) => {
+it.each([["journey-list", "journey-detail"], ["lifelog-journal", "lifelog-journal-detail"], ["lifelog-journal", "lifelog-quick-record"], ["lifelog-collection-list", "lifelog-collection-detail"], ["lifelog-collection-list", "lifelog-collection-form"]])("tracks %s and %s bounds, clamps scrolling, and removes hidden connections", (listKey, detailKey) => {
   let paint: FrameRequestCallback = () => {};
   vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => { paint = callback; return 1; });
   vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});

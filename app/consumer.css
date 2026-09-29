@@ -174,15 +174,15 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-quest-rewards > button { width:100%; }
 
 /* Journal shares the approved list / left detail geometry and reading surface. */
-.sao-menu-layer:has(.lag-journal-shell) :is(.lag-app-surface,.lag-workspace) { overflow:visible !important; }
-.sao-menu-layer:has(.lag-journal-shell) .lag-orb-column { position:absolute !important; left:var(--sao-rail-x) !important; z-index:4; }
-.sao-menu-layer:has(.lag-journal-shell) .lag-workspace { position:absolute; inset:0; width:100%; display:block; }
-.sao-stage .lag-journal-shell { position:relative; width:100%; min-width:0; }
-.sao-stage .lag-journal-shell > [data-stage-key] { position:absolute; top:0; max-width:none; }
-.sao-stage [data-stage-key=lifelog-journal] { left:calc(var(--sao-rail-x) + 84px); width:var(--sao-right-width); }
-.sao-menu-layer[data-detail=true] [data-stage-key=lifelog-journal] { width:var(--sao-left-width); }
-.sao-stage :is([data-stage-key=lifelog-journal-detail],[data-stage-key=lifelog-quick-record]) { left:var(--sao-detail-left); width:var(--sao-left-width); }
-.sao-stage .lag-journal-shell [data-stage-key] .lag-panel-frame { width:100% !important; max-width:none !important; }
+.sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) :is(.lag-app-surface,.lag-workspace) { overflow:visible !important; }
+.sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) .lag-orb-column { position:absolute !important; left:var(--sao-rail-x) !important; z-index:4; }
+.sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) .lag-workspace { position:absolute; inset:0; width:100%; display:block; }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell) { position:relative; width:100%; min-width:0; }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell) > [data-stage-key] { position:absolute; top:0; max-width:none; }
+.sao-stage :is([data-stage-key=lifelog-journal],[data-stage-key=lifelog-collection-list]) { left:calc(var(--sao-rail-x) + 84px); width:var(--sao-right-width); }
+.sao-menu-layer[data-detail=true] :is([data-stage-key=lifelog-journal],[data-stage-key=lifelog-collection-list]) { width:var(--sao-left-width); }
+.sao-stage :is([data-stage-key=lifelog-journal-detail],[data-stage-key=lifelog-quick-record],[data-stage-key=lifelog-collection-detail],[data-stage-key=lifelog-collection-form]) { left:var(--sao-detail-left); width:var(--sao-left-width); }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell) [data-stage-key] .lag-panel-frame { width:100% !important; max-width:none !important; }
 .sao-stage :is(.lag-journal-surface,.lag-quick-record-form,.lag-journal-state) { padding-inline:0; }
 .sao-stage :is(.lag-quick-record-surface,.lag-journal-detail) { padding-inline:20px; gap:20px; }
 .sao-stage .lag-journal-toolbar { padding:0 20px 16px; border:0; background:none; flex-wrap:wrap; gap:12px; }
@@ -228,19 +228,32 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-journal-chip[data-selected=true] { background:var(--lag-gold); color:#332708; }
 .sao-stage .lag-quick-record-fields { padding:0; background:none; border:0; min-height:0; }
 .sao-stage .lag-journal-control { font-size:14px; scroll-margin-block:12px; }
-.sao-stage .lag-journal-shell .lag-panel-stage[data-stage-key=lifelog-quick-record] .lag-panel-body { scroll-padding-block:16px 96px; }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell) .lag-panel-stage[data-stage-key=lifelog-quick-record] .lag-panel-body { scroll-padding-block:16px 96px; }
 .sao-stage .lag-journal-submit { position:sticky; bottom:-24px; padding:12px 0; background:var(--lag-panel); box-shadow:0 -8px 12px var(--lag-panel); z-index:2; }
 .sao-stage .lag-journal-submit button { width:100%; }
 .sao-stage .lag-journal-feedback { font-size:13px; line-height:1.55; background:var(--lag-panel); }
 .sao-stage .lag-journal-feedback[data-state=error] { color:var(--lag-error); }
 .sao-stage .lag-journal-feedback[data-state=success] { color:var(--lag-success); }
 @media(max-width:899px) {
-  .sao-menu-layer:has(.lag-journal-shell) .lag-orb-column { left:0 !important; }
-  .sao-menu-layer:has(.lag-journal-shell) .lag-workspace { inset:82px 0 0; }
-  .sao-menu-layer .lag-journal-shell > [data-stage-key] { left:0; width:100%; }
+  .sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) .lag-orb-column { left:0 !important; }
+  .sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) .lag-workspace { inset:82px 0 0; }
+  .sao-menu-layer :is(.lag-journal-shell,.lag-collection-shell) > [data-stage-key] { left:0; width:100%; }
   .sao-stage :is(.lag-quick-record-surface,.lag-journal-detail) { padding-inline:18px; }
   .sao-stage .lag-journal-control { font-size:16px; }
   .sao-stage .lag-journal-toolbar { flex-direction:column; align-items:stretch; }
   .sao-stage .lag-journal-toolbar > div { flex:auto; }
   .sao-stage .lag-journal-source { width:32px; height:32px; }
 }
+
+/* Collection keeps the shared Journal reading and field tokens. */
+.sao-stage .lag-collection-form-surface { padding-inline:20px; }
+.sao-stage .lag-collection-form { display:grid; gap:20px; }
+.sao-stage .lag-collection-form fieldset { display:grid; min-width:0; }
+.sao-stage .lag-collection-actions { display:grid; gap:10px; }
+.sao-stage .lag-collection-detail-actions { display:grid; gap:12px; padding:20px; }
+.sao-stage .lag-collection-feedback { padding-inline:20px; }
+.sao-stage .lag-collection-check { display:flex; align-items:center; gap:10px; font-size:13px; }
+.sao-stage .lag-collection-check input { width:18px; height:18px; accent-color:var(--lag-gold); }
+.sao-stage .lag-collection-quantity { font-size:32px; }
+.sao-stage .lag-collection-quantity small { font-size:14px; }
+.sao-stage .lag-collection-note { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.65; }

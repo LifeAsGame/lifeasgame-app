@@ -1,0 +1,391 @@
+{
+  "startedAt": "2026-09-29T03:58:01.298Z",
+  "beSha": "32651b3903283f0b92e4c156379425ecc3f2f95e",
+  "cases": [
+    {
+      "name": "QUICK excluded, FULL completes weekly Quest; completed source update/delete preserves completion and rewards",
+      "kind": "REAL_SERVER",
+      "normalSignupAndOnboarding": true,
+      "quickWeeklyProgressAfterFivePolls": 0,
+      "fullWeeklyProgress": 1,
+      "fullWeeklyStatus": "COMPLETED",
+      "completedSourceUpdatedAndDeleted": true,
+      "journalReflectionVerified": true,
+      "adventureSettlement": "COMPLETED",
+      "gold": 100,
+      "itemRewardQuantity": 1,
+      "walletAndMailboxUnchangedAfterSourceMutation": true,
+      "settlementRereadMutations": 0,
+      "commands": 2,
+      "priorRecoveryQuickNoteCommands": 1,
+      "initialNormalRecordCommands": 3,
+      "totalNormalRecordCommands": 6,
+      "ordinaryWithoutSubtypeAdventureProgress": 2,
+      "harnessNote": "Initial run verified QUICK progress 0 then FULL completion. Ordinary FULL without subtype did not advance Adventure; harness timed out expecting three eligible records. Recovery added one normal QUICK_NOTE through UI, then updated/deleted the existing completed FULL source. The first recovery observed a transient settlement 404 after Quest completion; this final GET recovery waits for the separate settlement and repeats no save.",
+      "adminCommands": 0,
+      "sqlWrites": 0,
+      "requests": [
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/collections/search",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/roles",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/lifelogs",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/collections/86",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/6",
+          "status": 200,
+          "expectedTransient": false
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/economy/wallet",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/mailbox",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/collections/85",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "POST",
+          "path": "/api/v1/players/collections/85",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/collections/search",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/lifelogs/137",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/economy/wallet",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/mailbox",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/6",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "DELETE",
+          "path": "/api/v1/players/collections/85",
+          "status": 204
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/collections/search",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/lifelogs",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/collections/search",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/economy/wallet",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/mailbox",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/6",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/6",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/6",
+          "status": 200,
+          "via": "normal read"
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/6",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/items/2",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/users/me/settings",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/home",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followings",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/connections/followers",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/chat/channels/friends",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/notifications/unread-count",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quests/catalog",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/quest-routes/my",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/players/quests/Q_ADVENTURE_PREPARATION",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/reward-settlements/quest-completions/6",
+          "status": 200
+        },
+        {
+          "phase": "verification",
+          "method": "GET",
+          "path": "/api/v1/items/2",
+          "status": 200
+        }
+      ]
+    }
+  ],
+  "pageErrors": [],
+  "unexpectedServerErrors": [],
+  "result": "PASS",
+  "finishedAt": "2026-09-29T03:58:10.393Z"
+}

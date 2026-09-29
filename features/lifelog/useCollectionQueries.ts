@@ -38,8 +38,26 @@ export function useCollectionQueries() {
   const listRequestId = useRef(0);
   const detailRequestId = useRef(0);
   const mutationLocked = useRef(false);
+  const mutationRequestId = useRef(0);
   const [pendingMutation, setPendingMutation] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [mutationSuccess, setMutationSuccess] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+
+  const resetMutation = useCallback(() => {
+    mutationRequestId.current += 1;
+    mutationLocked.current = false;
+    setPendingMutation(null);
+    setMutationError(null);
+    setMutationSuccess(null);
+    setRefreshError(null);
+  }, []);
+
+  useEffect(() => () => {
+    listRequestId.current += 1;
+    detailRequestId.current += 1;
+    mutationRequestId.current += 1;
+  }, []);
 
   const clearSelection = useCallback(() => {
     selectedIdRef.current = null;
@@ -50,7 +68,7 @@ export function useCollectionQueries() {
     setDetailError(null);
   }, []);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (preserveSelection = false) => {
     const requestId = ++listRequestId.current;
     setListLoading(true);
     setListError(null);
@@ -58,7 +76,8 @@ export function useCollectionQueries() {
       const next = await searchCollectionsApi(paramsRef.current);
       if (requestId !== listRequestId.current) return undefined;
       setItems(next);
-      if (selectedIdRef.current !== null && !next.some(({ id }) => id === selectedIdRef.current)) clearSelection();
+      setRefreshError(null);
+      if (!preserveSelection && selectedIdRef.current !== null && !next.some(({ id }) => id === selectedIdRef.current)) clearSelection();
       return next;
     } catch (caught) {
       if (requestId === listRequestId.current) setListError(message(caught, "Unable to load Collections."));
@@ -86,15 +105,17 @@ export function useCollectionQueries() {
     }
   }, []);
 
-  const select = useCallback((id: number) => {
+  const select = useCallback((id: number, preserveMutation = false) => {
+    if (!preserveMutation) resetMutation();
     selectedIdRef.current = id;
     setSelectedId(id);
     setDetail(null);
     void loadDetail(id);
     requestStageFocus("lifelog-collection-detail", "forward");
-  }, [loadDetail]);
+  }, [loadDetail, resetMutation]);
 
   const search = (category?: CollectionCategory, titleLike?: string) => {
+    resetMutation();
     clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { page: 0, size: paramsRef.current.size, category, titleLike: titleLike?.trim() || undefined };
@@ -102,6 +123,7 @@ export function useCollectionQueries() {
   };
 
   const changePage = (page: number) => {
+    resetMutation();
     clearSelection();
     listRequestId.current += 1;
     paramsRef.current = { ...paramsRef.current, page: Math.max(0, page) };
@@ -116,22 +138,33 @@ export function useCollectionQueries() {
   ): Promise<boolean> => {
     if (mutationLocked.current) return false;
     mutationLocked.current = true;
+    const requestId = ++mutationRequestId.current;
+    const selectionId = detailRequestId.current;
     setPendingMutation(key);
     setMutationError(null);
+    setMutationSuccess(null);
+    setRefreshError(null);
     try {
       const result = await request();
+      if (requestId !== mutationRequestId.current) return false;
       onResponse?.(result);
-      const next = await reload();
-      if (next) onReload?.(result, next);
-      else setMutationError("Collection changed, but the authoritative list could not be reloaded.");
+      setMutationSuccess(key === "create" ? "Collection created." : key.startsWith("delete") ? "Collection deleted." : "Collection updated.");
+      const next = await reload(true);
+      if (requestId !== mutationRequestId.current) return false;
+      if (next && selectionId === detailRequestId.current) onReload?.(result, next);
+      if (!next) setRefreshError("The change succeeded, but the list could not be refreshed. Retry the lookup; do not submit the change again.");
       return true;
     } catch (caught) {
-      await reload();
-      setMutationError(`Request outcome was not confirmed. Server state was reloaded. ${message(caught, "")}`.trim());
+      if (requestId !== mutationRequestId.current) return false;
+      const next = await reload(true);
+      if (requestId !== mutationRequestId.current) return false;
+      setMutationError(`Request outcome was not confirmed. ${next ? "The list was refreshed." : "The list could not be refreshed."} Check the current record before submitting again. ${message(caught, "")}`.trim());
       return false;
     } finally {
-      mutationLocked.current = false;
-      setPendingMutation(null);
+      if (requestId === mutationRequestId.current) {
+        mutationLocked.current = false;
+        setPendingMutation(null);
+      }
     }
   };
 
@@ -140,7 +173,7 @@ export function useCollectionQueries() {
     () => createCollectionApi(body),
     undefined,
     (created, next) => {
-      if (next.some(({ id }) => id === created.id)) select(created.id);
+      if (next.some(({ id }) => id === created.id)) select(created.id, true);
     },
   );
 
@@ -148,7 +181,12 @@ export function useCollectionQueries() {
     `update-${id}`,
     () => updateCollectionApi(id, body),
     (updated) => {
-      if (selectedIdRef.current === id) setDetail(updated);
+      if (selectedIdRef.current === id) {
+        detailRequestId.current += 1;
+        setDetailLoading(false);
+        setDetailError(null);
+        setDetail(updated);
+      }
     },
   );
 
@@ -171,6 +209,10 @@ export function useCollectionQueries() {
     changePage,
     pendingMutation,
     mutationError,
+    mutationSuccess,
+    refreshError,
+    resetMutation,
+    clearSelection,
     create,
     update,
     remove,

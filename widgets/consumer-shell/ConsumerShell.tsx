@@ -22,7 +22,7 @@ export default function ConsumerShell({ open, main, home, utilities, children, o
     const update = () => {
       const width = Math.min(1110, window.innerWidth - (window.innerWidth < 900 ? 32 : 72));
       const mobile = window.innerWidth < 900;
-      const detail = Boolean(root.querySelector(':is([data-stage-key="journey-detail"], [data-stage-key="lifelog-journal-detail"], [data-stage-key="lifelog-quick-record"]):not([aria-hidden="true"])'));
+      const detail = Boolean(root.querySelector(':is([data-stage-key="journey-detail"], [data-stage-key="lifelog-journal-detail"], [data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-collection-detail"], [data-stage-key="lifelog-collection-form"]):not([aria-hidden="true"])'));
       setGeometry((old) => old.width === width && old.mobile === mobile && old.detail === detail ? old : { width, mobile, detail });
     };
     const observer = new MutationObserver(update);
