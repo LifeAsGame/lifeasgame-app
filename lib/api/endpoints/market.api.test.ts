@@ -6,6 +6,8 @@ import {
   confirmShopPurchaseApi,
   createListingApi,
   getOpenListingsApi,
+  getMyListingsApi,
+  getListingReservationsApi,
   getShopItemsApi,
   getShopPurchasesApi,
   getTradesApi,
@@ -84,6 +86,20 @@ describe("canonical Economy API adapters", () => {
     expect(Object.keys(body)).toEqual(["inventoryEntryId", "price", "currency"]);
     expect(body).not.toHaveProperty("itemInstanceId");
     expect(body).not.toHaveProperty("itemId");
+  });
+
+  it("validates quantities across listing and reservation GETs while preserving null and missing", async () => {
+    const listings = [1, 7, null, undefined].map((saleQuantity, id) => ({ id, itemId: null, sellerId: 4, price: 40, currency: "GOLD", status: "OPEN", ...(saleQuantity === undefined ? {} : { saleQuantity }) }));
+    const reservations = listings.map(({ id, saleQuantity, ...listing }) => ({ ...listing, listingId: id, expiresAt: "2026-09-29T00:01:00Z", ...(saleQuantity === undefined ? {} : { saleQuantity }) }));
+    client.apiGet.mockResolvedValueOnce({ listings }).mockResolvedValueOnce({ listings }).mockResolvedValueOnce({ reservations });
+    expect(await getOpenListingsApi()).toEqual(listings);
+    expect(await getMyListingsApi()).toEqual(listings);
+    expect(await getListingReservationsApi()).toEqual(reservations);
+    expect(client.apiGet).toHaveBeenNthCalledWith(3, "/api/v1/economy/listings/reservations");
+    for (const saleQuantity of [0, -1, 1.5, "7", 2147483648]) {
+      client.apiGet.mockResolvedValue({ listings: [{ ...listings[0], saleQuantity }] });
+      await expect(getOpenListingsApi()).rejects.toThrow("매물 수량 응답");
+    }
   });
 
   it("uses canonical listing reserve/purchase bodies and listing summary fields", async () => {

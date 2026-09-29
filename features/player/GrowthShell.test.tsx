@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -111,6 +111,24 @@ describe("v7 Growth surface를 사용할 때", () => {
     await screen.findByText("842");
     expect(document.querySelector('[data-stage-key="player-growth-change-detail"]')).not.toBeInTheDocument();
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
+  });
+
+  it("일반 진행·레벨 시작·최고 레벨·구형 응답을 구분한다", async () => {
+    for (const [progress, expected, remaining] of [
+      [{ expIntoLevel: 30, capForLevel: 135, expToNext: 105, progressRatio: 30 / 135, maxLevelReached: false }, "30 / 135", "105"],
+      [{ expIntoLevel: 0, capForLevel: 135, expToNext: 135, progressRatio: 0, maxLevelReached: false }, "0 / 135", "135"],
+      [{ expIntoLevel: 0, capForLevel: 0, expToNext: 0, progressRatio: 1, maxLevelReached: true }, "최고 레벨", null],
+      [{}, "레벨 진행값 미제공", null],
+    ] as const) {
+      api.getPlayerGrowthApi.mockResolvedValue({ ...overview, current: { ...overview.current, level: 2, exp: 130, ...progress } });
+      render(<GrowthShell />);
+      expect(await screen.findByText(expected)).toBeInTheDocument();
+      expect(screen.getByText("130")).toBeInTheDocument();
+      if (remaining) expect(screen.getByText(remaining)).toBeInTheDocument();
+      expect(screen.queryByText("0 / 0")).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="player-growth-history"]')).not.toBeInTheDocument();
+      cleanup();
+    }
   });
 
   it("loading/error/retry query semantics를 보존한다", async () => {

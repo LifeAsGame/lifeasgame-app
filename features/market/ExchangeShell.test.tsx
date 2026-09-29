@@ -7,6 +7,7 @@ import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import ExchangeShell from "./ExchangeShell";
 
 const api = vi.hoisted(() => ({
+  getItemApi: vi.fn(),
   getWalletApi: vi.fn(),
   getShopItemsApi: vi.fn(),
   getShopPurchasesApi: vi.fn(),
@@ -23,6 +24,7 @@ const api = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/api/endpoints/market.api", () => api);
+vi.mock("@/shared/api/items", () => ({ getItemApi: api.getItemApi }));
 vi.mock("@/lib/api/endpoints/inventory.api", () => ({ getInventoryApi: api.getInventoryApi }));
 
 const shopItems: ShopItem[] = [
@@ -66,6 +68,7 @@ describe("canonical Exchange surfaces", () => {
       .mockReturnValueOnce("00000000-0000-4000-8000-000000000001")
       .mockReturnValueOnce("00000000-0000-4000-8000-000000000002")
       .mockReturnValue("00000000-0000-4000-8000-000000000003");
+    api.getItemApi.mockRejectedValue(new Error("상품 이름 조회 실패"));
     api.getWalletApi.mockResolvedValue(wallet());
     api.getShopItemsApi.mockResolvedValue(shopItems);
     api.getShopPurchasesApi.mockResolvedValue([]);
@@ -79,6 +82,28 @@ describe("canonical Exchange surfaces", () => {
     api.cancelListingApi.mockResolvedValue(undefined);
     api.reserveListingApi.mockResolvedValue({ reservationToken: "listing-token", holdId: "hold-201", expiresAt: "2026-08-23T01:00:00Z" });
     api.purchaseListingApi.mockResolvedValue({ id: 401, listingId: 201, buyerId: 7, sellerId: 24, price: 1_800, currency: "GEM" });
+  });
+
+  it("수량 snapshot과 전체 가격을 표시하고 이름 실패를 목록 실패로 바꾸지 않는다", async () => {
+    const listings = [1, 7, null, undefined].map((saleQuantity, index) => ({ ...openListings[1], id: 201 + index, ...(saleQuantity === undefined ? {} : { saleQuantity }) }));
+    api.getOpenListingsApi.mockResolvedValue(listings);
+    api.getMyListingsApi.mockResolvedValue(listings);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Marketplace" }));
+    await screen.findByRole("button", { name: /수량 7/ });
+    expect(screen.getByRole("button", { name: /수량 1/ })).toHaveTextContent("1,800 GEM");
+    expect(screen.getByRole("button", { name: /과거 기록 없음/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /서버 필드 미제공/ })).toBeInTheDocument();
+    await waitFor(() => expect(api.getItemApi).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /수량 7/ }));
+    expect(screen.getByText("Total price").nextElementSibling).toHaveTextContent("1,800 GEM");
+    expect(screen.getByText("수량").nextElementSibling).toHaveTextContent("수량 7");
+    fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
+    expect((await screen.findByText("예약 수량")).nextElementSibling).toHaveTextContent("수량 7");
+    fireEvent.click(screen.getByRole("button", { name: "My Listings" }));
+    fireEvent.click(screen.getByRole("button", { name: /수량 7/ }));
+    expect(screen.getByText("수량").nextElementSibling).toHaveTextContent("수량 7");
   });
 
   it("renders real Wallet loading/error/retry without generated history", async () => {
@@ -299,6 +324,7 @@ describe("canonical Exchange surfaces", () => {
     expect(screen.queryByRole("button", { name: /Item #3011/ })).not.toBeInTheDocument();
     expect(screen.getByText(/Some Exchange data could not be refreshed/)).toBeInTheDocument();
     api.getOpenListingsApi.mockResolvedValue([openListings[0]]);
+    api.getItemApi.mockRejectedValue(new Error("상품 이름 조회 실패"));
     api.getWalletApi.mockResolvedValue(wallet());
     fireEvent.click(screen.getByRole("button", { name: "Retry Exchange lookup" }));
     await waitFor(() => expect(screen.queryByText(/Some Exchange data could not be refreshed/)).not.toBeInTheDocument());

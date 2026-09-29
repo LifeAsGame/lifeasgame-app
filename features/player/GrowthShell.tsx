@@ -76,6 +76,12 @@ export default function GrowthShell({ onBack }: { onBack?: () => void }) {
                     <span className="lag-growth-rings" aria-hidden><i /></span>
                     <div><small>레벨</small><strong>{current.level}</strong></div>
                   </div>
+                  {current.maxLevelReached === true ? <p><strong>최고 레벨</strong></p>
+                    : current.expIntoLevel !== undefined && current.capForLevel !== undefined && current.expToNext !== undefined && current.progressRatio !== undefined && current.maxLevelReached === false ? <>
+                      <p><span>레벨 경험치</span><strong>{current.expIntoLevel} / {current.capForLevel}</strong></p>
+                      <progress aria-label="레벨 경험치 진행" value={current.progressRatio} max={1} />
+                      <p><span>다음 레벨까지</span><strong>{current.expToNext}</strong></p>
+                    </> : <p role="status">레벨 진행값 미제공</p>}
                   <p><span>누적 경험치</span><strong>{current.exp}</strong></p>
                 </header>
 
