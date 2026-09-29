@@ -18,7 +18,7 @@ it("keeps DOM order and focused ID stable across repeated selections, then reset
   fireEvent.click(exchange);
   view.rerender(<OrbNav items={bringToFrontStable(MAIN_NAV_ITEMS, "market", x => x.id)} selectedId="market" onSelect={select} />);
   expect(exchange).toHaveFocus();
-  expect(screen.getAllByRole("button").map(x => x.getAttribute("aria-label"))).toEqual(["거래소", "플레이어", "소지품", "여정", "역할", "생활 기록", "설정"]);
+  expect(screen.getAllByRole("button").map(x => x.getAttribute("aria-label"))).toEqual(["거래소", "플레이어", "소지품", "여정", "인물 · 역할", "생활 기록", "설정"]);
   view.rerender(<OrbNav items={MAIN_NAV_ITEMS} selectedId={null} onSelect={select} />);
   expect(screen.getAllByRole("button")[0]).toHaveAccessibleName("플레이어");
 });

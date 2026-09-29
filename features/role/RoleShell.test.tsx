@@ -248,6 +248,10 @@ describe("실제 Role shell을 사용할 때", () => {
   it("관계 메뉴 드래그 취소 뒤 기본 클릭은 연결 폼 대신 목록을 연다", async () => {
     render(<Harness />);
     const menu = screen.getByRole("button", { name: /관계.*연결된 기존 인물/ });
+    // jsdom does not implement native pointer capture; browser checks cover it.
+    const capture = { hasPointerCapture: () => false, setPointerCapture: () => {}, releasePointerCapture: () => {} };
+    Object.assign(menu, capture);
+    Object.assign(menu.closest(".lag-panel-body")!, capture);
     const pointer = (type: string, x: number) => {
       const event = new MouseEvent(type, { bubbles: true, clientX: x, clientY: 100, button: 0 });
       Object.defineProperties(event, { pointerId: { value: 1 }, isPrimary: { value: true } });
