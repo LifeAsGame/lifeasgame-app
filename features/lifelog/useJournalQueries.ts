@@ -38,6 +38,7 @@ export function useJournalQueries() {
   const detailRequestId = useRef(0);
   const selectedLifeLogIdRef = useRef<number | null>(null);
   const quickRecordLocked = useRef(false);
+  const quickRecordRequestId = useRef(0);
   const failedQuickRecord = useRef<{ body: QuickRecordRequest; key: string } | null>(null);
   const [quickRecord, setQuickRecord] = useState<QuickRecordState>({
     pending: false,
@@ -54,7 +55,7 @@ export function useJournalQueries() {
     setDetail({ data: null, loading: false, error: null });
   }, []);
 
-  const reloadList = useCallback(async () => {
+  const reloadList = useCallback(async (preserveSelection = false) => {
     const requestId = ++listRequestId.current;
     setListLoading(true);
     setListError(null);
@@ -62,8 +63,9 @@ export function useJournalQueries() {
       const next = await listJournalApi(paramsRef.current);
       if (requestId !== listRequestId.current) return undefined;
       setPageData(next);
+      setQuickRecord((current) => current.refreshError ? { ...current, refreshError: null } : current);
       const selectedId = selectedLifeLogIdRef.current;
-      if (selectedId !== null && !next.content.some(({ lifeLogId }) => lifeLogId === selectedId)) clearSelection();
+      if (!preserveSelection && selectedId !== null && !next.content.some(({ lifeLogId }) => lifeLogId === selectedId)) clearSelection();
       return next;
     } catch (caught) {
       if (requestId === listRequestId.current) setListError(message(caught, "Unable to load Journal."));
@@ -96,6 +98,19 @@ export function useJournalQueries() {
     void reloadList();
   }, [params, reloadList]);
 
+  useEffect(() => () => {
+    listRequestId.current += 1;
+    detailRequestId.current += 1;
+    quickRecordRequestId.current += 1;
+  }, []);
+
+  const resetQuickRecord = useCallback(() => {
+    quickRecordRequestId.current += 1;
+    quickRecordLocked.current = false;
+    failedQuickRecord.current = null;
+    setQuickRecord({ pending: false, error: null, result: null, refreshError: null, canRetry: false });
+  }, []);
+
   const selectEntry = useCallback((lifeLogId: number) => {
     selectedLifeLogIdRef.current = lifeLogId;
     setSelectedLifeLogId(lifeLogId);
@@ -105,13 +120,17 @@ export function useJournalQueries() {
   const runQuickRecord = useCallback(async (body: QuickRecordRequest, key: string) => {
     if (quickRecordLocked.current) return undefined;
     quickRecordLocked.current = true;
+    const requestId = ++quickRecordRequestId.current;
+    const selectionId = detailRequestId.current;
     setQuickRecord({ pending: true, error: null, result: null, refreshError: null, canRetry: false });
     try {
       const result = await quickRecordApi(body, key);
+      if (requestId !== quickRecordRequestId.current) return undefined;
       failedQuickRecord.current = null;
       setQuickRecord({ pending: true, error: null, result, refreshError: null, canRetry: false });
 
-      const nextPage = await reloadList();
+      const nextPage = await reloadList(true);
+      if (requestId !== quickRecordRequestId.current) return undefined;
       if (!nextPage) {
         setQuickRecord((current) => ({
           ...current,
@@ -121,10 +140,11 @@ export function useJournalQueries() {
         const matching = nextPage.content.find((entry) =>
           entry.sourceType === result.sourceType && entry.sourceId === result.sourceId
         );
-        if (matching) selectEntry(matching.lifeLogId);
+        if (matching && selectionId === detailRequestId.current) selectEntry(matching.lifeLogId);
       }
       return result;
     } catch (caught) {
+      if (requestId !== quickRecordRequestId.current) return undefined;
       failedQuickRecord.current = { body, key };
       setQuickRecord({
         pending: false,
@@ -135,8 +155,10 @@ export function useJournalQueries() {
       });
       return undefined;
     } finally {
-      quickRecordLocked.current = false;
-      setQuickRecord((current) => ({ ...current, pending: false }));
+      if (requestId === quickRecordRequestId.current) {
+        quickRecordLocked.current = false;
+        setQuickRecord((current) => ({ ...current, pending: false }));
+      }
     }
   }, [reloadList, selectEntry]);
 
@@ -153,9 +175,9 @@ export function useJournalQueries() {
   }, [runQuickRecord]);
 
   const invalidateQuickRecordRetry = () => {
-    if (!failedQuickRecord.current) return;
+    if (quickRecordLocked.current) return;
     failedQuickRecord.current = null;
-    setQuickRecord((current) => ({ ...current, error: null, canRetry: false }));
+    setQuickRecord((current) => ({ ...current, error: null, result: null, refreshError: null, canRetry: false }));
   };
 
   const changeRoleFilter = (primaryRoleId?: number) => {
@@ -192,6 +214,7 @@ export function useJournalQueries() {
       submit: submitQuickRecord,
       retry: retryQuickRecord,
       invalidateRetry: invalidateQuickRecordRetry,
+      reset: resetQuickRecord,
     },
     selectedLifeLogId,
     selectEntry,

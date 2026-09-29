@@ -18,8 +18,8 @@ export default function SelectionConnections({ active }: { active: boolean }) {
     let frame = 0;
     const paint = () => {
       const source = root.querySelector('[data-menu-id][aria-pressed="true"] .lag-orb-icon');
-      const target = root.querySelector('[data-stage-key="journey-list"]:not([aria-hidden="true"]) .lag-panel-frame') ?? root.querySelector('.lag-workspace [data-stage-key]:not([aria-hidden="true"]) .lag-panel-frame');
-      const detail = root.querySelector('[data-stage-key="journey-detail"]:not([aria-hidden="true"]) .lag-panel-frame');
+      const target = root.querySelector(':is([data-stage-key="journey-list"], [data-stage-key="lifelog-journal"]):not([aria-hidden="true"]) .lag-panel-frame') ?? root.querySelector('.lag-workspace [data-stage-key]:not([aria-hidden="true"]) .lag-panel-frame');
+      const detail = root.querySelector(':is([data-stage-key="journey-detail"], [data-stage-key="lifelog-journal-detail"], [data-stage-key="lifelog-quick-record"]):not([aria-hidden="true"]) .lag-panel-frame');
       if (source && target && window.innerWidth >= 900) {
         const origin = surface.getBoundingClientRect(), a = source.getBoundingClientRect(), b = target.getBoundingClientRect();
         const body = target.querySelector('.lag-panel-body')?.getBoundingClientRect() ?? b;

@@ -4751,18 +4751,6 @@ textarea.lag-journal-control {
     grid-row: 3;
   }
 
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    [data-stage-key="lifelog-journal"] {
-    width: min(820px, calc(100vw - 500px));
-    max-width: min(820px, calc(100vw - 500px));
-  }
-
-  .lag-journal-shell:not(:has([data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-journal-detail"]))
-    [data-stage-key="lifelog-journal"] .lag-panel-frame {
-    width: min(820px, calc(100vw - 500px)) !important;
-    max-width: min(820px, calc(100vw - 500px)) !important;
-  }
-
   .lag-journal-shell [data-stage-key="lifelog-journal"] .lag-panel-body,
   .lag-journey-shell .lag-panel-body,
   .lag-growth-shell .lag-panel-body {

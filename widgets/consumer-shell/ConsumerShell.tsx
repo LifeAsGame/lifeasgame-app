@@ -22,7 +22,7 @@ export default function ConsumerShell({ open, main, home, utilities, children, o
     const update = () => {
       const width = Math.min(1110, window.innerWidth - (window.innerWidth < 900 ? 32 : 72));
       const mobile = window.innerWidth < 900;
-      const detail = Boolean(root.querySelector('[data-stage-key="journey-detail"]:not([aria-hidden="true"])'));
+      const detail = Boolean(root.querySelector(':is([data-stage-key="journey-detail"], [data-stage-key="lifelog-journal-detail"], [data-stage-key="lifelog-quick-record"]):not([aria-hidden="true"])'));
       setGeometry((old) => old.width === width && old.mobile === mobile && old.detail === detail ? old : { width, mobile, detail });
     };
     const observer = new MutationObserver(update);
@@ -49,7 +49,7 @@ export default function ConsumerShell({ open, main, home, utilities, children, o
   };
   const leftWidth = Math.min(420, (geometry.width - 104) / 2);
   const detailLeft = Math.max(0, (geometry.width - (leftWidth * 2 + 104)) / 2);
-  const railX = main === "quests" && geometry.detail && !geometry.mobile ? detailLeft + leftWidth + 20 : 0;
+  const railX = (main === "quests" || main === "lifelog") && geometry.detail && !geometry.mobile ? detailLeft + leftWidth + 20 : 0;
   return (
     <MotionConfig reducedMotion="user">
       <div className="sao-consumer" role={open ? "dialog" : undefined} aria-label={open ? "시스템 메뉴" : undefined} aria-modal={open ? true : undefined}
