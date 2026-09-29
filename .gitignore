@@ -54,3 +54,10 @@ lifeasgame-backend-extracted/
 public/icons/
 KakaoTalk_20260226_174224358.png
 .claude/worktrees/agent-a6da09f9
+
+# Archived review artifacts
+/docs/reviews/sao-consumer-first-apply/
+/docs/reviews/sao-journal-quick-record/
+
+# Personal local settings
+/.claude/settings.local.json
