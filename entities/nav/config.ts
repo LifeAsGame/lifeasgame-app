@@ -6,57 +6,57 @@ export const CRUD_ACTIONS: PanelItemAction[] = [
 ];
 
 export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: string }> = [
-  { id: "player",    label: "Player",    slotLabel: "PL" },
-  { id: "inventory", label: "Inventory", slotLabel: "IN" },
-  { id: "quests",    label: "Journey",   slotLabel: "QU" },
-  { id: "role",      label: "Role",      slotLabel: "RL" },
-  { id: "lifelog",   label: "Lifelog",   slotLabel: "LI" },
-  { id: "market",    label: "Exchange",  slotLabel: "EX" },
-  { id: "system",    label: "System",    slotLabel: "SY" },
+  { id: "player",    label: "플레이어",    slotLabel: "PL" },
+  { id: "inventory", label: "소지품", slotLabel: "IN" },
+  { id: "quests",    label: "여정",   slotLabel: "QU" },
+  { id: "role",      label: "역할",      slotLabel: "RL" },
+  { id: "lifelog",   label: "생활 기록",   slotLabel: "LI" },
+  { id: "market",    label: "거래소",  slotLabel: "EX" },
+  { id: "system",    label: "설정",    slotLabel: "SY" },
 ];
 
 export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {
-  player: "Player", inventory: "Inventory", quests: "Journey", role: "Role",
-  lifelog: "Lifelog", market: "Exchange", system: "System",
+  player: "플레이어", inventory: "소지품", quests: "여정", role: "역할",
+  lifelog: "생활 기록", market: "거래소", system: "설정",
 };
 
 export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
   player: [
-    { id: "growth",      label: "Growth",      slotLabel: "GR" },
-    { id: "achievement", label: "Achievement", slotLabel: "AC" },
-    { id: "credentials", label: "Credentials", slotLabel: "CR" },
-    { id: "title",       label: "Title",       slotLabel: "TI" },
-    { id: "interests",   label: "Interests",   slotLabel: "IN" },
+    { id: "growth",      label: "성장",      slotLabel: "GR" },
+    { id: "achievement", label: "업적", slotLabel: "AC" },
+    { id: "credentials", label: "자격증", slotLabel: "CR" },
+    { id: "title",       label: "칭호",       slotLabel: "TI" },
+    { id: "interests",   label: "취미",   slotLabel: "IN" },
   ],
   inventory: [
-    { id: "items", label: "Items", slotLabel: "IT" },
-    { id: "gear",  label: "Gear",  slotLabel: "GE" },
-    { id: "inbox", label: "Inbox", slotLabel: "MB" },
+    { id: "items", label: "아이템", slotLabel: "IT" },
+    { id: "gear",  label: "장비",  slotLabel: "GE" },
+    { id: "inbox", label: "수신함", slotLabel: "MB" },
   ],
   quests: [
-    { id: "current", label: "Current", slotLabel: "CU" },
-    { id: "catalog", label: "Catalog", slotLabel: "CA" },
-    { id: "routes",  label: "Routes",  slotLabel: "RT" },
+    { id: "current", label: "진행 퀘스트", slotLabel: "CU" },
+    { id: "catalog", label: "퀘스트 목록", slotLabel: "CA" },
+    { id: "routes",  label: "경로",  slotLabel: "RT" },
   ],
   role: [
-    { id: "overview",  label: "Overview",  slotLabel: "OV" },
-    { id: "relations", label: "Relations", slotLabel: "RE" },
-    { id: "events",    label: "Events",    slotLabel: "EV" },
+    { id: "overview",  label: "개요",  slotLabel: "OV" },
+    { id: "relations", label: "관계", slotLabel: "RE" },
+    { id: "events",    label: "일정",    slotLabel: "EV" },
   ],
   lifelog: [
-    { id: "journal",    label: "Journal",    slotLabel: "JR" },
-    { id: "collection", label: "Collection", slotLabel: "CL" },
-    { id: "media",      label: "Media",      slotLabel: "MD" },
-    { id: "exercise",   label: "Exercise",   slotLabel: "EX" },
+    { id: "journal",    label: "기록 모아보기",    slotLabel: "JR" },
+    { id: "collection", label: "수집 기록", slotLabel: "CL" },
+    { id: "media",      label: "감상 기록",      slotLabel: "MD" },
+    { id: "exercise",   label: "운동 기록",   slotLabel: "EX" },
   ],
   market: [
-    { id: "wallet", label: "Wallet", slotLabel: "WL" },
-    { id: "shop",   label: "Shop",   slotLabel: "SH" },
-    { id: "trade",  label: "Trade",  slotLabel: "TR" },
+    { id: "wallet", label: "지갑", slotLabel: "WL" },
+    { id: "shop",   label: "상점",   slotLabel: "SH" },
+    { id: "trade",  label: "거래",  slotLabel: "TR" },
   ],
   system: [
-    { id: "options", label: "Options", slotLabel: "OP" },
-    { id: "logout",  label: "Logout",  slotLabel: "LO" },
+    { id: "options", label: "환경 설정", slotLabel: "OP" },
+    { id: "logout",  label: "로그아웃",  slotLabel: "LO" },
   ],
 };
 

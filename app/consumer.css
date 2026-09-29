@@ -81,7 +81,7 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-menu-layer[data-main=quests] .lag-journey-shell { position:relative; width:100%; min-width:0; }
 .sao-menu-layer[data-main=quests] :is([data-stage-key=journey-root],[data-stage-key=journey-list]) { position:absolute; top:0; left:calc(var(--sao-rail-x) + 84px); width:var(--sao-right-width); max-width:none; }
 .sao-menu-layer[data-main=quests][data-detail=true] :is([data-stage-key=journey-root],[data-stage-key=journey-list]) { width:var(--sao-left-width); }
-.sao-menu-layer[data-main=quests] [data-stage-key=journey-detail] { position:absolute; top:0; left:var(--sao-detail-left); width:var(--sao-left-width); max-width:none; }
+.sao-menu-layer[data-main=quests] [data-stage-key=journey-detail] { position:absolute; top:0; left:calc(var(--sao-rail-x) - var(--sao-left-width) - 20px); width:var(--sao-left-width); max-width:none; }
 .sao-menu-layer[data-main=quests] .lag-panel-frame { width:100% !important; max-width:none !important; }
 .sao-menu-layer[data-main=quests] .lag-panel-body { max-height:calc(100dvh - 280px) !important; }
 .sao-stage .lag-journey-card { border-radius:0; border:0; border-bottom:1px solid var(--lag-divider); background:transparent; min-height:85px; padding:18px 20px; }
@@ -181,7 +181,7 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage :is(.lag-journal-shell,.lag-collection-shell) > [data-stage-key] { position:absolute; top:0; max-width:none; }
 .sao-stage :is([data-stage-key=lifelog-journal],[data-stage-key=lifelog-collection-list]) { left:calc(var(--sao-rail-x) + 84px); width:var(--sao-right-width); }
 .sao-menu-layer[data-detail=true] :is([data-stage-key=lifelog-journal],[data-stage-key=lifelog-collection-list]) { width:var(--sao-left-width); }
-.sao-stage :is([data-stage-key=lifelog-journal-detail],[data-stage-key=lifelog-quick-record],[data-stage-key=lifelog-collection-detail],[data-stage-key=lifelog-collection-form]) { left:var(--sao-detail-left); width:var(--sao-left-width); }
+.sao-stage :is([data-stage-key=lifelog-journal-detail],[data-stage-key=lifelog-quick-record],[data-stage-key=lifelog-collection-detail],[data-stage-key=lifelog-collection-form]) { left:calc(var(--sao-rail-x) - var(--sao-left-width) - 20px); width:var(--sao-left-width); }
 .sao-stage :is(.lag-journal-shell,.lag-collection-shell) [data-stage-key] .lag-panel-frame { width:100% !important; max-width:none !important; }
 .sao-stage :is(.lag-journal-surface,.lag-quick-record-form,.lag-journal-state) { padding-inline:0; }
 .sao-stage :is(.lag-quick-record-surface,.lag-journal-detail) { padding-inline:20px; gap:20px; }
@@ -257,3 +257,29 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-collection-quantity { font-size:32px; }
 .sao-stage .lag-collection-quantity small { font-size:14px; }
 .sao-stage .lag-collection-note { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.65; }
+
+/* Keep the summary outside the workspace and preserve parent panel widths. */
+.sao-stage-content { height:100%; }
+.sao-player-summary { display:none; position:absolute; left:0; top:0; bottom:0; width:300px; }
+.sao-player-summary .lag-left-anchor { width:100%; --lag-left-lane-width:100%; }
+.sao-summary-toggle, .sao-summary-back { display:none; }
+.sao-stage .lag-panel-title, .sao-player-summary h2, .sao-stage .lag-journey-card strong { overflow-wrap:anywhere; }
+.sao-stage .lag-player-panels .lag-panel-stage { width:344px; max-width:344px; }
+.sao-stage .lag-player-panels .lag-panel-frame { width:100% !important; max-width:100% !important; }
+@media(min-width:1200px) {
+  .sao-player-summary { display:block; }
+  .sao-menu-layer[data-main=player] .lag-app-shell { padding-left:320px !important; }
+}
+@media(max-width:1199px) {
+  .sao-summary-toggle { display:block; }
+  .sao-menu-layer[data-summary-open=true] .sao-player-summary { display:flex; flex-direction:column; width:min(344px,100%); }
+  .sao-menu-layer[data-summary-open=true] .sao-stage-content { visibility:hidden; }
+  .sao-summary-back { display:block; padding:12px; background:var(--lag-panel); border:1px solid var(--lag-border); }
+  .sao-player-summary .lag-left-anchor { min-height:0; flex:1 1 auto; }
+}
+@media(max-width:899px) {
+  .sao-menu-chrome:has(.sao-summary-toggle) { align-items:flex-start; }
+  .sao-menu-chrome:has(.sao-summary-toggle) > div:first-child { display:none; }
+  .sao-menu-chrome:has(.sao-summary-toggle) > div:last-child { width:100%; justify-content:space-between; }
+  .sao-stage .lag-player-panels .lag-panel-stage { width:calc(100vw - 32px); max-width:calc(100vw - 32px); }
+}

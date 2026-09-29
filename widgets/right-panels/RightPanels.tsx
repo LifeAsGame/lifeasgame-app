@@ -15,6 +15,7 @@ import { PanelFrame } from "./ui/PanelFrame";
 import { FormPanel } from "./ui/FormPanel";
 
 type RightPanelsProps = {
+  inactive?: boolean;
   selectedMain: MainNavId;
   panelStack: PanelStackItem[];
   onPanelFocus?: (panelIndex: number, panelId: string) => void;
@@ -203,6 +204,7 @@ function PanelContent({
 }
 
 export default function RightPanels({
+  inactive = false,
   selectedMain,
   panelStack,
   onPanelFocus,
@@ -233,6 +235,7 @@ export default function RightPanels({
                 <PanelStage
                   key={`${selectedMain}-stage-${panelIndex}`}
                   stageKey={`${selectedMain}-stage-${panelIndex}`}
+                  inactive={inactive}
                   autoFocus={panelIndex > 0}
                   index={panelIndex}
                   onPointerDownCapture={() => onPanelFocus?.(panelIndex, panel.id)}

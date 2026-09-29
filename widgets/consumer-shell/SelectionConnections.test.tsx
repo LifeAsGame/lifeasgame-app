@@ -20,8 +20,8 @@ it.each([["journey-list", "journey-detail"], ["lifelog-journal", "lifelog-journa
   });
   const content = (active: boolean) => <div>
     <button data-menu-id="quests" aria-pressed="true"><span className="lag-orb-icon" /></button>
-    <div data-stage-key={listKey}><div className="lag-panel-frame"><div className="lag-panel-body"><button aria-pressed="true" /></div></div></div>
-    <div data-stage-key={detailKey}><div className="lag-panel-frame" /></div>
+    <div data-stage-key={listKey} data-panel-role="list"><div className="lag-panel-frame"><div className="lag-panel-body"><button aria-pressed="true" /></div></div></div>
+    <div data-stage-key={detailKey} data-panel-role="detail" data-panel-side="left"><div className="lag-panel-frame" /></div>
     <SelectionConnections active={active} />
   </div>;
   const view = render(content(true));

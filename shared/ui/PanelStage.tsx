@@ -14,6 +14,7 @@ export default function PanelStage({
   zIndex,
   inactive = false,
   side = "right",
+  panelRole,
 }: {
   stageKey: string;
   autoFocus?: boolean;
@@ -23,6 +24,7 @@ export default function PanelStage({
   zIndex?: number;
   inactive?: boolean;
   side?: "left" | "right";
+  panelRole?: "list" | "detail";
 }) {
   const reducedMotion = useReducedMotion();
   const isPresent = useIsPresent();
@@ -37,6 +39,8 @@ export default function PanelStage({
       layout="position"
       className="lag-panel-stage relative"
       data-stage-key={stageKey}
+      data-panel-role={panelRole}
+      data-panel-side={side}
       data-stage-auto-focus={autoFocus ? undefined : "false"}
       data-inactive={inactive}
       inert={inactive || !isPresent}

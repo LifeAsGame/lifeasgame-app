@@ -68,16 +68,16 @@ export function PlayerPanel({
   if (!playerInfo) {
     return (
       <div className="space-y-3 p-7">
-        {loading ? <p role="status" style={{ color: "var(--lag-text-2)" }}>Loading Player context...</p> : null}
+        {loading ? <p role="status" style={{ color: "var(--lag-text-2)" }}>플레이어 요약을 불러오는 중…</p> : null}
         {error ? <p role="alert" style={{ color: "var(--lag-state-error)" }}>{error}</p> : null}
-        {!loading && !error ? <p style={{ color: "var(--lag-text-2)" }}>Player context is unavailable.</p> : null}
-        {error && onRetry ? <button type="button" className="lag-button-secondary" onClick={onRetry}>Retry</button> : null}
+        {!loading && !error ? <p style={{ color: "var(--lag-text-2)" }}>플레이어 요약을 확인할 수 없습니다.</p> : null}
+        {error && onRetry ? <button type="button" className="lag-button-secondary" onClick={onRetry}>다시 조회</button> : null}
       </div>
     );
   }
 
   const name = playerInfo.name;
-  const gender = playerInfo.gender === "MALE" ? "Male" : playerInfo.gender === "FEMALE" ? "Female" : playerInfo.gender;
+  const gender = playerInfo.gender === "MALE" ? "남성" : playerInfo.gender === "FEMALE" ? "여성" : playerInfo.gender;
   const job = playerInfo.job;
   const level = playerInfo.level;
   const exp = playerInfo.exp;
@@ -115,7 +115,7 @@ export function PlayerPanel({
         {error ? (
           <div className="lag-info-card mb-4 flex items-center justify-between gap-3 px-3 py-2">
             <p role="alert" className="lag-state-error text-xs">{error}</p>
-            {onRetry ? <button type="button" className="lag-button-secondary px-3 py-2 text-xs" onClick={onRetry}>Retry</button> : null}
+            {onRetry ? <button type="button" className="lag-button-secondary px-3 py-2 text-xs" onClick={onRetry}>다시 조회</button> : null}
           </div>
         ) : null}
         {/* Identity header */}
@@ -137,7 +137,7 @@ export function PlayerPanel({
 
         {roles.length > 0 ? (
           <div className="mt-4 px-1">
-            <p className="mb-2 text-center uppercase" style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>Roles</p>
+            <p className="mb-2 text-center uppercase" style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>역할</p>
             <RoleBadges roles={roles} selectedRoleId={selectedRoleId} onSelect={onRoleSelect} />
           </div>
         ) : null}
@@ -145,7 +145,7 @@ export function PlayerPanel({
         {/* EXP bar */}
         <div className="mt-4 px-1">
           <div className="mb-1 flex items-center justify-between">
-            <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>EXP</span>
+            <span className="uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>누적 경험치</span>
             <span style={{ fontSize: "11px", letterSpacing: "0.1em", color: "var(--lag-text-2)", fontWeight: 600 }}>
               {exp.toLocaleString()} xp
             </span>
@@ -201,7 +201,7 @@ export function PlayerPanel({
         {Object.keys(equipByCode).length > 0 ? (
           <div className="mt-6 px-1">
             <p className="mb-2 uppercase" style={{ fontSize: "10px", letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>
-              Equipment
+              장비
             </p>
             <div className="space-y-3">
               {Object.entries(equipByCode).map(([slotCode, slots]) => (
@@ -239,7 +239,7 @@ export function PlayerPanel({
                                 className="min-w-0 flex-1 truncate text-sm"
                                 style={{ color: equipped ? "var(--lag-text)" : "var(--lag-meta)", fontStyle: equipped ? "normal" : "italic" }}
                               >
-                                {equipped ? `Equipped · Item #${slot.itemInstanceId}` : "Empty"}
+                                {equipped ? `장착됨 · 아이템 #${slot.itemInstanceId}` : "비어 있음"}
                               </span>
                             </div>
                           </button>
@@ -262,10 +262,10 @@ export function PlayerPanel({
                                   }}
                                 >
                                   {[
-                                    { k: "Code",    v: slot.slotCode },
-                                    ...(slot.slotCategory ? [{ k: "Category", v: slot.slotCategory }] : []),
-                                    ...(slot.slotRole ? [{ k: "Role", v: slot.slotRole }] : []),
-                                    { k: "Item ID", v: slot.itemInstanceId === null ? "Empty" : String(slot.itemInstanceId) },
+                                    { k: "코드",    v: slot.slotCode },
+                                    ...(slot.slotCategory ? [{ k: "분류", v: slot.slotCategory }] : []),
+                                    ...(slot.slotRole ? [{ k: "역할", v: slot.slotRole }] : []),
+                                    { k: "아이템 번호", v: slot.itemInstanceId === null ? "비어 있음" : String(slot.itemInstanceId) },
                                   ].map(({ k, v }) => (
                                     <div key={k} className="flex items-center gap-2">
                                       <span className="uppercase" style={{ fontSize: "9px", letterSpacing: "0.14em", color: "var(--lag-text-2)", width: 54, flexShrink: 0 }}>{k}</span>

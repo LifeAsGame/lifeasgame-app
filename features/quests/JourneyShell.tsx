@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence } from "framer-motion";
 
+import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { SUBMENUS_BY_MAIN } from "@/entities/nav";
 import type { QuestsSubId } from "@/entities/nav";
 import type {
@@ -38,9 +39,9 @@ import { useJourneyQueries } from "./useJourneyQueries";
 import RewardSettlementPanel from "./RewardSettlementPanel";
 
 const SURFACE_COPY: Record<QuestsSubId, string> = {
-  current: "Track your accepted Quests.",
-  catalog: "Find your next Quest.",
-  routes: "Choose a long-term direction.",
+  current: "수락한 퀘스트의 진행을 확인하세요.",
+  catalog: "다음 퀘스트를 찾아보세요.",
+  routes: "꾸준히 이어갈 경로를 선택하세요.",
 };
 
 function message(caught: unknown, fallback: string): string {
@@ -48,14 +49,14 @@ function message(caught: unknown, fallback: string): string {
 }
 
 function humanize(value: string) {
-  return value.replaceAll("_", " ");
+  return consumerLabel(value);
 }
 
 function ErrorState({ text, retry }: { text: string; retry: () => void }) {
   return (
     <div className="lag-journey-state">
-      <p role="alert" className="lag-journey-feedback" data-state="error">Load failed: {text}</p>
-      <button type="button" className="lag-journey-button" onClick={retry}>Retry</button>
+      <p role="alert" className="lag-journey-feedback" data-state="error">조회 실패: {text}</p>
+      <button type="button" className="lag-journey-button" onClick={retry}>다시 조회</button>
     </div>
   );
 }
@@ -95,7 +96,7 @@ function JourneyCard({
         <strong>{title}</strong>
         <span>{supporting}</span>
         {badges.length > 0 ? <span className="lag-journey-badges">{badges.map((item) => <span key={item}>{item}</span>)}</span> : null}
-        {progress ? <ProgressBar label={`${title} progress`} percent={progress.percent} valueText={progress.valueText} /> : null}
+        {progress ? <ProgressBar label={`${title} 진행률`} percent={progress.percent} valueText={progress.valueText} /> : null}
       </span>
       <span className="lag-journey-card-arrow" aria-hidden>→</span>
     </button>
@@ -123,13 +124,13 @@ function currentStepPosition(route: QuestRoute) {
   if (!currentStepId) return null;
   const steps = orderedSteps(route);
   const index = steps.findIndex(({ id }) => id === currentStepId);
-  return index < 0 ? null : `Step ${index + 1} of ${steps.length}`;
+  return index < 0 ? null : `${steps.length}단계 중 ${index + 1}단계`;
 }
 
 function RouteThread({ route, quests }: { route: QuestRoute; quests: QuestAcceptance[] }) {
   const steps = orderedSteps(route);
   return (
-    <section className="lag-route-thread" aria-label="Ordered Route Steps">
+    <section className="lag-route-thread" aria-label="경로의 단계 순서">
       <div className="lag-route-thread-track">
         <ol>
           {steps.map((step) => {
@@ -140,18 +141,18 @@ function RouteThread({ route, quests }: { route: QuestRoute; quests: QuestAccept
                 <article>
                   <div>
                     <strong>{step.stepOrder}. {step.title}</strong>
-                    <StatusBadge state={step.state}>{humanize(step.state)}{current ? " · Current step" : ""}</StatusBadge>
+                    <StatusBadge state={step.state}>{humanize(step.state)}{current ? " · 현재 단계" : ""}</StatusBadge>
                   </div>
-                  <p>{step.description ?? "No Step description."}</p>
-                  <p>Criteria: {step.criteriaSatisfied ? "Satisfied" : "Not satisfied"}</p>
+                  <p>{step.description ?? "단계 설명이 없습니다."}</p>
+                  <p>조건: {step.criteriaSatisfied ? "충족" : "미충족"}</p>
                   {step.questLinks.length > 0 ? (
-                    <ul aria-label={`Quest requirements for ${step.title}`}>
+                    <ul aria-label={`${step.title}의 퀘스트 조건`}>
                       {step.questLinks.map((link) => {
                         const quest = quests.find((item) => item.questId === link.questId);
-                        return <li key={link.questId}>Requirement: {quest?.title ?? `Quest #${link.questId}`} · {humanize(link.requirementType)}</li>;
+                        return <li key={link.questId}>필요 조건: {quest?.title ?? `퀘스트 #${link.questId}`} · {humanize(link.requirementType)}</li>;
                       })}
                     </ul>
-                  ) : <p>No linked Quest requirements.</p>}
+                  ) : <p>연결된 퀘스트 조건이 없습니다.</p>}
                 </article>
               </li>
             );
@@ -272,7 +273,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
       if (requestId === questDetailRequestId.current) setQuestDetail({ code, data, loading: false, error: null });
     } catch (caught) {
       if (requestId === questDetailRequestId.current) {
-        setQuestDetail((previous) => ({ ...previous, code, loading: false, error: message(caught, "Unable to load Quest detail.") }));
+        setQuestDetail((previous) => ({ ...previous, code, loading: false, error: message(caught, "퀘스트 상세를 불러오지 못했습니다.") }));
       }
     }
   };
@@ -295,7 +296,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
       if (requestId === routeDetailRequestId.current) setRouteDetail({ routeId, data, step, loading: false, error: null });
     } catch (caught) {
       if (requestId === routeDetailRequestId.current) {
-        setRouteDetail((previous) => ({ ...previous, routeId, loading: false, error: message(caught, "Unable to load Route detail.") }));
+        setRouteDetail((previous) => ({ ...previous, routeId, loading: false, error: message(caught, "경로 상세를 불러오지 못했습니다.") }));
       }
     }
   };
@@ -369,7 +370,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     try {
       await recover(() => epoch === navigationEpoch.current);
     } finally {
-      if (requestError && epoch === navigationEpoch.current) setMutationError(`Request outcome was not confirmed. Server state was reloaded. ${message(requestError, "")}`.trim());
+      if (requestError && epoch === navigationEpoch.current) setMutationError(`요청 결과가 확정되지 않았습니다. 다시 조회한 상태를 확인하세요. ${message(requestError, "")}`.trim());
       mutationLocked.current = false;
       setPending(null);
     }
@@ -381,7 +382,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   };
 
   const selectRoute = async (route: QuestRoute) => {
-    if (!window.confirm(`Select Route ${route.title}?`)) return;
+    if (!window.confirm(`${route.title} 경로를 선택할까요?`)) return;
     await runMutation(`select-${route.id}`, () => selectQuestRouteApi(route.id), async (isCurrent) => {
       const latest = await queries.routes.reload();
       if (isCurrent()) await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
@@ -399,9 +400,9 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
   const renderCurrentList = () => (
     <div className="lag-journey-list">
-      {queries.current.loading && queries.current.data.length === 0 ? <InfoCard>Loading current Quests...</InfoCard> : null}
+      {queries.current.loading && queries.current.data.length === 0 ? <InfoCard>진행 퀘스트를 불러오는 중…</InfoCard> : null}
       {queries.current.error ? <ErrorState text={queries.current.error} retry={() => void queries.current.reload()} /> : null}
-      {!queries.current.loading && !queries.current.error && queries.current.data.length === 0 ? <InfoCard>No Quest acceptances yet.</InfoCard> : null}
+      {!queries.current.loading && !queries.current.error && queries.current.data.length === 0 ? <InfoCard>수락한 퀘스트가 없습니다.</InfoCard> : null}
       {queries.current.data.map((quest) => {
         const percent = questProgressPercent(quest);
         return (
@@ -427,9 +428,9 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
   const renderCatalogList = () => (
     <div className="lag-journey-list">
-      {queries.catalog.loading && queries.catalog.data.length === 0 ? <InfoCard>Loading Quest catalog...</InfoCard> : null}
+      {queries.catalog.loading && queries.catalog.data.length === 0 ? <InfoCard>퀘스트 목록을 불러오는 중…</InfoCard> : null}
       {queries.catalog.error ? <ErrorState text={queries.catalog.error} retry={() => void queries.catalog.reload()} /> : null}
-      {!queries.catalog.loading && !queries.catalog.error && queries.catalog.data.length === 0 ? <InfoCard>No active Quest blueprints.</InfoCard> : null}
+      {!queries.catalog.loading && !queries.catalog.error && queries.catalog.data.length === 0 ? <InfoCard>선택할 수 있는 퀘스트가 없습니다.</InfoCard> : null}
       {queries.catalog.data.map((quest) => {
         const acceptance = latestAcceptance(queries.current.data, quest.code);
         const category = quest.semanticCategory ?? quest.category;
@@ -438,7 +439,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
             key={quest.code}
             badge={(category ?? "QU").slice(0, 2)}
             title={quest.title}
-            supporting={acceptance ? `Acceptance: ${QUEST_STATUS_LABEL[acceptance.status]}` : `${humanize(quest.targetType)} × ${quest.targetValue}`}
+            supporting={acceptance ? `수락 상태: ${QUEST_STATUS_LABEL[acceptance.status]}` : `${humanize(quest.targetType)} × ${quest.targetValue}`}
             badges={[...(category ? [humanize(category)] : []), humanize(quest.completionPolicy), humanize(quest.repeatPolicy ?? quest.repeatRule)]}
             selected={selectedCatalogCode === quest.code}
             onClick={() => {
@@ -455,9 +456,9 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
   const renderRouteList = () => (
     <div className="lag-journey-list">
-      {queries.routes.loading && routes.length === 0 ? <InfoCard>Loading Quest Routes...</InfoCard> : null}
+      {queries.routes.loading && routes.length === 0 ? <InfoCard>경로를 불러오는 중…</InfoCard> : null}
       {queries.routes.error ? <ErrorState text={queries.routes.error} retry={() => void queries.routes.reload()} /> : null}
-      {!queries.routes.loading && !queries.routes.error && routes.length === 0 ? <InfoCard>No active Quest Routes.</InfoCard> : null}
+      {!queries.routes.loading && !queries.routes.error && routes.length === 0 ? <InfoCard>선택할 수 있는 경로가 없습니다.</InfoCard> : null}
       {routes.map((route) => {
         const position = currentStepPosition(route);
         const status = route.playerProgress?.status ?? "NOT_SELECTED";
@@ -467,7 +468,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
             badge={status === "COMPLETED" ? "CP" : route.playerProgress ? "IP" : "NS"}
             title={route.title}
             supporting={[humanize(status), position].filter(Boolean).join(" · ")}
-            badges={[route.playerProgress ? "Selected" : "Not selected", `${route.steps.length} steps`]}
+            badges={[route.playerProgress ? "선택됨" : "선택 안 함", `${route.steps.length}단계`]}
             selected={selectedRouteId === route.id}
             onClick={() => {
               navigationEpoch.current += 1;
@@ -486,7 +487,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   const renderCurrentDetail = () => {
     if (!selectedAcceptance) return null;
     const detail = questDetailFor(selectedAcceptance.code);
-    if (detail?.loading && !detail.data) return <InfoCard>Loading Quest detail...</InfoCard>;
+    if (detail?.loading && !detail.data) return <InfoCard>퀘스트 상세를 불러오는 중…</InfoCard>;
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedAcceptance.code)} />;
     const percent = questProgressPercent(selectedAcceptance);
     return (
@@ -494,31 +495,31 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
         {detail?.error ? <p role="alert" className="lag-journey-feedback" data-state="error">{detail.error}</p> : null}
         {mutationError ? <p role="alert" className="lag-journey-feedback" data-state="error">{mutationError}</p> : null}
         <header className="lag-journey-detail-hero">
-          <span>Current Quest</span>
+          <span>진행 퀘스트</span>
           <h4>{selectedAcceptance.title}</h4>
-          <StatusBadge state={selectedAcceptance.status}>Status: {QUEST_STATUS_LABEL[selectedAcceptance.status]}</StatusBadge>
+          <StatusBadge state={selectedAcceptance.status}>상태: {QUEST_STATUS_LABEL[selectedAcceptance.status]}</StatusBadge>
           <p>{detail?.data?.descriptionMd ?? selectedAcceptance.descriptionMd}</p>
         </header>
-        <DetailSection title="Progress">
-          <div className="lag-journey-detail-progress"><ProgressBar label="Quest progress" percent={percent} valueText={`${selectedAcceptance.progressValue} / ${selectedAcceptance.targetValue} (${percent}%)`} /></div>
+        <DetailSection title="진행 상황">
+          <div className="lag-journey-detail-progress"><ProgressBar label="퀘스트 진행률" percent={percent} valueText={`${selectedAcceptance.progressValue} / ${selectedAcceptance.targetValue} (${percent}%)`} /></div>
         </DetailSection>
-        <DetailSection title="Completion rule">
-          <DetailRow name="Completion policy" value={humanize(selectedAcceptance.completionPolicy)} />
-          <DetailRow name="Progress source" value={selectedAcceptance.progressSource ? humanize(selectedAcceptance.progressSource) : "Not recorded"} />
-          <DetailRow name="Repeat" value={humanize(selectedAcceptance.repeatPolicy ?? selectedAcceptance.repeatRule)} />
+        <DetailSection title="완료 조건">
+          <DetailRow name="완료 방식" value={humanize(selectedAcceptance.completionPolicy)} />
+          <DetailRow name="진행 기준" value={selectedAcceptance.progressSource ? humanize(selectedAcceptance.progressSource) : "기록 없음"} />
+          <DetailRow name="반복" value={humanize(selectedAcceptance.repeatPolicy ?? selectedAcceptance.repeatRule)} />
         </DetailSection>
-        {selectedAcceptance.status === "GOAL_REACHED" ? <p className="lag-journey-feedback" data-state="warning">Goal reached. This is not the same as Completed.</p> : null}
+        {selectedAcceptance.status === "GOAL_REACHED" ? <p className="lag-journey-feedback" data-state="warning">목표에 도달했습니다. 완료 확정과는 다릅니다.</p> : null}
         {selectedAcceptance.code === "Q_ADVENTURE_PREPARATION" ? <p className="lag-journey-feedback">수락 후 직접 작성한 서로 다른 기록 3건을 남기세요. 보상은 GOLD 100과 기록 결정 1개이며 계정당 한 번 지급됩니다.</p> : null}
         <RewardSettlementPanel key={selectedAcceptance.id} acceptanceId={selectedAcceptance.id} />
         {(canManualCheckQuest(selectedAcceptance) || canCancelQuest(selectedAcceptance)) ? (
-          <section className="lag-journey-actions" aria-label="Available Quest actions">
+          <section className="lag-journey-actions" aria-label="퀘스트 동작">
             {canManualCheckQuest(selectedAcceptance) ? (
-              <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void runMutation(`manual-${selectedAcceptance.code}`, () => manualCheckQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent))}>Manual Check</button>
+              <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void runMutation(`manual-${selectedAcceptance.code}`, () => manualCheckQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent))}>직접 확인</button>
             ) : null}
             {canCancelQuest(selectedAcceptance) ? (
               <button type="button" className="lag-journey-button" data-variant="destructive" disabled={Boolean(pending)} onClick={() => {
-                if (window.confirm(`Cancel Quest ${selectedAcceptance.title}?`)) void runMutation(`cancel-${selectedAcceptance.code}`, () => cancelQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent));
-              }}>Cancel Quest</button>
+                if (window.confirm(`${selectedAcceptance.title} 퀘스트를 취소할까요?`)) void runMutation(`cancel-${selectedAcceptance.code}`, () => cancelQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent));
+              }}>퀘스트 취소</button>
             ) : null}
           </section>
         ) : null}
@@ -532,27 +533,27 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     const acceptance = latestAcceptance(queries.current.data, selectedBlueprint.code);
     const acceptanceKnown = !queries.current.loading && !queries.current.error;
     const acceptAction = acceptanceKnown ? questAcceptAction(selectedBlueprint, acceptance) : null;
-    const acceptLabel = acceptAction === "accept-again" ? "Accept Again" : "Accept Quest";
-    if (detail?.loading && !detail.data) return <InfoCard>Loading Quest detail...</InfoCard>;
+    const acceptLabel = acceptAction === "accept-again" ? "다시 수락" : "퀘스트 수락";
+    if (detail?.loading && !detail.data) return <InfoCard>퀘스트 상세를 불러오는 중…</InfoCard>;
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedBlueprint.code)} />;
     return (
       <article className="lag-journey-detail">
         {mutationError ? <p role="alert" className="lag-journey-feedback" data-state="error">{mutationError}</p> : null}
         <header className="lag-journey-detail-hero">
-          <span>Quest Blueprint</span>
+          <span>퀘스트 안내</span>
           <h4>{selectedBlueprint.title}</h4>
-          {acceptance ? <StatusBadge state={acceptance.status}>Acceptance: {QUEST_STATUS_LABEL[acceptance.status]}</StatusBadge> : null}
+          {acceptance ? <StatusBadge state={acceptance.status}>수락 상태: {QUEST_STATUS_LABEL[acceptance.status]}</StatusBadge> : null}
           <p>{detail?.data?.descriptionMd ?? selectedBlueprint.descriptionMd}</p>
         </header>
-        <DetailSection title="Target and completion">
-          <DetailRow name="Target" value={`${humanize(selectedBlueprint.targetType)} × ${selectedBlueprint.targetValue}`} />
-          <DetailRow name="Completion policy" value={humanize(selectedBlueprint.completionPolicy)} />
-          <DetailRow name="Repeat" value={humanize(selectedBlueprint.repeatPolicy ?? selectedBlueprint.repeatRule)} />
-          <DetailRow name="Rewards" value={selectedBlueprint.code === "Q_ADVENTURE_PREPARATION" ? "GOLD 100 + 기록 결정 × 1 · once per account" : "Check the reward settlement after completion."} />
+        <DetailSection title="목표와 완료">
+          <DetailRow name="목표" value={`${humanize(selectedBlueprint.targetType)} × ${selectedBlueprint.targetValue}`} />
+          <DetailRow name="완료 방식" value={humanize(selectedBlueprint.completionPolicy)} />
+          <DetailRow name="반복" value={humanize(selectedBlueprint.repeatPolicy ?? selectedBlueprint.repeatRule)} />
+          <DetailRow name="보상" value={selectedBlueprint.code === "Q_ADVENTURE_PREPARATION" ? "GOLD 100 + 기록 결정 × 1 · 계정당 한 번" : "완료 후 확정된 보상 정산을 확인하세요."} />
         </DetailSection>
         {selectedBlueprint.code === "Q_ADVENTURE_PREPARATION" ? <p className="lag-journey-feedback">수락 후 직접 작성한 서로 다른 기록 3건을 남기세요. 기록 결정은 보관하거나 선택적으로 거래할 수 있습니다. 거래는 성장의 필수 단계가 아닙니다.</p> : null}
         {acceptance ? <RewardSettlementPanel key={acceptance.id} acceptanceId={acceptance.id} /> : null}
-        {!acceptanceKnown ? <p className="lag-journey-feedback" data-state="warning">Acceptance state unavailable. Accept is disabled until Current reloads.</p> : null}
+        {!acceptanceKnown ? <p className="lag-journey-feedback" data-state="warning">수락 상태를 확인할 수 없습니다. 진행 퀘스트를 다시 조회한 뒤 수락할 수 있습니다.</p> : null}
         {acceptAction ? (
           <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => {
             if (window.confirm(`${acceptLabel} ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), (isCurrent) => recoverQuest(selectedBlueprint.code, isCurrent));
@@ -566,7 +567,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     if (!selectedRoute) return null;
     const detailState = routeDetail.routeId === selectedRoute.id ? routeDetail : null;
     const route = detailState?.data ?? selectedRoute;
-    if (detailState?.loading && !detailState.data) return <InfoCard>Loading Route detail...</InfoCard>;
+    if (detailState?.loading && !detailState.data) return <InfoCard>경로 상세를 불러오는 중…</InfoCard>;
     if (detailState?.error && !detailState.data) return <ErrorState text={detailState.error} retry={() => void loadRouteDetail(selectedRoute.id, Boolean(selectedRoute.playerProgress))} />;
     const progress = route.playerProgress;
     const steps = orderedSteps(route);
@@ -579,24 +580,24 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
         {detailState?.error ? <p role="alert" className="lag-journey-feedback" data-state="error">{detailState.error}</p> : null}
         {mutationError ? <p role="alert" className="lag-journey-feedback" data-state="error">{mutationError}</p> : null}
         <header className="lag-journey-detail-hero">
-          <span>Quest Route · Long-term direction</span>
+          <span>여정 경로 · 꾸준히 이어갈 방향</span>
           <h4>{route.title}</h4>
-          <StatusBadge state={progress?.status ?? "NOT_SELECTED"}>Status: {progress?.status ?? "NOT_SELECTED"}</StatusBadge>
-          <p>{route.description ?? "No Route description."}</p>
+          <StatusBadge state={progress?.status ?? "NOT_SELECTED"}>상태: {humanize(progress?.status ?? "NOT_SELECTED")}</StatusBadge>
+          <p>{route.description ?? "경로 설명이 없습니다."}</p>
         </header>
         {progress ? (
-          <DetailSection title="Route progress">
-            <DetailRow name="Current step" value={`${currentStepPosition(route) ?? `Step #${progress.currentStepId}`} · ID ${progress.currentStepId}`} />
-            {percent !== null ? <div className="lag-journey-detail-progress"><ProgressBar label="Completed Route steps" percent={percent} valueText={`${completedSteps} / ${steps.length} completed (${percent}%)`} /></div> : null}
+          <DetailSection title="경로 진행">
+            <DetailRow name="현재 단계" value={`${currentStepPosition(route) ?? `단계 #${progress.currentStepId}`} · ID ${progress.currentStepId}`} />
+            {percent !== null ? <div className="lag-journey-detail-progress"><ProgressBar label="완료한 경로 단계" percent={percent} valueText={`${completedSteps} / ${steps.length} 완료 (${percent}%)`} /></div> : null}
           </DetailSection>
         ) : null}
         <RouteThread route={route} quests={queries.current.data} />
-        {detailState?.step ? <InfoCard>Current Step Detail: {detailState.step.step.title} · {detailState.step.step.state}</InfoCard> : null}
-        <section className="lag-journey-actions" aria-label="Available Route actions">
-          {!progress ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void selectRoute(route)}>Select Route</button> : null}
-          {canAdvance ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void advanceRoute(route)}>Advance Current Step</button> : null}
+        {detailState?.step ? <InfoCard>현재 단계 상세: {detailState.step.step.title} · {humanize(detailState.step.step.state)}</InfoCard> : null}
+        <section className="lag-journey-actions" aria-label="경로 동작">
+          {!progress ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void selectRoute(route)}>경로 선택</button> : null}
+          {canAdvance ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void advanceRoute(route)}>다음 단계로</button> : null}
         </section>
-        {progress?.status === "COMPLETED" ? <p className="lag-journey-feedback" data-state="success">✓ Route completed by an explicit final Step advance.</p> : null}
+        {progress?.status === "COMPLETED" ? <p className="lag-journey-feedback" data-state="success">✓ 마지막 단계 전진을 통해 경로를 완료했습니다.</p> : null}
       </article>
     );
   };
@@ -609,18 +610,18 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
         ? `journey-route-detail-${selectedRoute.id}`
         : null;
 
-  const listTitle = SUBMENUS_BY_MAIN.quests.find((item) => item.id === surface)?.label ?? "Journey";
-  const detailTitle = surface === "current" ? "Quest Detail" : surface === "catalog" ? "Blueprint Detail" : "Route Detail";
+  const listTitle = SUBMENUS_BY_MAIN.quests.find((item) => item.id === surface)?.label ?? "여정";
+  const detailTitle = surface === "current" ? "퀘스트 상세" : surface === "catalog" ? "퀘스트 안내" : "경로 상세";
 
   return (
     <div className="lag-panel-rail lag-journey-shell relative" data-testid="journey-shell">
-      <PanelStage stageKey="journey-root" inactive={Boolean(surface)}>
-        <PanelFrame title="Journey / Quest Route" depth={2}>
+      <PanelStage stageKey="journey-root" panelRole="list" inactive={Boolean(surface)}>
+        <PanelFrame title="여정 / 경로" depth={2}>
           <div className="lag-journey-root">
             <header>
-              <p className="lag-journey-eyebrow">Journey</p>
-              <h4>Choose your next Quest.</h4>
-              <p>Continue a Quest, explore the catalog, or follow a Route.</p>
+              <p className="lag-journey-eyebrow">여정</p>
+              <h4>다음 퀘스트를 선택하세요.</h4>
+              <p>퀘스트를 이어가거나 새 퀘스트와 경로를 살펴보세요.</p>
             </header>
             <div className="lag-journey-root-grid">
               {SUBMENUS_BY_MAIN.quests.map((item) => (
@@ -640,11 +641,11 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
       <AnimatePresence initial={false}>
         {surface ? (
-          <PanelStage stageKey="journey-list" inactive={compact && Boolean(detailContentKey)}>
-            <PanelFrame title={listTitle} depth={1} contentKey={surface} backButton={<BackButton label="Back to Journey" onClick={closeList} />}>
-              <section className="lag-journey-list-surface" aria-label={`${listTitle} list`}>
+          <PanelStage stageKey="journey-list" panelRole="list" inactive={compact && Boolean(detailContentKey)}>
+            <PanelFrame title={listTitle} depth={1} contentKey={surface} backButton={<BackButton label="여정으로" onClick={closeList} />}>
+              <section className="lag-journey-list-surface" aria-label={`${listTitle} 목록`}>
                 <p className="lag-journey-list-intro">{SURFACE_COPY[surface]}</p>
-                {navigation?.detail && !detailContentKey && !navigationPending ? <p role="status" className="lag-journey-feedback">Requested detail is unavailable in the current results. Return to Journey or choose another entry.</p> : null}
+                {navigation?.detail && !detailContentKey && !navigationPending ? <p role="status" className="lag-journey-feedback">현재 목록에서 요청한 상세를 찾을 수 없습니다. 여정으로 돌아가거나 다른 항목을 선택하세요.</p> : null}
                 {surface === "current" ? renderCurrentList() : surface === "catalog" ? renderCatalogList() : renderRouteList()}
               </section>
             </PanelFrame>
@@ -654,8 +655,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
       <AnimatePresence initial={false} mode="popLayout">
         {detailContentKey ? (
-          <PanelStage stageKey="journey-detail" side={compact ? "right" : "left"}>
-            <PanelFrame title={detailTitle} depth={0} contentKey={detailContentKey} backButton={<BackButton label={`Back to ${listTitle}`} onClick={closeDetail} />}>
+          <PanelStage stageKey="journey-detail" panelRole="detail" side={compact ? "right" : "left"}>
+            <PanelFrame title={detailTitle} depth={0} contentKey={detailContentKey} backButton={<BackButton label={`${listTitle}으로 돌아가기`} onClick={closeDetail} />}>
               {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
             </PanelFrame>
           </PanelStage>

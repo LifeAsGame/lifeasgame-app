@@ -1,12 +1,13 @@
 "use client";
 
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import SelectionConnections from "./SelectionConnections";
 import type { MainNavId } from "@/entities/nav";
 
-export default function ConsumerShell({ open, main, home, utilities, children, onOpen, onClose, onMenu }: {
+export default function ConsumerShell({ open, main, home, utilities, children, summary, onOpen, onClose, onMenu }: {
   open: boolean; main: MainNavId | null; home: React.ReactNode; utilities: React.ReactNode; children: React.ReactNode;
+  summary?: React.ReactNode;
   onOpen: () => void; onClose: () => void; onMenu: () => void;
 }) {
   const dialog = useRef<HTMLDivElement>(null);
@@ -14,7 +15,12 @@ export default function ConsumerShell({ open, main, home, utilities, children, o
   const caller = useRef<HTMLElement | null>(null);
   const previousOpen = useRef(false);
   const reduced = useReducedMotion();
-  const [geometry, setGeometry] = useState({ width: 1000, mobile: false, detail: false });
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const summaryBack = useRef<HTMLButtonElement>(null);
+  const summaryButton = useRef<HTMLButtonElement>(null);
+  const closeSummary = () => { setSummaryOpen(false); requestAnimationFrame(() => summaryButton.current?.focus()); };
+  useEffect(() => { setSummaryOpen(false); }, [main, open]);
+  const [geometry, setGeometry] = useState({ width: 1000, mobile: false, detail: false, narrow: true });
 
   useLayoutEffect(() => {
     const root = dialog.current;
@@ -22,8 +28,9 @@ export default function ConsumerShell({ open, main, home, utilities, children, o
     const update = () => {
       const width = Math.min(1110, window.innerWidth - (window.innerWidth < 900 ? 32 : 72));
       const mobile = window.innerWidth < 900;
-      const detail = Boolean(root.querySelector(':is([data-stage-key="journey-detail"], [data-stage-key="lifelog-journal-detail"], [data-stage-key="lifelog-quick-record"], [data-stage-key="lifelog-collection-detail"], [data-stage-key="lifelog-collection-form"]):not([aria-hidden="true"])'));
-      setGeometry((old) => old.width === width && old.mobile === mobile && old.detail === detail ? old : { width, mobile, detail });
+      const narrow = window.innerWidth < 1200;
+      const detail = Boolean(root.querySelector('[data-panel-role="detail"][data-panel-side="left"]:not([aria-hidden="true"])'));
+      setGeometry((old) => old.width === width && old.mobile === mobile && old.detail === detail && old.narrow === narrow ? old : { width, mobile, detail, narrow });
     };
     const observer = new MutationObserver(update);
     observer.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ["aria-hidden"] });
@@ -42,14 +49,29 @@ export default function ConsumerShell({ open, main, home, utilities, children, o
     previousOpen.current = open;
   }, [open, main]);
 
-  const showMenu = () => {
+  const showMenu = useCallback(() => {
     const selected = dialog.current?.querySelector<HTMLButtonElement>('[data-menu-id][aria-pressed="true"]');
     onMenu();
     requestAnimationFrame(() => { if (previousOpen.current) selected?.focus({ preventScroll: true }); });
-  };
+  }, [onMenu]);
+  const goBack = useCallback(() => {
+    const backs = [...(dialog.current?.querySelectorAll<HTMLButtonElement>('button[data-panel-back]:not(:disabled)') ?? [])].filter((button) => !button.closest('[inert], [aria-hidden="true"]') && button.getClientRects().length && getComputedStyle(button).visibility !== "hidden");
+    if (backs.length) backs.at(-1)?.click(); else if (main) showMenu(); else onClose();
+  }, [main, showMenu, onClose]);
+  useEffect(() => {
+    if (!open) return;
+    // Removing a focused stage leaves body focused until its caller is restored.
+    const backBetweenStages = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented && event.target === document.body) {
+        event.preventDefault(); goBack();
+      }
+    };
+    document.addEventListener("keydown", backBetweenStages);
+    return () => document.removeEventListener("keydown", backBetweenStages);
+  }, [open, goBack]);
   const leftWidth = Math.min(420, (geometry.width - 104) / 2);
   const detailLeft = Math.max(0, (geometry.width - (leftWidth * 2 + 104)) / 2);
-  const railX = (main === "quests" || main === "lifelog") && geometry.detail && !geometry.mobile ? detailLeft + leftWidth + 20 : 0;
+  const railX = geometry.detail && !geometry.mobile ? detailLeft + leftWidth + 20 : 0;
   return (
     <MotionConfig reducedMotion="user">
       <div className="sao-consumer" role={open ? "dialog" : undefined} aria-label={open ? "시스템 메뉴" : undefined} aria-modal={open ? true : undefined}
@@ -57,8 +79,7 @@ export default function ConsumerShell({ open, main, home, utilities, children, o
             if (event.defaultPrevented || (event.target as HTMLElement).closest('[role="dialog"]') !== event.currentTarget) return;
             if (event.key === "Escape") {
               event.preventDefault();
-              const backs = [...event.currentTarget.querySelectorAll<HTMLButtonElement>('button[aria-label^="Back to"]')].filter((button) => !button.closest('[inert], [aria-hidden="true"]') && button.getClientRects().length);
-              if (backs.length) backs.at(-1)?.click(); else if (main) showMenu(); else onClose();
+              goBack();
             }
             if (event.key === "Tab") {
               const nodes = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]')].filter((node) => !node.closest('[inert], [aria-hidden="true"]') && node.getClientRects().length && getComputedStyle(node).visibility !== "hidden");
@@ -74,14 +95,15 @@ export default function ConsumerShell({ open, main, home, utilities, children, o
         <div className="sao-global-utilities">{utilities}</div>
         <button ref={trigger} type="button" className="sao-menu-toggle" onClick={onOpen} aria-expanded={open} aria-controls="consumer-system-menu">◎ <span>시스템 메뉴</span></button>
         <motion.div ref={dialog} id="consumer-system-menu" className="sao-menu-layer" role="region" aria-label="메뉴 패널"
-          aria-hidden={!open || undefined} inert={!open} data-open={open} data-main={main ?? "menu"} data-detail={geometry.detail}
+          aria-hidden={!open || undefined} inert={!open} data-open={open} data-main={main ?? "menu"} data-detail={geometry.detail} data-summary-open={Boolean(summary && summaryOpen && geometry.narrow)}
           initial={false} animate={{ opacity: open ? 1 : 0 }} transition={{ duration: reduced ? 0 : 0.16 }}
           >
-          <header className="sao-menu-chrome"><div><span>SYSTEM MENU</span><h1>{main ? "Life As Game" : "오늘의 여정을 선택하세요"}</h1></div><div><button type="button" onClick={showMenu}>전체 메뉴</button><button type="button" onClick={onClose}>닫기 <span aria-hidden>×</span></button></div></header>
+          <header className="sao-menu-chrome"><div><span>시스템 메뉴</span><h1>{main ? "Life As Game" : "오늘의 여정을 선택하세요"}</h1></div><div>{summary ? <button ref={summaryButton} type="button" className="sao-summary-toggle" onClick={() => { setSummaryOpen(true); requestAnimationFrame(() => summaryBack.current?.focus({ preventScroll: true })); }}>플레이어 요약</button> : null}<button type="button" onClick={showMenu}>전체 메뉴</button><button type="button" onClick={onClose}>닫기 <span aria-hidden>×</span></button></div></header>
           <motion.div className="sao-stage" initial={false} animate={{ "--sao-rail-x": `${railX}px` }}
             transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 361, damping: 38 }}
             style={{ "--sao-detail-left": `${detailLeft}px`, "--sao-left-width": `${leftWidth}px`, "--sao-right-width": `${Math.min(440, geometry.width - 104)}px` } as React.CSSProperties}>
-            {children}
+            {summary ? <aside className="sao-player-summary" inert={geometry.narrow && !summaryOpen} aria-label="플레이어 요약"><button type="button" ref={summaryBack} className="sao-summary-back" data-panel-back onClick={closeSummary}>플레이어 화면으로</button>{summary}</aside> : null}
+            <div className="sao-stage-content" inert={Boolean(summary && summaryOpen && geometry.narrow)}>{children}</div>
             <SelectionConnections active={open && Boolean(main)} />
           </motion.div>
         </motion.div>

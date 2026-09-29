@@ -30,6 +30,7 @@ import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
+import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { requestStageFocus, useStageCamera } from "@/shared/hooks/useStageCamera";
 import {
   DEFAULT_SUB_SELECTIONS,
@@ -87,6 +88,7 @@ function buildPanels(
 export default function Home() {
   const router = useRouter();
   const location = useConsumerLocation();
+  const compactPlayer = useMediaQuery("(max-width: 1199px)");
   const { isAuthenticated, playerId, isLoading, logout } = useAuth();
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -157,6 +159,7 @@ export default function Home() {
     setSelectedRoleId(roleId);
   };
 
+  const submenuCaller = useRef<HTMLElement | null>(null);
   const handlePanelItemSelect = (panelIndex: number, itemId: string) => {
     const panel = panelStack[panelIndex];
     if (!panel || panel.kind !== "menu" || panel.context.route !== "main-submenu") return;
@@ -166,15 +169,18 @@ export default function Home() {
       return;
     }
 
+    submenuCaller.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     navigateConsumer(panel.context.main, selectedSubByMain[panel.context.main] === itemId ? null : itemId);
   };
 
   const closeFeatureSubmenu = (main: "player" | "inventory" | "market" | "lifelog") => {
     navigateConsumer(main);
     requestStageFocus(`${main}-stage-0`, "back");
+    requestAnimationFrame(() => {
+      if (submenuCaller.current?.isConnected && !submenuCaller.current.closest("[inert]")) submenuCaller.current.focus({ preventScroll: true });
+    });
   };
 
-  const leftContextMode = selectedMain === "player" ? "player" : selectedMain === "role" ? "role" : "hidden";
 
   useStageCamera(viewportRef, workspaceRef, selectedMain ?? "home", location.open && selectedMain !== "quests");
 
@@ -198,7 +204,7 @@ export default function Home() {
       : null;
 
   return (
-    <ConsumerShell open={location.open} main={selectedMain} home={<HomeShell
+    <ConsumerShell open={location.open} main={selectedMain} home={<HomeShell active={!location.open}
               onOpenJournal={() => {
                 navigateConsumer("lifelog", "journal");
               }}
@@ -213,6 +219,22 @@ export default function Home() {
               }}
               onOpenRole={handleRoleSelect}
             />}
+      summary={selectedMain === "player" ? <LeftContext
+          mode="player"
+          playerInfo={playerContext.data?.player}
+          equipments={playerContext.data?.equipments}
+          playerLoading={playerContext.loading}
+          playerError={playerContext.error}
+          roles={roleState.roles}
+          rolesLoading={roleState.isLoading}
+          rolesError={roleState.error}
+          selectedRoleId={selectedRoleId}
+          onPlayerRetry={() => void playerContext.reload()}
+          onRoleSelect={handleRoleSelect}
+          onRoleRetry={() => void roleState.refresh()}
+          onFocus={() => bringSurfaceToFront("left-context")}
+          zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
+        /> : undefined}
       utilities={<><SocialUtilityHub /><NotificationBell /></>}
       onOpen={() => navigateConsumer(null)} onClose={() => navigateConsumer(null, null, null, false)} onMenu={() => navigateConsumer(null)}>
     <div
@@ -240,7 +262,7 @@ export default function Home() {
 
         <div ref={workspaceRef} className="lag-workspace scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
         <LeftContext
-          mode={leftContextMode}
+          mode={selectedMain === "role" ? "role" : "hidden"}
           playerInfo={playerContext.data?.player}
           equipments={playerContext.data?.equipments}
           playerLoading={playerContext.loading}
@@ -256,9 +278,10 @@ export default function Home() {
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
           {selectedMain === null ? null : selectedMain === "player" ? (
-            <div className="flex w-fit items-center gap-3">
+            <div className="lag-player-panels flex w-fit items-center gap-3" data-player-child={Boolean(playerSurface)}>
               <RightPanels
                 selectedMain="player"
+                inactive={compactPlayer && Boolean(playerSurface)}
                 panelStack={panelStack.slice(0, 1)}
                 onPanelItemSelect={handlePanelItemSelect}
               />
@@ -337,7 +360,7 @@ export default function Home() {
 
       <SaoAlert
         isOpen={logoutAlertOpen}
-        title="Logout"
+        title="로그아웃"
         onConfirm={() => {
           setLogoutAlertOpen(false);
           logout();

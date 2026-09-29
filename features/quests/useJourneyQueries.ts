@@ -53,9 +53,9 @@ const loadRoutes = async () => {
 };
 
 export function useJourneyQueries(enabled: boolean) {
-  const current = useQuery<QuestAcceptance[]>(enabled, [], loadAcceptances, "Unable to load current Quests.");
-  const catalog = useQuery<QuestBlueprint[]>(enabled, [], loadCatalog, "Unable to load Quest catalog.");
-  const routes = useQuery<{ catalog: QuestRoute[]; mine: QuestRoute[] }>(enabled, { catalog: [], mine: [] }, loadRoutes, "Unable to load Quest Routes.");
+  const current = useQuery<QuestAcceptance[]>(enabled, [], loadAcceptances, "진행 퀘스트를 불러오지 못했습니다.");
+  const catalog = useQuery<QuestBlueprint[]>(enabled, [], loadCatalog, "퀘스트 목록을 불러오지 못했습니다.");
+  const routes = useQuery<{ catalog: QuestRoute[]; mine: QuestRoute[] }>(enabled, { catalog: [], mine: [] }, loadRoutes, "경로를 불러오지 못했습니다.");
 
   return { current, catalog, routes };
 }

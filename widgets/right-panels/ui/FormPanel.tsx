@@ -39,7 +39,7 @@ function FormFieldInput({
         onBlur={() => setFocused(false)}
         style={style}
       >
-        <option value="">Select…</option>
+        <option value="">선택하세요…</option>
         {field.options?.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}

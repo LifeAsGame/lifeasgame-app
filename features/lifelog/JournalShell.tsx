@@ -446,7 +446,7 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
 
   return (
     <div ref={shellRef} className="lag-panel-rail lag-journal-shell relative" data-testid="journal-shell">
-      <PanelStage stageKey="lifelog-journal" inactive={compact && (quickRecordOpen || journal.selectedLifeLogId !== null)}>
+      <PanelStage stageKey="lifelog-journal" panelRole="list" inactive={compact && (quickRecordOpen || journal.selectedLifeLogId !== null)}>
         <PanelFrame title="Journal / LifeLog" depth={1} resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={onBack ? <BackButton label="Back to Lifelog" onClick={onBack} /> : undefined}>
           <div className="lag-journal-surface">
             <div className="lag-journal-toolbar">
@@ -542,7 +542,7 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
 
       <AnimatePresence initial={false}>
         {quickRecordOpen ? (
-          <PanelStage stageKey="lifelog-quick-record" side={compact ? "right" : "left"}>
+          <PanelStage stageKey="lifelog-quick-record" panelRole="detail" side={compact ? "right" : "left"}>
             <PanelFrame title="Quick Record" depth={0} backButton={<BackButton label="Back to Journal" onClick={closeQuickRecord} />}>
               <div className="lag-quick-record-surface">
                 <div>
@@ -572,7 +572,7 @@ export default function JournalShell({ roles, rolesLoading = false, rolesError =
 
       <AnimatePresence initial={false}>
         {!quickRecordOpen && journal.selectedLifeLogId ? (
-          <PanelStage stageKey="lifelog-journal-detail" side={compact ? "right" : "left"}>
+          <PanelStage stageKey="lifelog-journal-detail" panelRole="detail" side={compact ? "right" : "left"}>
             <PanelFrame
               title="Journal Detail"
               depth={0}

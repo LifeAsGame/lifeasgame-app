@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { PanelStackItem } from "@/entities/nav";
@@ -55,4 +55,16 @@ describe("RightPanels stable stage frames", () => {
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
+});
+
+
+it("focuses an activated submenu before navigation even when pointer panning prevents native focus", () => {
+  let caller: Element | null = null;
+  const select = vi.fn(() => { caller = document.activeElement; });
+  render(<div onPointerDown={event => event.preventDefault()}><RightPanels selectedMain="player" panelStack={[root()]} onPanelItemSelect={select} /></div>);
+  const button = screen.getByRole("button", { name: /Title/ });
+  fireEvent.pointerDown(button); fireEvent.click(button);
+  expect(caller).toBe(button);
+  expect(button).toHaveFocus();
+  expect(select).toHaveBeenCalledExactlyOnceWith(0, "title");
 });

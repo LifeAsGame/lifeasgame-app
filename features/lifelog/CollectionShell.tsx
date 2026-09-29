@@ -122,7 +122,7 @@ export default function CollectionShell({ onBack }: { onBack?: () => void }) {
   const feedback = <Feedback pending={pending} error={collections.mutationError} success={collections.mutationSuccess} refreshError={collections.refreshError} reload={() => void collections.list.reload(true)} />;
   const list = collections.list;
   return <div ref={shell} className="lag-panel-rail lag-collection-shell relative">
-    <PanelStage stageKey="lifelog-collection-list" inactive={compact && activeKey !== null}>
+    <PanelStage stageKey="lifelog-collection-list" panelRole="list" inactive={compact && activeKey !== null}>
       <PanelFrame title="Collections" depth={1} resetScrollKey={`${collections.params.page}:${collections.params.category ?? ""}:${collections.params.titleLike ?? ""}`} backButton={onBack ? <BackButton label="Back to Lifelog" onClick={onBack} /> : undefined}>
         <div className="lag-journal-surface">
           <div className="lag-journal-toolbar"><div><p className="lag-journal-eyebrow">Collection</p><p className="lag-journal-intro">The stories behind the things you keep.</p></div><button type="button" aria-label="Add Collection" className="lag-journal-action" data-selected={mode === "create"} aria-expanded={mode === "create"} onClick={(event) => { caller.current = event.currentTarget; collections.resetMutation(); collections.clearSelection(); setMode("create"); }}>Add Collection</button></div>
@@ -140,7 +140,7 @@ export default function CollectionShell({ onBack }: { onBack?: () => void }) {
       </PanelFrame>
     </PanelStage>
     <AnimatePresence initial={false}>
-      {activeKey ? <PanelStage key={activeKey} stageKey={activeKey} side={compact ? "right" : "left"}>
+      {activeKey ? <PanelStage key={activeKey} stageKey={activeKey} panelRole="detail" side={compact ? "right" : "left"}>
         <PanelFrame title={mode === "create" ? "Add Collection" : mode === "edit" ? "Edit Collection" : "Collection Detail"} depth={0} contentKey={`${mode ?? "detail"}:${collections.selectedId ?? "new"}`} backButton={<BackButton label={mode === "edit" ? "Back to Collection detail" : "Back to Collection list"} onClick={mode ? cancelForm : () => returnToList()} />}>
           {mode ? <div className="lag-collection-form-surface"><CollectionForm item={mode === "edit" && item ? item : undefined} pending={pending} cancel={cancelForm} create={async (body) => { const saved = await collections.create(body); if (saved) setMode(null); return saved; }} update={async (body) => { const saved = item ? await collections.update(item.id, body) : false; if (saved) { setMode(null); requestStageFocus("lifelog-collection-detail", "back"); } return saved; }}>{feedback}</CollectionForm></div> : <>
             {collections.detail.loading && !item ? <InfoCard>Loading Collection...</InfoCard> : null}
