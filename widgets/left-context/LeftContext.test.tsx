@@ -83,12 +83,12 @@ describe("LeftContext에서 Role을 사용할 때", () => {
   it("shows explicit Player loading/error states and retries without placeholder identity", () => {
     const retry = vi.fn();
     const view = render(<LeftContext mode="player" playerLoading onPlayerRetry={retry} />);
-    expect(screen.getByRole("status")).toHaveTextContent("Loading Player context");
+    expect(screen.getByRole("status")).toHaveTextContent("플레이어 요약을 불러오는 중");
     expect(screen.queryByText("Adventurer")).not.toBeInTheDocument();
 
     view.rerender(<LeftContext mode="player" playerError="Player unavailable" onPlayerRetry={retry} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Player unavailable");
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
     expect(retry).toHaveBeenCalledTimes(1);
   });
 
@@ -106,7 +106,7 @@ describe("LeftContext에서 Role을 사용할 때", () => {
 
     expect(screen.getByRole("heading", { name: MOCK_CHARACTER_SHEET.player.name })).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Equipment unavailable");
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
     expect(retry).toHaveBeenCalledOnce();
   });
 
@@ -114,11 +114,11 @@ describe("LeftContext에서 Role을 사용할 때", () => {
     const equipment = [{ ...MOCK_CHARACTER_SHEET.equipments[0], slotCode: "HEAD", slotName: "Head", slotCategory: null, slotRole: null, itemInstanceId: 999 }];
     render(<LeftContext mode="player" playerInfo={MOCK_CHARACTER_SHEET.player} equipments={equipment} />);
 
-    expect(screen.getByText("Equipped · Item #999")).toBeInTheDocument();
+    expect(screen.getByText("장착됨 · 아이템 #999")).toBeInTheDocument();
     expect(screen.queryByText("Elucidator")).not.toBeInTheDocument();
     expect(screen.getByText("HEAD")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Head/ }));
-    expect(screen.getByText("Item ID").parentElement).toHaveTextContent("999");
+    expect(screen.getByText("아이템 번호").parentElement).toHaveTextContent("999");
     expect(screen.queryByText("Category")).not.toBeInTheDocument();
     expect(screen.queryByText("Role")).not.toBeInTheDocument();
   });

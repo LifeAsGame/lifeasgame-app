@@ -22,7 +22,7 @@ export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }:
   const scrollRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => { scrollRef.current?.scrollTo({ top: 0, behavior: "instant" }); }, [selectedId]);
   return (
-    <nav className="lag-orb-nav" aria-label="System menu" data-compact={Boolean(selectedId)} onPointerDownCapture={onFocus} style={{ zIndex }}>
+    <nav className="lag-orb-nav" aria-label="시스템 메뉴" data-compact={Boolean(selectedId)} onPointerDownCapture={onFocus} style={{ zIndex }}>
       <div ref={scrollRef} className="lag-orb-scroll" onKeyDown={(event) => {
         if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
         const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")].filter((button) => button.getClientRects().length);

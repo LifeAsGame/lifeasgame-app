@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getHomeApi } from "./api";
 import type { HomeSummary } from "./model";
 
-export function useHomeQuery() {
+export function useHomeQuery(active = true) {
   const [data, setData] = useState<HomeSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export function useHomeQuery() {
       return next;
     } catch (caught) {
       if (currentRequestId === requestId.current) {
-        setError(caught instanceof Error ? caught.message : "Unable to load Home.");
+        setError(caught instanceof Error ? caught.message : "홈 요약을 불러오지 못했습니다.");
       }
       return undefined;
     } finally {
@@ -29,7 +29,10 @@ export function useHomeQuery() {
     }
   }, []);
 
-  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => {
+    if (active) void reload();
+    return () => { requestId.current += 1; };
+  }, [active, reload]);
 
   return { data, loading, error, reload };
 }

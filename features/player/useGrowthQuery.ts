@@ -18,7 +18,7 @@ export function useGrowthQuery() {
       setData(next);
       return next;
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to load Growth.");
+      setError(caught instanceof Error ? caught.message : "성장을 불러오지 못했습니다.");
       return undefined;
     } finally {
       setLoading(false);

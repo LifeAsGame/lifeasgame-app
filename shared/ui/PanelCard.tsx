@@ -164,9 +164,10 @@ export default function PanelCard({
     longPress.onPointerCancel(e);
   };
 
-  const handleClick = () => {
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (swipeFiredRef.current) { swipeFiredRef.current = false; return; }
     if (longPress.didLongPress()) return;
+    event.currentTarget.focus({ preventScroll: true });
 
     if (!onDoubleClick) {
       onClick?.();

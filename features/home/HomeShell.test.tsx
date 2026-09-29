@@ -30,17 +30,17 @@ describe("Home world summary를 표시할 때", () => {
     it("QUICK, Achievement, GOAL_REACHED, multiple Routes, server Role share와 unassigned를 그대로 표시한다", () => {
       render(<HomeShell {...callbacks} />);
 
-      expect(screen.getByText("Distributed Systems Notes").closest("button")).toHaveTextContent("COLLECTION · QUICK");
-      expect(screen.getByRole("button", { name: /RUNNING/ })).toHaveTextContent("2026-08-12");
+      expect(screen.getByText("Distributed Systems Notes").closest("button")).toHaveTextContent("수집 기록 · 간편 기록");
+      expect(screen.getByRole("button", { name: /달리기/ })).toHaveTextContent("2026-08-12");
       expect(screen.getByRole("button", { name: /Designing Data-Intensive Applications/ })).toHaveTextContent("250/616");
       expect(screen.getByText("First World Trace")).toBeInTheDocument();
-      expect(screen.getByText(/GOAL_REACHED · 25 \/ 25/)).toBeInTheDocument();
+      expect(screen.getByText(/목표 도달 · 25 \/ 25/)).toBeInTheDocument();
       expect(screen.getByText("Begin with Records")).toBeInTheDocument();
       expect(screen.getByText("Build a Recovery Rhythm")).toBeInTheDocument();
-      expect(screen.getByText("5 records · 62.5%")).toBeInTheDocument();
-      expect(screen.getByText("Assigned").closest("div")).toHaveTextContent("8");
-      expect(screen.getByText("Unassigned").closest("div")).toHaveTextContent("2");
-      expect(screen.getByText("Total records").closest("div")).toHaveTextContent("10");
+      expect(screen.getByText("5건 · 62.5%")).toBeInTheDocument();
+      expect(screen.getByText("역할 지정").closest("div")).toHaveTextContent("8");
+      expect(screen.getByText("역할 미지정").closest("div")).toHaveTextContent("2");
+      expect(screen.getByText("전체 기록").closest("div")).toHaveTextContent("10");
       expect(screen.getByRole("button", { name: /Begin with Records/ })).not.toHaveTextContent("%");
       expect(screen.getByTestId("home-shell")).not.toHaveTextContent(/streak|life score|productivity score|\bXP\b/i);
     });
@@ -48,7 +48,7 @@ describe("Home world summary를 표시할 때", () => {
     it("nullable metadata와 raw relationship ID를 primary copy로 노출하지 않는다", () => {
       render(<HomeShell {...callbacks} />);
 
-      expect(screen.getByText("Unnamed Role")).toBeInTheDocument();
+      expect(screen.getByText("이름 없는 역할")).toBeInTheDocument();
       expect(screen.getByTestId("home-shell")).not.toHaveTextContent(/null|undefined|not recorded/i);
       expect(screen.getByTestId("home-shell")).not.toHaveTextContent(/Role #|Event #|Current Step #/);
     });
@@ -95,7 +95,7 @@ describe("Home world summary를 표시할 때", () => {
       render(<HomeShell {...callbacks} />);
 
       const exercise = screen.getByRole("button", { name: /STRETCHING/ });
-      expect(exercise).toHaveTextContent("0 min · 0 km · 0 kcal");
+      expect(exercise).toHaveTextContent("0분 · 0 km · 0 kcal");
       expect(exercise).not.toHaveTextContent(/null|undefined|not recorded/i);
     });
 
@@ -124,7 +124,7 @@ describe("Home world summary를 표시할 때", () => {
 
       const media = screen.getByRole("button", { name: /Sparse Media/ });
       expect(media).toHaveTextContent("Sparse Media");
-      expect(media).toHaveTextContent("BOOK");
+      expect(media).toHaveTextContent("도서");
       expect(media).not.toHaveTextContent(/null|undefined|not recorded|\//i);
     });
 
@@ -158,8 +158,8 @@ describe("Home world summary를 표시할 때", () => {
 
       const current = screen.getByRole("button", { name: /Current Only/ });
       const total = screen.getByRole("button", { name: /Total Only/ });
-      expect(current).toHaveTextContent("Episode 0");
-      expect(total).toHaveTextContent("Total 12");
+      expect(current).toHaveTextContent("회차 0");
+      expect(total).toHaveTextContent("전체 12");
       expect(current).not.toHaveTextContent("/");
       expect(total).not.toHaveTextContent("/");
     });
@@ -176,11 +176,11 @@ describe("Home world summary를 표시할 때", () => {
       };
       render(<HomeShell {...callbacks} />);
 
-      expect(screen.getByText("No recent Journal entries.")).toBeInTheDocument();
-      expect(screen.getByText("No recent Achievements.")).toBeInTheDocument();
-      expect(screen.getByText("No current Quests.")).toBeInTheDocument();
-      expect(screen.getByText("No selected Routes.")).toBeInTheDocument();
-      expect(screen.getByText("No assigned Role activity.")).toBeInTheDocument();
+      expect(screen.getByText("최근 기록이 없습니다.")).toBeInTheDocument();
+      expect(screen.getByText("최근 획득한 업적이 없습니다.")).toBeInTheDocument();
+      expect(screen.getByText("진행 중인 퀘스트가 없습니다.")).toBeInTheDocument();
+      expect(screen.getByText("선택한 경로가 없습니다.")).toBeInTheDocument();
+      expect(screen.getByText("역할에 연결된 활동이 없습니다.")).toBeInTheDocument();
       expect(screen.queryByText(/%/)).not.toBeInTheDocument();
     });
   });
@@ -189,12 +189,12 @@ describe("Home world summary를 표시할 때", () => {
     it("initial loading과 Home-level error/retry를 표시한다", () => {
       query.state = { data: null, loading: true, error: null, reload: vi.fn() };
       const { rerender } = render(<HomeShell {...callbacks} />);
-      expect(screen.getByText("Loading Home...")).toBeInTheDocument();
+      expect(screen.getByText("홈을 불러오는 중…")).toBeInTheDocument();
 
       query.state = { data: null, loading: false, error: "Home unavailable", reload: vi.fn() };
       rerender(<HomeShell {...callbacks} />);
       expect(screen.getByRole("alert")).toHaveTextContent("Home unavailable");
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
       expect(query.state.reload).toHaveBeenCalledOnce();
     });
   });

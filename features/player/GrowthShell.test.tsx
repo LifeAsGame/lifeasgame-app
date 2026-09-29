@@ -47,7 +47,7 @@ describe("v7 Growth surface를 사용할 때", () => {
     for (const value of ["21", "22", "23", "24", "25", "26", "7", "9"]) expect(screen.getByText(value)).toBeInTheDocument();
     expect(screen.getByText("Focus")).toBeInTheDocument();
     expect(screen.getByText("Balance")).toBeInTheDocument();
-    expect(screen.getByText("Representative title ID · 41")).toBeInTheDocument();
+    expect(screen.getByText("대표 칭호 번호 · 41")).toBeInTheDocument();
     expect(screen.queryByText(/1,230|1,600|Knowledge|Health|Relation|Creativity|Achievement|progress|%/i)).not.toBeInTheDocument();
 
     const source = readFileSync("features/player/GrowthShell.tsx", "utf8");
@@ -64,30 +64,33 @@ describe("v7 Growth surface를 사용할 때", () => {
     api.getPlayerGrowthApi.mockResolvedValue({ ...overview, current: { ...overview.current, extraStats: {} } });
     render(<GrowthShell />);
 
-    expect(await screen.findByText("No extra stats.")).toBeInTheDocument();
+    expect(await screen.findByText("추가 능력치가 없습니다.")).toBeInTheDocument();
+    expect(document.querySelector('[data-stage-key="player-growth-history"]')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /경험치 이력 보기/ }));
     expect(screen.getByRole("button", { name: /\+80 EXP/ })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByText("QUEST")).toBeInTheDocument();
-    expect(screen.getByText("Source unavailable")).toBeInTheDocument();
+    expect(screen.getByText("퀘스트")).toBeInTheDocument();
+    expect(screen.getByText("출처 정보 없음")).toBeInTheDocument();
     expect(document.querySelector('[data-stage-key="player-growth-change-detail"]')).not.toBeInTheDocument();
   });
 
   it("명시 선택으로 canonical detail을 열고 change 교체 시 outer frame을 유지한다", async () => {
     render(<GrowthShell />);
-    fireEvent.click(await screen.findByRole("button", { name: /\+80 EXP/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /경험치 이력 보기/ }));
+    fireEvent.click(screen.getByRole("button", { name: /\+80 EXP/ }));
 
     const detail = document.querySelector('[data-stage-key="player-growth-change-detail"]');
     expect(detail).toBeInTheDocument();
-    for (const value of ["71", "100", "80", "20", "762", "842", "2026-08-20T09:00:00Z", "QUEST", "31"]) {
+    for (const value of ["71", "100", "80", "20", "762", "842", "2026-08-20T09:00:00Z", "퀘스트", "31"]) {
       expect(screen.getAllByText(value).length).toBeGreaterThan(0);
     }
 
     fireEvent.click(screen.getByRole("button", { name: /\+30 EXP/ }));
     expect(document.querySelector('[data-stage-key="player-growth-change-detail"]')).toBe(detail);
     expect(screen.getAllByText("70").length).toBeGreaterThan(0);
-    expect(screen.getByText("Not available without source type")).toBeInTheDocument();
+    expect(screen.getByText("출처 유형이 없어 확인할 수 없습니다")).toBeInTheDocument();
     expect(screen.queryByText("999")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Back to EXP History" }));
+    fireEvent.click(screen.getByRole("button", { name: "경험치 이력으로" }));
     await waitFor(() => expect(document.querySelector('[data-stage-key="player-growth-change-detail"]')).not.toBeInTheDocument());
   });
 
@@ -98,8 +101,8 @@ describe("v7 Growth surface를 사용할 때", () => {
     await screen.findByText("842");
 
     focus.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: /View EXP History/ }));
-    expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "player-growth-history", align: "center" } });
+    fireEvent.click(screen.getByRole("button", { name: /경험치 이력 보기/ }));
+    expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "player-growth-history", align: "forward" } });
     fireEvent.click(screen.getByRole("button", { name: /\+80 EXP/ }));
     expect(document.querySelector('[data-stage-key="player-growth-change-detail"]')).toBeInTheDocument();
 
@@ -114,7 +117,7 @@ describe("v7 Growth surface를 사용할 때", () => {
     const pending = deferred<PlayerGrowthOverview>();
     api.getPlayerGrowthApi.mockReturnValueOnce(pending.promise);
     const view = render(<GrowthShell />);
-    expect(screen.getByText("Loading Growth...")).toHaveAttribute("role", "status");
+    expect(screen.getByText("성장을 불러오는 중…")).toHaveAttribute("role", "status");
 
     await act(async () => { pending.resolve(overview); await pending.promise; });
     await screen.findByText("842");
@@ -123,7 +126,8 @@ describe("v7 Growth surface를 사용할 때", () => {
     api.getPlayerGrowthApi.mockRejectedValueOnce(new Error("Growth unavailable")).mockResolvedValueOnce({ ...overview, recentExpChanges: [] });
     render(<GrowthShell />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Growth unavailable");
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByText("No recent EXP changes.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
+    fireEvent.click(await screen.findByRole("button", { name: /경험치 이력 보기/ }));
+    expect(await screen.findByText("최근 경험치 변동이 없습니다.")).toBeInTheDocument();
   });
 });

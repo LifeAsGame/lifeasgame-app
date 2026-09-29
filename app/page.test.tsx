@@ -110,7 +110,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   describe("authenticated Player authority를 연결하면", () => {
     it("Player context는 proven composed query를 사용하고 unsupported sheet/mock authority를 포함하지 않는다", () => {
       renderHome();
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
 
       expect(playerContextHook.usePlayerContext).toHaveBeenLastCalledWith(true);
       expect(readFileSync("app/page.tsx", "utf8")).not.toMatch(/useCharacterSheet|players\/me\/sheet|MOCK_CHARACTER_SHEET|MOCK_EQUIPPED_ITEMS/);
@@ -165,13 +165,13 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("feature를 열고 active Orb를 다시 누르면 Home으로 돌아간다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
       expect(screen.getByTestId("home-shell")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Player" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "플레이어" })).toHaveAttribute("aria-pressed", "true");
 
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
       expect(screen.getByTestId("home-shell")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Player" })).toHaveAttribute("aria-pressed", "false");
+      expect(screen.getByRole("button", { name: "플레이어" })).toHaveAttribute("aria-pressed", "false");
     });
   });
 
@@ -194,7 +194,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
 
       const achievement = renderHome();
       fireEvent.click(screen.getByRole("button", { name: "Home Achievement" }));
-      expect(screen.getByRole("button", { name: "Achievement" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "업적" })).toBeInTheDocument();
       expect(screen.getByTestId("achievement-shell")).toBeInTheDocument();
       achievement.unmount();
 
@@ -208,25 +208,25 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("Journal과 Role options를 연결하고 Back으로 기존 LifeLog submenu를 복원한다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "Lifelog" }));
-      fireEvent.click(screen.getByRole("button", { name: "Journal" }));
+      fireEvent.click(screen.getByRole("button", { name: "생활 기록" }));
+      fireEvent.click(screen.getByRole("button", { name: "기록 모아보기" }));
 
       expect(screen.getByTestId("journal-shell")).toHaveTextContent("Backend Engineer");
       fireEvent.click(screen.getByRole("button", { name: "Back to Lifelog" }));
-      expect(screen.getByRole("button", { name: "Collection" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Media" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Exercise" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "수집 기록" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "감상 기록" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "운동 기록" })).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: "Collection" }));
+      fireEvent.click(screen.getByRole("button", { name: "수집 기록" }));
       expect(screen.queryByTestId("journal-shell")).not.toBeInTheDocument();
       expect(screen.getByTestId("collection-shell")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "Back to Lifelog" }));
 
-      fireEvent.click(screen.getByRole("button", { name: "Media" }));
+      fireEvent.click(screen.getByRole("button", { name: "감상 기록" }));
       expect(screen.queryByTestId("collection-shell")).not.toBeInTheDocument();
       expect(screen.getByTestId("media-shell")).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: "Exercise" }));
+      fireEvent.click(screen.getByRole("button", { name: "운동 기록" }));
       expect(screen.queryByTestId("collection-shell")).not.toBeInTheDocument();
       expect(screen.getByTestId("exercise-shell")).toBeInTheDocument();
     });
@@ -234,9 +234,9 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("Role과 Journey feature shell routing을 그대로 유지한다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "Role" }));
+      fireEvent.click(screen.getByRole("button", { name: "역할" }));
       expect(screen.getByTestId("role-shell")).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Journey" }));
+      fireEvent.click(screen.getByRole("button", { name: "여정" }));
       expect(screen.getByTestId("journey-shell")).toBeInTheDocument();
     });
   });
@@ -245,8 +245,8 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("generic static panels 대신 feature-owned CertificationShell로 routing한다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
-      fireEvent.click(screen.getByRole("button", { name: "Credentials" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
+      fireEvent.click(screen.getByRole("button", { name: "자격증" }));
 
       expect(screen.getByTestId("certification-shell")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Cloud" })).not.toBeInTheDocument();
@@ -256,14 +256,14 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   describe("Player child stage를 전환하거나 내부 detail을 선택하면", () => {
     it("Player root/menu DOM instance를 계속 유지한다", () => {
       renderHome();
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
       const root = screen.getByTestId("right-panels");
 
-      fireEvent.click(screen.getByRole("button", { name: "Title" }));
+      fireEvent.click(screen.getByRole("button", { name: "칭호" }));
       expect(screen.getByTestId("right-panels")).toBe(root);
       fireEvent.click(screen.getByRole("button", { name: "Select Mock Title" }));
       expect(screen.getByTestId("right-panels")).toBe(root);
-      fireEvent.click(screen.getByRole("button", { name: "Credentials" }));
+      fireEvent.click(screen.getByRole("button", { name: "자격증" }));
       expect(screen.getByTestId("right-panels")).toBe(root);
     });
   });
@@ -271,25 +271,26 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   describe("인증된 player가 Growth를 선택하면", () => {
     it("첫 Player submenu에서 backend-owned overview와 ordered history를 렌더한다", async () => {
       renderHome();
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
 
       const submenu = screen.getByTestId("right-panels").querySelectorAll("button");
-      expect([...submenu].map((button) => button.textContent)).toEqual(["Growth", "Achievement", "Credentials", "Title", "Interests"]);
-      fireEvent.click(screen.getByRole("button", { name: "Growth" }));
+      expect([...submenu].map((button) => button.textContent)).toEqual(["성장", "업적", "자격증", "칭호", "취미"]);
+      fireEvent.click(screen.getByRole("button", { name: "성장" }));
 
       expect(await screen.findByTestId("growth-shell")).toBeInTheDocument();
-      expect(document.querySelector(".lag-growth-level-mark")).toHaveTextContent("Level8");
-      expect(screen.getByText("Current EXP").parentElement).toHaveTextContent("842");
-      expect(screen.getByText("No extra stats.")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /\+80 EXP/ })).toHaveTextContent("QUEST");
-      expect(screen.getByText("Source unavailable")).toBeInTheDocument();
+      expect(document.querySelector(".lag-growth-level-mark")).toHaveTextContent("레벨8");
+      expect(screen.getByText("누적 경험치").parentElement).toHaveTextContent("842");
+      expect(screen.getByText("추가 능력치가 없습니다.")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /경험치 이력 보기/ }));
+      expect(screen.getByRole("button", { name: /\+80 EXP/ })).toHaveTextContent("퀘스트");
+      expect(screen.getByText("출처 정보 없음")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /\+80 EXP/ }));
       expect(document.querySelector('[data-stage-key="player-growth-change-detail"]')).toBeInTheDocument();
-      expect(screen.getByText("Requested EXP").parentElement).toHaveTextContent("100");
-      expect(screen.getByText("Applied EXP").parentElement).toHaveTextContent("80");
-      expect(screen.getByText("Leftover EXP").parentElement).toHaveTextContent("20");
-      expect(screen.getByText("Source type").parentElement).toHaveTextContent("QUEST");
-      expect(screen.getByText("Source ID").parentElement).toHaveTextContent("31");
+      expect(screen.getByText("요청 경험치").parentElement).toHaveTextContent("100");
+      expect(screen.getByText("반영 경험치").parentElement).toHaveTextContent("80");
+      expect(screen.getByText("미반영 경험치").parentElement).toHaveTextContent("20");
+      expect(screen.getByText("출처 유형").parentElement).toHaveTextContent("퀘스트");
+      expect(screen.getByText("출처 번호").parentElement).toHaveTextContent("31");
       expect(screen.queryByText("999")).not.toBeInTheDocument();
       expect(screen.queryByText(/next level|percentage|remaining exp|radar/i)).not.toBeInTheDocument();
       expect(growthApi.getPlayerGrowthApi).toHaveBeenCalledTimes(1);
@@ -300,8 +301,8 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("generic static panels 대신 feature-owned TitleShell로 routing한다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
-      fireEvent.click(screen.getByRole("button", { name: "Title" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
+      fireEvent.click(screen.getByRole("button", { name: "칭호" }));
 
       expect(screen.getByTestId("title-shell")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Combat" })).not.toBeInTheDocument();
@@ -310,13 +311,13 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("다른 Player submenu로 전환했다 돌아오면 이전 detail state를 복원하지 않는다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
-      fireEvent.click(screen.getByRole("button", { name: "Title" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
+      fireEvent.click(screen.getByRole("button", { name: "칭호" }));
       fireEvent.click(screen.getByRole("button", { name: "Select Mock Title" }));
       expect(screen.getByText("Mock Title Detail")).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: "Growth" }));
-      fireEvent.click(screen.getByRole("button", { name: "Title" }));
+      fireEvent.click(screen.getByRole("button", { name: "성장" }));
+      fireEvent.click(screen.getByRole("button", { name: "칭호" }));
       expect(screen.queryByText("Mock Title Detail")).not.toBeInTheDocument();
     });
   });
@@ -324,8 +325,8 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   describe("인증된 player가 Interests를 선택하면", () => {
     it("generic static panels 대신 feature-owned HobbyShell로 routing한다", () => {
       renderHome();
-      fireEvent.click(screen.getByRole("button", { name: "Player" }));
-      fireEvent.click(screen.getByRole("button", { name: "Interests" }));
+      fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
+      fireEvent.click(screen.getByRole("button", { name: "취미" }));
       expect(screen.getByTestId("hobby-shell")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Tech" })).not.toBeInTheDocument();
     });
@@ -335,14 +336,14 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("Items와 Inbox는 feature-owned shell에 연결하고 기존 Gear route는 유지한다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "Inventory" }));
-      fireEvent.click(screen.getByRole("button", { name: "Items" }));
+      fireEvent.click(screen.getByRole("button", { name: "소지품" }));
+      fireEvent.click(screen.getByRole("button", { name: "아이템" }));
       expect(screen.getByTestId("inventory-shell")).toHaveTextContent("Inventory · items");
 
-      fireEvent.click(screen.getByRole("button", { name: "Inbox" }));
+      fireEvent.click(screen.getByRole("button", { name: "수신함" }));
       expect(screen.getByTestId("inventory-shell")).toHaveTextContent("Inventory · inbox");
 
-      fireEvent.click(screen.getByRole("button", { name: "Gear" }));
+      fireEvent.click(screen.getByRole("button", { name: "장비" }));
       expect(screen.queryByTestId("inventory-shell")).not.toBeInTheDocument();
       expect(screen.getByTestId("gear-shell")).toBeInTheDocument();
     });
@@ -351,9 +352,9 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
   describe("인증된 user가 System Options를 선택하면", () => {
     it("page-owned form 대신 feature-owned Settings shell로 routing한다", () => {
       renderHome();
-      fireEvent.click(screen.getByRole("button", { name: "System" }));
+      fireEvent.click(screen.getByRole("button", { name: "설정" }));
       expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Options" }));
+      fireEvent.click(screen.getByRole("button", { name: "환경 설정" }));
 
       expect(screen.getByTestId("settings-shell")).toHaveTextContent("Canonical Settings");
     });
@@ -369,9 +370,9 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("market internal key는 유지하고 feature-owned canonical surface로 routing한다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "Exchange" }));
-      expect(screen.getByRole("button", { name: "Wallet" })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Shop" }));
+      fireEvent.click(screen.getByRole("button", { name: "거래소" }));
+      expect(screen.getByRole("button", { name: "지갑" })).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "상점" }));
 
       expect(screen.getByTestId("exchange-shell")).toHaveTextContent("Exchange · shop · Player #7");
     });

@@ -10,15 +10,15 @@ beforeEach(() => {
 it("keeps DOM order and focused ID stable across repeated selections, then resets", () => {
   const select = vi.fn();
   const view = render(<OrbNav items={MAIN_NAV_ITEMS} selectedId={null} onSelect={select} />);
-  const journey = screen.getByRole("button", { name: "Journey" });
+  const journey = screen.getByRole("button", { name: "여정" });
   fireEvent.click(journey);
   view.rerender(<OrbNav items={bringToFrontStable(MAIN_NAV_ITEMS, "quests", x => x.id)} selectedId="quests" onSelect={select} />);
   expect(journey).toHaveFocus();
-  const exchange = screen.getByRole("button", { name: "Exchange" });
+  const exchange = screen.getByRole("button", { name: "거래소" });
   fireEvent.click(exchange);
   view.rerender(<OrbNav items={bringToFrontStable(MAIN_NAV_ITEMS, "market", x => x.id)} selectedId="market" onSelect={select} />);
   expect(exchange).toHaveFocus();
-  expect(screen.getAllByRole("button").map(x => x.getAttribute("aria-label"))).toEqual(["Exchange", "Player", "Inventory", "Journey", "Role", "Lifelog", "System"]);
+  expect(screen.getAllByRole("button").map(x => x.getAttribute("aria-label"))).toEqual(["거래소", "플레이어", "소지품", "여정", "역할", "생활 기록", "설정"]);
   view.rerender(<OrbNav items={MAIN_NAV_ITEMS} selectedId={null} onSelect={select} />);
-  expect(screen.getAllByRole("button")[0]).toHaveAccessibleName("Player");
+  expect(screen.getAllByRole("button")[0]).toHaveAccessibleName("플레이어");
 });

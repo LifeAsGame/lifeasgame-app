@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, SAO_ICON } from "@/shared/design/tokens";
 
 export type SaoAlertProps = {
@@ -20,17 +20,31 @@ export default function SaoAlert({
   message,
   onConfirm,
   onCancel,
-  confirmLabel = "Yes",
-  cancelLabel = "No",
+  confirmLabel = "확인",
+  cancelLabel = "취소",
 }: SaoAlertProps) {
+  const dialog = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const caller = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialog.current?.focus();
+    return () => { if (caller?.isConnected) caller.focus({ preventScroll: true }); };
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-      if (e.key === "Enter") onConfirm();
+      if (e.key === "Tab") {
+        const buttons = dialog.current?.querySelectorAll<HTMLButtonElement>("button");
+        const first = buttons?.[0], last = buttons?.[buttons.length - 1];
+        if (e.shiftKey && (e.target === first || e.target === dialog.current)) { e.preventDefault(); last?.focus(); }
+        else if (!e.shiftKey && e.target === last) { e.preventDefault(); first?.focus(); }
+      }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onCancel(); }
+      if (e.key === "Enter" && e.target === dialog.current) { e.preventDefault(); onConfirm(); }
     };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [isOpen, onCancel, onConfirm]);
 
   return (
@@ -38,6 +52,7 @@ export default function SaoAlert({
       {isOpen ? (
         <motion.div
           key="sao-alert-overlay"
+          ref={dialog} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -143,7 +158,7 @@ export default function SaoAlert({
                 >
                   <img
                     src={SAO_ICON.yes}
-                    alt="Yes"
+                    alt=""
                     width={40}
                     height={40}
                     style={{ display: "block" }}
@@ -178,7 +193,7 @@ export default function SaoAlert({
                 >
                   <img
                     src={SAO_ICON.no}
-                    alt="No"
+                    alt=""
                     width={40}
                     height={40}
                     style={{ display: "block" }}

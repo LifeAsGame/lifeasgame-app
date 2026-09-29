@@ -5,7 +5,7 @@ import EdgeFadeScrollArea from "@/shared/ui/EdgeFadeScrollArea";
 import { StageContentTransition } from "@/shared/ui/PanelStage";
 import { getFrameBackground, getFrameStyle, D, cellStyle } from "./styles";
 
-export function BackButton({ onClick, label = "Back to previous panel" }: { onClick: () => void; label?: string }) {
+export function BackButton({ onClick, label = "이전 화면으로" }: { onClick: () => void; label?: string }) {
   return (
     <button
       type="button"
@@ -13,6 +13,7 @@ export function BackButton({ onClick, label = "Back to previous panel" }: { onCl
       style={{ ...cellStyle, borderRadius: "50%", flexShrink: 0 }}
       onClick={onClick}
       aria-label={label}
+      data-panel-back
     >
       <span style={{ fontSize: "14px", color: D.textSub }}>←</span>
     </button>

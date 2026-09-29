@@ -1,10 +1,10 @@
 import type { QuestAcceptance, QuestBlueprint } from "@/shared/api/types";
 
 export const QUEST_STATUS_LABEL: Record<QuestAcceptance["status"], string> = {
-  IN_PROGRESS: "In Progress",
-  GOAL_REACHED: "Goal Reached",
-  COMPLETED: "Completed",
-  CANCELED: "Canceled",
+  IN_PROGRESS: "진행 중",
+  GOAL_REACHED: "목표 도달",
+  COMPLETED: "완료",
+  CANCELED: "취소됨",
 };
 
 export function questProgressPercent(quest: QuestAcceptance): number {
