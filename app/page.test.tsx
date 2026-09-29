@@ -234,7 +234,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     it("Role과 Journey feature shell routing을 그대로 유지한다", () => {
       renderHome();
 
-      fireEvent.click(screen.getByRole("button", { name: "역할" }));
+      fireEvent.click(screen.getByRole("button", { name: "인물 · 역할" }));
       expect(screen.getByTestId("role-shell")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "여정" }));
       expect(screen.getByTestId("journey-shell")).toBeInTheDocument();

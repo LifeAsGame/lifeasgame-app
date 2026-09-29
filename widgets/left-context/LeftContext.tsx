@@ -7,7 +7,7 @@ import { MOTION } from "@/shared/lib/motion";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
 import { PlayerPanel } from "./ui/PlayerPanel";
-import { RoleContextPanel } from "./ui/RoleContextPanel";
+import { RoleContextPanel, type RoleWorkspace } from "./ui/RoleContextPanel";
 
 type LeftContextMode = "hidden" | "player" | "role";
 
@@ -24,6 +24,11 @@ type LeftContextProps = {
   onPlayerRetry?: () => void;
   onRoleSelect?: (roleId: number) => void;
   onRoleRetry?: () => void;
+  roleWorkspace?: RoleWorkspace;
+  onRoleWorkspaceChange?: (workspace: RoleWorkspace, create?: boolean) => void;
+  onRoleEdit?: (roleId: number) => void;
+  onRoleRefresh?: () => Promise<void>;
+  onRoleArchived?: (roleId: number) => void;
   zIndex?: number;
   onFocus?: () => void;
 };
@@ -40,7 +45,7 @@ export default function LeftContext({
   selectedRoleId,
   onPlayerRetry,
   onRoleSelect,
-  onRoleRetry,
+  onRoleRetry, roleWorkspace, onRoleWorkspaceChange, onRoleEdit, onRoleRefresh, onRoleArchived,
   zIndex,
   onFocus,
 }: LeftContextProps) {
@@ -101,6 +106,11 @@ export default function LeftContext({
                 <PlayerPanel playerInfo={playerInfo} equipments={equipments} loading={playerLoading} error={playerError} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} onRetry={onPlayerRetry} />
               ) : mode === "role" ? (
                 <RoleContextPanel
+                  workspace={roleWorkspace}
+                  onWorkspaceChange={onRoleWorkspaceChange}
+                  onRoleEdit={onRoleEdit}
+                  onRefresh={onRoleRefresh}
+                  onRoleArchived={onRoleArchived}
                   roles={roles}
                   selectedRoleId={selectedRoleId ?? null}
                   isLoading={rolesLoading}

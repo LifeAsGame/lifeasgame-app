@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   archivePersonApi,
+  resolveRelationPersonStatus,
   archiveRoleApi,
   archiveRoleRelationApi,
   createPersonApi,
@@ -84,6 +85,20 @@ describe("실제 Role shell API를 호출할 때", () => {
       expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/roles/3/relations/9");
       expect(create).not.toHaveProperty("linkedUserId");
     });
+  });
+
+  it("공개되지 않은 personStatus는 기존 Person 상세로 확인하고 실패를 ACTIVE로 추정하지 않는다", async () => {
+    const relation = { id: 9, personId: 7 } as import("@/shared/api/types").RoleRelationDetail;
+    client.apiGet.mockResolvedValueOnce({ id: 7, status: "ARCHIVED" });
+    const result = await resolveRelationPersonStatus([relation, { ...relation, id: 10 }]);
+    expect(result.map((r) => r.personStatus)).toEqual(["ARCHIVED", "ARCHIVED"]);
+    expect(client.apiGet).toHaveBeenCalledTimes(1);
+    expect(client.apiGet).toHaveBeenCalledWith("/api/v1/persons/7");
+    client.apiGet.mockRejectedValueOnce(new Error("not found"));
+    expect((await resolveRelationPersonStatus([relation]))[0].personStatus).toBeNull();
+    client.apiGet.mockClear();
+    expect((await resolveRelationPersonStatus([{ ...relation, personStatus: "ARCHIVED" }]))[0].personStatus).toBe("ARCHIVED");
+    expect(client.apiGet).not.toHaveBeenCalled();
   });
 
   describe("선택된 Role의 Events를 조회하면", () => {

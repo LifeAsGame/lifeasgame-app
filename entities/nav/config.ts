@@ -9,14 +9,14 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
   { id: "player",    label: "플레이어",    slotLabel: "PL" },
   { id: "inventory", label: "소지품", slotLabel: "IN" },
   { id: "quests",    label: "여정",   slotLabel: "QU" },
-  { id: "role",      label: "역할",      slotLabel: "RL" },
+  { id: "role",      label: "인물 · 역할",      slotLabel: "RL" },
   { id: "lifelog",   label: "생활 기록",   slotLabel: "LI" },
   { id: "market",    label: "거래소",  slotLabel: "EX" },
   { id: "system",    label: "설정",    slotLabel: "SY" },
 ];
 
 export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {
-  player: "플레이어", inventory: "소지품", quests: "여정", role: "역할",
+  player: "플레이어", inventory: "소지품", quests: "여정", role: "인물 · 역할",
   lifelog: "생활 기록", market: "거래소", system: "설정",
 };
 

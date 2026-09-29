@@ -31,6 +31,7 @@ export interface RoleRelationDetail {
   id: number;
   personId: number;
   personDisplayName: string;
+  personStatus?: string | null;
   linkedUserId: number | null;
   relationType: string;
   roleNotes: string | null;

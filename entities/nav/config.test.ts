@@ -27,7 +27,7 @@ describe("primary Orb navigation을 구성할 때", () => {
     it("Social 자리에 Role/RL을 노출하고 Role surface를 세 개로 제한한다", () => {
       const role = MAIN_NAV_ITEMS.find(({ id }) => id === "role");
 
-      expect(role).toEqual({ id: "role", label: "역할", slotLabel: "RL" });
+      expect(role).toEqual({ id: "role", label: "인물 · 역할", slotLabel: "RL" });
       expect(MAIN_NAV_ITEMS.some(({ id }) => (id as string) === "social")).toBe(false);
       expect("social" in SUBMENUS_BY_MAIN).toBe(false);
       expect(SUBMENUS_BY_MAIN.role.map(({ id }) => id)).toEqual(["overview", "relations", "events"]);
