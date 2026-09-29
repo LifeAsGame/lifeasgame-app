@@ -300,14 +300,7 @@ export default function Home() {
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
             <JournalShell roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} />
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "collection" ? (
-            <div className="flex w-fit items-center gap-3">
-              <RightPanels
-                selectedMain="lifelog"
-                panelStack={panelStack.slice(0, 1)}
-                onPanelItemSelect={handlePanelItemSelect}
-              />
-              <CollectionShell />
-            </div>
+            <CollectionShell onBack={() => closeFeatureSubmenu("lifelog")} />
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "exercise" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels

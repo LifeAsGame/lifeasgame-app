@@ -1,0 +1,18 @@
+[
+  {
+    "file": "flow-1440.webm",
+    "duration": 18.56,
+    "width": 1440,
+    "height": 900,
+    "midpointDecoded": true,
+    "continuousBrowserRecording": true
+  },
+  {
+    "file": "flow-390.webm",
+    "duration": 17.44,
+    "width": 390,
+    "height": 900,
+    "midpointDecoded": true,
+    "continuousBrowserRecording": true
+  }
+]

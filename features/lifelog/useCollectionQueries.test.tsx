@@ -110,8 +110,9 @@ describe("Collection query/mutation state를 관리할 때", () => {
       expect(result.current.selectedId).toBeNull();
       expect(result.current.list.items).toEqual([]);
       expect(result.current.list.error).toBe("List unavailable");
-      expect(result.current.mutationError).toMatch(/Collection changed, but the authoritative list could not be reloaded/);
-      expect(result.current.mutationError).not.toMatch(/Request outcome was not confirmed/);
+      expect(result.current.mutationSuccess).toBe("Collection deleted.");
+      expect(result.current.refreshError).toMatch(/change succeeded/);
+      expect(result.current.mutationError).toBeNull();
     });
 
     it("does not clear the selection or claim success when DELETE fails", async () => {
@@ -128,4 +129,84 @@ describe("Collection query/mutation state를 관리할 때", () => {
       expect(result.current.mutationError).toMatch(/Request outcome was not confirmed.*Delete failed/);
     });
   });
+  it.each(["create", "update", "remove"] as const)("ignores late %s completion after leaving and starting a new draft", async (command) => {
+    let finish: (value: CollectionInfo) => void = () => {};
+    const fn = command === "create" ? api.createCollectionApi : command === "update" ? api.updateCollectionApi : api.deleteCollectionApi;
+    fn.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const { result } = renderHook(() => useCollectionQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+    act(() => result.current.select(first.id));
+    await waitFor(() => expect(result.current.detail.data).toEqual(first));
+    let request: Promise<boolean>;
+    act(() => { request = command === "create" ? result.current.create({ category: "BOOK", title: "Old", quantity: 1 }) : command === "update" ? result.current.update(first.id, { quantity: 3 }) : result.current.remove(first.id); });
+    act(() => { result.current.resetMutation(); result.current.clearSelection(); });
+    const reads = api.searchCollectionsApi.mock.calls.length;
+    await act(async () => { finish(created); expect(await request!).toBe(false); });
+    expect(result.current.selectedId).toBeNull();
+    expect(result.current.pendingMutation).toBeNull();
+    expect(result.current.mutationSuccess).toBeNull();
+    expect(result.current.mutationError).toBeNull();
+    expect(api.searchCollectionsApi).toHaveBeenCalledTimes(reads);
+  });
+
+  it("does not unlock a newer command or resend an unconfirmed command", async () => {
+    let oldFail: (error: Error) => void = () => {}, finish: (value: { id: number }) => void = () => {};
+    api.createCollectionApi.mockImplementationOnce(() => new Promise((_, reject) => { oldFail = reject; })).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const { result } = renderHook(() => useCollectionQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+    let old: Promise<boolean>, next: Promise<boolean>;
+    act(() => { old = result.current.create({ category: "BOOK", title: "Old", quantity: 1 }); });
+    act(() => result.current.resetMutation());
+    act(() => { next = result.current.create({ category: "BOOK", title: "New", quantity: 1 }); });
+    await act(async () => { oldFail(new Error("Late failure")); await old; });
+    expect(result.current.pendingMutation).toBe("create");
+    expect(result.current.mutationError).toBeNull();
+    await act(async () => { expect(await result.current.create({ category: "BOOK", title: "Duplicate", quantity: 1 })).toBe(false); });
+    expect(api.createCollectionApi).toHaveBeenCalledTimes(2);
+    await act(async () => { finish({ id: 99 }); await next; });
+    expect(result.current.pendingMutation).toBeNull();
+  });
+
+  it("keeps confirmed success through lookup failure and retries only GET", async () => {
+    api.searchCollectionsApi.mockResolvedValueOnce([first]).mockRejectedValueOnce(new Error("Offline")).mockResolvedValueOnce([created, first]);
+    const { result } = renderHook(() => useCollectionQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+    await act(async () => { expect(await result.current.create({ category: "BOOK", title: "New", quantity: 1 })).toBe(true); });
+    expect(result.current.mutationSuccess).toBe("Collection created.");
+    expect(result.current.mutationError).toBeNull();
+    expect(result.current.refreshError).toMatch(/change succeeded/);
+    await act(async () => { await result.current.list.reload(); });
+    expect(result.current.mutationSuccess).toBe("Collection created.");
+    expect(result.current.refreshError).toBeNull();
+    expect(api.createCollectionApi).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not replace a newer detail when the post-create list completes late", async () => {
+    let finish: (items: CollectionInfo[]) => void = () => {};
+    api.searchCollectionsApi.mockResolvedValueOnce([first]).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const { result } = renderHook(() => useCollectionQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+    let save: Promise<boolean>;
+    act(() => { save = result.current.create({ category: "BOOK", title: "New", quantity: 1 }); });
+    await waitFor(() => expect(api.searchCollectionsApi).toHaveBeenCalledTimes(2));
+    act(() => result.current.select(first.id));
+    await waitFor(() => expect(result.current.detail.data).toEqual(first));
+    await act(async () => { finish([created]); expect(await save).toBe(false); });
+    expect(result.current.selectedId).toBe(first.id);
+    expect(result.current.detail.data).toEqual(first);
+    expect(api.getCollectionApi).not.toHaveBeenCalledWith(created.id);
+  });
+
+  it("does not perform follow-up reads after unmount", async () => {
+    let finish: (value: { id: number }) => void = () => {};
+    api.createCollectionApi.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const { result, unmount } = renderHook(() => useCollectionQueries());
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
+    let request: Promise<boolean>;
+    act(() => { request = result.current.create({ category: "BOOK", title: "Old", quantity: 1 }); });
+    unmount();
+    await act(async () => { finish({ id: 99 }); expect(await request).toBe(false); });
+    expect(api.searchCollectionsApi).toHaveBeenCalledTimes(1);
+  });
+
 });
