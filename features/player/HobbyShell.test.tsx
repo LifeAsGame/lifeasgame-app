@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { HobbyCatalogInfo, PlayerHobbyInfo } from "@/shared/api/types";
@@ -30,7 +30,7 @@ describe("취미 management surface를 사용할 때", () => {
     expect(document.querySelector("[data-create-form]")?.closest(".lag-create-slot")).toBe(slot);
     fireEvent.keyDown(document.querySelector("[data-create-form]")!, { key: "Escape" });
     expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
-    expect(screen.getByText("등록된 취미가 없습니다.")).toBeVisible();
+    await waitFor(() => expect(screen.getByText("등록된 취미가 없습니다.")).toBeVisible());
   });
 
   it("canonical statuses, nullable fields와 catalog-only selector를 표시하고 stale values를 제거한다", async () => {

@@ -49,7 +49,7 @@ describe("자격증 management surface를 사용할 때", () => {
     expect(document.querySelector("[data-create-form]")?.closest(".lag-create-slot")).toBe(slot);
     fireEvent.keyDown(document.querySelector("[data-create-form]")!, { key: "Escape" });
     expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
-    expect(screen.getByText("등록된 자격증이 없습니다.")).toBeVisible();
+    await waitFor(() => expect(screen.getByText("등록된 자격증이 없습니다.")).toBeVisible());
   });
 
   it("nullable owned dates, catalog-only selector와 blank-preserving edit controls만 렌더한다", async () => {

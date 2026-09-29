@@ -30,7 +30,7 @@ describe("역할과 독립된 인물 관리", () => {
     expect(document.querySelector("[data-create-form]")?.closest(".lag-create-slot")).toBe(slot);
     fireEvent.keyDown(document.querySelector("[data-create-form]")!, { key: "Escape" });
     expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
-    expect(screen.getByText("등록된 인물이 없습니다.")).toBeVisible();
+    await waitFor(() => expect(screen.getByText("등록된 인물이 없습니다.")).toBeVisible());
   });
 
   it("Role 0개에서도 등록·nullable/date 수정·인물 보관이 되고 역할 변경은 초안을 바꾸지 않는다", async () => {
