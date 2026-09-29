@@ -25,6 +25,7 @@ export function useHobbyQueries() {
   const mutationLocked = useRef(false);
   const [pendingMutation, setPendingMutation] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const clearMutationError = useCallback(() => setMutationError(null), []);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -140,6 +141,7 @@ export function useHobbyQueries() {
     clearSelection,
     pendingMutation,
     mutationError,
+    clearMutationError,
     register,
     update,
     remove,

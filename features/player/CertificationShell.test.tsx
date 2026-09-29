@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -75,6 +75,93 @@ describe("자격증 management surface를 사용할 때", () => {
     expect(api.updatePlayerCertificationApi.mock.calls[0][1]).not.toHaveProperty("acquiredDate");
     expect(api.updatePlayerCertificationApi.mock.calls[0][1]).not.toEqual(expect.objectContaining({ expiresDate: "" }));
     expect(screen.getByText("빈 날짜는 현재 값을 유지합니다. 날짜 지우기는 지원하지 않습니다.")).toBeInTheDocument();
+  });
+
+  it("등록 실패 오류와 입력을 같은 슬롯에 유지하고 중복 제출 없이 재시도 후 목록으로 돌아간다", async () => {
+    const body = { acquiredDate: "2026-09-01", expiresDate: "2027-09-01" };
+    const registered: PlayerCertificationInfo = { ...devopsOwned, ...body };
+    let finish!: (result: { certificationId: number } & typeof body) => void;
+    const retry = new Promise<{ certificationId: number } & typeof body>((resolve) => { finish = resolve; });
+    api.getPlayerCertificationsApi.mockReset().mockResolvedValue([owned]);
+    api.registerPlayerCertificationApi.mockReset().mockRejectedValueOnce(new Error("등록 실패")).mockReturnValueOnce(retry);
+    render(<CertificationShell />);
+    await screen.findByTestId("certification-entry");
+    fireEvent.keyDown(screen.getByRole("button", { name: "자격증" }), { key: "Enter", altKey: true });
+    const slot = document.querySelector(".lag-create-slot");
+    const form = screen.getByRole("button", { name: "자격증 저장" }).closest("form")!;
+    fireEvent.change(screen.getByLabelText("자격증"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("취득일"), { target: { value: body.acquiredDate } });
+    fireEvent.change(screen.getByLabelText("만료일"), { target: { value: body.expiresDate } });
+    expect(form.checkValidity()).toBe(true);
+    fireEvent.submit(form);
+
+    const alert = await screen.findByRole("alert", { hidden: false });
+    await waitFor(() => expect(alert).toBeVisible());
+    expect(alert).toHaveTextContent("요청 결과가 확정되지 않았습니다. 다시 조회한 서버 상태를 확인하세요. 등록 실패");
+    expect(screen.getAllByRole("alert", { hidden: true })).toHaveLength(1);
+    expect(document.querySelector(".lag-create-slot")).toBe(slot);
+    expect(document.querySelector("[data-create-form] form")).toBe(form);
+    expect(screen.getByLabelText("자격증")).toHaveValue("3");
+    expect(screen.getByLabelText("취득일")).toHaveValue(body.acquiredDate);
+    expect(screen.getByLabelText("만료일")).toHaveValue(body.expiresDate);
+    expect(screen.getByRole("button", { name: "자격증 저장" })).toBeEnabled();
+    expect(api.getPlayerCertificationsApi).toHaveBeenCalledTimes(2);
+    expect(api.registerPlayerCertificationApi).toHaveBeenCalledExactlyOnceWith(3, body);
+
+    api.getPlayerCertificationsApi.mockResolvedValue([owned, registered]);
+    fireEvent.submit(form);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "처리 중…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
+    expect(screen.getByLabelText("자격증")).toBeDisabled();
+    expect(screen.getByLabelText("취득일")).toBeDisabled();
+    expect(screen.getByLabelText("만료일")).toBeDisabled();
+    fireEvent.submit(form);
+    expect(api.registerPlayerCertificationApi).toHaveBeenCalledTimes(2);
+    expect(api.registerPlayerCertificationApi).toHaveBeenLastCalledWith(3, body);
+    await act(async () => { finish({ certificationId: 3, ...body }); });
+
+    await waitFor(() => expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Kubernetes · CNCF · 취득일: 2026-09-01/)).toBeVisible());
+    expect(document.querySelector(".lag-create-slot")).toBe(slot);
+    expect(screen.queryByRole("alert", { hidden: true })).not.toBeInTheDocument();
+    expect(api.getPlayerCertificationsApi).toHaveBeenCalledTimes(3);
+  });
+
+  it("실패 후 취소와 외부 새 생성 요청은 이전 오류를 남기지 않는다", async () => {
+    api.registerPlayerCertificationApi.mockReset().mockRejectedValue(new Error("이전 등록 실패"));
+    const { rerender } = render(<CertificationShell />);
+    await screen.findByTestId("certification-entry");
+    fireEvent.keyDown(screen.getByRole("button", { name: "자격증" }), { key: "Enter", altKey: true });
+    fireEvent.change(screen.getByLabelText("자격증"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "자격증 저장" }));
+    await screen.findByRole("alert", { hidden: false });
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(screen.queryByRole("alert", { hidden: true })).not.toBeInTheDocument();
+    rerender(<CertificationShell createRequest={1} />);
+    expect(screen.getByRole("button", { name: "자격증 저장" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert", { hidden: true })).not.toBeInTheDocument();
+    expect(api.registerPlayerCertificationApi).toHaveBeenCalledTimes(1);
+  });
+
+  it("등록 응답 후 조회 실패 경고는 목록 복귀로 지워지지 않는다", async () => {
+    api.getPlayerCertificationsApi.mockReset().mockResolvedValueOnce([owned]).mockRejectedValue(new Error("조회 실패"));
+    const { rerender } = render(<CertificationShell />);
+    await screen.findByTestId("certification-entry");
+    fireEvent.keyDown(screen.getByRole("button", { name: "자격증" }), { key: "Enter", altKey: true });
+    fireEvent.change(screen.getByLabelText("자격증"), { target: { value: "3" } });
+    fireEvent.click(screen.getByRole("button", { name: "자격증 저장" }));
+    await waitFor(() => expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument());
+    const alert = await screen.findByText("Certification changed, but the authoritative owned list could not be reloaded.");
+    await waitFor(() => expect(alert).toBeVisible());
+    expect(screen.getAllByRole("alert", { hidden: false })).toContain(alert);
+    expect(api.registerPlayerCertificationApi).toHaveBeenCalledTimes(1);
+    expect(api.getPlayerCertificationsApi).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole("button", { name: "자격증" }));
+    expect(alert).toBeVisible();
+    rerender(<CertificationShell createRequest={1} />);
+    expect(screen.queryByText("Certification changed, but the authoritative owned list could not be reloaded.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "자격증 저장" })).toBeInTheDocument();
   });
 
   it("uses v7 semantic control tokens instead of the legacy input palette", () => {

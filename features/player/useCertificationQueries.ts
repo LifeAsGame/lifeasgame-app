@@ -31,6 +31,7 @@ export function useCertificationQueries() {
   const mutationLocked = useRef(false);
   const [pendingMutation, setPendingMutation] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const clearMutationError = useCallback(() => setMutationError(null), []);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -139,6 +140,7 @@ export function useCertificationQueries() {
     clearSelection,
     pendingMutation,
     mutationError,
+    clearMutationError,
     register,
     update,
     remove,

@@ -50,8 +50,10 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
   const creation = useCreateMode(createRequest);
   const { confirm, dialog } = useSaoConfirm();
   const certifications = useCertificationQueries();
+  const clearMutationError = certifications.clearMutationError;
   const [detailVisible, setDetailVisible] = useState(true);
-  useEffect(() => { if (creation.creating) setDetailVisible(false); }, [creation.creating]);
+  useEffect(() => { if (creation.creating) { setDetailVisible(false); clearMutationError(); } }, [creation.creating, clearMutationError]);
+  const closeCreation = () => { if (creation.creating) clearMutationError(); creation.close(); };
   const select = (id: number) => { setDetailVisible(true); certifications.select(id); };
   const [catalogId, setCatalogId] = useState("");
   const [category, setCategory] = useState("ALL");
@@ -79,9 +81,10 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
   return (
     <div className="lag-panel-rail lag-semantic-controls relative" data-testid="certification-shell">{dialog}
       <PanelStage stageKey="player-certification-list" index={1}>
-        <PanelFrame title="내 자격증" depth={1} backButton={creation.creating ? <BackButton label="목록으로" onClick={creation.close} /> : onBack ? <BackButton label="플레이어 목록으로" onClick={onBack} /> : undefined}>
-        <CreateCategory title="자격증" onOpen={creation.close} onCreate={creation.open} />
-        <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} list={<>
+        <PanelFrame title="내 자격증" depth={1} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeCreation} /> : onBack ? <BackButton label="플레이어 목록으로" onClick={onBack} /> : undefined}>
+        <CreateCategory title="자격증" onOpen={closeCreation} onCreate={creation.open} />
+        {certifications.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: "var(--lag-state-error)" }}>{certifications.mutationError}</p> : null}
+        <CreateSlot creating={creation.creating} pending={pending} onClose={closeCreation} list={<>
             <label className="block text-xs" style={{ color: "var(--lag-text-2)" }}>
               자격증 분류
               <select aria-label="자격증 분류" value={category} onChange={(event) => changeCategory(event.target.value)} style={SEMANTIC_CONTROL_STYLE}>
@@ -94,7 +97,6 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
           {certifications.owned.error ? <ErrorState message={certifications.owned.error} retry={() => void certifications.owned.reload()} /> : null}
           {!certifications.owned.loading && !certifications.owned.error && certifications.owned.items.length === 0 ? <InfoCard>등록된 자격증이 없습니다.</InfoCard> : null}
           {!certifications.owned.loading && !certifications.owned.error && certifications.owned.items.length > 0 && filteredOwned.length === 0 ? <InfoCard>해당 분류의 자격증이 없습니다.</InfoCard> : null}
-          {certifications.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: "var(--lag-state-error)" }}>{certifications.mutationError}</p> : null}
           <div className="space-y-2">
             {filteredOwned.map((item, index) => (
               <PanelCard key={item.certificationId} label={item.name} slotLabel={item.category.slice(0, 2).toUpperCase()} subtitle={`${item.issuer} · 취득일: ${item.acquiredDate ?? "미등록"}`} selected={certifications.selectedId === item.certificationId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={async (type) => { if (type === "edit") select(item.certificationId); else if (await confirm(`“${item.name}”을 삭제할까요? 내 자격증 등록이 제거됩니다.`)) await certifications.remove(item.certificationId); }} onClick={() => select(item.certificationId)} />

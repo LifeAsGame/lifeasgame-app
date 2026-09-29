@@ -48,8 +48,10 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
   const creation = useCreateMode(createRequest);
   const { confirm, dialog } = useSaoConfirm();
   const hobbies = useHobbyQueries();
+  const clearMutationError = hobbies.clearMutationError;
   const [detailVisible, setDetailVisible] = useState(true);
-  useEffect(() => { if (creation.creating) setDetailVisible(false); }, [creation.creating]);
+  useEffect(() => { if (creation.creating) { setDetailVisible(false); clearMutationError(); } }, [creation.creating, clearMutationError]);
+  const closeCreation = () => { if (creation.creating) clearMutationError(); creation.close(); };
   const select = (id: number) => { setDetailVisible(true); hobbies.select(id); };
   const [catalogId, setCatalogId] = useState("");
   const pending = hobbies.pendingMutation !== null;
@@ -59,14 +61,14 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
   return (
     <div className="lag-panel-rail relative" data-testid="hobby-shell">{dialog}
       <PanelStage stageKey="player-hobby-list" index={1}>
-        <PanelFrame title="내 취미" depth={1} backButton={creation.creating ? <BackButton label="목록으로" onClick={creation.close} /> : onBack ? <BackButton label="플레이어 목록으로" onClick={onBack} /> : undefined}>
-        <CreateCategory title="취미" onOpen={creation.close} onCreate={creation.open} />
-        <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} list={<>
+        <PanelFrame title="내 취미" depth={1} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeCreation} /> : onBack ? <BackButton label="플레이어 목록으로" onClick={onBack} /> : undefined}>
+        <CreateCategory title="취미" onOpen={closeCreation} onCreate={creation.open} />
+        {hobbies.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: SAO.color.action.red }}>{hobbies.mutationError}</p> : null}
+        <CreateSlot creating={creation.creating} pending={pending} onClose={closeCreation} list={<>
         <div className="space-y-3">
           {hobbies.owned.loading && hobbies.owned.items.length === 0 ? <InfoCard>취미를 불러오는 중…</InfoCard> : null}
           {hobbies.owned.error ? <ErrorState message={hobbies.owned.error} retry={() => void hobbies.owned.reload()} /> : null}
           {!hobbies.owned.loading && !hobbies.owned.error && hobbies.owned.items.length === 0 ? <InfoCard>등록된 취미가 없습니다.</InfoCard> : null}
-          {hobbies.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: SAO.color.action.red }}>{hobbies.mutationError}</p> : null}
           <div className="space-y-2">{hobbies.owned.items.map((item, index) => <PanelCard key={item.hobbyId} label={item.customName} slotLabel={item.category.slice(0, 2).toUpperCase()} subtitle={`${item.name} · ${item.status} · ${item.proficiency}/100`} selected={hobbies.selectedId === item.hobbyId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={async (type) => { if (type === "edit") select(item.hobbyId); else if (await confirm(`“${item.customName}”을 삭제할까요? 내 취미 등록이 제거됩니다.`)) await hobbies.remove(item.hobbyId); }} onClick={() => select(item.hobbyId)} />)}</div>
         </div>
         </>}>
