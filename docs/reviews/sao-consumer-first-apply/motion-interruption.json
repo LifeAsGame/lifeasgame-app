@@ -1,0 +1,1928 @@
+{
+  "baseline": {
+    "before": {
+      "opacity": 0.890981,
+      "x": 0.830429,
+      "text": "Current Quest흔적 세 개 이어보기Status: In Progress서로 다른 순간의 기록을 세 개 남겨 작은 흐름을 만들어보세요.ProgressQuest progress"
+    },
+    "after": {
+      "opacity": 0.197285,
+      "x": 3.99263,
+      "text": "Current Quest첫 흔적 남기기Status: Completed오늘의 생각·행동·기억 중 하나를 짧게 남겨보세요.ProgressQuest progress1 / 1 (100%)"
+    },
+    "next": {
+      "opacity": 0.554011,
+      "x": 3.30626,
+      "text": "Current Quest첫 흔적 남기기Status: Completed오늘의 생각·행동·기억 중 하나를 짧게 남겨보세요.ProgressQuest progress1 / 1 (100%)"
+    },
+    "sameNode": false,
+    "final": {
+      "opacity": 1,
+      "x": 0,
+      "text": "Current Quest첫 흔적 남기기Status: Completed오늘의 생각·행동·기억 중 하나를 짧게 남겨보세요.ProgressQuest progress1 / 1 (100%)"
+    },
+    "paths": [
+      "M580,42 H607"
+    ]
+  },
+  "corrected": [
+    {
+      "label": "1440-warm-beige-no-preference",
+      "before": {
+        "time": 872.7999999523163,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.820171,
+        "x": 2.99714
+      },
+      "commit": {
+        "time": 875.0999999046326,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820171,
+        "x": 2.99714
+      },
+      "next": {
+        "time": 888.8999998569489,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.82003,
+        "x": 2.9995
+      },
+      "final": {
+        "time": 1054.5,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 809.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.961359,
+          "x": 0.644017
+        },
+        {
+          "time": 823.8999998569489,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.869913,
+          "x": 2.16812
+        },
+        {
+          "time": 838.7999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.833586,
+          "x": 2.77357
+        },
+        {
+          "time": 855.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.822612,
+          "x": 2.95648
+        },
+        {
+          "time": 872.1999998092651,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.820171,
+          "x": 2.99714
+        },
+        {
+          "time": 888.8999998569489,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.82003,
+          "x": 2.9995
+        },
+        {
+          "time": 905.8999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820009,
+          "x": 2.99985
+        },
+        {
+          "time": 922.0999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820002,
+          "x": 2.99996
+        },
+        {
+          "time": 938.8999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 2.99999
+        },
+        {
+          "time": 954.5999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 971.1999998092651,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.830215,
+          "x": 2.82974
+        },
+        {
+          "time": 988,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.950087,
+          "x": 0.831885
+        },
+        {
+          "time": 1004.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.987602,
+          "x": 0.20663
+        },
+        {
+          "time": 1020.8999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.997954,
+          "x": 0.0341051
+        },
+        {
+          "time": 1037.5999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999896,
+          "x": 0.001731
+        },
+        {
+          "time": 1054.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "1440-warm-beige-reduce",
+      "before": {
+        "time": 870.7999999523163,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 873.7000000476837,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 887.7999999523163,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 904.5999999046326,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 821.0999999046326,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 837.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 853.8999998569489,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 870.7999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 887.5999999046326,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 904.3999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "1440-astral-no-preference",
+      "before": {
+        "time": 839.8999998569489,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.820171,
+        "x": 2.99714
+      },
+      "commit": {
+        "time": 842.7999999523163,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820171,
+        "x": 2.99714
+      },
+      "next": {
+        "time": 857.5999999046326,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820022,
+        "x": 2.99963
+      },
+      "final": {
+        "time": 1022.0999999046326,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 778.3999998569489,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.952355,
+          "x": 0.79408
+        },
+        {
+          "time": 791.2000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.869913,
+          "x": 2.16812
+        },
+        {
+          "time": 805.7000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.834897,
+          "x": 2.75171
+        },
+        {
+          "time": 822,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.822612,
+          "x": 2.95648
+        },
+        {
+          "time": 839.2999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.820171,
+          "x": 2.99714
+        },
+        {
+          "time": 857.5999999046326,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.820022,
+          "x": 2.99963
+        },
+        {
+          "time": 872.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820008,
+          "x": 2.99987
+        },
+        {
+          "time": 890,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820002,
+          "x": 2.99997
+        },
+        {
+          "time": 905.7999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 2.99999
+        },
+        {
+          "time": 922.7999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 939.7000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 955.3999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.941322,
+          "x": 0.977972
+        },
+        {
+          "time": 971.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.985103,
+          "x": 0.248288
+        },
+        {
+          "time": 987.5999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.997062,
+          "x": 0.0489652
+        },
+        {
+          "time": 1004.2000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999784,
+          "x": 0.0035934
+        },
+        {
+          "time": 1022.0999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "1440-astral-reduce",
+      "before": {
+        "time": 849.7000000476837,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 852.2999999523163,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 855.2000000476837,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 869.2999999523163,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 787.6000001430511,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 801.9000000953674,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 819.2000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 835.6000001430511,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 855.1000001430511,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 869.1000001430511,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "390-warm-beige-no-preference",
+      "before": {
+        "time": 873.3999998569489,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.821049,
+        "x": 2.98252
+      },
+      "commit": {
+        "time": 878.2000000476837,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820216,
+        "x": 2.99641
+      },
+      "next": {
+        "time": 884.5999999046326,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.82011,
+        "x": 2.99816
+      },
+      "final": {
+        "time": 1051.2000000476837,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 818.0999999046326,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.943742,
+          "x": 0.937631
+        },
+        {
+          "time": 834.5999999046326,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.85292,
+          "x": 2.45133
+        },
+        {
+          "time": 851.0999999046326,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.827676,
+          "x": 2.87207
+        },
+        {
+          "time": 868.2000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.821049,
+          "x": 2.98252
+        },
+        {
+          "time": 884.5,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.82011,
+          "x": 2.99816
+        },
+        {
+          "time": 900.7000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820034,
+          "x": 2.99943
+        },
+        {
+          "time": 918.0999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820008,
+          "x": 2.99986
+        },
+        {
+          "time": 934.5999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820001,
+          "x": 2.99997
+        },
+        {
+          "time": 951.3999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 967.2000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 984.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.945822,
+          "x": 0.90296
+        },
+        {
+          "time": 1000.3999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.986414,
+          "x": 0.226429
+        },
+        {
+          "time": 1017.7000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.99769,
+          "x": 0.0385032
+        },
+        {
+          "time": 1034.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999864,
+          "x": 0.0022655
+        },
+        {
+          "time": 1051.2000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "390-warm-beige-reduce",
+      "before": {
+        "time": 874.1000001430511,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 879.1000001430511,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 893.5,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 909.9000000953674,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 812,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 826.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 843.2000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 859.9000000953674,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 893.3000001907349,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 909.9000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "390-astral-no-preference",
+      "before": {
+        "time": 878.7000000476837,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.820472,
+        "x": 2.99213
+      },
+      "commit": {
+        "time": 883.6000001430511,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820267,
+        "x": 2.99555
+      },
+      "next": {
+        "time": 895.5,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820071,
+        "x": 2.99882
+      },
+      "final": {
+        "time": 1061.8000001907349,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 829.6000001430511,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.900243,
+          "x": 1.66261
+        },
+        {
+          "time": 844.8000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.841366,
+          "x": 2.6439
+        },
+        {
+          "time": 861.3000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.824583,
+          "x": 2.92362
+        },
+        {
+          "time": 877.8000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.820472,
+          "x": 2.99213
+        },
+        {
+          "time": 895.5,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.820071,
+          "x": 2.99882
+        },
+        {
+          "time": 912.7000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820023,
+          "x": 2.99962
+        },
+        {
+          "time": 928.3000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820006,
+          "x": 2.9999
+        },
+        {
+          "time": 944.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820001,
+          "x": 2.99998
+        },
+        {
+          "time": 962.2000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 978,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 995.4000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.936447,
+          "x": 1.05922
+        },
+        {
+          "time": 1011,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.983656,
+          "x": 0.272397
+        },
+        {
+          "time": 1027.8000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.997062,
+          "x": 0.0489652
+        },
+        {
+          "time": 1044.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999784,
+          "x": 0.0035934
+        },
+        {
+          "time": 1061.8000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "390-astral-reduce",
+      "before": {
+        "time": 886,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 891.4000000953674,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 904.7000000476837,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 921.2999999523163,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 838.7000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 854.7999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 871.7000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 904.6000001430511,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 921.2999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "360-warm-beige-no-preference",
+      "before": {
+        "time": 897.9000000953674,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.820472,
+        "x": 2.99213
+      },
+      "commit": {
+        "time": 904.1000001430511,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820216,
+        "x": 2.99641
+      },
+      "next": {
+        "time": 913.4000000953674,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.82007,
+        "x": 2.99883
+      },
+      "final": {
+        "time": 1080,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 847,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.913193,
+          "x": 1.44678
+        },
+        {
+          "time": 863.4000000953674,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.843334,
+          "x": 2.6111
+        },
+        {
+          "time": 879.9000000953674,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.824583,
+          "x": 2.92362
+        },
+        {
+          "time": 897.6000001430511,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.820472,
+          "x": 2.99213
+        },
+        {
+          "time": 913.2999999523163,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.82007,
+          "x": 2.99883
+        },
+        {
+          "time": 930.4000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820021,
+          "x": 2.99964
+        },
+        {
+          "time": 946.7000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820005,
+          "x": 2.99991
+        },
+        {
+          "time": 963.2000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820001,
+          "x": 2.99998
+        },
+        {
+          "time": 980.2000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 996.9000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 1013.4000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.936447,
+          "x": 1.05922
+        },
+        {
+          "time": 1029.9000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.985103,
+          "x": 0.248288
+        },
+        {
+          "time": 1047,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.997388,
+          "x": 0.0435249
+        },
+        {
+          "time": 1063.1000001430511,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999784,
+          "x": 0.0035934
+        },
+        {
+          "time": 1080,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "360-warm-beige-reduce",
+      "before": {
+        "time": 885,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 890.5,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 901.2999999523163,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 917.7999999523163,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 834.1999998092651,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 850.2999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 867.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 883.6999998092651,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 901.2999999523163,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 917.5999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "360-astral-no-preference",
+      "before": {
+        "time": 900.4000000953674,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.820472,
+        "x": 2.99213
+      },
+      "commit": {
+        "time": 906.4000000953674,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820171,
+        "x": 2.99714
+      },
+      "next": {
+        "time": 917.2000000476837,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820061,
+        "x": 2.99899
+      },
+      "final": {
+        "time": 1083.2000000476837,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 836.6000001430511,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 850.7000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.900243,
+          "x": 1.66261
+        },
+        {
+          "time": 867.1000001430511,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.839512,
+          "x": 2.6748
+        },
+        {
+          "time": 883.8000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.82412,
+          "x": 2.93133
+        },
+        {
+          "time": 899.8000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.820472,
+          "x": 2.99213
+        },
+        {
+          "time": 917.1000001430511,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.820061,
+          "x": 2.99899
+        },
+        {
+          "time": 933.1000001430511,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82002,
+          "x": 2.99967
+        },
+        {
+          "time": 950.3000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820005,
+          "x": 2.99992
+        },
+        {
+          "time": 967.2000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820001,
+          "x": 2.99998
+        },
+        {
+          "time": 983.3000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 1000.4000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 1016.8000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.93117,
+          "x": 1.14717
+        },
+        {
+          "time": 1033.9000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.983656,
+          "x": 0.272397
+        },
+        {
+          "time": 1050.4000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.99671,
+          "x": 0.054841
+        },
+        {
+          "time": 1066.9000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999733,
+          "x": 0.0044462
+        },
+        {
+          "time": 1083.1000001430511,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "360-astral-reduce",
+      "before": {
+        "time": 881.9000000953674,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 886.1000001430511,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 888.1000001430511,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 903.7000000476837,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 821.2000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 855.4000000953674,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 870.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 888,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 903.6000001430511,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "768-warm-beige-no-preference",
+      "before": {
+        "time": 884.5,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.82231,
+        "x": 2.9615
+      },
+      "commit": {
+        "time": 890.2000000476837,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820171,
+        "x": 2.99714
+      },
+      "next": {
+        "time": 891.3000001907349,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820121,
+        "x": 2.99799
+      },
+      "final": {
+        "time": 1072.5,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 824,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.980085,
+          "x": 0.331917
+        },
+        {
+          "time": 839.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.874178,
+          "x": 2.09704
+        },
+        {
+          "time": 855.9000000953674,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.832398,
+          "x": 2.79337
+        },
+        {
+          "time": 872.3000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.82231,
+          "x": 2.9615
+        },
+        {
+          "time": 891.2000000476837,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.820121,
+          "x": 2.99799
+        },
+        {
+          "time": 906.2000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820045,
+          "x": 2.99924
+        },
+        {
+          "time": 922.4000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820013,
+          "x": 2.99979
+        },
+        {
+          "time": 940,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820003,
+          "x": 2.99996
+        },
+        {
+          "time": 955.8000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 2.99999
+        },
+        {
+          "time": 973.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 989.3000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.919757,
+          "x": 1.33739
+        },
+        {
+          "time": 1005.8000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.978634,
+          "x": 0.356101
+        },
+        {
+          "time": 1022.3000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.99588,
+          "x": 0.0686721
+        },
+        {
+          "time": 1038.8000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999608,
+          "x": 0.0065361
+        },
+        {
+          "time": 1055.4000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0.0000064
+        },
+        {
+          "time": 1072.4000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "768-warm-beige-reduce",
+      "before": {
+        "time": 884,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 889.3000001907349,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 902.3000001907349,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 918.7000000476837,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 822,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 835.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 852.2000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 868.8000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 902.2000000476837,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 918.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "768-astral-no-preference",
+      "before": {
+        "time": 904,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.822938,
+        "x": 2.95103
+      },
+      "commit": {
+        "time": 910.5,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820171,
+        "x": 2.99714
+      },
+      "next": {
+        "time": 923.8999998569489,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820048,
+        "x": 2.9992
+      },
+      "final": {
+        "time": 1090.2999999523163,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 856.7999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.883553,
+          "x": 1.94078
+        },
+        {
+          "time": 873,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.836344,
+          "x": 2.7276
+        },
+        {
+          "time": 889.5999999046326,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.822938,
+          "x": 2.95103
+        },
+        {
+          "time": 923.8999998569489,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.820048,
+          "x": 2.9992
+        },
+        {
+          "time": 940.1999998092651,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820015,
+          "x": 2.99974
+        },
+        {
+          "time": 956.0999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820004,
+          "x": 2.99993
+        },
+        {
+          "time": 973.0999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820001,
+          "x": 2.99999
+        },
+        {
+          "time": 989.5999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 1006.3999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 1023.2999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.93117,
+          "x": 1.14717
+        },
+        {
+          "time": 1039.5999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.983656,
+          "x": 0.272397
+        },
+        {
+          "time": 1056.3999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.99671,
+          "x": 0.054841
+        },
+        {
+          "time": 1073.1999998092651,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999733,
+          "x": 0.0044462
+        },
+        {
+          "time": 1090.1999998092651,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "768-astral-reduce",
+      "before": {
+        "time": 882.5999999046326,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 888.0999999046326,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 899.2000000476837,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 915.7999999523163,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 818.5999999046326,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 832.7000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 849.0999999046326,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 865.7000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 882.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 899.0999999046326,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 915.7000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "1024-warm-beige-no-preference",
+      "before": {
+        "time": 916.7999999523163,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.820557,
+        "x": 2.99071
+      },
+      "commit": {
+        "time": 919.7999999523163,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820557,
+        "x": 2.99071
+      },
+      "next": {
+        "time": 931.1000001430511,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820082,
+        "x": 2.99863
+      },
+      "final": {
+        "time": 1096.7999999523163,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 864.2999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.913193,
+          "x": 1.44678
+        },
+        {
+          "time": 880.2000000476837,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.845419,
+          "x": 2.57634
+        },
+        {
+          "time": 898.1000001430511,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.824583,
+          "x": 2.92362
+        },
+        {
+          "time": 914.7999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.820557,
+          "x": 2.99071
+        },
+        {
+          "time": 930.9000000953674,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.820082,
+          "x": 2.99863
+        },
+        {
+          "time": 947.7000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820025,
+          "x": 2.99958
+        },
+        {
+          "time": 965,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820006,
+          "x": 2.9999
+        },
+        {
+          "time": 980.9000000953674,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820001,
+          "x": 2.99998
+        },
+        {
+          "time": 997.1000001430511,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 1014,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 1029.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.941322,
+          "x": 0.977972
+        },
+        {
+          "time": 1046,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.986414,
+          "x": 0.226429
+        },
+        {
+          "time": 1062.7000000476837,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.997388,
+          "x": 0.0435249
+        },
+        {
+          "time": 1080.2999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999864,
+          "x": 0.0022655
+        },
+        {
+          "time": 1096.7999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "1024-warm-beige-reduce",
+      "before": {
+        "time": 901.3000001907349,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 904.6000001430511,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 918.8000001907349,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 934.9000000953674,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 840.5,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 850.8000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 867.8000001907349,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 884.6000001430511,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 901.1000001430511,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 918.3000001907349,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 934.8000001907349,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "1024-astral-no-preference",
+      "before": {
+        "time": 897.1999998092651,
+        "identity": "journey-current-detail-2",
+        "opacity": 0.821049,
+        "x": 2.98252
+      },
+      "commit": {
+        "time": 900.0999999046326,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.821049,
+        "x": 2.98252
+      },
+      "next": {
+        "time": 908.5,
+        "identity": "journey-current-detail-1",
+        "opacity": 0.820081,
+        "x": 2.99864
+      },
+      "final": {
+        "time": 1071.3999998569489,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 842.3999998569489,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.920339,
+          "x": 1.32769
+        },
+        {
+          "time": 855.6999998092651,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.85292,
+          "x": 2.45133
+        },
+        {
+          "time": 872.8999998569489,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.826959,
+          "x": 2.88402
+        },
+        {
+          "time": 889,
+          "identity": "journey-current-detail-2",
+          "opacity": 0.821049,
+          "x": 2.98252
+        },
+        {
+          "time": 908.3999998569489,
+          "identity": "journey-current-detail-1",
+          "opacity": 0.820081,
+          "x": 2.99864
+        },
+        {
+          "time": 922.7999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820031,
+          "x": 2.99948
+        },
+        {
+          "time": 939.7999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820008,
+          "x": 2.99987
+        },
+        {
+          "time": 956,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.820002,
+          "x": 2.99997
+        },
+        {
+          "time": 971.5999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 987.6999998092651,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.82,
+          "x": 3
+        },
+        {
+          "time": 1005.0999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.936447,
+          "x": 1.05922
+        },
+        {
+          "time": 1021.2999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.983656,
+          "x": 0.272397
+        },
+        {
+          "time": 1037.7999999523163,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.99671,
+          "x": 0.054841
+        },
+        {
+          "time": 1054.5,
+          "identity": "journey-current-detail-3",
+          "opacity": 0.999733,
+          "x": 0.0044462
+        },
+        {
+          "time": 1071.3999998569489,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    },
+    {
+      "label": "1024-astral-reduce",
+      "before": {
+        "time": 889.1999998092651,
+        "identity": "journey-current-detail-2",
+        "opacity": 1,
+        "x": 0
+      },
+      "commit": {
+        "time": 892.5999999046326,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "next": {
+        "time": 894.1999998092651,
+        "identity": "journey-current-detail-1",
+        "opacity": 1,
+        "x": 0
+      },
+      "final": {
+        "time": 906.3999998569489,
+        "identity": "journey-current-detail-3",
+        "opacity": 1,
+        "x": 0
+      },
+      "sameNode": true,
+      "frames": [
+        {
+          "time": 839.5999999046326,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 855.7999999523163,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 872.0999999046326,
+          "identity": "journey-current-detail-2",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 893.8999998569489,
+          "identity": "journey-current-detail-1",
+          "opacity": 1,
+          "x": 0
+        },
+        {
+          "time": 906.0999999046326,
+          "identity": "journey-current-detail-3",
+          "opacity": 1,
+          "x": 0
+        }
+      ],
+      "url": "#/menu/quests/current/3"
+    }
+  ]
+}

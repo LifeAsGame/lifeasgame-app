@@ -1,0 +1,174 @@
+/* Shared consumer palette. Theme preference IDs and persistence remain unchanged. */
+:root, :root[data-theme="warm-beige"], [data-lag-preview-theme="warm-beige"] {
+  --lag-ambient: #a6b0bf; --lag-ambient-2: #7d899b; --lag-shell: #edf0f4;
+  --lag-nav: #fafbfc; --lag-workspace: #edf0f4; --lag-panel: #fafbfc;
+  --lag-panel-2: #edf0f4; --lag-personal: #fafbfc; --lag-paper: #fff;
+  --lag-text: #30343a; --lag-text-2: #646b75; --lag-meta: #646b75;
+  --lag-border: #d6dbe2; --lag-divider: #d6dbe2; --lag-shadow: #172231;
+  --lag-focus: #305fbb; --lag-cyan: #305fbb; --lag-violet: #745200; --lag-lav: #646b75;
+  --lag-amber: #efb31b; --lag-success: #28604e; --lag-warning: #795115;
+  --lag-error: #a13537; --lag-disabled: #808895; --lag-grain: #edf0f4;
+  --lag-gold: #efb31b; --lag-gold-ink: #745200; --lag-field: #fff; --lag-hover: #e8ecf1;
+  --lag-state-selected: var(--lag-gold); --lag-radius-sm: 2px; --lag-radius-md: 3px;
+  --lag-radius-lg: 4px; --lag-radius-xl: 4px;
+}
+:root[data-theme="astral"], [data-lag-preview-theme="astral"] {
+  --lag-ambient: #253044; --lag-ambient-2: #151e2c; --lag-shell: #303b4b;
+  --lag-nav: #252d39; --lag-workspace: #303b4b; --lag-panel: #252d39;
+  --lag-panel-2: #303b4b; --lag-personal: #252d39; --lag-paper: #1e2632;
+  --lag-text: #e9edf4; --lag-text-2: #aeb9c9; --lag-meta: #aeb9c9;
+  --lag-border: #455164; --lag-divider: #455164; --lag-shadow: #060a12;
+  --lag-focus: #a9c8ff; --lag-cyan: #a9c8ff; --lag-violet: #f4ce73; --lag-lav: #aeb9c9;
+  --lag-amber: #efb31b; --lag-success: #9fd3be; --lag-warning: #efcb8b;
+  --lag-error: #ffb0b4; --lag-disabled: #8894a6; --lag-grain: #303b4b;
+  --lag-gold-ink: #f4ce73; --lag-field: #1e2632; --lag-hover: #364357;
+}
+body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+.sao-consumer { height: 100dvh; color: var(--lag-text); font-size: 14px; line-height: 1.65; background: linear-gradient(140deg,var(--lag-ambient),var(--lag-ambient-2)); }
+.sao-consumer button, .sao-consumer input, .sao-consumer textarea, .sao-consumer select { font: inherit; }
+.sao-consumer button { touch-action: manipulation; line-height: 1.3; }
+.sao-consumer :is(h1,h2,h3,h4) { line-height: 1.3; }
+.sao-consumer :is(input,textarea,select) { background: var(--lag-field); }
+.sao-consumer :is(button,a,input,select,textarea):focus-visible { outline: 2px solid var(--lag-focus); outline-offset: 3px; }
+.sao-home { height: 100%; overflow: auto; padding: 0 max(24px,calc((100vw - 1120px)/2)) 100px; }
+.sao-mast { height: 94px; display:flex; align-items:center; border-bottom: 1px solid #ffffff55; margin-bottom: 32px; color: #fff; font-size:24px; letter-spacing: .035em; }
+.sao-mast span span { opacity: .65; }
+.sao-home .lag-home-surface { width:100%; min-width:0; max-width:none; background: transparent; padding: 0; border:0; box-shadow:none; }
+.sao-home .lag-home-card { background:var(--lag-panel); }
+.sao-menu-toggle { position:fixed; left:28px; bottom:24px; z-index:500010; display:flex; align-items:center; gap:12px; min-height:48px; padding:10px 18px; background:var(--lag-panel); border:1px solid var(--lag-border); box-shadow:0 3px 10px #17223120; }
+.sao-menu-toggle[aria-expanded=true] { visibility:hidden; }
+.sao-global-utilities { position:fixed; right:36px; top:24px; z-index:500020; display:flex; gap:6px; }
+.sao-menu-layer { position:fixed; inset:0; z-index:500000; background:linear-gradient(140deg,var(--lag-ambient),var(--lag-ambient-2)); }
+.sao-menu-layer[data-open=false] { pointer-events:none; visibility:hidden; transition:visibility 0s .16s; }
+.sao-menu-layer[data-open=true] { visibility:visible; }
+.sao-menu-chrome { position:absolute; inset:24px 36px auto; display:flex; justify-content:space-between; align-items:center; gap:12px; color:white; padding-right:140px; }
+.sao-menu-chrome span { letter-spacing:.12em; font-size:12px; }
+.sao-menu-chrome h1 { font-size:12px; margin-top:6px; }
+.sao-menu-chrome > div:last-child { display:flex; gap:8px; }
+.sao-menu-chrome button { min-height:44px; padding:10px 14px; border:1px solid #ffffff80; background:#ffffff10; white-space:nowrap; }
+.sao-stage { position:absolute; top:110px; bottom:66px; left:36px; right:36px; max-width:1110px; margin:auto; }
+.sao-stage .lag-app-surface { height:100%; padding:0; background:none; overflow:auto; }
+.sao-stage .lag-app-shell { min-height:100% !important; height:100%; padding:0 !important; gap:20px !important; align-items:flex-start; }
+.sao-stage .lag-orb-column { position:relative !important; inset:auto !important; width:64px !important; height:100% !important; flex:0 0 64px; padding:0; justify-content:flex-start; background:none; box-shadow:none; border:0; }
+.sao-stage .lag-orb-nav { width:64px; height:100% !important; padding:0 !important; background:none; border:0; box-shadow:none; overflow:visible; }
+.sao-stage .lag-orb-scroll { height:100% !important; overflow-y:auto !important; overflow-x:hidden !important; padding:7px; scrollbar-width:thin; }
+.sao-stage .lag-orb-track { display:flex; flex-direction:column !important; align-items:flex-start; gap:4px !important; padding:0 !important; }
+.sao-stage .lag-orb-item { display:flex; align-items:center; width:50px; min-height:70px !important; padding:6px 0; border:0; background:none; position:relative; flex-shrink:0; }
+.sao-stage .lag-orb-icon { display:grid; place-items:center; width:50px !important; height:50px !important; flex:0 0 50px; border-radius:50%; border:1px solid white; color:#647181; background:#f0f3f8; position:relative; }
+.sao-stage .lag-orb-icon::before { content:""; position:absolute; inset:5px; border:1px solid #9ba8b8; border-radius:50%; }
+.sao-stage .lag-orb-icon svg { width:25px; height:25px; }
+.sao-stage .lag-orb-item[aria-pressed=true] .lag-orb-icon { background:var(--lag-gold); color:#332708; box-shadow:0 0 0 4px #efb31b50,0 0 0 5px #ffdf86; }
+.sao-stage .lag-orb-item[aria-pressed=true] .lag-orb-icon::before { border-color:#fff; }
+.sao-stage .lag-orb-label { display:none; white-space:nowrap; font-size:22px; letter-spacing:.01em; text-align:left; color:white; margin-left:22px; }
+.sao-stage .lag-orb-label small { display:block; font-size:11px; margin-top:6px; line-height:1.3; }
+.sao-menu-layer[data-main=menu] .lag-orb-column, .sao-menu-layer[data-main=menu] .lag-orb-nav { width:280px !important; flex-basis:280px; }
+.sao-menu-layer[data-main=menu] .lag-orb-item { width:260px; }
+.sao-menu-layer[data-main=menu] .lag-orb-label { display:block !important; }
+.sao-stage .lag-left-anchor { position:relative; top:auto; height:100%; padding:0; --lag-left-lane-width: 350px; flex-shrink:0; }
+.sao-stage .lag-left-context { width:100% !important; height:100% !important; min-height:0 !important; max-height:100%; background:var(--lag-panel); }
+.sao-stage .lag-workspace { height:100%; margin:0; padding:0; min-width:0 !important; border:0; border-radius:0; background:none; box-shadow:none; overflow:auto !important; scroll-padding:16px; }
+.sao-stage .lag-panel-rail { height:100% !important; min-height:0; align-items:flex-start; }
+.sao-stage .lag-panel-frame { border-radius:2px; background:var(--lag-panel) !important; border:1px solid var(--lag-border); max-height:100%; box-shadow:0 3px 10px #17223120; }
+.sao-stage .lag-panel-title { font-size:19px !important; letter-spacing:0 !important; font-weight:400; white-space:normal; }
+.sao-stage .lag-panel-header { padding:20px 24px !important; border-bottom:1px solid var(--lag-divider); }
+.sao-stage .lag-panel-header [aria-hidden] { display:none; }
+.sao-stage .lag-panel-body { max-height:calc(100dvh - 270px) !important; padding-bottom:24px !important; }
+.sao-stage .lag-panel-header button { width:44px; height:44px; }
+.sao-stage .lag-panel-stage[data-inactive=true] { visibility:hidden; pointer-events:none; }
+.sao-menu-layer[data-main=quests] .lag-app-surface, .sao-menu-layer[data-main=quests] .lag-workspace { overflow:visible !important; }
+.sao-menu-layer[data-main=quests] .lag-orb-column { position:absolute !important; left:var(--sao-rail-x) !important; z-index:4; }
+.sao-menu-layer[data-main=quests] .lag-workspace { position:absolute; inset:0; width:100%; }
+.sao-menu-layer[data-main=quests] .lag-journey-shell { position:relative; width:100%; min-width:0; }
+.sao-menu-layer[data-main=quests] :is([data-stage-key=journey-root],[data-stage-key=journey-list]) { position:absolute; top:0; left:calc(var(--sao-rail-x) + 84px); width:var(--sao-right-width); max-width:none; }
+.sao-menu-layer[data-main=quests][data-detail=true] :is([data-stage-key=journey-root],[data-stage-key=journey-list]) { width:var(--sao-left-width); }
+.sao-menu-layer[data-main=quests] [data-stage-key=journey-detail] { position:absolute; top:0; left:var(--sao-detail-left); width:var(--sao-left-width); max-width:none; }
+.sao-menu-layer[data-main=quests] .lag-panel-frame { width:100% !important; max-width:none !important; }
+.sao-menu-layer[data-main=quests] .lag-panel-body { max-height:calc(100dvh - 280px) !important; }
+.sao-stage .lag-journey-card { border-radius:0; border:0; border-bottom:1px solid var(--lag-divider); background:transparent; min-height:85px; padding:18px 20px; }
+.sao-stage .lag-journey-card strong { font-size:16px; font-weight:400; }
+.sao-stage .lag-journey-card[data-selected=true] { background:var(--lag-gold); color:#332708; }
+.sao-stage .lag-journey-card[data-selected=true] :is(span,strong,p) { color:#332708; }
+.sao-stage .lag-journey-card:not([data-selected=true]):hover { background:var(--lag-hover); }
+.sao-stage .lag-journey-list, .sao-stage .lag-journey-root-grid { gap:0; padding:0; }
+.sao-stage .lag-journey-root header, .sao-stage .lag-journey-list-surface > header { padding:12px 24px; }
+.sao-stage .lag-journey-feedback { line-height:1.55; }
+.sao-stage .lag-journey-detail-row { grid-template-columns:minmax(90px,.8fr) minmax(0,1.2fr); }
+.sao-consumer :is(.lag-utility-drawer,.lag-notification-dropdown,.lag-chat-composer) { background:var(--lag-panel); }
+.sao-consumer .lag-chat-composer textarea { min-width:0; flex:1 1 0; background:var(--lag-field); }
+.sao-consumer .lag-chat-composer button { flex:0 0 76px; min-width:76px; white-space:nowrap; }
+@media(max-width:899px) {
+  .sao-home { padding:0 16px 100px; }
+  .sao-mast { height:80px; font-size:19px; }
+  .sao-global-utilities { right:16px; top:20px; }
+  .sao-menu-chrome { inset:76px 16px auto; padding:0; }
+  .sao-menu-chrome h1 { display:none; }
+  .sao-menu-chrome button { padding:8px 12px; font-size:12px; }
+  .sao-stage { inset:138px 16px 24px; }
+  .sao-menu-toggle { left:16px; bottom:16px; }
+  .sao-stage .lag-app-shell { min-width:0; }
+  .sao-stage .lag-orb-column { position:absolute !important; top:0 !important; left:0 !important; height:76px !important; z-index:4; }
+  .sao-stage .lag-orb-nav[data-compact=true] .lag-orb-item:not([aria-pressed=true]) { display:none; }
+  .sao-menu-layer[data-main=menu] .lag-orb-column { height:100% !important; }
+  .sao-menu-layer[data-main=menu] .lag-orb-nav { height:100% !important; }
+  .sao-menu-layer:not([data-main=menu]) .lag-workspace { position:absolute; inset:82px 0 0; width:100%; height:calc(100% - 82px); }
+  .sao-stage .lag-left-anchor { --lag-left-lane-width:calc(100vw - 32px); }
+  .sao-stage .lag-panel-stage, .sao-stage .lag-panel-stage[data-camera-active=true] { width:calc(100vw - 32px); max-width:none; }
+  .sao-stage .lag-panel-frame { width:calc(100vw - 32px) !important; max-width:none; max-height:100%; }
+  .sao-stage .lag-panel-body { max-height:calc(100dvh - 340px) !important; }
+  .sao-menu-layer[data-main=quests] .lag-orb-column { left:0 !important; }
+  .sao-menu-layer[data-main=quests] :is([data-stage-key=journey-root],[data-stage-key=journey-list],[data-stage-key=journey-detail]) { left:0; width:100%; }
+  .sao-menu-layer[data-main=quests][data-detail=true] [data-stage-key=journey-list] { width:100%; }
+  .sao-menu-layer[data-main=quests] .lag-panel-body { max-height:calc(100dvh - 350px) !important; }
+  .sao-stage .lag-panel-header { padding:14px 18px !important; }
+  .sao-stage .lag-journey-card { padding:14px 18px; }
+  .sao-stage .lag-journey-detail-row { font-size:13px; }
+  .sao-stage .lag-orb-item { min-height:62px !important; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .sao-consumer *, .sao-consumer *::before, .sao-consumer *::after { scroll-behavior:auto !important; transition-duration:0s !important; animation-duration:0s !important; }
+}
+.sao-selection-connections { position:absolute; inset:0; width:100%; height:100%; overflow:visible; z-index:3; pointer-events:none; }
+.sao-stage .lag-panel-frame { box-shadow:0 3px 10px #17223120 !important; }
+.sao-stage .lag-orb-track { width:100%; min-width:0; justify-content:flex-start; }
+.sao-stage .lag-orb-item { justify-content:flex-start; margin:0; }
+.sao-stage .lag-orb-scroll { width:100%; min-width:0; }
+@media(max-width:899px) {
+  .sao-stage .lag-orb-nav { min-width:72px; width:72px; }
+  .sao-stage .lag-orb-scroll { padding:7px; }
+}
+.sao-menu-layer[data-main=quests] .lag-journey-shell > [data-stage-key] > .lag-panel-frame { width:100% !important; max-width:100% !important; }
+
+.sao-menu-layer:not([data-main=quests]) .lag-workspace { display:flex; align-items:flex-start; gap:12px; }
+.sao-stage .lag-left-anchor[data-context-present=false] { display:none; }
+.sao-menu-layer:not([data-main=quests]) .lag-workspace > div { flex-shrink:0; height:100%; }
+
+.sao-stage .lag-panel-header { flex-shrink:0; }
+.sao-menu-layer:not([data-main=quests]) .lag-workspace { scrollbar-width:thin; }
+.sao-menu-layer:not([data-main=quests]) .lag-workspace::-webkit-scrollbar { display:block; height:6px; }
+/* Keep legacy shell contents inside the available stage; only the panel body scrolls. */
+.sao-menu-layer:not([data-main=quests]) .lag-workspace > div { align-items:flex-start !important; }
+.sao-stage .lag-panel-stage, .sao-stage .lag-settings-shell { height:100%; max-height:100%; }
+.sao-stage .lag-panel-frame { display:flex; flex-direction:column; height:100%; }
+.sao-stage .lag-panel-frame > div:last-child { min-height:0; flex:1 1 auto; overflow:hidden; }
+.sao-stage .lag-panel-frame .lag-panel-body { height:100%; max-height:100% !important; }
+
+/* Quest uses a single panel hierarchy: rows, title, progress, rules, rewards. */
+.sao-stage .lag-journey-list-surface { padding-inline:0; gap:12px; }
+.sao-stage .lag-journey-list-intro { padding:0 20px; font-size:12px; color:var(--lag-text-2); }
+.sao-stage .lag-journey-card { grid-template-columns:36px minmax(0,1fr) auto; gap:12px; padding:14px 20px; }
+.sao-stage .lag-journey-card-mark { width:32px; height:32px; border-color:var(--lag-border); background:transparent; font-size:10px; }
+.sao-stage .lag-journey-card-copy { gap:6px; }
+.sao-stage .lag-journey-badges > span { border:0; padding:0; background:none; font-weight:400; }
+.sao-stage .lag-journey-progress > div:first-child > span { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.sao-stage .lag-journey-progress [role=progressbar] { height:3px; }
+.sao-stage .lag-journey-progress [role=progressbar] > span { background:var(--lag-gold-ink); }
+.sao-stage .lag-journey-detail { padding-inline:20px; gap:20px; }
+.sao-stage .lag-journey-detail-hero, .sao-stage .lag-journey-root > header { border:0; background:none; padding:0; border-radius:0; }
+.sao-stage .lag-journey-detail-hero { gap:10px; }
+.sao-stage .lag-journey-detail-hero h4 { font-size:21px; font-weight:400; }
+.sao-stage .lag-journey-detail-section { border:0; border-top:1px solid var(--lag-divider); border-radius:0; background:none; }
+.sao-stage .lag-journey-detail-section h4 { padding:12px 0; border:0; background:none; color:var(--lag-text-2); font-size:11px; }
+.sao-stage .lag-journey-detail-row { padding:10px 0; }
+.sao-stage .lag-journey-detail-progress { padding:0; }
+.sao-stage .lag-quest-rewards > p, .sao-stage .lag-quest-rewards > ul, .sao-stage .lag-quest-rewards > button { margin:10px 0; }
+.sao-stage .lag-quest-rewards > button { width:100%; }

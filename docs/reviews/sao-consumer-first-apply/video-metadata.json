@@ -1,0 +1,22 @@
+{
+  "1440": {
+    "file": "flow-1440.webm",
+    "codec": "VP8/WebM",
+    "width": 1440,
+    "height": 900,
+    "frameRate": 25,
+    "duration": "00:00:09.72",
+    "bytes": 1161038,
+    "capture": "macOS Chrome 154; desktop pointer / mobile touch emulation; fixed Mock production build"
+  },
+  "390": {
+    "file": "flow-390.webm",
+    "codec": "VP8/WebM",
+    "width": 390,
+    "height": 900,
+    "frameRate": 25,
+    "duration": "00:00:09.88",
+    "bytes": 1041839,
+    "capture": "macOS Chrome 154; desktop pointer / mobile touch emulation; fixed Mock production build"
+  }
+}

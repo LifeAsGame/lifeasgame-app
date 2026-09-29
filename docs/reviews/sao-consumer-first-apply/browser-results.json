@@ -1,0 +1,547 @@
+{
+  "date": "2026-09-28T14:27:20.303Z",
+  "mode": "production build; explicit Mock",
+  "results": [
+    {
+      "label": "1440-warm-beige-no-preference",
+      "geometry": {
+        "left": 248,
+        "right": 668,
+        "viewport": 1440,
+        "selected": "quests",
+        "paths": [
+          "M580.890625,42 H584.890625 V196.25 H600.890625",
+          "M591.890625,196.25 L600.890625,190.25 V202.25 Z",
+          "M516.890625,42 H521 V42 H503",
+          "M503,35 L514,42 L503,49 Z"
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "1440-warm-beige-reduce",
+      "geometry": {
+        "left": 248,
+        "right": 668,
+        "viewport": 1440,
+        "selected": "quests",
+        "paths": [
+          "M587,42 H591 V196.25 H607",
+          "M598,196.25 L607,190.25 V202.25 Z",
+          "M523,42 H521 V42 H503",
+          "M503,35 L514,42 L503,49 Z"
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "1440-astral-no-preference",
+      "geometry": {
+        "left": 247.8297576904297,
+        "right": 667.8297576904297,
+        "viewport": 1440,
+        "selected": "quests",
+        "paths": [
+          "M573.21875,42 H577.21875 V196.25 H593.21875",
+          "M584.21875,196.25 L593.21875,190.25 V202.25 Z",
+          "M509.21875,42 H520.8297576904297 V42 H502.8297576904297",
+          "M502.8297576904297,35 L513.8297576904297,42 L502.8297576904297,49 Z"
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "1440-astral-reduce",
+      "geometry": {
+        "left": 248,
+        "right": 668,
+        "viewport": 1440,
+        "selected": "quests",
+        "paths": [
+          "M587,42 H591 V196.25 H607",
+          "M598,196.25 L607,190.25 V202.25 Z",
+          "M523,42 H521 V42 H503",
+          "M503,35 L514,42 L503,49 Z"
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "390-warm-beige-no-preference",
+      "geometry": {
+        "left": 16.121503829956055,
+        "right": 374.12150382995605,
+        "viewport": 390,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "390-warm-beige-reduce",
+      "geometry": {
+        "left": 16,
+        "right": 374,
+        "viewport": 390,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "390-astral-no-preference",
+      "geometry": {
+        "left": 16.121503829956055,
+        "right": 374.12150382995605,
+        "viewport": 390,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "390-astral-reduce",
+      "geometry": {
+        "left": 16,
+        "right": 374,
+        "viewport": 390,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "360-warm-beige-no-preference",
+      "geometry": {
+        "left": 16.124099731445312,
+        "right": 344.1240997314453,
+        "viewport": 360,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "360-warm-beige-reduce",
+      "geometry": {
+        "left": 16,
+        "right": 344,
+        "viewport": 360,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "360-astral-no-preference",
+      "geometry": {
+        "left": 16.121503829956055,
+        "right": 344.12150382995605,
+        "viewport": 360,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "360-astral-reduce",
+      "geometry": {
+        "left": 16,
+        "right": 344,
+        "viewport": 360,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "768-warm-beige-no-preference",
+      "geometry": {
+        "left": 16.114030838012695,
+        "right": 752.1140308380127,
+        "viewport": 768,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "768-warm-beige-reduce",
+      "geometry": {
+        "left": 16,
+        "right": 752,
+        "viewport": 768,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "768-astral-no-preference",
+      "geometry": {
+        "left": 16.124099731445312,
+        "right": 752.1240997314453,
+        "viewport": 768,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "768-astral-reduce",
+      "geometry": {
+        "left": 16,
+        "right": 752,
+        "viewport": 768,
+        "selected": "quests",
+        "paths": [
+          "",
+          "",
+          "",
+          ""
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "1024-warm-beige-no-preference",
+      "geometry": {
+        "left": 39.87590026855469,
+        "right": 459.8759002685547,
+        "viewport": 1024,
+        "selected": "quests",
+        "paths": [
+          "M499.25,42 H503.25 V196.25 H519.25",
+          "M510.25,196.25 L519.25,190.25 V202.25 Z",
+          "M435.25,42 H441.8759002685547 V42 H423.8759002685547",
+          "M423.8759002685547,35 L434.8759002685547,42 L423.8759002685547,49 Z"
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "1024-warm-beige-reduce",
+      "geometry": {
+        "left": 40,
+        "right": 460,
+        "viewport": 1024,
+        "selected": "quests",
+        "paths": [
+          "M508,42 H512 V196.25 H528",
+          "M519,196.25 L528,190.25 V202.25 Z",
+          "M444,42 H442 V42 H424",
+          "M424,35 L435,42 L424,49 Z"
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "1024-astral-no-preference",
+      "geometry": {
+        "left": 40,
+        "right": 460,
+        "viewport": 1024,
+        "selected": "quests",
+        "paths": [
+          "M502.546875,42 H506.546875 V196.25 H522.546875",
+          "M513.546875,196.25 L522.546875,190.25 V202.25 Z",
+          "M438.546875,42 H442 V42 H424",
+          "M424,35 L435,42 L424,49 Z"
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    },
+    {
+      "label": "1024-astral-reduce",
+      "geometry": {
+        "left": 40,
+        "right": 460,
+        "viewport": 1024,
+        "selected": "quests",
+        "paths": [
+          "M508,42 H512 V196.25 H528",
+          "M519,196.25 L528,190.25 V202.25 Z",
+          "M444,42 H442 V42 H424",
+          "M424,35 L435,42 L424,49 Z"
+        ]
+      },
+      "checks": [
+        "bounds",
+        "rapid A-B-A-C frames",
+        "stable visual node",
+        "back focus",
+        "Back/Forward",
+        "direct URL/reload",
+        "close focus",
+        "default order",
+        "hidden/mobile links removed"
+      ],
+      "httpWrites": 0
+    }
+  ],
+  "errors": []
+}

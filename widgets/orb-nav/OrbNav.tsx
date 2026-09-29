@@ -1,209 +1,73 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-
+import { useLayoutEffect, useRef } from "react";
+import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from "framer-motion";
 import type { MainNavId } from "@/entities/nav";
-import { MOTION } from "@/shared/lib/motion";
-import { UI_CONSTS } from "@/shared/lib/uiConsts";
-import { usePanScroll } from "@/shared/hooks/usePanScroll";
 
-type OrbItem = {
-  id: MainNavId;
-  label: string;
-  slotLabel: string;
+const ICONS: Record<MainNavId, string> = {
+  player: "M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM9 11h6v3l6 3v5H3v-5l6-3Z",
+  inventory: "M8 3h8l2 5h3l-1 14H4L3 8h3l2-5Zm2 2L9 8h6l-1-3h-4Z",
+  quests: "M5 2h14v20l-7-4-7 4V2Zm6 4v3H8v2h3v3h2v-3h3V9h-3V6Z",
+  role: "M8 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM3 11h10v9H2v-6Zm11 2h6l2 3v5h-8Z",
+  lifelog: "M4 2h13v3h3v17H4V2Zm4 5v2h6V7Zm0 5v2h8v-2Zm0 5v2h8v-2Z",
+  market: "M3 6h13V3l6 5-6 5v-3H3V6Zm18 12H8v3l-6-5 6-5v3h13v4Z",
+  system: "M9 2h6l1 4 4 1 2 5-3 3-1 5-5 2-3-3-5-1-2-5 3-3 1-5Zm3 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
 };
+const CAPTIONS: Record<MainNavId, string> = { player: "나의 성장", inventory: "가지고 있는 것", quests: "이어가는 여정", role: "삶의 여러 역할", lifelog: "일상의 기록", market: "자산과 교환", system: "나에게 맞추기" };
 
-type OrbNavProps = {
-  items: OrbItem[];
-  selectedId: MainNavId | null;
-  onSelect: (id: MainNavId) => void;
-  zIndex?: number;
-  onFocus?: () => void;
-};
-
-type Ripple = { id: number };
+type OrbItem = { id: MainNavId; label: string; slotLabel: string };
+type OrbNavProps = { items: OrbItem[]; selectedId: MainNavId | null; onSelect: (id: MainNavId) => void; zIndex?: number; onFocus?: () => void };
 
 export default function OrbNav({ items, selectedId, onSelect, zIndex, onFocus }: OrbNavProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [ripples, setRipples] = useState<Ripple[]>([]);
-
-  usePanScroll(scrollRef);
-
-  const {
-    orbSize,
-    orbGap,
-    outerRingPadding,
-    labelGap,
-    labelHeight,
-    labelPaddingY,
-    safePaddingY,
-    framePaddingY,
-    viewportHeight,
-  } = UI_CONSTS.orbNav;
-
-  const itemBlockHeight = useMemo(() => {
-    const orbButtonVisual = orbSize + outerRingPadding * 2;
-    return orbButtonVisual + labelGap + labelHeight + labelPaddingY * 2;
-  }, [labelGap, labelHeight, labelPaddingY, orbSize, outerRingPadding]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollTo({ top: 0, behavior: "smooth" });
-  }, [selectedId]);
-
-  const addRipple = () => {
-    const id = Date.now();
-    setRipples((prev) => [...prev, { id }]);
-    setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== id)), 650);
-  };
-
+  useLayoutEffect(() => { scrollRef.current?.scrollTo({ top: 0, behavior: "instant" }); }, [selectedId]);
   return (
-    <div
-      className="relative flex h-full items-center justify-center"
-      onPointerDownCapture={onFocus}
-      style={zIndex ? { zIndex } : undefined}
-    >
-      <div
-        className="lag-orb-nav relative flex items-center justify-center overflow-hidden px-3"
-        style={{
-          width: UI_CONSTS.layout.centerWidth,
-          height: viewportHeight + framePaddingY * 2,
-          backdropFilter: "blur(14px)",
-          WebkitBackdropFilter: "blur(14px)",
-        }}
-      >
-        <div
-          ref={scrollRef}
-          data-no-pan
-          className="lag-orb-scroll scrollbar-hide relative w-full overflow-y-auto overflow-x-hidden"
-          style={{ height: viewportHeight, scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          <motion.div
-            initial={{ opacity: 0.96 }}
-            animate={{ opacity: 1 }}
-            transition={MOTION.orbTrack.transition}
-            className="lag-orb-track flex flex-col items-center"
-            style={{ paddingTop: safePaddingY, paddingBottom: safePaddingY, gap: orbGap }}
-          >
-            {items.map((item) => {
-              const selected = item.id === selectedId;
-
-              return (
-                <motion.button
-                  layout="position"
-                  key={item.id}
-                  type="button"
-                  onClick={() => { addRipple(); onSelect(item.id); }}
-                  whileHover={{ scale: 1.08 }}
-                  whileTap={{ scale: 0.88 }}
-                  transition={{
-                    layout: { type: "tween", duration: 0.36, ease: [0.22, 1, 0.36, 1] },
-                    scale:  { type: "spring", stiffness: 480, damping: 24 },
-                  }}
-                  className="lag-orb-item group relative flex flex-col items-center overflow-visible py-[1px]"
-                  style={{ minHeight: itemBlockHeight }}
-                  aria-pressed={selected}
-                  aria-label={item.label}
-                >
-                  {/* 오브 컨테이너 — SVG가 원형 배경을 포함하므로 래퍼는 최소한 */}
-                  <div
-                    className="lag-orb-icon relative"
-                    style={{ width: orbSize, height: orbSize, flexShrink: 0 }}
-                  >
-                    {/* 선택 글로우 — 배경에서 숨쉬는 금빛 광원 */}
-                    <motion.div
-                      className="pointer-events-none absolute rounded-full"
-                      animate={
-                        selected
-                          ? { opacity: [0.35, 0.75, 0.35], scale: [0.95, 1.25, 0.95] }
-                          : { opacity: 0, scale: 1 }
-                      }
-                      transition={
-                        selected
-                          ? { duration: 2.8, repeat: Infinity, ease: "easeInOut", repeatType: "loop" }
-                          : { duration: 0.28 }
-                      }
-                      style={{
-                        inset: -18,
-                        background: "radial-gradient(circle, color-mix(in srgb, var(--lag-focus) 40%, transparent), transparent 72%)",
-                        filter: "blur(4px)",
-                      }}
-                    />
-
-                    {/* 호버 시안 글로우 */}
-                    <div
-                      className="pointer-events-none absolute rounded-full opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                      style={{
-                        inset: -12,
-                        background: "radial-gradient(circle, color-mix(in srgb, var(--lag-cyan) 18%, transparent), transparent 72%)",
-                        filter: "blur(3px)",
-                      }}
-                    />
-
-                    {/* 리플 클리핑 레이어 */}
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full">
-                      <AnimatePresence>
-                        {ripples.map((r) => (
-                          <motion.div
-                            key={r.id}
-                            className="absolute inset-0 rounded-full"
-                            style={{ background: "color-mix(in srgb, var(--lag-focus) 40%, transparent)" }}
-                            initial={{ scale: 0.3, opacity: 0.75 }}
-                            animate={{ scale: 3.5, opacity: 0 }}
-                            exit={{}}
-                            transition={{ duration: 0.55, ease: "easeOut" }}
-                          />
-                        ))}
-                      </AnimatePresence>
-                    </div>
-
-                    <div
-                      className="grid h-full w-full place-items-center rounded-full"
-                      style={{
-                        background: selected ? "var(--lag-panel)" : "var(--lag-panel-2)",
-                        border: `1px solid ${selected ? "var(--lag-focus)" : "var(--lag-border)"}`,
-                        boxShadow: selected ? "0 0 0 4px color-mix(in srgb, var(--lag-focus) 12%, transparent)" : "none",
-                        position: "relative",
-                        zIndex: 1,
-                      }}
-                    >
-                      <span
-                        className="select-none font-semibold tracking-[0.14em]"
-                        style={{
-                          fontSize: Math.max(10, Math.round(orbSize * 0.24)),
-                          color: selected ? "var(--lag-text)" : "var(--lag-text-2)",
-                          lineHeight: 1,
-                        }}
-                      >
-                        {item.slotLabel}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 레이블 */}
-                  <motion.span
-                    animate={selected ? { opacity: 1 } : { opacity: 0.60 }}
-                    className="lag-orb-label flex items-center justify-center text-center text-xs uppercase tracking-[0.26em]"
-                    style={{
-                      marginTop: labelGap,
-                      minHeight: labelHeight + labelPaddingY * 2,
-                      lineHeight: 1.2,
-                      paddingInline: 4,
-                      paddingBlock: labelPaddingY,
-                      color: selected ? "var(--lag-text)" : "var(--lag-meta)",
-                      textShadow: selected ? "0 0 10px color-mix(in srgb, var(--lag-focus) 35%, transparent)" : "none",
-                    }}
-                  >
-                    {item.label}
-                  </motion.span>
-                </motion.button>
-              );
-            })}
-          </motion.div>
+    <nav className="lag-orb-nav" aria-label="System menu" data-compact={Boolean(selectedId)} onPointerDownCapture={onFocus} style={{ zIndex }}>
+      <div ref={scrollRef} className="lag-orb-scroll" onKeyDown={(event) => {
+        if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+        const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")].filter((button) => button.getClientRects().length);
+        const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (current + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
+        event.preventDefault();
+        buttons[next]?.focus({ preventScroll: true });
+        buttons[next]?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+      }}>
+        <div className="lag-orb-track">
+          {items.map((item, index) => <OrbButton key={item.id} item={item} index={index} selectedId={selectedId} onSelect={onSelect} />)}
         </div>
       </div>
-    </div>
+    </nav>
   );
+}
+
+
+function OrbButton({ item, index, selectedId, onSelect }: { item: OrbItem; index: number; selectedId: MainNavId | null; onSelect: OrbNavProps["onSelect"] }) {
+  const button = useRef<HTMLButtonElement>(null);
+  const initialized = useRef(false);
+  const reduced = useReducedMotion();
+  const layoutTop = useMotionValue(0);
+  const position = useSpring(0, { stiffness: 484, damping: 44, mass: 1 });
+  const y = useTransform(() => position.get() - layoutTop.get());
+
+  useLayoutEffect(() => {
+    const update = () => {
+      const target = button.current?.offsetTop ?? 0;
+      layoutTop.set(target);
+      // Keep one spring per menu ID. Changing its destination retains position and velocity
+      // while the underlying DOM is immediately reordered for keyboard navigation.
+      if (!initialized.current || reduced || window.innerWidth < 900) position.jump(target);
+      else position.set(target);
+      initialized.current = true;
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [index, selectedId, reduced, layoutTop, position]);
+
+  return <motion.button ref={button} type="button" data-menu-id={item.id} style={{ y }}
+    className="lag-orb-item" aria-label={item.label} aria-pressed={selectedId === item.id} aria-current={selectedId === item.id ? "page" : undefined}
+    onClick={(event) => { event.currentTarget.focus({ preventScroll: true }); onSelect(item.id); }}>
+    <span className="lag-orb-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fillRule="evenodd" d={ICONS[item.id]} /></svg></span>
+    <span className="lag-orb-label">{item.label}<small>{CAPTIONS[item.id]}</small></span>
+  </motion.button>;
 }

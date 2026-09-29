@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import AmbientOverlay from "@/shared/ui/AmbientOverlay";
-import ParticleBackground from "@/shared/ui/ParticleBackground";
+import ConsumerShell from "@/widgets/consumer-shell/ConsumerShell";
+import { navigateConsumer, useConsumerLocation } from "@/shared/hooks/useConsumerLocation";
 import LeftContext from "@/widgets/left-context/LeftContext";
 import OrbNav from "@/widgets/orb-nav/OrbNav";
 import RightPanels from "@/widgets/right-panels/RightPanels";
@@ -86,6 +86,7 @@ function buildPanels(
 
 export default function Home() {
   const router = useRouter();
+  const location = useConsumerLocation();
   const { isAuthenticated, playerId, isLoading, logout } = useAuth();
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -100,12 +101,13 @@ export default function Home() {
     else if (!playerId) router.replace("/linkstart");
   }, [isAuthenticated, isLoading, playerId, router]);
 
-  const [selectedMain, setSelectedMain] = useState<MainNavId | null>(null);
+  const selectedMain = location.main;
   const roleState = useRoles(Boolean(playerId && (selectedMain === "player" || selectedMain === "role" || selectedMain === "lifelog")));
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-  const [selectedSubByMain, setSelectedSubByMain] = useState<Record<MainNavId, string | null>>({
+  const selectedSubByMain = useMemo<Record<MainNavId, string | null>>(() => ({
     ...DEFAULT_SUB_SELECTIONS,
-  });
+    ...(location.main ? { [location.main]: location.sub } : {}),
+  }), [location.main, location.sub]);
   const playerContext = usePlayerContext(Boolean(playerId && selectedMain === "player"));
   const [surfaceFocusState, setSurfaceFocusState] = useState<SurfaceFocusState>({
     counter: 1,
@@ -136,18 +138,17 @@ export default function Home() {
     groupBaseZ + layerBaseZ + (surfaceFocusState.lastFocusBySurface[surfaceId] ?? 0);
 
   const clearFeatureState = () => {
-    setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS });
     setSelectedRoleId(null);
   };
 
   const handleMainSelect = (nextMain: MainNavId) => {
     if (nextMain === selectedMain) {
-      setSelectedMain(null);
+      navigateConsumer(null);
       clearFeatureState();
       return;
     }
 
-    setSelectedMain(nextMain);
+    navigateConsumer(nextMain);
     clearFeatureState();
   };
 
@@ -165,20 +166,17 @@ export default function Home() {
       return;
     }
 
-    setSelectedSubByMain((prev) => ({
-      ...prev,
-      [panel.context.main]: prev[panel.context.main] === itemId ? null : itemId,
-    }));
+    navigateConsumer(panel.context.main, selectedSubByMain[panel.context.main] === itemId ? null : itemId);
   };
 
   const closeFeatureSubmenu = (main: "player" | "inventory" | "market") => {
-    setSelectedSubByMain((prev) => ({ ...prev, [main]: null }));
+    navigateConsumer(main);
     requestStageFocus(`${main}-stage-0`, "back");
   };
 
   const leftContextMode = selectedMain === "player" ? "player" : selectedMain === "role" ? "role" : "hidden";
 
-  useStageCamera(viewportRef, workspaceRef, selectedMain ?? "home");
+  useStageCamera(viewportRef, workspaceRef, selectedMain ?? "home", location.open && selectedMain !== "quests");
 
   if (isLoading || !isAuthenticated || !playerId) return null;
 
@@ -200,6 +198,23 @@ export default function Home() {
       : null;
 
   return (
+    <ConsumerShell open={location.open} main={selectedMain} home={<HomeShell
+              onOpenJournal={() => {
+                navigateConsumer("lifelog", "journal");
+              }}
+              onOpenAchievements={() => {
+                navigateConsumer("player", "achievement");
+              }}
+              onOpenCurrentQuests={() => {
+                navigateConsumer("quests", "current");
+              }}
+              onOpenRoutes={() => {
+                navigateConsumer("quests", "routes");
+              }}
+              onOpenRole={handleRoleSelect}
+            />}
+      utilities={<><SocialUtilityHub /><NotificationBell /></>}
+      onOpen={() => navigateConsumer(null)} onClose={() => navigateConsumer(null, null, null, false)} onMenu={() => navigateConsumer(null)}>
     <div
       ref={viewportRef}
       className="lag-app-surface h-screen overflow-auto"
@@ -213,6 +228,17 @@ export default function Home() {
           paddingRight: UI_CONSTS.layout.canvasEndPaddingX,
         }}
       >
+        <div className="lag-orb-column shrink-0" data-camera-layout-owner="fixed" style={{ width: UI_CONSTS.layout.centerWidth }}>
+          <OrbNav
+            items={orderedNavItems}
+            selectedId={selectedMain}
+            onSelect={handleMainSelect}
+            onFocus={() => bringSurfaceToFront("orb-nav")}
+            zIndex={getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav)}
+          />
+        </div>
+
+        <div ref={workspaceRef} className="lag-workspace scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
         <LeftContext
           mode={leftContextMode}
           playerInfo={playerContext.data?.player}
@@ -229,43 +255,7 @@ export default function Home() {
           onFocus={() => bringSurfaceToFront("left-context")}
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         />
-
-        <div className="lag-orb-column shrink-0" data-camera-layout-owner="fixed" style={{ width: UI_CONSTS.layout.centerWidth }}>
-          <div className="lag-utility-cluster" style={{ zIndex: getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav) + 1 }}>
-            <SocialUtilityHub />
-            <NotificationBell />
-          </div>
-          <OrbNav
-            items={orderedNavItems}
-            selectedId={selectedMain}
-            onSelect={handleMainSelect}
-            onFocus={() => bringSurfaceToFront("orb-nav")}
-            zIndex={getSurfaceZIndex("orb-nav", SURFACE_GROUP_BASE_Z.nav)}
-          />
-        </div>
-
-        <div ref={workspaceRef} className="lag-workspace scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
-          {selectedMain === null ? (
-            <HomeShell
-              onOpenJournal={() => {
-                handleMainSelect("lifelog");
-                setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS, lifelog: "journal" });
-              }}
-              onOpenAchievements={() => {
-                handleMainSelect("player");
-                setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS, player: "achievement" });
-              }}
-              onOpenCurrentQuests={() => {
-                handleMainSelect("quests");
-                setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS, quests: "current" });
-              }}
-              onOpenRoutes={() => {
-                handleMainSelect("quests");
-                setSelectedSubByMain({ ...DEFAULT_SUB_SELECTIONS, quests: "routes" });
-              }}
-              onOpenRole={handleRoleSelect}
-            />
-          ) : selectedMain === "player" ? (
+          {selectedMain === null ? null : selectedMain === "player" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
                 selectedMain="player"
@@ -284,7 +274,7 @@ export default function Home() {
               />
             </div>
           ) : selectedMain === "quests" ? (
-            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} />
+            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} navigation={{ surface: location.sub as QuestsSubId | null, detail: location.detail }} onNavigate={(sub, detail) => navigateConsumer("quests", sub, detail)} />
           ) : selectedMain === "inventory" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
@@ -358,8 +348,6 @@ export default function Home() {
         </div>
       </main>
 
-      <ParticleBackground />
-      <AmbientOverlay />
 
       <SaoAlert
         isOpen={logoutAlertOpen}
@@ -373,5 +361,6 @@ export default function Home() {
       />
 
     </div>
+    </ConsumerShell>
   );
 }

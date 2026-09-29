@@ -18,7 +18,7 @@ function errorMessage(caught: unknown, fallback: string): string {
 
 function useQuery<T>(enabled: boolean, initial: T, load: () => Promise<T>, fallback: string): QueryState<T> {
   const [data, setData] = useState(initial);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
 
