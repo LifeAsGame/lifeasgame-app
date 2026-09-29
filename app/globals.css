@@ -5099,3 +5099,16 @@ select {
     height: 0;
   }
 }
+
+/* Person and Role record panels share the existing staged frames. */
+.lag-role-record-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--lag-space-2);
+}
+.lag-role-record-row > .lag-role-actions { grid-column: 1 / -1; }
+.lag-role-node-list { min-width: 0; }
+.lag-role-selector [hidden], .lag-person-panels [hidden], .lag-role-relations [hidden] { display: none !important; }
+.lag-person-panels .lag-panel-frame, .lag-role-relations .lag-panel-frame { width: min(440px, calc(100vw - 32px)) !important; }
+.lag-role-selector .lag-role-form { padding-inline: 0; }

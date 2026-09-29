@@ -55,13 +55,13 @@ describe("LeftContext에서 Role을 사용할 때", () => {
     );
     const selector = container.querySelector("[data-role-selector]");
 
-    fireEvent.click(screen.getByRole("button", { name: /Backend Engineer/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Backend Engineer.*ACTIVE/ }));
     expect(selectRole).toHaveBeenCalledWith(3);
 
     rerender(<LeftContext mode="role" roles={roles} selectedRoleId={3} onRoleSelect={selectRole} />);
     expect(container.querySelector("[data-role-selector]")).toBe(selector);
-    expect(screen.getByRole("button", { name: /Backend Engineer/ })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("link", { name: "Create Role" })).toHaveAttribute("href", "/roles/create");
+    expect(screen.getByRole("button", { name: /Backend Engineer.*ACTIVE/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "역할 추가" })).toBeInTheDocument();
   });
 
   it("keeps a stable collapsible lane and shared bounded content scroll", () => {

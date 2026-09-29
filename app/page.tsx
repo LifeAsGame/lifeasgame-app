@@ -105,7 +105,11 @@ export default function Home() {
 
   const selectedMain = location.main;
   const roleState = useRoles(Boolean(playerId && (selectedMain === "player" || selectedMain === "role" || selectedMain === "lifelog")));
+  const [roleWorkspace, setRoleWorkspace] = useState<"persons" | "roles" | null>(null);
+  const [personCreateRequest, setPersonCreateRequest] = useState(0);
+  const [roleEditRequest, setRoleEditRequest] = useState<{ id: number; sequence: number } | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  useEffect(() => { if (selectedMain !== "role") { setPersonCreateRequest(0); setRoleEditRequest(null); } }, [selectedMain]);
   const selectedSubByMain = useMemo<Record<MainNavId, string | null>>(() => ({
     ...DEFAULT_SUB_SELECTIONS,
     ...(location.main ? { [location.main]: location.sub } : {}),
@@ -141,6 +145,7 @@ export default function Home() {
 
   const clearFeatureState = () => {
     setSelectedRoleId(null);
+    setRoleWorkspace(null); setRoleEditRequest(null);
   };
 
   const handleMainSelect = (nextMain: MainNavId) => {
@@ -156,6 +161,7 @@ export default function Home() {
 
   const handleRoleSelect = (roleId: number) => {
     if (selectedMain !== "role") handleMainSelect("role");
+    setRoleWorkspace("roles");
     setSelectedRoleId(roleId);
   };
 
@@ -263,6 +269,11 @@ export default function Home() {
         <div ref={workspaceRef} className="lag-workspace scrollbar-hide min-w-0 flex-1 overflow-x-auto" style={{ minWidth: UI_CONSTS.layout.rightMinWidth }}>
         <LeftContext
           mode={selectedMain === "role" ? "role" : "hidden"}
+          roleWorkspace={roleWorkspace}
+          onRoleWorkspaceChange={(workspace, create) => { setRoleWorkspace(workspace); if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); }}
+          onRoleEdit={(id) => { handleRoleSelect(id); setRoleEditRequest((value) => ({ id, sequence: (value?.sequence ?? 0) + 1 })); }}
+          onRoleRefresh={roleState.refresh}
+          onRoleArchived={(id) => setSelectedRoleId((current) => current === id ? null : current)}
           playerInfo={playerContext.data?.player}
           equipments={playerContext.data?.equipments}
           playerLoading={playerContext.loading}
@@ -290,6 +301,10 @@ export default function Home() {
           ) : selectedMain === "role" ? (
             <div className="flex w-fit items-center gap-3">
               <RoleShell
+                workspace={roleWorkspace}
+                personCreateRequest={personCreateRequest}
+                onWorkspaceBack={() => setRoleWorkspace(null)}
+                editRequest={roleEditRequest}
                 roles={roleState.roles}
                 selectedRoleId={selectedRoleId}
                 onSelectRole={setSelectedRoleId}

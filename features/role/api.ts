@@ -82,3 +82,14 @@ export async function listRoleEventsApi(roleId: number): Promise<RoleEventDetail
 export async function getRoleEventApi(roleId: number, eventId: number): Promise<RoleEventDetail> {
   return USE_MOCK ? roleMock.getEvent(roleId, eventId) : apiGet<RoleEventDetail>(`/api/v1/roles/${roleId}/events/${eventId}`);
 }
+
+// Older relation reads omit Person status. Active lists omit archived Persons,
+// so use the owned detail read when a Person is absent from the supplied list.
+export async function resolveRelationPersonStatus(relations: RoleRelationDetail[], persons: PersonDetail[] = []): Promise<RoleRelationDetail[]> {
+  const statuses = new Map<number, Promise<string | null>>(persons.map((person) => [person.id, Promise.resolve(person.status)]));
+  return Promise.all(relations.map(async (relation) => {
+    if (relation.personStatus !== undefined) return relation;
+    if (!statuses.has(relation.personId)) statuses.set(relation.personId, getPersonApi(relation.personId).then((person) => typeof person.status === "string" ? person.status : null).catch(() => null));
+    return { ...relation, personStatus: await statuses.get(relation.personId) ?? null };
+  }));
+}
