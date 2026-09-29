@@ -188,7 +188,7 @@ export default function Home() {
   };
 
 
-  useStageCamera(viewportRef, workspaceRef, selectedMain ?? "home", location.open && selectedMain !== "quests");
+  useStageCamera(viewportRef, workspaceRef, selectedMain ?? "home", !isLoading && isAuthenticated && Boolean(playerId) && location.open && selectedMain !== "quests");
 
   if (isLoading || !isAuthenticated || !playerId) return null;
 
