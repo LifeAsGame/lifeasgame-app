@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { USE_MOCK } from "@/shared/api/client";
+import { getItemApi } from "@/shared/api/items";
+
 import type { MarketSubId } from "@/entities/nav";
 import type { InventoryEntry, ListingSummary, ShopItem, ShopPurchaseSummary, TradeSummary, WalletBalance } from "@/shared/api/types";
 import { getInventoryApi } from "@/lib/api/endpoints/inventory.api";
@@ -64,7 +67,20 @@ export function useExchangeQueries(surface: MarketSubId | null) {
   const inventory = useExchangeQuery<InventoryEntry[]>([], loadInventory, "Unable to load owned InventoryEntry data.", shop);
   const trades = useExchangeQuery<TradeSummary[]>([], getTradesApi, "Unable to load Trade history.", surface === "trade");
 
-  return { wallet, shopItems, shopPurchases, openListings, myListings, inventory, trades };
+  const itemIds = JSON.stringify([...new Set([...openListings.data, ...myListings.data].flatMap(({ itemId }) => itemId === null ? [] : [itemId]))].sort((a, b) => a - b));
+  const itemRequests = useRef(new Map<number, Promise<string | null>>());
+  const [itemNames, setItemNames] = useState<Record<number, string | null>>({});
+  useEffect(() => {
+    let active = true;
+    const ids = JSON.parse(itemIds) as number[];
+    void Promise.all(ids.map(async (id) => {
+      if (!itemRequests.current.has(id)) itemRequests.current.set(id, USE_MOCK ? Promise.resolve(null) : getItemApi(id).then((item) => typeof item.name === "string" && item.name.trim() ? item.name : null).catch(() => null));
+      return [id, (await itemRequests.current.get(id)) ?? null] as const;
+    })).then((entries) => { if (active) setItemNames(Object.fromEntries(entries)); });
+    return () => { active = false; };
+  }, [itemIds]);
+
+  return { wallet, shopItems, shopPurchases, openListings, myListings, inventory, trades, itemNames };
 }
 
 export type ExchangeQueries = ReturnType<typeof useExchangeQueries>;

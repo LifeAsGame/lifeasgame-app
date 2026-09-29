@@ -37,6 +37,16 @@ const achievement: PlayerAchievementInfo = {
 describe("Current Player Growth API를 사용할 때", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it("진행값의 누락은 보존하고 잘못된 신규 값은 거부한다", async () => {
+    const current = { ...MOCK_PLAYER_GROWTH.current, level: 2, exp: 130, expIntoLevel: 30, capForLevel: 135, expToNext: 105, progressRatio: 30 / 135, maxLevelReached: false };
+    client.apiGet.mockResolvedValue({ current, recentExpChanges: [] });
+    expect((await getPlayerGrowthApi()).current).toEqual(current);
+    for (const invalid of [{ expIntoLevel: -1 }, { capForLevel: 0 }, { expToNext: null }, { progressRatio: 1.1 }, { maxLevelReached: "false" }]) {
+      client.apiGet.mockResolvedValue({ current: { ...current, ...invalid }, recentExpChanges: [] });
+      await expect(getPlayerGrowthApi()).rejects.toThrow("성장 진행 응답");
+    }
+  });
+
   it("envelope-aware client의 exact path와 exact mock shape를 사용한다", async () => {
     client.apiGet.mockResolvedValue(MOCK_PLAYER_GROWTH);
 

@@ -1,6 +1,7 @@
 import { USE_MOCK, apiDelete, apiGet, apiPost } from "@/shared/api/client";
 import type {
   ListingReservation,
+  ListingReservationSummary,
   ListingSummary,
   ListingsResponse,
   OpenListingRequest,
@@ -53,18 +54,31 @@ export function confirmShopPurchaseApi(reservationToken: string, idempotencyKey:
     : apiPost<ShopReservation>("/api/v1/economy/shop/reservations/confirm", { reservationToken, idempotencyKey });
 }
 
+function validateListingQuantities<T extends { saleQuantity?: number | null }>(rows: T[]): T[] {
+  if (!Array.isArray(rows) || rows.some(({ saleQuantity }) => saleQuantity !== undefined && saleQuantity !== null && (!Number.isInteger(saleQuantity) || saleQuantity < 1 || saleQuantity > 2_147_483_647))) {
+    throw new Error("매물 수량 응답을 확인할 수 없습니다.");
+  }
+  return rows;
+}
+
+export async function getListingReservationsApi(): Promise<ListingReservationSummary[]> {
+  if (USE_MOCK) return [];
+  const response = await apiGet<{ reservations: ListingReservationSummary[] }>("/api/v1/economy/listings/reservations");
+  return validateListingQuantities(response.reservations);
+}
+
 export async function getMyListingsApi(): Promise<ListingSummary[]> {
   const response: ListingsResponse = USE_MOCK
     ? marketMock.myListings()
     : await apiGet<ListingsResponse>("/api/v1/economy/listings/me");
-  return response.listings;
+  return validateListingQuantities(response.listings);
 }
 
 export async function getOpenListingsApi(): Promise<ListingSummary[]> {
   const response: ListingsResponse = USE_MOCK
     ? marketMock.openListings()
     : await apiGet<ListingsResponse>("/api/v1/economy/listings");
-  return response.listings;
+  return validateListingQuantities(response.listings);
 }
 
 export function createListingApi(request: OpenListingRequest): Promise<{ id: number }> {
