@@ -30,8 +30,17 @@ export async function registerPlayerApi(body: RegisterPlayerRequest): Promise<Cr
   return apiPost<CreatedPlayerWithToken>("/api/v1/players/register", body);
 }
 
-export function getPlayerGrowthApi(): Promise<PlayerGrowthOverview> {
-  return USE_MOCK ? Promise.resolve(growthMock.overview()) : apiGet<PlayerGrowthOverview>("/api/v1/players/growth");
+export async function getPlayerGrowthApi(): Promise<PlayerGrowthOverview> {
+  const growth = USE_MOCK ? growthMock.overview() : await apiGet<PlayerGrowthOverview>("/api/v1/players/growth");
+  const current = growth?.current;
+  if (!current || ![current.level, current.exp].every(Number.isFinite)
+    || [current.expIntoLevel, current.capForLevel, current.expToNext].some((value) => value !== undefined && (!Number.isSafeInteger(value) || value < 0))
+    || (current.progressRatio !== undefined && (!Number.isFinite(current.progressRatio) || current.progressRatio < 0 || current.progressRatio > 1))
+    || (current.maxLevelReached !== undefined && typeof current.maxLevelReached !== "boolean")
+    || (current.maxLevelReached === false && current.capForLevel === 0)) {
+    throw new Error("성장 진행 응답을 확인할 수 없습니다.");
+  }
+  return growth;
 }
 
 export async function getPlayerAchievementsApi(): Promise<PlayerAchievementInfo[]> {

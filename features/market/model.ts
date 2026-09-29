@@ -7,8 +7,8 @@ export function formatCurrency(amount: number, currency: EconomyCurrency) {
   return `${amount.toLocaleString()} ${currency}`;
 }
 
-export function itemIdentity(itemId: number) {
-  return `Item #${itemId}`;
+export function itemIdentity(itemId: number | null) {
+  return itemId === null ? "상품 정보 미확인" : `Item #${itemId}`;
 }
 
 export function recoverShopPurchase(purchases: ShopPurchaseSummary[], purchaseId: number) {
@@ -29,4 +29,9 @@ export function tradePresentation(trade: TradeSummary, playerId: number) {
   const bought = trade.buyerId === playerId;
   const counterpartyId = bought ? trade.sellerId : trade.buyerId;
   return { direction: bought ? "Bought" : "Sold", counterparty: `Player #${counterpartyId}` };
+}
+
+export function listingQuantity(quantity: number | null | undefined) {
+  return quantity === undefined ? "수량 미확인 · 서버 필드 미제공"
+    : quantity === null ? "수량 미확인 · 과거 기록 없음" : `수량 ${quantity}`;
 }

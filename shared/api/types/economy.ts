@@ -20,7 +20,8 @@ export interface OpenListingRequest {
 
 export interface ListingSummary {
   id: number;
-  itemId: number;
+  itemId: number | null;
+  saleQuantity?: number | null;
   sellerId: number;
   price: number;
   currency: EconomyCurrency;
@@ -88,4 +89,14 @@ export interface ListingReservation {
   reservationToken: string;
   holdId: string;
   expiresAt: string;
+}
+
+// GET reservation reads differ from the POST reserve acknowledgement above.
+export interface ListingReservationSummary {
+  listingId: number;
+  itemId: number | null;
+  price: number;
+  currency: EconomyCurrency;
+  expiresAt: string;
+  saleQuantity?: number | null;
 }

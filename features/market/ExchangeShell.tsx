@@ -22,6 +22,7 @@ import {
   type ExchangeShopSurface,
   formatCurrency,
   itemIdentity,
+  listingQuantity,
   recoverLatestPendingShopPurchase,
   tradePresentation,
 } from "./model";
@@ -141,8 +142,9 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onRefresh
   );
 }
 
-function ListingDetail({ listing, playerId, reservation, pending, onBack, onReserve, onPurchase }: {
+function ListingDetail({ listing, itemName, playerId, reservation, pending, onBack, onReserve, onPurchase }: {
   listing: ListingSummary;
+  itemName?: string | null;
   playerId: number;
   reservation: ListingReservation | null;
   pending: boolean;
@@ -154,14 +156,16 @@ function ListingDetail({ listing, playerId, reservation, pending, onBack, onRese
   const open = listing.status === "OPEN";
   return (
     <article className="lag-exchange-detail">
-      <SurfaceHeader eyebrow={`Listing #${listing.id}`} title={itemIdentity(listing.itemId)} description={own ? "Your listing" : `Seller · Player #${listing.sellerId}`} accent="violet" />
+      <SurfaceHeader eyebrow={`Listing #${listing.id}`} title={itemName ?? itemIdentity(listing.itemId)} description={own ? "Your listing" : `Seller · Player #${listing.sellerId}`} accent="violet" />
       <DetailSection title="Listing terms">
+        <DataRow label="수량">{listingQuantity(listing.saleQuantity)}</DataRow>
         <DataRow label="Total price">{formatCurrency(listing.price, listing.currency)}</DataRow>
         <DataRow label="Status">{listing.status}</DataRow>
         <DataRow label="Seller">{own ? "You · purchase unavailable" : `Player #${listing.sellerId}`}</DataRow>
       </DetailSection>
       {reservation ? (
         <DetailSection title="Reservation">
+          <DataRow label="예약 수량">{listingQuantity(listing.saleQuantity)}</DataRow>
           <DataRow label="Hold ID">{reservation.holdId}</DataRow>
           <DataRow label="Expires">{new Date(reservation.expiresAt).toLocaleString()}</DataRow>
         </DetailSection>
@@ -176,11 +180,12 @@ function ListingDetail({ listing, playerId, reservation, pending, onBack, onRese
   );
 }
 
-function MyListingDetail({ listing, pending, onBack, onCancel }: { listing: ListingSummary; pending: boolean; onBack: () => void; onCancel: () => void }) {
+function MyListingDetail({ listing, itemName, pending, onBack, onCancel }: { listing: ListingSummary; itemName?: string | null; pending: boolean; onBack: () => void; onCancel: () => void }) {
   return (
     <article className="lag-exchange-detail">
-      <SurfaceHeader eyebrow={`My listing #${listing.id}`} title={itemIdentity(listing.itemId)} description="Listing details for the complete item or stack." accent="violet" />
+      <SurfaceHeader eyebrow={`My listing #${listing.id}`} title={itemName ?? itemIdentity(listing.itemId)} description="Listing details for the complete item or stack." accent="violet" />
       <DetailSection title="Listing state">
+        <DataRow label="수량">{listingQuantity(listing.saleQuantity)}</DataRow>
         <DataRow label="Total price">{formatCurrency(listing.price, listing.currency)}</DataRow>
         <DataRow label="Status">{listing.status}</DataRow>
       </DetailSection>
@@ -347,7 +352,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
             {shopSurface === "marketplace" ? (
               <QueryState query={queries.openListings} empty="No open Marketplace listings.">
                 <div className="lag-exchange-list">
-                  {queries.openListings.data.filter((listing) => !mutations.completedTrades.some((trade) => trade.listingId === listing.id)).map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={itemIdentity(listing.itemId)} meta={listing.sellerId === playerId ? "Your listing" : `Seller · Player #${listing.sellerId}`} value={formatCurrency(listing.price, listing.currency)} status={listing.status} onClick={() => { setSelectedListingId(listing.id); setListingReservation(null); setSelectedShopItemId(null); }} />)}
+                  {queries.openListings.data.filter((listing) => !mutations.completedTrades.some((trade) => trade.listingId === listing.id)).map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={(listing.itemId === null ? null : queries.itemNames[listing.itemId]) ?? itemIdentity(listing.itemId)} meta={listing.sellerId === playerId ? "Your listing" : `Seller · Player #${listing.sellerId}`} value={formatCurrency(listing.price, listing.currency)} status={`${listing.status} · ${listingQuantity(listing.saleQuantity)}`} onClick={() => { setSelectedListingId(listing.id); setListingReservation(null); setSelectedShopItemId(null); }} />)}
                 </div>
               </QueryState>
             ) : null}
@@ -357,7 +362,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
                 <button type="button" className="lag-exchange-action" disabled={mutations.pendingKey !== null} onClick={() => { setCreatingListing(true); setSelectedListingId(null); }}>Create Listing</button>
                 <QueryState query={queries.myListings} empty="No My Listings.">
                   <div className="lag-exchange-list">
-                    {queries.myListings.data.map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={itemIdentity(listing.itemId)} meta={`Listing #${listing.id}`} value={formatCurrency(listing.price, listing.currency)} status={listing.status} onClick={() => { setSelectedListingId(listing.id); setCreatingListing(false); setListingReservation(null); }} />)}
+                    {queries.myListings.data.map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={(listing.itemId === null ? null : queries.itemNames[listing.itemId]) ?? itemIdentity(listing.itemId)} meta={`Listing #${listing.id}`} value={formatCurrency(listing.price, listing.currency)} status={`${listing.status} · ${listingQuantity(listing.saleQuantity)}`} onClick={() => { setSelectedListingId(listing.id); setCreatingListing(false); setListingReservation(null); }} />)}
                   </div>
                 </QueryState>
               </>
@@ -372,8 +377,8 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
             <PanelFrame title={creatingListing ? "New Listing" : "Exchange Detail"} depth={0} contentKey={detailIdentity} backButton={<BackButton label="Back to Shop" onClick={closeDetail} />}>
               {mutations.error ? <div className="lag-exchange-state"><Feedback>{mutations.error}</Feedback></div> : null}
               {selectedShopItem ? <ShopItemDetail item={selectedShopItem} purchase={activePurchase} purchaseId={effectivePurchaseId} pending={mutations.pendingKey !== null} onBack={closeDetail} onRefresh={() => { if (effectivePurchaseId !== null) void mutations.refreshShopPurchase(effectivePurchaseId).then((purchase) => setActivePurchaseId(purchase?.id ?? effectivePurchaseId)); }} /> : null}
-              {shopSurface === "marketplace" && selectedListing ? <ListingDetail listing={selectedListing} playerId={playerId} reservation={listingReservation} pending={mutations.pendingKey !== null} onBack={closeDetail} onReserve={() => void mutations.reserveListing(selectedListing).then((reservation) => setListingReservation(reservation ?? null))} onPurchase={() => { if (listingReservation) void mutations.purchaseListing(selectedListing, listingReservation.reservationToken).then((trade) => { if (trade) closeDetail(); }); }} /> : null}
-              {shopSurface === "my-listings" && selectedListing ? <MyListingDetail listing={selectedListing} pending={mutations.pendingKey !== null} onBack={closeDetail} onCancel={() => { if (window.confirm(`Cancel listing #${selectedListing.id}?`)) void mutations.cancelListing(selectedListing).then((done) => { if (done) closeDetail(); }); }} /> : null}
+              {shopSurface === "marketplace" && selectedListing ? <ListingDetail listing={selectedListing} itemName={selectedListing.itemId === null ? null : queries.itemNames[selectedListing.itemId]} playerId={playerId} reservation={listingReservation} pending={mutations.pendingKey !== null} onBack={closeDetail} onReserve={() => void mutations.reserveListing(selectedListing).then((reservation) => setListingReservation(reservation ?? null))} onPurchase={() => { if (listingReservation) void mutations.purchaseListing(selectedListing, listingReservation.reservationToken).then((trade) => { if (trade) closeDetail(); }); }} /> : null}
+              {shopSurface === "my-listings" && selectedListing ? <MyListingDetail listing={selectedListing} itemName={selectedListing.itemId === null ? null : queries.itemNames[selectedListing.itemId]} pending={mutations.pendingKey !== null} onBack={closeDetail} onCancel={() => { if (window.confirm(`Cancel listing #${selectedListing.id}?`)) void mutations.cancelListing(selectedListing).then((done) => { if (done) closeDetail(); }); }} /> : null}
               {shopSurface === "my-listings" && creatingListing ? <CreateListingForm entries={queries.inventory.data} pending={mutations.pendingKey !== null} onBack={closeDetail} onSubmit={(entry, price, currency) => void mutations.createListing(entry, price, currency).then((listing) => { if (listing) closeDetail(); })} /> : null}
             </PanelFrame>
           </PanelStage>

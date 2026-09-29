@@ -125,6 +125,11 @@ export interface PlayerGrowthOverview {
   current: {
     level: number;
     exp: number;
+    expIntoLevel?: number;
+    capForLevel?: number;
+    expToNext?: number;
+    progressRatio?: number;
+    maxLevelReached?: boolean;
     str: number;
     agi: number;
     dex: number;
