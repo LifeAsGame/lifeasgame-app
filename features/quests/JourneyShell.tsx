@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import { consumerLabel } from "@/shared/lib/consumerLabels";
@@ -14,6 +14,7 @@ import type {
   QuestRouteStepDetail,
 } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
@@ -180,19 +181,13 @@ type RouteDetailState = {
   error: string | null;
 };
 
-function subscribeCompact(notify: () => void) {
-  const media = window.matchMedia("(max-width: 899px)");
-  media.addEventListener("change", notify);
-  return () => media.removeEventListener("change", notify);
-}
-
 export default function JourneyShell({ initialSurface = null, navigation, onNavigate }: {
   initialSurface?: QuestsSubId | null;
   navigation?: { surface: QuestsSubId | null; detail: string | null };
   onNavigate?: (surface: QuestsSubId | null, detail: string | null) => void;
 }) {
   const { confirm, dialog } = useSaoConfirm();
-  const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
+  const compact = useMediaQuery("(max-width: 1199px)");
   const appliedRoute = useRef<string | null>(null);
   const writeRoute = (nextSurface: QuestsSubId | null, detail: string | null = null) => {
     appliedRoute.current = `${nextSurface ?? ""}/${detail ?? ""}`;
