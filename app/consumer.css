@@ -284,8 +284,8 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .lag-row-action-area[hidden] { display:none; }
 .lag-row-action-area button { width:72px; display:grid; place-content:center; gap:4px; font-size:12px; min-height:44px; border-left:1px solid #ffffff50; }
 .lag-row-action-symbol { display:grid; place-items:center; width:32px; height:32px; margin:auto; border:3px double currentColor; border-radius:50%; font-size:20px; line-height:1; }
-.lag-row-action-area button:first-child { color:#d4edff; }
-.lag-row-action-area button:last-child { color:#ffe0ef; }
+.lag-row-action-area button:first-child .lag-row-action-symbol { color:#fff; background:#287bbf; }
+.lag-row-action-area button:last-child .lag-row-action-symbol { color:#fff; background:#d13378; }
 .lag-row-action-area button:disabled { opacity:.45; }
 
 .lag-record-body[data-selected=true]::after, .lag-role-node[data-selected=true]::after { content:""; position:absolute; right:4px; border-block:6px solid transparent; border-left:8px solid #856514; }
