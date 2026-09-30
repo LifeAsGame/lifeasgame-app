@@ -356,7 +356,7 @@ export function useStageCamera(
           pendingWideScroll = null;
           recomposeWide(target, detail.align);
         }
-        else focusStage(owner, target, detail.align, prefersReducedMotion(), cameraInsets(owner, profile), profile);
+        else focusStage(owner, target, detail.align, prefersReducedMotion() || Boolean(owner.closest(".sao-menu-layer")), cameraInsets(owner, profile), profile);
         lastFocusedStage.current = { context, key: detail.key };
         if (pendingId && pendingFocus.current?.id === pendingId) pendingFocus.current = null;
       });

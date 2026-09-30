@@ -49,7 +49,7 @@ describe("역할과 독립된 인물 관리", () => {
     await screen.findByRole("button", { name: /Alex.*인물/ });
     await waitFor(() => expect(add).toHaveFocus());
     expect(scroll.scrollTop).toBe(90);
-    fireEvent.click(screen.getByRole("button", { name: "Alex 작업" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*인물/ }), { key: "F10", shiftKey: true });
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     expect(await screen.findByLabelText("생일")).toHaveValue("1995-06-18");
     fireEvent.change(screen.getByLabelText("생일"), { target: { value: "" } });
@@ -63,7 +63,7 @@ describe("역할과 독립된 인물 관리", () => {
     api.updatePersonApi.mockRejectedValueOnce(new Error("저장 실패"));
     const a = deferred<PersonDetail>(), saving = deferred<PersonDetail>();
     const view = render(<RoleShell {...props} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Alex 작업" }));
+    fireEvent.keyDown(await screen.findByRole("button", { name: /Alex.*인물/ }), { key: "F10", shiftKey: true });
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.change(await screen.findByLabelText("인물 이름"), { target: { value: "Alex draft" } });
     fireEvent.click(screen.getByRole("button", { name: "인물 저장" }));
@@ -79,7 +79,7 @@ describe("역할과 독립된 인물 관리", () => {
     expect(screen.getByText("Bea notes")).toBeInTheDocument(); expect(screen.queryByText("old A")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "인물 목록으로" }));
     expect(screen.getByRole("button", { name: /Bea.*인물/ })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: "Alex 작업" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*인물/ }), { key: "F10", shiftKey: true });
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     await screen.findByLabelText("인물 이름");
     api.updatePersonApi.mockReturnValueOnce(saving.promise);

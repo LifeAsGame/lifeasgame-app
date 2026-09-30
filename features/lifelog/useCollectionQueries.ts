@@ -24,7 +24,7 @@ function message(caught: unknown, fallback: string): string {
   return caught instanceof Error ? caught.message : fallback;
 }
 
-export function useCollectionQueries() {
+export function useCollectionQueries(skipInitial = false) {
   const [params, setParams] = useState<CollectionSearchParams>(INITIAL_PARAMS);
   const paramsRef = useRef(INITIAL_PARAMS);
   const [items, setItems] = useState<CollectionInfo[]>([]);
@@ -87,7 +87,7 @@ export function useCollectionQueries() {
     }
   }, [clearSelection]);
 
-  useEffect(() => { void reload(); }, [params, reload]);
+  useEffect(() => { if (!skipInitial || params.category) void reload(); }, [params, reload, skipInitial]);
 
   const loadDetail = useCallback(async (id: number) => {
     const requestId = ++detailRequestId.current;
@@ -148,7 +148,7 @@ export function useCollectionQueries() {
       const result = await request();
       if (requestId !== mutationRequestId.current) return false;
       onResponse?.(result);
-      setMutationSuccess(key === "create" ? "Collection created." : key.startsWith("delete") ? "Collection deleted." : "Collection updated.");
+      setMutationSuccess(key === "create" ? "수집 기록을 저장했습니다." : key.startsWith("delete") ? "수집 기록을 삭제했습니다." : "수집 기록을 수정했습니다.");
       const next = await reload(true);
       if (requestId !== mutationRequestId.current) return false;
       if (next && selectionId === detailRequestId.current) onReload?.(result, next);
@@ -172,9 +172,6 @@ export function useCollectionQueries() {
     "create",
     () => createCollectionApi(body),
     undefined,
-    (created, next) => {
-      if (next.some(({ id }) => id === created.id)) select(created.id, true);
-    },
   );
 
   const update = (id: number, body: CollectionUpdateRequest) => mutate(

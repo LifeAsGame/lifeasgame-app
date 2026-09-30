@@ -262,19 +262,10 @@ describe("실제 Role shell을 사용할 때", () => {
     });
   });
 
-  it("관계 메뉴 드래그 취소 뒤 기본 클릭은 연결 폼 대신 목록을 연다", async () => {
+  it("관계 메뉴 더블클릭은 연결 폼을 열고 기본 클릭은 목록을 연다", async () => {
     render(<Harness />);
     const menu = screen.getByRole("button", { name: /관계.*연결된 기존 인물/ });
-    // jsdom does not implement native pointer capture; browser checks cover it.
-    const capture = { hasPointerCapture: () => false, setPointerCapture: () => {}, releasePointerCapture: () => {} };
-    Object.assign(menu, capture);
-    Object.assign(menu.closest(".lag-panel-body")!, capture);
-    const pointer = (type: string, x: number) => {
-      const event = new MouseEvent(type, { bubbles: true, clientX: x, clientY: 100, button: 0 });
-      Object.defineProperties(event, { pointerId: { value: 1 }, isPrimary: { value: true } });
-      fireEvent(menu, event);
-    };
-    pointer("pointerdown", 200); pointer("pointermove", 100); pointer("pointerup", 100);
+    fireEvent.click(menu, { detail: 1 }); fireEvent.click(menu, { detail: 2 });
     await screen.findByLabelText("기존 인물");
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     fireEvent.click(screen.getByRole("button", { name: "역할 Backend Engineer로" }));
@@ -297,7 +288,7 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "관계 연결" }));
       await waitFor(() => expect(api.createRoleRelationApi).toHaveBeenCalledWith(1, { personId: 7, relationType: "FAMILY", roleNotes: "Call weekly" }));
       await waitFor(() => expect(screen.queryByLabelText("기존 인물")).not.toBeInTheDocument());
-      fireEvent.click(screen.getByRole("button", { name: "Alex 작업" }));
+      fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*FRIEND/ }), { key: "F10", shiftKey: true });
       fireEvent.click(screen.getByRole("button", { name: "수정" }));
       fireEvent.change(await screen.findByLabelText("관계 유형"), { target: { value: "MENTOR" } });
       fireEvent.click(screen.getByRole("button", { name: "관계 저장" }));

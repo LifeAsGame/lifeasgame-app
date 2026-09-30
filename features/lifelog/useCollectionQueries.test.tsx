@@ -31,7 +31,7 @@ const created = { ...first, id: 99, title: "Created by server" };
 
 describe("Collection query/mutation state를 관리할 때", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     api.searchCollectionsApi.mockResolvedValue([first]);
     api.getCollectionApi.mockImplementation(async (id: number) => id === created.id ? created : first);
     api.createCollectionApi.mockResolvedValue({ id: created.id });
@@ -74,9 +74,10 @@ describe("Collection query/mutation state를 관리할 때", () => {
       await act(async () => {
         await result.current.create({ category: "BOOK", title: "Submitted title", quantity: 1 });
       });
+      expect(result.current.selectedId).toBeNull();
+      act(() => result.current.select(created.id));
       await waitFor(() => expect(result.current.detail.data?.id).toBe(created.id));
       expect(api.getCollectionApi).toHaveBeenCalledWith(created.id);
-      expect(result.current.detail.data?.title).toBe("Created by server");
 
       await act(async () => {
         await result.current.update(created.id, { quantity: 3, conditionNote: "Updated", acquiredFrom: "Gift" });
@@ -110,7 +111,7 @@ describe("Collection query/mutation state를 관리할 때", () => {
       expect(result.current.selectedId).toBeNull();
       expect(result.current.list.items).toEqual([]);
       expect(result.current.list.error).toBe("List unavailable");
-      expect(result.current.mutationSuccess).toBe("Collection deleted.");
+      expect(result.current.mutationSuccess).toBe("수집 기록을 삭제했습니다.");
       expect(result.current.refreshError).toMatch(/변경은 저장됐지만/);
       expect(result.current.mutationError).toBeNull();
     });
@@ -172,11 +173,11 @@ describe("Collection query/mutation state를 관리할 때", () => {
     const { result } = renderHook(() => useCollectionQueries());
     await waitFor(() => expect(result.current.list.items).toEqual([first]));
     await act(async () => { expect(await result.current.create({ category: "BOOK", title: "New", quantity: 1 })).toBe(true); });
-    expect(result.current.mutationSuccess).toBe("Collection created.");
+    expect(result.current.mutationSuccess).toBe("수집 기록을 저장했습니다.");
     expect(result.current.mutationError).toBeNull();
     expect(result.current.refreshError).toMatch(/변경은 저장됐지만/);
     await act(async () => { await result.current.list.reload(); });
-    expect(result.current.mutationSuccess).toBe("Collection created.");
+    expect(result.current.mutationSuccess).toBe("수집 기록을 저장했습니다.");
     expect(result.current.refreshError).toBeNull();
     expect(api.createCollectionApi).toHaveBeenCalledTimes(1);
   });

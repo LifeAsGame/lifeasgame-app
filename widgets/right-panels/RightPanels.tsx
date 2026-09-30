@@ -126,8 +126,8 @@ function PanelContent({
               panel.context.route === "lifelog-category";
             const canCreate = panel.context.route === "main-submenu" && ((panel.context.main === "player" && ["credentials", "interests"].includes(item.id)) || (panel.context.main === "lifelog" && ["journal", "collection", "exercise", "media"].includes(item.id)));
             if (canCreate && onPanelItemCreate) return <div key={item.id}>
-              <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onSwipeLeft={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong><span aria-hidden>→</span></SwipeButton>
-              <p className="lag-create-hint">왼쪽으로 당긴 후 놓기 / Alt+Enter: 등록</p>
+              <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onDoubleClick={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong><span aria-hidden>→</span></SwipeButton>
+              <p className="lag-create-hint">두 번 누르기 / Alt+Enter: 등록</p>
             </div>;
             return (
               <PanelCard

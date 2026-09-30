@@ -23,7 +23,7 @@ it("드래그는 기준과 방향을 구분해 선택지만 열며 click 중복�
   fireEvent.click(screen.getByRole("button", { name: "수정" })); expect(onEdit).toHaveBeenCalledOnce();
   fireEvent.keyDown(screen.getByRole("button", { name: "보관" }), { key: "Escape" });
   expect(screen.queryByRole("button", { name: "보관" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Alex 작업" }), { detail: 0 });
+  fireEvent.keyDown(row, { key: "F10", shiftKey: true });
   fireEvent.click(screen.getByRole("button", { name: "보관" }), { detail: 0 }); expect(onArchive).toHaveBeenCalledOnce();
   fireEvent.click(row, { detail: 0 }); expect(onSelect).toHaveBeenCalledOnce();
 });

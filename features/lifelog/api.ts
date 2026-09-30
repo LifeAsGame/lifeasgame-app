@@ -26,6 +26,9 @@ import type {
 } from "@/shared/api/types";
 import { collectionMock, exerciseMock, journalMock, mediaMock } from "./mock";
 
+export const RECORD_SAVED_EVENT = "lag:record-saved";
+function recordSaved() { if (typeof window !== "undefined") window.dispatchEvent(new Event(RECORD_SAVED_EVENT)); }
+
 const COLLECTION_PATH = "/api/v1/players/collections";
 const EXERCISE_PATH = "/api/v1/players/exercises";
 const MEDIA_PATH = "/api/v1/players/media";
@@ -44,8 +47,10 @@ export function searchMediaApi(params: MediaSearchParams): Promise<MediaInfo[]> 
   return USE_MOCK ? Promise.resolve(mediaMock.search(params)) : apiGetRaw<MediaInfo[]>(`${MEDIA_PATH}/search?${query}`);
 }
 
-export function createMediaApi(body: MediaCreateRequest): Promise<MediaCreated> {
-  return USE_MOCK ? Promise.resolve().then(() => mediaMock.create(body)) : apiPostRaw<MediaCreated>(MEDIA_PATH, body);
+export async function createMediaApi(body: MediaCreateRequest): Promise<MediaCreated> {
+  const result = await (USE_MOCK ? Promise.resolve().then(() => mediaMock.create(body)) : apiPostRaw<MediaCreated>(MEDIA_PATH, body));
+  recordSaved();
+  return result;
 }
 
 export function updateMediaApi(mediaId: number, body: MediaUpdateRequest): Promise<MediaInfo> {
@@ -96,10 +101,10 @@ export function getExerciseApi(exerciseId: number): Promise<ExerciseInfo> {
     : apiGet<ExerciseInfo>(`${EXERCISE_PATH}/${exerciseId}`);
 }
 
-export function createExerciseApi(body: ExerciseCreateRequest): Promise<ExerciseCreated> {
-  return USE_MOCK
-    ? Promise.resolve().then(() => exerciseMock.create(body))
-    : apiPostRaw<ExerciseCreated>(EXERCISE_PATH, body);
+export async function createExerciseApi(body: ExerciseCreateRequest): Promise<ExerciseCreated> {
+  const result = await (USE_MOCK ? Promise.resolve().then(() => exerciseMock.create(body)) : apiPostRaw<ExerciseCreated>(EXERCISE_PATH, body));
+  recordSaved();
+  return result;
 }
 
 export function updateExerciseApi(exerciseId: number, body: ExerciseUpdateRequest): Promise<ExerciseInfo> {
@@ -137,10 +142,10 @@ export function getCollectionApi(collectionId: number): Promise<CollectionInfo> 
     : apiGet<CollectionInfo>(`${COLLECTION_PATH}/${collectionId}`);
 }
 
-export function createCollectionApi(body: CollectionCreateRequest): Promise<CollectionCreated> {
-  return USE_MOCK
-    ? Promise.resolve().then(() => collectionMock.create(body))
-    : apiPostRaw<CollectionCreated>(COLLECTION_PATH, body);
+export async function createCollectionApi(body: CollectionCreateRequest): Promise<CollectionCreated> {
+  const result = await (USE_MOCK ? Promise.resolve().then(() => collectionMock.create(body)) : apiPostRaw<CollectionCreated>(COLLECTION_PATH, body));
+  recordSaved();
+  return result;
 }
 
 export function updateCollectionApi(collectionId: number, body: CollectionUpdateRequest): Promise<CollectionInfo> {
@@ -171,10 +176,9 @@ export function getJournalDetailApi(lifeLogId: number): Promise<JournalDetail> {
     : apiGet<JournalDetail>(`/api/v1/lifelogs/${lifeLogId}`);
 }
 
-export function quickRecordApi(body: QuickRecordRequest, idempotencyKey: string): Promise<QuickRecordResult> {
-  return USE_MOCK
-    ? Promise.resolve().then(() => journalMock.quickRecord(body, idempotencyKey))
-    : apiPost<QuickRecordResult>("/api/v1/lifelogs/quick-record", body, {
-        headers: { "Idempotency-Key": idempotencyKey },
-      });
+export async function quickRecordApi(body: QuickRecordRequest, idempotencyKey: string): Promise<QuickRecordResult> {
+  const result = await (USE_MOCK ? Promise.resolve().then(() => journalMock.quickRecord(body, idempotencyKey))
+    : apiPost<QuickRecordResult>("/api/v1/lifelogs/quick-record", body, { headers: { "Idempotency-Key": idempotencyKey } }));
+  if (!result.replay) recordSaved();
+  return result;
 }

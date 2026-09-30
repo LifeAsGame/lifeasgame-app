@@ -95,7 +95,7 @@ export default function PersonPanels({ active, createRequest, onBack }: { active
       <PanelFrame title={mode === "create" ? "인물 등록" : "내 인물 목록"} backButton={<BackButton label={mode === "create" ? "인물 목록으로" : "인물 · 역할로"} onClick={mode === "create" ? close : onBack} />}>
         <CreateCategory title="인물" onOpen={close} onCreate={() => { remember(); request.current++; setDetailOpen(false); setMode("create"); setError(null); setLoading(false); }} />
         <CreateSlot showCancel={false} creating={mode === "create"} pending={pending} onClose={close} list={<div className="lag-role-detail">
-          <p className="lag-create-hint">인물 분류를 왼쪽으로 당기거나 Alt+Enter로 등록합니다.</p>
+          <p className="lag-create-hint">인물 분류를 두 번 누르거나 Alt+Enter로 등록합니다.</p>
           {list.loading ? <p role="status">인물을 불러오는 중…</p> : null}
           {list.error ? <p role="alert">{list.error} <button type="button" className="lag-role-button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
           {error && mode === "detail" ? <p role="alert">{error}</p> : null}

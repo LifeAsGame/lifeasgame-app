@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { PlayerGrowthOverview } from "@/shared/api/types";
 import { getPlayerGrowthApi } from "./api";
+import { RECORD_SAVED_EVENT } from "@/features/lifelog/api";
 
 export function useGrowthQuery() {
   const [data, setData] = useState<PlayerGrowthOverview | null>(null);
@@ -25,7 +26,7 @@ export function useGrowthQuery() {
     }
   }, []);
 
-  useEffect(() => { void retry(); }, [retry]);
+  useEffect(() => { void retry(); window.addEventListener(RECORD_SAVED_EVENT, retry); return () => window.removeEventListener(RECORD_SAVED_EVENT, retry); }, [retry]);
 
   return { data, loading, error, retry };
 }

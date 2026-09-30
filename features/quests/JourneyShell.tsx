@@ -38,6 +38,7 @@ import {
 } from "./model";
 import { useJourneyQueries } from "./useJourneyQueries";
 import RewardSettlementPanel from "./RewardSettlementPanel";
+import { RECORD_SAVED_EVENT } from "@/features/lifelog/api";
 
 const SURFACE_COPY: Record<QuestsSubId, string> = {
   current: "수락한 퀘스트의 진행을 확인하세요.",
@@ -280,6 +281,12 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     }
   };
 
+  useEffect(() => {
+    const refresh = () => { void queries.current.reload(); if (questDetail.code) void loadQuestDetail(questDetail.code, true); };
+    window.addEventListener(RECORD_SAVED_EVENT, refresh);
+    return () => window.removeEventListener(RECORD_SAVED_EVENT, refresh);
+  });
+
   const loadRouteDetail = async (routeId: number, mine: boolean, preserve = false) => {
     const requestId = ++routeDetailRequestId.current;
     setRouteDetail((previous) => ({
@@ -512,7 +519,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
         </DetailSection>
         {selectedAcceptance.status === "GOAL_REACHED" ? <p className="lag-journey-feedback" data-state="warning">목표에 도달했습니다. 완료 확정과는 다릅니다.</p> : null}
         {selectedAcceptance.code === "Q_ADVENTURE_PREPARATION" ? <p className="lag-journey-feedback">수락 후 직접 작성한 서로 다른 기록 3건을 남기세요. 보상은 GOLD 100과 기록 결정 1개이며 계정당 한 번 지급됩니다.</p> : null}
-        <RewardSettlementPanel key={selectedAcceptance.id} acceptanceId={selectedAcceptance.id} />
+        {selectedAcceptance.code === "Q_RECORD_WEEKLY_LOOKBACK" ? <p className="lag-journey-feedback">이 퀘스트는 같은 주에 작성한 전체 기록의 주간 회고만 인정합니다. 간편 기록과 일반 기록은 제외됩니다. 생활 기록 → 수집 기록에서 종류를 두 번 누른 뒤 주간 회고를 선택해 작성하세요.</p> : null}
+        {selectedAcceptance.status === "COMPLETED" && detail?.data?.rewardProfileCode && detail.data.rewardProfileCode !== "RP_NONE" ? <RewardSettlementPanel key={selectedAcceptance.id} acceptanceId={selectedAcceptance.id} /> : detail?.data && (!detail.data.rewardProfileCode || detail.data.rewardProfileCode === "RP_NONE") ? <p className="lag-journey-feedback">이 퀘스트에는 정산 보상이 없습니다.</p> : null}
         {(canManualCheckQuest(selectedAcceptance) || canCancelQuest(selectedAcceptance)) ? (
           <section className="lag-journey-actions" aria-label="퀘스트 동작">
             {canManualCheckQuest(selectedAcceptance) ? (

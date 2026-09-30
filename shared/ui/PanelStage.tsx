@@ -36,7 +36,7 @@ export default function PanelStage({
 
   return (
     <motion.div
-      layout="position"
+      layout={false}
       className="lag-panel-stage relative"
       data-stage-key={stageKey}
       data-panel-role={panelRole}
@@ -46,11 +46,11 @@ export default function PanelStage({
       inert={inactive || !isPresent}
       aria-hidden={isPresent && !inactive ? undefined : true}
       onPointerDownCapture={onPointerDownCapture}
-      initial={reducedMotion ? false : { opacity: 0, x: side === "left" ? -24 : 24 }}
-      animate={{ opacity: inactive ? 0 : 1, x: inactive && !reducedMotion ? -24 : 0 }}
-      exit={{ opacity: 0, x: reducedMotion ? 0 : side === "left" ? -24 : 24 }}
-      transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 576, damping: 48, mass: 1 }}
-      style={{ willChange: "transform, opacity", pointerEvents: isPresent && !inactive ? undefined : "none", zIndex }}
+      initial={reducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: inactive ? 0 : 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: reducedMotion ? 0 : 0.16 }}
+      style={{ willChange: "opacity", pointerEvents: isPresent && !inactive ? undefined : "none", zIndex }}
     >
       {children}
     </motion.div>
@@ -60,21 +60,19 @@ export default function PanelStage({
 export function StageContentTransition({ identity, children }: { identity: React.Key; children: React.ReactNode }) {
   const reducedMotion = useReducedMotion();
   const opacity = useMotionValue(1);
-  const x = useMotionValue(0);
+
   useLayoutEffect(() => {
     if (reducedMotion) {
       opacity.set(1);
-      x.set(0);
       return;
     }
     // Value animations retain the rendered frame when a selection interrupts them.
     const fade = animate(opacity, [opacity.get(), 0.82, 1], MOTION.panelContentSwap.transition);
-    const shift = animate(x, [x.get(), 3, 0], MOTION.panelContentSwap.transition);
-    return () => { fade.stop(); shift.stop(); };
-  }, [identity, reducedMotion, opacity, x]);
+    return () => { fade.stop(); };
+  }, [identity, reducedMotion, opacity]);
 
   return (
-    <motion.div data-content-identity={identity} initial={false} style={{ opacity, x }}>
+    <motion.div data-content-identity={identity} initial={false} style={{ opacity }}>
       <Fragment key={identity}>{children}</Fragment>
     </motion.div>
   );

@@ -48,11 +48,11 @@ export function RoleContextPanel({ roles, selectedRoleId, isLoading, error, onRo
   return <section ref={root} className="lag-role-selector" data-role-selector aria-labelledby="role-selector-title">{dialog}
     <header><p>인물 · 역할</p><h2 id="role-selector-title">{creating && workspace === "roles" ? "역할 등록" : workspace === "roles" ? "내 역할 목록" : "관리 대상 선택"}</h2></header>
     <div className="lag-role-surface-grid" aria-label="인물 · 역할 선택">
-      <SwipeButton creation className="lag-role-node" data-role-menu="persons" aria-pressed={workspace === "persons"} onClick={() => onWorkspaceChange?.("persons")} onSwipeLeft={() => onWorkspaceChange?.("persons", true)}><span className="lag-role-node-mark" aria-hidden>인</span><strong>인물</strong><span aria-hidden>→</span></SwipeButton>
-      <SwipeButton creation className="lag-role-node" data-role-menu="roles" aria-pressed={workspace === "roles"} onClick={() => { generation.current++; setCreating(false); onWorkspaceChange?.("roles"); }} onSwipeLeft={openCreate}><span className="lag-role-node-mark" aria-hidden>역</span><strong>역할</strong><span aria-hidden>→</span></SwipeButton>
+      <SwipeButton creation className="lag-role-node" data-role-menu="persons" aria-pressed={workspace === "persons"} onClick={() => onWorkspaceChange?.("persons")} onDoubleClick={() => onWorkspaceChange?.("persons", true)}><span className="lag-role-node-mark" aria-hidden>인</span><strong>인물</strong><span aria-hidden>→</span></SwipeButton>
+      <SwipeButton creation className="lag-role-node" data-role-menu="roles" aria-pressed={workspace === "roles"} onClick={() => { generation.current++; setCreating(false); onWorkspaceChange?.("roles"); }} onDoubleClick={openCreate}><span className="lag-role-node-mark" aria-hidden>역</span><strong>역할</strong><span aria-hidden>→</span></SwipeButton>
     </div>
     {workspace === "roles" ? <>
-      <p className="lag-create-hint">분류 클릭: 목록 · 왼쪽으로 당긴 후 놓기 / Alt+Enter: 등록</p>
+      <p className="lag-create-hint">분류 한 번: 목록 · 두 번 누르기 / Alt+Enter: 등록</p>
       <CreateSlot showCancel={false} creating={creating} pending={pending} onClose={closeCreate} list={<div>
         <div className="lag-role-selector-state">
           {isLoading ? <p role="status">역할을 불러오는 중…</p> : null}
