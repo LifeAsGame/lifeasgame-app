@@ -67,7 +67,7 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-menu-layer[data-main=menu] .lag-orb-label { display:block !important; }
 .sao-stage .lag-left-anchor { position:relative; top:auto; height:100%; padding:0; --lag-left-lane-width:var(--lag-list-width); flex-shrink:0; }
 .sao-stage .lag-left-context { width:100% !important; height:100% !important; min-height:0 !important; max-height:100%; background:var(--lag-panel); border-radius:var(--lag-radius-lg); box-shadow:0 12px 28px color-mix(in srgb,var(--lag-shadow) 16%,transparent); }
-.sao-stage .lag-left-context > [aria-hidden] { display:none; }
+.sao-stage .lag-left-context > [aria-hidden], .sao-stage .lag-left-context-grid { display:none; }
 .sao-stage .lag-workspace { height:100%; margin:0; padding:0; min-width:0 !important; border:0; border-radius:0; background:none; box-shadow:none; overflow:auto !important; scroll-padding:16px; }
 .sao-stage .lag-panel-rail { height:100% !important; min-height:0; align-items:flex-start; gap:var(--lag-panel-gap) !important; }
 .sao-stage .lag-panel-frame { border-radius:var(--lag-radius-lg); background:var(--lag-panel) !important; border:1px solid var(--lag-border); max-height:100%; box-shadow:0 12px 28px color-mix(in srgb,var(--lag-shadow) 16%,transparent); }
