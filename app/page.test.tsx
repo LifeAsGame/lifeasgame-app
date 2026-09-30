@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MainNavId, PanelStackItem } from "@/entities/nav";
 import type { RoleDetail } from "@/shared/api/types";
+import * as stageCamera from "@/shared/hooks/useStageCamera";
 import Home from "./page";
 
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
@@ -147,6 +148,21 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     expect(css).toContain("max-width: var(--lag-wide-stage-max)");
     expect(css).toMatch(/\.lag-app-surface\s*{[^}]*padding-bottom:\s*var\(--lag-mobile-nav-clearance\);[^}]*scroll-padding-bottom:\s*var\(--lag-mobile-nav-clearance\)/);
     expect(css).not.toContain("calc(140px + env(safe-area-inset-bottom))");
+  });
+
+  it("starts the restored menu camera only after authentication mounts its panels", () => {
+    const camera = vi.spyOn(stageCamera, "useStageCamera").mockImplementation(() => {});
+    try {
+      window.history.replaceState(null, "", "/#/menu/role");
+      auth.state.isLoading = true;
+      const view = render(<Home />);
+      expect(camera.mock.lastCall?.[3]).toBe(false);
+      auth.state.isLoading = false;
+      view.rerender(<Home />);
+      expect(camera.mock.lastCall?.[3]).toBe(true);
+      expect(camera.mock.lastCall?.[0].current).not.toBeNull();
+      expect(camera.mock.lastCall?.[1].current).not.toBeNull();
+    } finally { camera.mockRestore(); }
   });
 
   describe("인증된 player가 처음 진입하면", () => {

@@ -58,12 +58,25 @@ describe("PanelStage camera contract", () => {
     const source = readFileSync("shared/ui/RuntimeFidelityStyles.tsx", "utf8");
 
     expect(source).toContain('.lag-panel-stage[data-camera-active="true"]');
-    expect(source).toContain('not(:has(> .lag-panel-stage[data-camera-active="true"]))');
+    expect(source).toContain('not(:has(.lag-panel-stage[data-camera-active="true"]))');
     expect(source).toContain("--lag-mobile-protected-bottom: calc(148px + env(safe-area-inset-bottom))");
     expect(source).toContain("height: calc(100dvh - 32px - var(--lag-mobile-protected-bottom))");
     expect(source).toContain('> .lag-panel-frame .lag-panel-body');
     expect(source).toContain("width: calc(100vw - 32px)");
     expect(source).toContain('.lag-growth-shell > .lag-panel-stage > .lag-panel-frame');
     expect(source).toContain('.lag-panel-card > div:last-child > p:first-child');
+  });
+
+  it("keeps ancestors of a nested active Person or relation stage visible on mobile", () => {
+    const source = readFileSync("shared/ui/RuntimeFidelityStyles.tsx", "utf8");
+    const selector = [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .find((rule) => rule[1].includes(".lag-panel-rail:not(:has("))![1].trim();
+    const { container } = render(<div className="lag-workspace">
+      <div className="lag-panel-rail" data-testid="outer"><div className="lag-panel-rail">
+        <div className="lag-panel-stage" data-camera-active="true" />
+      </div></div>
+      <div className="lag-panel-rail" data-testid="inactive"><div className="lag-panel-stage" /></div>
+    </div>);
+    expect([...container.querySelectorAll(selector)].map((rail) => rail.getAttribute("data-testid"))).toEqual(["inactive"]);
   });
 });

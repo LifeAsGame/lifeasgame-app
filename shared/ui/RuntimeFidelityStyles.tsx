@@ -40,7 +40,7 @@ const CSS = `
   }
 
   .lag-workspace:has(.lag-panel-stage[data-camera-active="true"])
-    .lag-panel-rail:not(:has(> .lag-panel-stage[data-camera-active="true"])) {
+    .lag-panel-rail:not(:has(.lag-panel-stage[data-camera-active="true"])) {
     position: absolute;
     width: 24px;
     min-width: 0;
