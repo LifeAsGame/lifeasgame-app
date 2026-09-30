@@ -30,7 +30,6 @@ import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
-import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { requestStageFocus, useStageCamera } from "@/shared/hooks/useStageCamera";
 import {
   DEFAULT_SUB_SELECTIONS,
@@ -88,7 +87,6 @@ function buildPanels(
 export default function Home() {
   const router = useRouter();
   const location = useConsumerLocation();
-  const compactPlayer = useMediaQuery("(max-width: 1199px)");
   const { isAuthenticated, playerId, isLoading, logout } = useAuth();
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -305,7 +303,7 @@ export default function Home() {
             <div className="lag-player-panels flex w-fit items-center gap-3" data-player-child={Boolean(playerSurface)}>
               <RightPanels
                 selectedMain="player"
-                inactive={compactPlayer && Boolean(playerSurface)}
+                inactive={Boolean(playerSurface)}
                 panelStack={panelStack.slice(0, 1)}
                 onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />
