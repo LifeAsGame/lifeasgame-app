@@ -114,6 +114,17 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     api.advanceQuestRouteApi.mockResolvedValue(advancedRoute);
   });
 
+  it("record save refreshes the selected quest list and detail once", async () => {
+    renderCurrentJourney();
+    const row = await screen.findByRole("button", { name: new RegExp(current[0].title) });
+    fireEvent.click(row);
+    await waitFor(() => expect(api.getPlayerQuestApi).toHaveBeenCalledWith(current[0].code));
+    api.listPlayerQuestsApi.mockClear(); api.getPlayerQuestApi.mockClear();
+    await act(async () => { window.dispatchEvent(new Event("lag:record-saved")); });
+    await waitFor(() => expect(api.listPlayerQuestsApi).toHaveBeenCalledTimes(1));
+    expect(api.getPlayerQuestApi).toHaveBeenCalledWith(current[0].code);
+  });
+
   describe("canonical Home callback이 initial surface를 지정하면", () => {
     it("Routes에서 바로 시작한다", async () => {
       render(<JourneyShell initialSurface="routes" />);
