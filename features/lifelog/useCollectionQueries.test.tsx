@@ -40,6 +40,24 @@ describe("Collection query/mutation state를 관리할 때", () => {
   });
 
   describe("search와 server page를 변경하면", () => {
+    it("clears rows when the title or page query key changes", async () => {
+      let finishTitle: (items: CollectionInfo[]) => void = () => {};
+      let finishPage: (items: CollectionInfo[]) => void = () => {};
+      api.searchCollectionsApi.mockImplementation(({ titleLike, page }: { titleLike?: string; page: number }) =>
+        page === 1 ? new Promise<CollectionInfo[]>((resolve) => { finishPage = resolve; })
+          : titleLike ? new Promise<CollectionInfo[]>((resolve) => { finishTitle = resolve; }) : Promise.resolve([first]));
+      const { result } = renderHook(() => useCollectionQueries(true));
+      act(() => result.current.search("BOOK"));
+      await waitFor(() => expect(result.current.list.items).toEqual([first]));
+      act(() => result.current.search("BOOK", "Architecture"));
+      expect(result.current.list.items).toEqual([]);
+      await act(async () => { finishTitle([first]); });
+      act(() => result.current.changePage(1));
+      expect(result.current.list.items).toEqual([]);
+      await act(async () => { finishPage([]); });
+      expect(result.current.list.items).toEqual([]);
+    });
+
     it("category/title/page/size를 authoritative reload마다 보존한다", async () => {
       const { result } = renderHook(() => useCollectionQueries());
       await waitFor(() => expect(api.searchCollectionsApi).toHaveBeenCalledWith({ page: 0, size: 20 }));

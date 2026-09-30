@@ -118,6 +118,9 @@ export function useCollectionQueries(skipInitial = false) {
     resetMutation();
     clearSelection();
     listRequestId.current += 1;
+    setItems([]);
+    setListLoading(!skipInitial || !!category);
+    setListError(null);
     paramsRef.current = { page: 0, size: paramsRef.current.size, category, titleLike: titleLike?.trim() || undefined };
     setParams(paramsRef.current);
   };
@@ -126,6 +129,9 @@ export function useCollectionQueries(skipInitial = false) {
     resetMutation();
     clearSelection();
     listRequestId.current += 1;
+    setItems([]);
+    setListLoading(!skipInitial || !!paramsRef.current.category);
+    setListError(null);
     paramsRef.current = { ...paramsRef.current, page: Math.max(0, page) };
     setParams(paramsRef.current);
   };
