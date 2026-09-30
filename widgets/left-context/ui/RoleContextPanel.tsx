@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { RoleDetail } from "@/shared/api/types";
 import { archiveRoleApi } from "@/features/role/api";
 import { RecordRow, SwipeButton } from "@/features/role/RecordRow";
+import CreateSlot from "@/shared/ui/CreateSlot";
 import { RoleForm } from "@/features/role/RoleForm";
 
 const cellStyle = { background: "var(--lag-control-bg)", border: "1px solid var(--lag-control-border)", borderRadius: "var(--lag-radius-sm)" } as const;
@@ -22,6 +24,7 @@ export function RoleContextPanel({ roles, selectedRoleId, isLoading, error, onRo
   workspace?: RoleWorkspace; onWorkspaceChange?: (workspace: RoleWorkspace, create?: boolean) => void;
   onRoleEdit?: (roleId: number) => void; onRefresh?: () => Promise<void>; onRoleArchived?: (roleId: number) => void;
 }) {
+  const { confirm, dialog } = useSaoConfirm();
   const [creating, setCreating] = useState(false), [pending, setPending] = useState(false), [actionError, setActionError] = useState<string | null>(null);
   const root = useRef<HTMLElement>(null), generation = useRef(0), lock = useRef(false);
   const restore = useRef<{ target: HTMLElement | null; scroll: HTMLElement | null; top: number }>({ target: null, scroll: null, top: 0 });
@@ -29,27 +32,28 @@ export function RoleContextPanel({ roles, selectedRoleId, isLoading, error, onRo
   const openCreate = () => {
     const scroll = root.current?.closest<HTMLElement>(".lag-left-context-content") ?? null;
     restore.current = { target: document.activeElement instanceof HTMLElement ? document.activeElement : null, scroll, top: scroll?.scrollTop ?? 0 };
-    onWorkspaceChange?.("roles"); setCreating(true); setActionError(null);
+    onWorkspaceChange?.("roles", true); setCreating(true); setActionError(null);
   };
   const closeCreate = () => {
-    generation.current++; setCreating(false); setActionError(null);
+    generation.current++; setCreating(false); setActionError(null); onWorkspaceChange?.("roles");
     requestAnimationFrame(() => { const { target, scroll, top } = restore.current; if (scroll) scroll.scrollTop = top; (target?.isConnected ? target : root.current?.querySelector<HTMLElement>('[data-role-menu="roles"]'))?.focus({ preventScroll: true }); });
   };
   const archive = async (role: RoleDetail) => {
-    if (lock.current || !window.confirm(`역할 “${role.name}”을 보관할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
+    if (lock.current || !await confirm(`역할 “${role.name}”을 보관할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
     const id = generation.current; lock.current = true; setPending(true); setActionError(null);
     try { await archiveRoleApi(role.id); await onRefresh?.(); if (id === generation.current) onRoleArchived?.(role.id); }
     catch (caught) { if (id === generation.current) setActionError(caught instanceof Error ? caught.message : "역할을 보관하지 못했습니다."); }
     finally { lock.current = false; setPending(false); }
   };
-  return <section ref={root} className="lag-role-selector" data-role-selector aria-labelledby="role-selector-title">
+  return <section ref={root} className="lag-role-selector" data-role-selector aria-labelledby="role-selector-title">{dialog}
     <header><p>인물 · 역할</p><h2 id="role-selector-title">{creating && workspace === "roles" ? "역할 등록" : workspace === "roles" ? "내 역할 목록" : "관리 대상 선택"}</h2></header>
     <div className="lag-role-surface-grid" aria-label="인물 · 역할 선택">
-      <SwipeButton className="lag-role-node" data-role-menu="persons" aria-pressed={workspace === "persons"} onClick={() => onWorkspaceChange?.("persons")} onSwipeLeft={() => onWorkspaceChange?.("persons", true)}><span className="lag-role-node-mark" aria-hidden>인</span><strong>인물</strong><span aria-hidden>→</span></SwipeButton>
-      <SwipeButton className="lag-role-node" data-role-menu="roles" aria-pressed={workspace === "roles"} onClick={() => { generation.current++; setCreating(false); onWorkspaceChange?.("roles"); }} onSwipeLeft={openCreate}><span className="lag-role-node-mark" aria-hidden>역</span><strong>역할</strong><span aria-hidden>→</span></SwipeButton>
+      <SwipeButton creation className="lag-role-node" data-role-menu="persons" aria-pressed={workspace === "persons"} onClick={() => onWorkspaceChange?.("persons")} onSwipeLeft={() => onWorkspaceChange?.("persons", true)}><span className="lag-role-node-mark" aria-hidden>인</span><strong>인물</strong><span aria-hidden>→</span></SwipeButton>
+      <SwipeButton creation className="lag-role-node" data-role-menu="roles" aria-pressed={workspace === "roles"} onClick={() => { generation.current++; setCreating(false); onWorkspaceChange?.("roles"); }} onSwipeLeft={openCreate}><span className="lag-role-node-mark" aria-hidden>역</span><strong>역할</strong><span aria-hidden>→</span></SwipeButton>
     </div>
     {workspace === "roles" ? <>
-      <div hidden={creating}>
+      <p className="lag-create-hint">분류 클릭: 목록 · 왼쪽으로 당긴 후 놓기 / Alt+Enter: 등록</p>
+      <CreateSlot showCancel={false} creating={creating} pending={pending} onClose={closeCreate} list={<div>
         <div className="lag-role-selector-state">
           {isLoading ? <p role="status">역할을 불러오는 중…</p> : null}
           {error ? <div><p role="alert">{error}</p>{onRetry ? <button type="button" className="lag-role-button" onClick={onRetry}>다시 조회</button> : null}</div> : null}
@@ -57,9 +61,8 @@ export function RoleContextPanel({ roles, selectedRoleId, isLoading, error, onRo
           {actionError ? <p role="alert">{actionError}</p> : null}
         </div>
         <div className="lag-role-node-list" aria-label="내 역할 목록">{roles.map((role) => <div key={role.id} data-role-id={role.id}><RecordRow title={role.name} subtitle={`${role.roleType} · ${role.status}`} selected={selectedRoleId === role.id} disabled={pending} onSelect={() => onRoleSelect?.(role.id)} onEdit={() => onRoleEdit?.(role.id)} onArchive={() => void archive(role)} /></div>)}</div>
-        <button type="button" className="lag-role-create" onClick={openCreate}>역할 추가</button>
-      </div>
-      {creating ? <RoleForm onCancel={closeCreate} onSaved={async () => { const id = generation.current; await onRefresh?.(); if (id === generation.current) closeCreate(); }} /> : null}
+
+      </div>}><RoleForm onCancel={closeCreate} onSaved={async () => { const id = generation.current; await onRefresh?.(); if (id === generation.current) closeCreate(); }} /></CreateSlot>
     </> : null}
   </section>;
 }

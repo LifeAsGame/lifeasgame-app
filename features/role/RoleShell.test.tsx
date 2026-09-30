@@ -1,3 +1,4 @@
+import { answerDialog } from "@/shared/ui/dialogTest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { useState } from "react";
@@ -47,10 +48,12 @@ function deferred<T>() {
 
 function Harness({ initialRoleId = 1, availableRoles = roles, loading = false, error = null, refresh = vi.fn().mockResolvedValue(undefined) }: { initialRoleId?: number | null; availableRoles?: RoleDetail[]; loading?: boolean; error?: string | null; refresh?: () => Promise<void> }) {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(initialRoleId);
+  const [hideRoleDetails, setHideRoleDetails] = useState(false);
+  const selectRole = (id: number) => { setSelectedRoleId(id); setHideRoleDetails(false); };
   return (
     <>
-      <RoleContextPanel roles={availableRoles} selectedRoleId={selectedRoleId} isLoading={loading} error={error} onRoleSelect={setSelectedRoleId} onRetry={() => void refresh()} />
-      <RoleShell roles={availableRoles} selectedRoleId={selectedRoleId} onSelectRole={setSelectedRoleId} onRefresh={refresh} />
+      <RoleContextPanel roles={availableRoles} selectedRoleId={selectedRoleId} isLoading={loading} error={error} onRoleSelect={selectRole} onWorkspaceChange={(_, create) => { if (create) setHideRoleDetails(true); }} onRetry={() => void refresh()} />
+      <RoleShell roles={availableRoles} selectedRoleId={selectedRoleId} hideRoleDetails={hideRoleDetails} onSelectRole={setSelectedRoleId} onRefresh={refresh} />
     </>
   );
 }
@@ -58,7 +61,6 @@ function Harness({ initialRoleId = 1, availableRoles = roles, loading = false, e
 describe("실제 Role shell을 사용할 때", () => {
   beforeEach(() => {
     vi.resetAllMocks();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     api.getPersonApi.mockResolvedValue(person);
     api.getRoleRelationApi.mockResolvedValue(relation);
     api.resolveRelationPersonStatus.mockImplementation((relations: RoleRelationDetail[]) => Promise.resolve(relations.map((r) => ({ ...r, personStatus: r.personStatus ?? "ACTIVE" }))));
@@ -103,6 +105,20 @@ describe("실제 Role shell을 사용할 때", () => {
   });
 
   describe("Role 목록을 탐색하고 관리하면", () => {
+    it("생성 취소는 선택을 보존한 목록으로 돌아오고 이전 상세를 다시 열지 않는다", async () => {
+      render(<Harness />);
+      fireEvent.click(screen.getByRole("button", { name: /개요/ }));
+      fireEvent.keyDown(screen.getByRole("button", { name: "역할" }), { key: "Enter", altKey: true });
+      expect(screen.getByLabelText("역할 이름")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "취소" }));
+      const selected = screen.getByRole("button", { name: /Backend Engineer.*ACTIVE/ });
+      expect(selected).toHaveAttribute("aria-pressed", "true");
+      await waitFor(() => expect(document.querySelector('[data-stage-key="role-summary"]')).not.toBeInTheDocument());
+      fireEvent.click(selected);
+      expect(document.querySelector('[data-stage-key="role-summary"]')).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="role-detail"]')).not.toBeInTheDocument();
+    });
+
     it("canonical selector가 loading/empty/error/retry와 선택·create·edit·archive 흐름을 제공한다", async () => {
       const refresh = vi.fn().mockResolvedValue(undefined);
       const loading = render(<Harness loading availableRoles={[]} initialRoleId={null} refresh={refresh} />);
@@ -124,7 +140,7 @@ describe("실제 Role shell을 사용할 때", () => {
       expect(screen.getByText("Be present")).toBeInTheDocument();
       expect(screen.queryByText("Knowledge")).not.toBeInTheDocument();
 
-      expect(screen.getByRole("button", { name: "역할 추가" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "역할" })).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: "역할 수정" }));
       fireEvent.change(screen.getByLabelText("역할 이름"), { target: { value: "Family Anchor" } });
@@ -132,6 +148,7 @@ describe("실제 Role shell을 사용할 때", () => {
       await waitFor(() => expect(api.updateRoleApi).toHaveBeenCalledWith(2, { roleType: "FAMILY", name: "Family Anchor", description: "Be present" }));
 
       fireEvent.click(screen.getByRole("button", { name: "역할 보관" }));
+      await answerDialog();
       await waitFor(() => expect(api.archiveRoleApi).toHaveBeenCalledWith(2));
       expect(refresh).toHaveBeenCalled();
     });
@@ -273,7 +290,7 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /관계/ }));
       await screen.findByRole("button", { name: /Alex.*FRIEND/ });
       expect(screen.queryByLabelText("인물 이름")).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "관계 추가" }));
+      fireEvent.keyDown(screen.getByRole("button", { name: "관계" }), { key: "Enter", altKey: true });
       fireEvent.change(screen.getByLabelText("기존 인물"), { target: { value: "7" } });
       fireEvent.change(screen.getByLabelText("관계 유형"), { target: { value: "FAMILY" } });
       fireEvent.change(screen.getByLabelText("역할 메모"), { target: { value: "Call weekly" } });
@@ -286,8 +303,8 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: "관계 저장" }));
       await waitFor(() => expect(api.updateRoleRelationApi).toHaveBeenCalledWith(1, 9, { relationType: "MENTOR", roleNotes: "Call monthly" }));
       fireEvent.click(screen.getByRole("button", { name: "보관" }));
+    await answerDialog();
       await waitFor(() => expect(api.archiveRoleRelationApi).toHaveBeenCalledWith(1, 9));
-      expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('역할 “Backend Engineer”의 “Alex” 관계'));
       expect(api.createPersonApi).not.toHaveBeenCalled();
     });
   });

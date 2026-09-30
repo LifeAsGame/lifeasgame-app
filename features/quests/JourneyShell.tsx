@@ -5,6 +5,7 @@ import { AnimatePresence } from "framer-motion";
 
 import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { SUBMENUS_BY_MAIN } from "@/entities/nav";
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { QuestsSubId } from "@/entities/nav";
 import type {
   PlayerQuestDetail,
@@ -189,6 +190,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   navigation?: { surface: QuestsSubId | null; detail: string | null };
   onNavigate?: (surface: QuestsSubId | null, detail: string | null) => void;
 }) {
+  const { confirm, dialog } = useSaoConfirm();
   const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
   const appliedRoute = useRef<string | null>(null);
   const writeRoute = (nextSurface: QuestsSubId | null, detail: string | null = null) => {
@@ -382,7 +384,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   };
 
   const selectRoute = async (route: QuestRoute) => {
-    if (!window.confirm(`${route.title} 경로를 선택할까요?`)) return;
+    if (!await confirm(`${route.title} 경로를 선택할까요?`)) return;
     await runMutation(`select-${route.id}`, () => selectQuestRouteApi(route.id), async (isCurrent) => {
       const latest = await queries.routes.reload();
       if (isCurrent()) await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
@@ -391,7 +393,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
   const advanceRoute = async (route: QuestRoute) => {
     const expectedStepId = route.playerProgress?.currentStepId;
-    if (!expectedStepId || !window.confirm("Advance the current Route Step?")) return;
+    if (!expectedStepId || !await confirm("현재 경로 단계를 진행할까요?")) return;
     await runMutation(`advance-${route.id}`, () => advanceQuestRouteApi(route.id, expectedStepId), async (isCurrent) => {
       const latest = await queries.routes.reload();
       if (isCurrent()) await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
@@ -517,8 +519,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
               <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void runMutation(`manual-${selectedAcceptance.code}`, () => manualCheckQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent))}>직접 확인</button>
             ) : null}
             {canCancelQuest(selectedAcceptance) ? (
-              <button type="button" className="lag-journey-button" data-variant="destructive" disabled={Boolean(pending)} onClick={() => {
-                if (window.confirm(`${selectedAcceptance.title} 퀘스트를 취소할까요?`)) void runMutation(`cancel-${selectedAcceptance.code}`, () => cancelQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent));
+              <button type="button" className="lag-journey-button" data-variant="destructive" disabled={Boolean(pending)} onClick={async () => {
+                if (await confirm(`${selectedAcceptance.title} 퀘스트를 취소할까요?`)) void runMutation(`cancel-${selectedAcceptance.code}`, () => cancelQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent));
               }}>퀘스트 취소</button>
             ) : null}
           </section>
@@ -555,8 +557,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
         {acceptance ? <RewardSettlementPanel key={acceptance.id} acceptanceId={acceptance.id} /> : null}
         {!acceptanceKnown ? <p className="lag-journey-feedback" data-state="warning">수락 상태를 확인할 수 없습니다. 진행 퀘스트를 다시 조회한 뒤 수락할 수 있습니다.</p> : null}
         {acceptAction ? (
-          <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => {
-            if (window.confirm(`${acceptLabel} ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), (isCurrent) => recoverQuest(selectedBlueprint.code, isCurrent));
+          <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={async () => {
+            if (await confirm(`${acceptLabel} ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), (isCurrent) => recoverQuest(selectedBlueprint.code, isCurrent));
           }}>{acceptLabel}</button>
         ) : null}
       </article>
@@ -614,7 +616,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   const detailTitle = surface === "current" ? "퀘스트 상세" : surface === "catalog" ? "퀘스트 안내" : "경로 상세";
 
   return (
-    <div className="lag-panel-rail lag-journey-shell relative" data-testid="journey-shell">
+    <div className="lag-panel-rail lag-journey-shell relative" data-testid="journey-shell">{dialog}
       <PanelStage stageKey="journey-root" panelRole="list" inactive={Boolean(surface)}>
         <PanelFrame title="여정 / 경로" depth={2}>
           <div className="lag-journey-root">

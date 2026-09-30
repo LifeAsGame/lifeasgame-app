@@ -15,6 +15,7 @@ import { MOTION } from "@/shared/lib/motion";
 import type { PanelItemAction } from "@/entities/nav";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
+import { RecordRow } from "@/features/role/RecordRow";
 import IconSlot from "@/shared/ui/IconSlot";
 
 type PanelCardProps = {
@@ -52,7 +53,7 @@ const SWIPE_MAX = -120;
 const SWIPE_DETECT_X = 20;    // px horizontal before entering swipe phase
 const SWIPE_LOCK_RATIO = 1.2; // |dx| must be this * |dy| to lock horizontal
 
-export default function PanelCard({
+function LegacyPanelCard({
   label,
   slotLabel,
   subtitle,
@@ -142,7 +143,7 @@ export default function PanelCard({
     if (phase === "swiping") {
       swipeFiredRef.current = true;
       if (currentSwipeX <= SWIPE_DELETE_THRESHOLD) {
-        onAction?.("delete");
+        setShowActions(true);
       }
       return;
     }
@@ -432,4 +433,11 @@ export default function PanelCard({
       </AnimatePresence>
     </motion.div>
   );
+}
+
+export default function PanelCard(props: PanelCardProps) {
+  if (props.actions?.some((action) => action.type === "edit") && props.actions.some((action) => action.type === "delete") && props.onAction) {
+    return <div data-scroll-center-target={props.centerTarget ? "true" : undefined}><RecordRow title={props.label} subtitle={props.subtitle} selected={props.selected} disabled={props.disabled} archiveLabel="삭제" onSelect={() => props.onClick?.()} onEdit={() => props.onAction?.("edit")} onArchive={() => props.onAction?.("delete")} /></div>;
+  }
+  return <LegacyPanelCard {...props} />;
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type {
   RoleDetail,
   RoleEventDetail,
@@ -147,8 +148,9 @@ export default function RoleShell({
   roles,
   selectedRoleId,
   onSelectRole,
-  onRefresh, workspace = "roles", personCreateRequest = 0, onWorkspaceBack = () => {}, editRequest,
+  onRefresh, hideRoleDetails = false, workspace = "roles", personCreateRequest = 0, onWorkspaceBack = () => {}, editRequest,
 }: {
+  hideRoleDetails?: boolean;
   workspace?: "persons" | "roles" | null;
   personCreateRequest?: number;
   onWorkspaceBack?: () => void;
@@ -158,6 +160,7 @@ export default function RoleShell({
   onSelectRole: (roleId: number | null) => void;
   onRefresh: () => Promise<void>;
 }) {
+  const { confirm, dialog } = useSaoConfirm();
   const compact = useMediaQuery("(max-width: 1199px)");
   const roleGeneration = useRef(0);
   const consumedEdit = useRef(0);
@@ -168,7 +171,7 @@ export default function RoleShell({
   const [surfaceRoleId, setSurfaceRoleId] = useState<number | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const selectedRole = workspace === "roles" ? roles.find(({ id }) => id === selectedRoleId) ?? null : null;
+  const selectedRole = workspace === "roles" && !hideRoleDetails ? roles.find(({ id }) => id === selectedRoleId) ?? null : null;
   const editingRole = selectedRole?.id === editingRoleId;
   const activeSurface = selectedRole?.id === surfaceRoleId ? surface : null;
 
@@ -181,7 +184,7 @@ export default function RoleShell({
     setEditingRoleId((current) => current === selectedRoleId ? current : null);
     setActionError(null);
     return () => { counter.current++; };
-  }, [selectedRoleId, workspace]);
+  }, [selectedRoleId, workspace, hideRoleDetails]);
 
   useEffect(() => { if (editRequest?.id === selectedRoleId && editRequest.sequence !== consumedEdit.current) { consumedEdit.current = editRequest.sequence; trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setEditingRoleId(editRequest.id); setSurface(null); setSurfaceRoleId(null); } }, [editRequest, selectedRoleId]);
 
@@ -205,7 +208,7 @@ export default function RoleShell({
   };
 
   const archiveRole = async (role: RoleDetail) => {
-    if (archiveLocked.current || !window.confirm(`역할 “${role.name}”을 보관할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
+    if (archiveLocked.current || !await confirm(`역할 “${role.name}”을 보관할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
     archiveLocked.current = true;
     const generation = roleGeneration.current;
     setActionError(null);
@@ -219,7 +222,7 @@ export default function RoleShell({
   };
 
   return (
-    <div className="lag-panel-rail lag-role-shell relative" data-testid="role-shell">
+    <div className="lag-panel-rail lag-role-shell relative" data-testid="role-shell">{dialog}
       <PersonPanels active={workspace === "persons"} createRequest={personCreateRequest} onBack={onWorkspaceBack} />
       <AnimatePresence initial={false}>
         {selectedRole ? (
@@ -235,7 +238,7 @@ export default function RoleShell({
                 </header>
                 <section className="lag-role-surface-grid" aria-label="Role surfaces">
                   {ROLE_SURFACES.map((item) => (
-                    <SwipeButton key={item.id} className="lag-role-surface-card" onSwipeLeft={() => { if (item.id === "relations") { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setSurface("relations"); setSurfaceRoleId(selectedRole.id); setRelationCreateRequest((value) => value + 1); } }} aria-pressed={activeSurface === item.id} data-selected={activeSurface === item.id} onClick={() => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setRelationCreateRequest(0); setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }}>
+                    <SwipeButton key={item.id} className="lag-role-surface-card" creation={item.id === "relations"} onSwipeLeft={item.id === "relations" ? () => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setSurface("relations"); setSurfaceRoleId(selectedRole.id); setRelationCreateRequest((value) => value + 1); setEditingRoleId(null); } : undefined} aria-pressed={activeSurface === item.id} data-selected={activeSurface === item.id} onClick={() => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setRelationCreateRequest(0); setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }}>
                       <span aria-hidden>{item.slotLabel}</span>
                       <strong>{item.label}</strong>
                       <small>{item.id === "overview" ? "역할 정보" : item.id === "relations" ? "연결된 기존 인물" : "일정 이력 · 준비 중"}</small>
@@ -243,6 +246,7 @@ export default function RoleShell({
                     </SwipeButton>
                   ))}
                 </section>
+                <p className="lag-create-hint">관계: 왼쪽으로 당긴 후 놓기 / Alt+Enter로 기존 인물 연결</p>
                 <div className="lag-role-actions">
                   <button type="button" className="lag-role-button" onClick={() => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setEditingRoleId(selectedRole.id); setSurface(null); setSurfaceRoleId(null); }}>역할 수정</button>
                   <button type="button" className="lag-role-button" data-variant="destructive" onClick={() => void archiveRole(selectedRole)}>역할 보관</button>

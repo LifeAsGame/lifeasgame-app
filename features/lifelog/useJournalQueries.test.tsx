@@ -279,7 +279,7 @@ describe("Journal server query state를 관리할 때", () => {
       expect(saved).toEqual(quickResult);
       expect(result.current.quickRecord.result).toEqual(quickResult);
       expect(result.current.quickRecord.error).toBeNull();
-      expect(result.current.quickRecord.refreshError).toContain("Quick Record succeeded");
+      expect(result.current.quickRecord.refreshError).toContain("기록은 저장됐지만");
       expect(result.current.list.error).toBe("Journal refresh unavailable");
     });
   });

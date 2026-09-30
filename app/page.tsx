@@ -106,7 +106,9 @@ export default function Home() {
   const selectedMain = location.main;
   const roleState = useRoles(Boolean(playerId && (selectedMain === "player" || selectedMain === "role" || selectedMain === "lifelog")));
   const [roleWorkspace, setRoleWorkspace] = useState<"persons" | "roles" | null>(null);
+  const [createRequests, setCreateRequests] = useState<Record<string, number>>({});
   const [personCreateRequest, setPersonCreateRequest] = useState(0);
+  const [roleDetailsHidden, setRoleDetailsHidden] = useState(false);
   const [roleEditRequest, setRoleEditRequest] = useState<{ id: number; sequence: number } | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   useEffect(() => { if (selectedMain !== "role") { setPersonCreateRequest(0); setRoleEditRequest(null); } }, [selectedMain]);
@@ -144,7 +146,8 @@ export default function Home() {
     groupBaseZ + layerBaseZ + (surfaceFocusState.lastFocusBySurface[surfaceId] ?? 0);
 
   const clearFeatureState = () => {
-    setSelectedRoleId(null);
+    setCreateRequests({});
+    setSelectedRoleId(null); setRoleDetailsHidden(false);
     setRoleWorkspace(null); setRoleEditRequest(null);
   };
 
@@ -161,7 +164,7 @@ export default function Home() {
 
   const handleRoleSelect = (roleId: number) => {
     if (selectedMain !== "role") handleMainSelect("role");
-    setRoleWorkspace("roles");
+    setRoleDetailsHidden(false); setRoleWorkspace("roles");
     setSelectedRoleId(roleId);
   };
 
@@ -175,11 +178,21 @@ export default function Home() {
       return;
     }
 
+    setCreateRequests({});
     submenuCaller.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     navigateConsumer(panel.context.main, selectedSubByMain[panel.context.main] === itemId ? null : itemId);
   };
 
+  const handlePanelItemCreate = (panelIndex: number, itemId: string) => {
+    const panel = panelStack[panelIndex];
+    if (!panel || panel.kind !== "menu" || panel.context.route !== "main-submenu") return;
+    submenuCaller.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    navigateConsumer(panel.context.main, itemId);
+    setCreateRequests((values) => ({ ...values, [itemId]: (values[itemId] ?? 0) + 1 }));
+  };
+
   const closeFeatureSubmenu = (main: "player" | "inventory" | "market" | "lifelog") => {
+    setCreateRequests({});
     navigateConsumer(main);
     requestStageFocus(`${main}-stage-0`, "back");
     requestAnimationFrame(() => {
@@ -197,11 +210,11 @@ export default function Home() {
     : selectedSubByMain.player === "achievement"
       ? <AchievementShell onBack={() => closeFeatureSubmenu("player")} />
       : selectedSubByMain.player === "credentials"
-        ? <CertificationShell onBack={() => closeFeatureSubmenu("player")} />
+        ? <CertificationShell createRequest={createRequests.credentials ?? 0} onBack={() => closeFeatureSubmenu("player")} />
         : selectedSubByMain.player === "title"
           ? <TitleShell onBack={() => closeFeatureSubmenu("player")} />
           : selectedSubByMain.player === "interests"
-            ? <HobbyShell onBack={() => closeFeatureSubmenu("player")} />
+            ? <HobbyShell createRequest={createRequests.interests ?? 0} onBack={() => closeFeatureSubmenu("player")} />
             : null;
   const inventorySurface = selectedSubByMain.inventory === "gear"
     ? <GearShell onBack={() => closeFeatureSubmenu("inventory")} />
@@ -270,7 +283,7 @@ export default function Home() {
         <LeftContext
           mode={selectedMain === "role" ? "role" : "hidden"}
           roleWorkspace={roleWorkspace}
-          onRoleWorkspaceChange={(workspace, create) => { setRoleWorkspace(workspace); if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); }}
+          onRoleWorkspaceChange={(workspace, create) => { setRoleWorkspace(workspace); if (create) { setRoleDetailsHidden(true); setRoleEditRequest(null); } if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); }}
           onRoleEdit={(id) => { handleRoleSelect(id); setRoleEditRequest((value) => ({ id, sequence: (value?.sequence ?? 0) + 1 })); }}
           onRoleRefresh={roleState.refresh}
           onRoleArchived={(id) => setSelectedRoleId((current) => current === id ? null : current)}
@@ -294,7 +307,7 @@ export default function Home() {
                 selectedMain="player"
                 inactive={compactPlayer && Boolean(playerSurface)}
                 panelStack={panelStack.slice(0, 1)}
-                onPanelItemSelect={handlePanelItemSelect}
+                onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />
               {playerSurface}
             </div>
@@ -302,6 +315,7 @@ export default function Home() {
             <div className="flex w-fit items-center gap-3">
               <RoleShell
                 workspace={roleWorkspace}
+                hideRoleDetails={roleDetailsHidden}
                 personCreateRequest={personCreateRequest}
                 onWorkspaceBack={() => setRoleWorkspace(null)}
                 editRequest={roleEditRequest}
@@ -318,7 +332,7 @@ export default function Home() {
               <RightPanels
                 selectedMain="inventory"
                 panelStack={panelStack.slice(0, 1)}
-                onPanelItemSelect={handlePanelItemSelect}
+                onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />
               {inventorySurface}
             </div>
@@ -327,7 +341,7 @@ export default function Home() {
               <RightPanels
                 selectedMain="market"
                 panelStack={panelStack.slice(0, 1)}
-                onPanelItemSelect={handlePanelItemSelect}
+                onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />
               <ExchangeShell
                 surface={selectedSubByMain.market as MarketSubId | null}
@@ -336,26 +350,26 @@ export default function Home() {
               />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
-            <JournalShell roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} />
+            <JournalShell createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} />
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "collection" ? (
-            <CollectionShell onBack={() => closeFeatureSubmenu("lifelog")} />
+            <CollectionShell createRequest={createRequests.collection ?? 0} onBack={() => closeFeatureSubmenu("lifelog")} />
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "exercise" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
                 selectedMain="lifelog"
                 panelStack={panelStack.slice(0, 1)}
-                onPanelItemSelect={handlePanelItemSelect}
+                onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />
-              <ExerciseShell />
+              <ExerciseShell createRequest={createRequests.exercise ?? 0} />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "media" ? (
             <div className="flex w-fit items-center gap-3">
-              <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} />
-              <MediaShell />
+              <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
+              <MediaShell createRequest={createRequests.media ?? 0} />
             </div>
           ) : selectedMain === "system" && selectedSubByMain.system === "options" ? (
             <div className="lag-settings-route flex w-fit items-center gap-3">
-              <RightPanels selectedMain="system" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} />
+              <RightPanels selectedMain="system" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
               <SettingsShell />
             </div>
           ) : (
@@ -366,7 +380,7 @@ export default function Home() {
               getPanelZIndex={(panelIndex) =>
                 getSurfaceZIndex(`panel-slot-${panelIndex}`, SURFACE_GROUP_BASE_Z.panels, panelIndex * 10)
               }
-              onPanelItemSelect={handlePanelItemSelect}
+              onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
             />
           )}
         </div>

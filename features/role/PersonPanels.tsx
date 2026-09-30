@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { PersonDetail } from "@/shared/api/types";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import CreateSlot, { CreateCategory } from "@/shared/ui/CreateSlot";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { archivePersonApi, createPersonApi, getPersonApi, listPersonsApi, updatePersonApi } from "./api";
@@ -12,6 +14,7 @@ import { formNullable, formValue } from "./RoleForm";
 import { useRoleQuery } from "./useRoleQuery";
 
 export default function PersonPanels({ active, createRequest, onBack }: { active: boolean; createRequest: number; onBack: () => void }) {
+  const { confirm, dialog } = useSaoConfirm();
   const list = useRoleQuery<PersonDetail[]>([], listPersonsApi, active);
   const compact = useMediaQuery("(max-width: 1199px)");
   const root = useRef<HTMLDivElement>(null);
@@ -41,7 +44,7 @@ export default function PersonPanels({ active, createRequest, onBack }: { active
   useEffect(() => { if (!active) request.current++; }, [active]);
   useEffect(() => {
     if (!createRequest) return;
-    remember(); request.current++; setMode("create"); setError(null); setLoading(false);
+    remember(); request.current++; setDetailOpen(false); setMode("create"); setError(null); setLoading(false);
   }, [createRequest]);
 
   const select = async (personId: number, editing = false) => {
@@ -54,7 +57,7 @@ export default function PersonPanels({ active, createRequest, onBack }: { active
     finally { if (id === request.current) setLoading(false); }
   };
   const archive = async (person: PersonDetail) => {
-    if (locked.current || !window.confirm(`인물 “${person.displayName}”을 보관할까요? 연결된 역할 관계는 유지됩니다.`)) return;
+    if (locked.current || !await confirm(`인물 “${person.displayName}”을 보관할까요? 연결된 역할 관계는 유지됩니다.`)) return;
     const id = ++request.current; locked.current = true; setPending(true); setError(null);
     try {
       await archivePersonApi(person.id);
@@ -87,18 +90,18 @@ export default function PersonPanels({ active, createRequest, onBack }: { active
     {error ? <p role="alert">{error}</p> : null}
     <div className="lag-role-actions"><button className="lag-role-action" type="submit" disabled={pending}>{pending ? "저장 중…" : creatingLabel(person)}</button><button className="lag-role-button" type="button" onClick={close}>취소</button></div>
   </form>;
-  return <div ref={root} style={{ display: active ? undefined : "none" }} className="lag-panel-rail lag-person-panels">
+  return <div ref={root} style={{ display: active ? undefined : "none" }} className="lag-panel-rail lag-person-panels">{dialog}
     <PanelStage stageKey="person-list" autoFocus={active} inactive={compact && mode !== "create" && detailOpen}>
       <PanelFrame title={mode === "create" ? "인물 등록" : "내 인물 목록"} backButton={<BackButton label={mode === "create" ? "인물 목록으로" : "인물 · 역할로"} onClick={mode === "create" ? close : onBack} />}>
-        <div hidden={mode === "create"} className="lag-role-detail">
-          <button className="lag-role-action" type="button" onClick={() => { remember(); request.current++; setMode("create"); setError(null); }}>인물 추가</button>
+        <CreateCategory title="인물" onOpen={close} onCreate={() => { remember(); request.current++; setDetailOpen(false); setMode("create"); setError(null); setLoading(false); }} />
+        <CreateSlot showCancel={false} creating={mode === "create"} pending={pending} onClose={close} list={<div className="lag-role-detail">
+          <p className="lag-create-hint">인물 분류를 왼쪽으로 당기거나 Alt+Enter로 등록합니다.</p>
           {list.loading ? <p role="status">인물을 불러오는 중…</p> : null}
           {list.error ? <p role="alert">{list.error} <button type="button" className="lag-role-button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
           {error && mode === "detail" ? <p role="alert">{error}</p> : null}
           {!list.loading && !list.error && list.data.length === 0 ? <p>등록된 인물이 없습니다.</p> : null}
           {list.data.map((person) => <div key={person.id} data-person-id={person.id}><RecordRow title={person.displayName} subtitle={person.status === "ARCHIVED" ? "보관된 인물" : "인물"} selected={selectedId === person.id} disabled={pending || person.status !== "ACTIVE"} onSelect={() => void select(person.id)} onEdit={() => void select(person.id, true)} onArchive={() => void archive(person)} /></div>)}
-        </div>
-        {mode === "create" ? form() : null}
+        </div>}>{form()}</CreateSlot>
       </PanelFrame>
     </PanelStage>
     {mode !== "create" && detailOpen && selectedId !== null ? <PanelStage stageKey="person-detail" autoFocus={active}>

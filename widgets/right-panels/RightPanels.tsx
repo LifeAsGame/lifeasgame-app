@@ -5,6 +5,7 @@ import type { MainNavId, PanelStackItem } from "@/entities/nav";
 import { reorderToCenter } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
+import { SwipeButton } from "@/features/role/RecordRow";
 import SaoAlert from "@/shared/ui/SaoAlert";
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
@@ -21,6 +22,7 @@ type RightPanelsProps = {
   onPanelFocus?: (panelIndex: number, panelId: string) => void;
   getPanelZIndex?: (panelIndex: number, panelId: string) => number;
   onPanelItemSelect: (panelIndex: number, itemId: string) => void;
+  onPanelItemCreate?: (panelIndex: number, itemId: string) => void;
   onPanelItemAction?: (panelIndex: number, itemId: string, actionType: string) => void;
   onPanelItemDoubleClick?: (panelIndex: number, itemId: string) => void;
   onPanelFormSubmit?: (formKey: string, values: Record<string, string>) => void;
@@ -36,6 +38,7 @@ function PanelContent({
   panelIndex,
   depth,
   onPanelItemSelect,
+  onPanelItemCreate,
   onPanelItemAction,
   onPanelItemDoubleClick,
   onPanelFormSubmit,
@@ -47,6 +50,7 @@ function PanelContent({
   panelIndex: number;
   depth: number;
   onPanelItemSelect: (panelIndex: number, itemId: string) => void;
+  onPanelItemCreate?: (panelIndex: number, itemId: string) => void;
   onPanelItemAction?: (panelIndex: number, itemId: string, actionType: string) => void;
   onPanelItemDoubleClick?: (panelIndex: number, itemId: string) => void;
   onPanelFormSubmit?: (formKey: string, values: Record<string, string>) => void;
@@ -120,6 +124,11 @@ function PanelContent({
             const isCategoryPanel =
               panel.context.route === "player-category" ||
               panel.context.route === "lifelog-category";
+            const canCreate = panel.context.route === "main-submenu" && ((panel.context.main === "player" && ["credentials", "interests"].includes(item.id)) || (panel.context.main === "lifelog" && ["journal", "collection", "exercise", "media"].includes(item.id)));
+            if (canCreate && onPanelItemCreate) return <div key={item.id}>
+              <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onSwipeLeft={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong><span aria-hidden>→</span></SwipeButton>
+              <p className="lag-create-hint">왼쪽으로 당긴 후 놓기 / Alt+Enter: 등록</p>
+            </div>;
             return (
               <PanelCard
                 key={item.id}
@@ -210,6 +219,7 @@ export default function RightPanels({
   onPanelFocus,
   getPanelZIndex,
   onPanelItemSelect,
+  onPanelItemCreate,
   onPanelItemAction,
   onPanelItemDoubleClick,
   onPanelFormSubmit,
@@ -246,6 +256,7 @@ export default function RightPanels({
                     panelIndex={panelIndex}
                     depth={depth}
                     onPanelItemSelect={onPanelItemSelect}
+                    onPanelItemCreate={onPanelItemCreate}
                     onPanelItemAction={onPanelItemAction}
                     onPanelItemDoubleClick={onPanelItemDoubleClick}
                     onPanelFormSubmit={onPanelFormSubmit}

@@ -3,6 +3,7 @@
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 
+import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { MarketSubId } from "@/entities/nav";
 import type {
   EconomyCurrency,
@@ -267,6 +268,7 @@ function TradePanel({ query, playerId, onBack }: { query: ExchangeQuery<TradeSum
 }
 
 export default function ExchangeShell({ surface, playerId, onBack }: { surface: MarketSubId | null; playerId: number; onBack: () => void }) {
+  const { confirm, dialog } = useSaoConfirm();
   const queries = useExchangeQueries(surface);
   const mutations = useExchangeMutations(queries);
   const [shopSurface, setShopSurface] = useState<ExchangeShopSurface>("system-shop");
@@ -326,7 +328,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
   };
 
   return (
-    <div className="lag-panel-rail lag-exchange-shell" data-testid="exchange-shell">
+    <div className="lag-panel-rail lag-exchange-shell" data-testid="exchange-shell">{dialog}
       <PanelStage stageKey="market-stage-1">
         <PanelFrame title="Shop" depth={detailIdentity ? 1 : 0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
           <section className="lag-exchange-surface">
@@ -378,7 +380,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
               {mutations.error ? <div className="lag-exchange-state"><Feedback>{mutations.error}</Feedback></div> : null}
               {selectedShopItem ? <ShopItemDetail item={selectedShopItem} purchase={activePurchase} purchaseId={effectivePurchaseId} pending={mutations.pendingKey !== null} onBack={closeDetail} onRefresh={() => { if (effectivePurchaseId !== null) void mutations.refreshShopPurchase(effectivePurchaseId).then((purchase) => setActivePurchaseId(purchase?.id ?? effectivePurchaseId)); }} /> : null}
               {shopSurface === "marketplace" && selectedListing ? <ListingDetail listing={selectedListing} itemName={selectedListing.itemId === null ? null : queries.itemNames[selectedListing.itemId]} playerId={playerId} reservation={listingReservation} pending={mutations.pendingKey !== null} onBack={closeDetail} onReserve={() => void mutations.reserveListing(selectedListing).then((reservation) => setListingReservation(reservation ?? null))} onPurchase={() => { if (listingReservation) void mutations.purchaseListing(selectedListing, listingReservation.reservationToken).then((trade) => { if (trade) closeDetail(); }); }} /> : null}
-              {shopSurface === "my-listings" && selectedListing ? <MyListingDetail listing={selectedListing} itemName={selectedListing.itemId === null ? null : queries.itemNames[selectedListing.itemId]} pending={mutations.pendingKey !== null} onBack={closeDetail} onCancel={() => { if (window.confirm(`Cancel listing #${selectedListing.id}?`)) void mutations.cancelListing(selectedListing).then((done) => { if (done) closeDetail(); }); }} /> : null}
+              {shopSurface === "my-listings" && selectedListing ? <MyListingDetail listing={selectedListing} itemName={selectedListing.itemId === null ? null : queries.itemNames[selectedListing.itemId]} pending={mutations.pendingKey !== null} onBack={closeDetail} onCancel={async () => { if (await confirm(`판매 글 #${selectedListing.id}을 취소할까요?`)) void mutations.cancelListing(selectedListing).then((done) => { if (done) closeDetail(); }); }} /> : null}
               {shopSurface === "my-listings" && creatingListing ? <CreateListingForm entries={queries.inventory.data} pending={mutations.pendingKey !== null} onBack={closeDetail} onSubmit={(entry, price, currency) => void mutations.createListing(entry, price, currency).then((listing) => { if (listing) closeDetail(); })} /> : null}
             </PanelFrame>
           </PanelStage>

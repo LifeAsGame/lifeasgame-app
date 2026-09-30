@@ -65,7 +65,7 @@ export function useMediaQueries() {
       }
       return next;
     } catch (caught) {
-      if (requestId === listRequestId.current) setError(message(caught, "Unable to load Media."));
+      if (requestId === listRequestId.current) setError(message(caught, "감상 기록을 조회하지 못했습니다."));
       return undefined;
     } finally {
       if (requestId === listRequestId.current) setLoading(false);
@@ -113,7 +113,7 @@ export function useMediaQueries() {
       return true;
     } catch (caught) {
       await reload();
-      setMutationError(`Request outcome was not confirmed. Server state was reloaded. ${message(caught, "")}`.trim());
+      setMutationError(`요청 결과가 확정되지 않았습니다. 다시 조회한 서버 상태를 확인하세요. ${message(caught, "")}`.trim());
       return false;
     } finally {
       mutationLocked.current = false;

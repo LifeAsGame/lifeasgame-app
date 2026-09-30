@@ -69,7 +69,7 @@ export default function RewardSettlementPanel({ acceptanceId }: { acceptanceId: 
           <ul>
             {data.lines.slice().sort((a, b) => a.sortOrder - b.sortOrder).map((line) => (
               <li key={line.lineId}>
-                <strong>{consumerLabel(line.rewardType)} × {line.amount} · {consumerLabel(line.status)}</strong>
+                <strong className="lag-reward-result"><span>{consumerLabel(line.rewardType)}</span><span> × {line.amount} · {consumerLabel(line.status)}</span></strong>
                 <p>{lineCopy(line)}</p>
                 {line.failureCode ? <p>오류 참조: {line.failureCode}</p> : null}
                 {line.rewardType === "ITEM" && line.itemId !== null ? <ItemDescription itemId={line.itemId} /> : null}

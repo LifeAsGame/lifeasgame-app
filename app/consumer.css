@@ -1,26 +1,26 @@
 /* Shared consumer palette. Theme preference IDs and persistence remain unchanged. */
 :root, :root[data-theme="warm-beige"], [data-lag-preview-theme="warm-beige"] {
-  --lag-ambient: #a6b0bf; --lag-ambient-2: #7d899b; --lag-shell: #edf0f4;
-  --lag-nav: #fafbfc; --lag-workspace: #edf0f4; --lag-panel: #fafbfc;
-  --lag-panel-2: #edf0f4; --lag-personal: #fafbfc; --lag-paper: #fff;
-  --lag-text: #30343a; --lag-text-2: #646b75; --lag-meta: #646b75;
-  --lag-border: #d6dbe2; --lag-divider: #d6dbe2; --lag-shadow: #172231;
-  --lag-focus: #305fbb; --lag-cyan: #305fbb; --lag-violet: #745200; --lag-lav: #646b75;
-  --lag-amber: #efb31b; --lag-success: #28604e; --lag-warning: #795115;
-  --lag-error: #a13537; --lag-disabled: #808895; --lag-grain: #edf0f4;
+  --lag-ambient: #EDE6DA; --lag-ambient-2: #F3ECE1; --lag-shell: #E6DDD0;
+  --lag-nav: #E9E0D4; --lag-workspace: #F5EFE5; --lag-panel: #FBF7F0;
+  --lag-panel-2: #F8F1E7; --lag-personal: #FFF9F1; --lag-paper: #FFFDF8;
+  --lag-text: #302C29; --lag-text-2: #6C6259; --lag-meta: #8E8174;
+  --lag-border: #CBBDAA; --lag-divider: #DDD1C1; --lag-shadow: #A9967D;
+  --lag-focus: #5B9295; --lag-cyan: #67A6A7; --lag-violet: #82709B; --lag-lav: #A89BC0;
+  --lag-amber: #C49245; --lag-success: #6F8E69; --lag-warning: #C07B44;
+  --lag-error: #B8615E; --lag-disabled: #B9AEA0; --lag-grain: #E4D8C8;
   --lag-gold: #efb31b; --lag-gold-ink: #745200; --lag-field: #fff; --lag-hover: #e8ecf1;
   --lag-state-selected: var(--lag-gold); --lag-radius-sm: 2px; --lag-radius-md: 3px;
   --lag-radius-lg: 4px; --lag-radius-xl: 4px;
 }
 :root[data-theme="astral"], [data-lag-preview-theme="astral"] {
-  --lag-ambient: #253044; --lag-ambient-2: #151e2c; --lag-shell: #303b4b;
-  --lag-nav: #252d39; --lag-workspace: #303b4b; --lag-panel: #252d39;
-  --lag-panel-2: #303b4b; --lag-personal: #252d39; --lag-paper: #1e2632;
-  --lag-text: #e9edf4; --lag-text-2: #aeb9c9; --lag-meta: #aeb9c9;
-  --lag-border: #455164; --lag-divider: #455164; --lag-shadow: #060a12;
-  --lag-focus: #a9c8ff; --lag-cyan: #a9c8ff; --lag-violet: #f4ce73; --lag-lav: #aeb9c9;
-  --lag-amber: #efb31b; --lag-success: #9fd3be; --lag-warning: #efcb8b;
-  --lag-error: #ffb0b4; --lag-disabled: #8894a6; --lag-grain: #303b4b;
+  --lag-ambient: #07111F; --lag-ambient-2: #0A1626; --lag-shell: #0D1725;
+  --lag-nav: #0B1523; --lag-workspace: #111C2A; --lag-panel: #162337;
+  --lag-panel-2: #1A2A40; --lag-personal: #1B2B42; --lag-paper: #203048;
+  --lag-text: #F4F7FB; --lag-text-2: #AAB8C8; --lag-meta: #7F91A5;
+  --lag-border: #2B3E55; --lag-divider: #22344A; --lag-shadow: #02060D;
+  --lag-focus: #54D4DE; --lag-cyan: #54D4DE; --lag-violet: #8B72D8; --lag-lav: #A99AE3;
+  --lag-amber: #D9A456; --lag-success: #63A783; --lag-warning: #D69A56;
+  --lag-error: #D86D72; --lag-disabled: #536171; --lag-grain: #142034;
   --lag-gold-ink: #f4ce73; --lag-field: #1e2632; --lag-hover: #364357;
 }
 body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
@@ -31,7 +31,7 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-consumer :is(input,textarea,select) { background: var(--lag-field); }
 .sao-consumer :is(button,a,input,select,textarea):focus-visible { outline: 2px solid var(--lag-focus); outline-offset: 3px; }
 .sao-home { height: 100%; overflow: auto; padding: 0 max(24px,calc((100vw - 1120px)/2)) 100px; }
-.sao-mast { height: 94px; display:flex; align-items:center; border-bottom: 1px solid #ffffff55; margin-bottom: 32px; color: #fff; font-size:24px; letter-spacing: .035em; }
+.sao-mast { height: 94px; display:flex; align-items:center; border-bottom: 1px solid var(--lag-border); margin-bottom: 32px; color: var(--lag-text); font-size:24px; letter-spacing: .035em; }
 .sao-mast span span { opacity: .65; }
 .sao-home .lag-home-surface { width:100%; min-width:0; max-width:none; background: transparent; padding: 0; border:0; box-shadow:none; }
 .sao-home .lag-home-card { background:var(--lag-panel); }
@@ -41,11 +41,11 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-menu-layer { position:fixed; inset:0; z-index:500000; background:linear-gradient(140deg,var(--lag-ambient),var(--lag-ambient-2)); }
 .sao-menu-layer[data-open=false] { pointer-events:none; visibility:hidden; transition:visibility 0s .16s; }
 .sao-menu-layer[data-open=true] { visibility:visible; }
-.sao-menu-chrome { position:absolute; inset:24px 36px auto; display:flex; justify-content:space-between; align-items:center; gap:12px; color:white; padding-right:140px; }
+.sao-menu-chrome { position:absolute; inset:24px 36px auto; display:flex; justify-content:space-between; align-items:center; gap:12px; color:var(--lag-text); padding-right:140px; }
 .sao-menu-chrome span { letter-spacing:.12em; font-size:12px; }
 .sao-menu-chrome h1 { font-size:12px; margin-top:6px; }
 .sao-menu-chrome > div:last-child { display:flex; gap:8px; }
-.sao-menu-chrome button { min-height:44px; padding:10px 14px; border:1px solid #ffffff80; background:#ffffff10; white-space:nowrap; }
+.sao-menu-chrome button { min-height:44px; padding:10px 14px; border:1px solid var(--lag-border); background:var(--lag-panel); white-space:nowrap; }
 .sao-stage { position:absolute; top:110px; bottom:66px; left:36px; right:36px; max-width:1110px; margin:auto; }
 .sao-stage .lag-app-surface { height:100%; padding:0; background:none; overflow:auto; }
 .sao-stage .lag-app-shell { min-height:100% !important; height:100%; padding:0 !important; gap:20px !important; align-items:flex-start; }
@@ -59,7 +59,7 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-orb-icon svg { width:25px; height:25px; }
 .sao-stage .lag-orb-item[aria-pressed=true] .lag-orb-icon { background:var(--lag-gold); color:#332708; box-shadow:0 0 0 4px #efb31b50,0 0 0 5px #ffdf86; }
 .sao-stage .lag-orb-item[aria-pressed=true] .lag-orb-icon::before { border-color:#fff; }
-.sao-stage .lag-orb-label { display:none; white-space:nowrap; font-size:22px; letter-spacing:.01em; text-align:left; color:white; margin-left:22px; }
+.sao-stage .lag-orb-label { display:none; white-space:nowrap; font-size:22px; letter-spacing:.01em; text-align:left; color:var(--lag-text); margin-left:22px; }
 .sao-stage .lag-orb-label small { display:block; font-size:11px; margin-top:6px; line-height:1.3; }
 .sao-menu-layer[data-main=menu] .lag-orb-column, .sao-menu-layer[data-main=menu] .lag-orb-nav { width:280px !important; flex-basis:280px; }
 .sao-menu-layer[data-main=menu] .lag-orb-item { width:260px; }
@@ -283,3 +283,54 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
   .sao-menu-chrome:has(.sao-summary-toggle) > div:last-child { width:100%; justify-content:space-between; }
   .sao-stage .lag-player-panels .lag-panel-stage { width:calc(100vw - 32px); max-width:calc(100vw - 32px); }
 }
+
+/* FE-SAO-02: Latin display face; Korean keeps the licensed Nanum Gothic. */
+@font-face { font-family: "Rajdhani"; src:url("/fonts/Rajdhani-Regular.ttf") format("truetype"); font-weight:400; font-display:swap; unicode-range:U+0000-00FF; }
+:is(.lag-panel-title,.sao-mast,.lag-role-hero h4,.lag-player-value,.lag-dialog-message strong) { font-family:"Rajdhani",var(--font-consumer),sans-serif; }
+.lag-create-hint { padding:8px 12px; color:var(--lag-text-2); font-size:11px; line-height:1.6; }
+.lag-create-category { padding:0 12px 10px; }
+.lag-create-slot [hidden] { display:none !important; }
+.lag-create-slot[data-creating=true] > .lag-slot-form { animation:lag-create-in var(--lag-motion-normal) ease-out; }
+.lag-create-slot[data-creating=false] > .lag-slot-list { animation:lag-list-in var(--lag-motion-normal) ease-out; }
+@keyframes lag-create-in { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+@keyframes lag-list-in { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:translateX(0); } }
+.lag-role-record-row { display:block; position:relative; overflow:hidden; isolation:isolate; background:#cd3d79; }
+.lag-record-body { position:relative; width:100%; z-index:1; margin:0; padding-right:40px; background:var(--lag-panel) !important; border-radius:0; }
+.lag-record-body[data-selected=true], .lag-role-node[data-selected=true], .lag-role-node[aria-pressed=true], .sao-stage .lag-panel-card[aria-pressed=true] { background:var(--lag-gold) !important; color:#332708 !important; }
+.lag-record-body[data-selected=true] :is(strong,small,span), .sao-stage .lag-panel-card[aria-pressed=true] p { color:#332708 !important; }
+.lag-row-action-area { position:absolute; right:0; top:0; bottom:0; width:144px; display:flex; align-items:stretch; background:#cd3d79; color:white; }
+.lag-row-action-area[hidden] { display:flex !important; visibility:hidden; }
+.lag-row-action-area button { width:72px; display:grid; place-content:center; gap:4px; font-size:12px; min-height:44px; border-left:1px solid #ffffff50; }
+.lag-row-action-area button span { font-size:22px; }
+.lag-row-action-area button:disabled { opacity:.45; }
+.lag-row-action-toggle { position:absolute; top:8px; right:2px; width:36px; height:44px; z-index:2; color:var(--lag-text); background:var(--lag-panel); transition:transform var(--lag-motion-normal) ease-out; }
+.lag-record-body[data-selected=true]::after, .lag-role-node[data-selected=true]::after { content:""; position:absolute; right:4px; border-block:6px solid transparent; border-left:8px solid #856514; }
+.lag-dialog-overlay { position:fixed; inset:0; z-index:9999999; display:grid; place-items:center; padding:16px; background:#10203066; backdrop-filter:blur(2px); }
+.lag-sao-dialog { width:min(380px,100%); color:var(--lag-text); background:var(--lag-panel); border:1px solid var(--lag-border); box-shadow:0 16px 48px #0006; }
+.lag-sao-dialog header { text-align:center; padding:22px 16px; background:var(--lag-panel); border-bottom:1px solid var(--lag-divider); font-family:"Rajdhani",var(--font-consumer),sans-serif; font-size:22px; }
+.lag-dialog-message { padding:24px; background:color-mix(in srgb,var(--lag-text) 8%,var(--lag-panel)); white-space:pre-wrap; line-height:1.65; font-size:14px; }
+.lag-sao-dialog footer { display:flex; justify-content:space-around; padding:22px; background:var(--lag-panel); border-top:1px solid var(--lag-divider); }
+.lag-sao-dialog footer button { display:grid; justify-items:center; gap:12px; font-size:12px; }
+.lag-sao-dialog footer button span { display:grid; place-items:center; width:64px; height:64px; border:3px double currentColor; border-radius:50%; font-size:40px; line-height:1; box-shadow:inset 0 0 0 3px var(--lag-panel); background:currentColor; }
+.lag-dialog-confirm, .lag-dialog-cancel { color:var(--lag-text); }
+.lag-sao-dialog footer button span { color:white; border-color:var(--dialog-action); background:var(--dialog-action); outline:2px solid var(--dialog-action); outline-offset:3px; }
+.lag-dialog-confirm { --dialog-action:#287bbf; }.lag-dialog-cancel { --dialog-action:#d13378; }
+.lag-sao-dialog button:focus-visible { outline:2px solid var(--lag-focus); outline-offset:8px; }
+/* Reuse the panel rail/camera: list and creation share a stable slot; edits are to the right. */
+.sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) .lag-orb-column { position:relative !important; left:auto !important; }
+.sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) .lag-workspace { position:relative; inset:auto; width:auto; display:flex; }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell) { width:max-content; display:flex; gap:12px; }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell) > [data-stage-key] { position:relative; left:auto; width:344px; max-width:344px; flex-shrink:0; }
+.sao-stage .lag-panel-stage .lag-panel-frame { width:344px !important; max-width:344px; }
+@media(max-width:899px) {
+  .sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) .lag-orb-column { position:absolute !important; left:0 !important; }
+  .sao-menu-layer:has(.lag-journal-shell,.lag-collection-shell) .lag-workspace { position:absolute; inset:82px 0 0; width:100%; }
+  .sao-stage :is(.lag-journal-shell,.lag-collection-shell) > [data-stage-key], .sao-stage .lag-panel-stage .lag-panel-frame { width:calc(100vw - 32px) !important; max-width:calc(100vw - 32px); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .lag-create-slot *, .lag-role-record-row * { animation:none !important; transition:none !important; }
+}
+
+.lag-reward-result { display:flex; justify-content:space-between; gap:16px; border-bottom:1px solid var(--lag-divider); padding-block:10px; font-family:"Rajdhani",var(--font-consumer),sans-serif; }
+
+.lag-create-category .lag-role-node { width:100%; grid-template-columns:minmax(0,1fr) auto; }

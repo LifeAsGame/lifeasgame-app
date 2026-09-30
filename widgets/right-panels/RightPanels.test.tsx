@@ -5,7 +5,7 @@ import type { PanelStackItem } from "@/entities/nav";
 import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import RightPanels from "./RightPanels";
 
-const root = (selectedId?: string): PanelStackItem => ({
+const root = (selectedId?: string): Extract<PanelStackItem, { kind: "menu" }> => ({
   id: "main-player",
   kind: "menu",
   title: "Player",
@@ -67,4 +67,13 @@ it("focuses an activated submenu before navigation even when pointer panning pre
   expect(caller).toBe(button);
   expect(button).toHaveFocus();
   expect(select).toHaveBeenCalledExactlyOnceWith(0, "title");
+});
+
+it("등록 가능한 분류만 생성 이벤트를 제공하고 일반 클릭은 목록 선택으로 유지한다", () => {
+  const select = vi.fn(), create = vi.fn();
+  const panel = { ...root(), items: [{ id: "credentials", label: "자격증", slotLabel: "CE" }, { id: "title", label: "칭호", slotLabel: "TI" }] };
+  render(<RightPanels selectedMain="player" panelStack={[panel]} onPanelItemSelect={select} onPanelItemCreate={create} />);
+  fireEvent.click(screen.getByRole("button", { name: "자격증" })); expect(select).toHaveBeenCalledWith(0, "credentials"); expect(create).not.toHaveBeenCalled();
+  fireEvent.keyDown(screen.getByRole("button", { name: "자격증" }), { key: "Enter", altKey: true }); expect(create).toHaveBeenCalledWith(0, "credentials");
+  const count = create.mock.calls.length; fireEvent.keyDown(screen.getByRole("button", { name: /칭호/ }), { key: "Enter", altKey: true }); expect(create).toHaveBeenCalledTimes(count);
 });

@@ -1,3 +1,4 @@
+import { answerDialog } from "@/shared/ui/dialogTest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import type { PersonDetail, RoleRelationDetail } from "@/shared/api/types";
@@ -9,7 +10,7 @@ const person = { id: 7, displayName: "Alex", status: "ACTIVE" } as PersonDetail;
 const relation = { id: 9, personId: 7, personDisplayName: "Alex", personStatus: "ACTIVE", relationType: "FRIEND", roleNotes: null, status: "ACTIVE" } as RoleRelationDetail;
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 beforeEach(() => {
-  vi.resetAllMocks(); vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.resetAllMocks();
   api.listPersonsApi.mockResolvedValue([person]); api.listRoleRelationsApi.mockResolvedValue([relation]);
   api.resolveRelationPersonStatus.mockImplementation((rows: RoleRelationDetail[]) => Promise.resolve(rows));
   api.getRoleRelationApi.mockResolvedValue(relation); api.createRoleRelationApi.mockResolvedValue(relation); api.updateRoleRelationApi.mockResolvedValue(relation); api.archiveRoleRelationApi.mockResolvedValue(undefined);
@@ -24,7 +25,9 @@ it("같은 Person을 두 역할에서 재사용하고 특정 관계 보관은 Pe
   for (const id of [1, 2]) {
     if (id === 2) view.rerender(<RelationPanels key={2} {...props} roleId={2} roleName="두 번째 역할" />);
     await screen.findByText("연결된 인물이 없습니다.");
-    fireEvent.click(screen.getByRole("button", { name: "관계 추가" }));
+    fireEvent.click(screen.getByRole("button", { name: "관계" }));
+    expect(screen.queryByLabelText("기존 인물")).not.toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("button", { name: "관계" }), { key: "Enter", altKey: true });
     fireEvent.change(screen.getByLabelText("기존 인물"), { target: { value: "7" } });
     fireEvent.change(screen.getByLabelText("관계 유형"), { target: { value: "FAMILY" } });
     fireEvent.click(screen.getByRole("button", { name: "관계 연결" }));
@@ -33,9 +36,11 @@ it("같은 Person을 두 역할에서 재사용하고 특정 관계 보관은 Pe
   }
   view.rerender(<RelationPanels key={1} {...props} />);
   fireEvent.click(await screen.findByRole("button", { name: "Alex 작업" }));
-  vi.mocked(window.confirm).mockReturnValueOnce(false);
-  fireEvent.click(screen.getByRole("button", { name: "보관" })); expect(api.archiveRoleRelationApi).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "보관" }));
+    await answerDialog(false);
+    expect(api.archiveRoleRelationApi).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "보관" }));
+    await answerDialog();
   await screen.findByText("연결된 인물이 없습니다.");
   expect(api.archiveRoleRelationApi).toHaveBeenCalledWith(1, 9);
   expect(api.archivePersonApi).not.toHaveBeenCalled(); expect(person.status).toBe("ACTIVE"); expect(stored.get(2)).toHaveLength(1);

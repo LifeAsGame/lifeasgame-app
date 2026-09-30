@@ -68,7 +68,7 @@ export function useJournalQueries() {
       if (!preserveSelection && selectedId !== null && !next.content.some(({ lifeLogId }) => lifeLogId === selectedId)) clearSelection();
       return next;
     } catch (caught) {
-      if (requestId === listRequestId.current) setListError(message(caught, "Unable to load Journal."));
+      if (requestId === listRequestId.current) setListError(message(caught, "일상 기록을 조회하지 못했습니다."));
       return undefined;
     } finally {
       if (requestId === listRequestId.current) setListLoading(false);
@@ -88,7 +88,7 @@ export function useJournalQueries() {
       return data;
     } catch (caught) {
       if (requestId === detailRequestId.current) {
-        setDetail((previous) => ({ ...previous, loading: false, error: message(caught, "Unable to load Journal detail.") }));
+        setDetail((previous) => ({ ...previous, loading: false, error: message(caught, "일상 기록 상세를 조회하지 못했습니다.") }));
       }
       return undefined;
     }
@@ -134,7 +134,7 @@ export function useJournalQueries() {
       if (!nextPage) {
         setQuickRecord((current) => ({
           ...current,
-          refreshError: "Quick Record succeeded, but Journal refresh failed. Retry the Journal list.",
+          refreshError: "기록은 저장됐지만 목록을 다시 조회하지 못했습니다. 목록을 다시 조회하세요.",
         }));
       } else {
         const matching = nextPage.content.find((entry) =>
@@ -148,7 +148,7 @@ export function useJournalQueries() {
       failedQuickRecord.current = { body, key };
       setQuickRecord({
         pending: false,
-        error: message(caught, "Unable to save Quick Record."),
+        error: message(caught, "간편 기록을 저장하지 못했습니다."),
         result: null,
         refreshError: null,
         canRetry: true,
