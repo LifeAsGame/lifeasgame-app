@@ -311,7 +311,7 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 
 .lag-create-category .lag-role-node { width:100%; grid-template-columns:minmax(0,1fr) auto; }
 .sao-stage :is(.lag-role-node,.lag-panel-card,.lag-journey-card,.lag-inventory-tile,.lag-role-surface-card) { font-family:var(--font-consumer),"Apple SD Gothic Neo","Malgun Gothic",sans-serif; }
-.sao-stage :is(.lag-role-node,.lag-panel-card) { min-height:68px; }
+.sao-stage :is(.lag-role-node,.lag-panel-card) { min-height:68px; width:100%; }
 .sao-stage .lag-role-node :is(strong,small) { overflow-wrap:anywhere; }
 .sao-stage .lag-role-node small { white-space:normal; }
 .sao-stage .lag-collection-categories { padding:0 12px; }

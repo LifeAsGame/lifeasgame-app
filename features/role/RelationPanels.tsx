@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { PersonDetail, RoleRelationDetail } from "@/shared/api/types";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
+import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import CreateSlot, { CreateCategory } from "@/shared/ui/CreateSlot";
 import PanelStage from "@/shared/ui/PanelStage";
@@ -97,7 +98,7 @@ export default function RelationPanels({ roleId, roleName, createRequest, onBack
           {list.error ? <p role="alert">{list.error} <button type="button" className="lag-role-button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
           {error && mode === "list" ? <p role="alert">{error}</p> : null}
           {!list.loading && !list.error && !list.data.relations.length ? <p>연결된 인물이 없습니다.</p> : null}
-          {list.data.relations.map((relation) => <div key={relation.id} data-relation-id={relation.id}><RecordRow title={relation.personDisplayName} subtitle={`${relation.relationType} · ${personState(relation.personStatus)}`} selected={selectedId === relation.id} disabled={pending} onSelect={() => void select(relation.id)} onEdit={() => void select(relation.id, true)} onArchive={() => void archive(relation)} /></div>)}
+          {list.data.relations.map((relation) => <div key={relation.id} data-relation-id={relation.id}><RecordRow title={relation.personDisplayName} subtitle={`${consumerLabel(relation.relationType)} · ${personState(relation.personStatus)}`} selected={selectedId === relation.id} disabled={pending} onSelect={() => void select(relation.id)} onEdit={() => void select(relation.id, true)} onArchive={() => void archive(relation)} /></div>)}
         </div>}>{form()}</CreateSlot>
       </PanelFrame>
     </PanelStage>
@@ -105,7 +106,7 @@ export default function RelationPanels({ roleId, roleName, createRequest, onBack
       <PanelFrame title={mode === "edit" ? "관계 수정" : "관계 상세"} backButton={<BackButton label="관계 목록으로" onClick={close} />}>
         {loading ? <p role="status">관계 상세를 불러오는 중…</p> : null}
         {error && !detail ? <p role="alert">{error} <button type="button" className="lag-role-button" onClick={() => void select(selectedId!, mode === "edit")}>다시 조회</button></p> : null}
-        {detail && mode === "edit" ? form(detail) : detail ? <article className="lag-role-detail"><h4>{detail.personDisplayName}</h4><p>{personState(detail.personStatus)}</p><dl><div className="lag-role-data-row"><dt>관계 유형</dt><dd>{detail.relationType}</dd></div><div className="lag-role-data-row"><dt>역할 메모</dt><dd>{detail.roleNotes ?? "미등록"}</dd></div></dl><div className="lag-role-actions"><button type="button" className="lag-role-button" disabled={pending} onClick={() => { remember(); request.current++; setMode("edit"); }}>관계 수정</button><button type="button" className="lag-role-button" disabled={pending} onClick={() => void archive(detail)}>관계 보관</button></div></article> : null}
+        {detail && mode === "edit" ? form(detail) : detail ? <article className="lag-role-detail"><h4>{detail.personDisplayName}</h4><p>{personState(detail.personStatus)}</p><dl><div className="lag-role-data-row"><dt>관계 유형</dt><dd>{consumerLabel(detail.relationType)}</dd></div><div className="lag-role-data-row"><dt>역할 메모</dt><dd>{detail.roleNotes ?? "미등록"}</dd></div></dl><div className="lag-role-actions"><button type="button" className="lag-role-button" disabled={pending} onClick={() => { remember(); request.current++; setMode("edit"); }}>관계 수정</button><button type="button" className="lag-role-button" disabled={pending} onClick={() => void archive(detail)}>관계 보관</button></div></article> : null}
       </PanelFrame>
     </PanelStage> : null}
   </div>;

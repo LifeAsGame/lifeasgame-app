@@ -8,6 +8,7 @@ import type {
   RoleDetail,
   RoleEventDetail,
 } from "@/shared/api/types";
+import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
@@ -50,14 +51,14 @@ function Overview({ role }: { role: RoleDetail }) {
       <header className="lag-role-hero">
         <span>역할 개요</span>
         <h4>{role.name}</h4>
-        <span className="lag-role-status">{role.status}</span>
+        <span className="lag-role-status">{consumerLabel(role.status)}</span>
         <p>{role.description}</p>
       </header>
       <RoleSection title="역할 정보">
         <dl>
           <RoleDataRow label="이름">{role.name}</RoleDataRow>
-          <RoleDataRow label="역할 유형">{role.roleType}</RoleDataRow>
-          <RoleDataRow label="상태">{role.status}</RoleDataRow>
+          <RoleDataRow label="역할 유형">{consumerLabel(role.roleType)}</RoleDataRow>
+          <RoleDataRow label="상태">{consumerLabel(role.status)}</RoleDataRow>
         </dl>
       </RoleSection>
     </article>
@@ -233,7 +234,7 @@ export default function RoleShell({
                 <header className="lag-role-hero">
                   <span>선택한 역할</span>
                   <h4>{selectedRole.name}</h4>
-                  <div className="lag-role-badges"><span>{selectedRole.roleType}</span><span>{selectedRole.status}</span></div>
+                  <div className="lag-role-badges"><span>{consumerLabel(selectedRole.roleType)}</span><span>{consumerLabel(selectedRole.status)}</span></div>
                   <p>{selectedRole.description}</p>
                 </header>
                 <section className="lag-role-surface-grid" aria-label="Role surfaces">

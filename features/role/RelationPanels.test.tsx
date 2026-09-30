@@ -32,10 +32,10 @@ it("같은 Person을 두 역할에서 재사용하고 특정 관계 보관은 Pe
     fireEvent.change(screen.getByLabelText("관계 유형"), { target: { value: "FAMILY" } });
     fireEvent.click(screen.getByRole("button", { name: "관계 연결" }));
     await waitFor(() => expect(api.createRoleRelationApi).toHaveBeenCalledWith(id, { personId: 7, relationType: "FAMILY", roleNotes: null }));
-    await screen.findByRole("button", { name: /Alex.*FRIEND/ });
+    await screen.findByRole("button", { name: /Alex.*친구/ });
   }
   view.rerender(<RelationPanels key={1} {...props} />);
-  fireEvent.click(await screen.findByRole("button", { name: "Alex 작업" }));
+  fireEvent.keyDown(await screen.findByRole("button", { name: /Alex.*친구|Alex.*보관된 인물/ }), { key: "F10", shiftKey: true });
   fireEvent.click(screen.getByRole("button", { name: "보관" }));
     await answerDialog(false);
     expect(api.archiveRoleRelationApi).not.toHaveBeenCalled();
@@ -56,7 +56,7 @@ it("보관 상태·미확인을 표시하며 취소와 늦은 이전 역할 목�
   await act(async () => first.resolve([{ ...relation, personDisplayName: "Old role" }]));
   expect(screen.queryByText("Old role")).not.toBeInTheDocument();
   api.getRoleRelationApi.mockResolvedValue({ ...relation, personStatus: "ARCHIVED" });
-  fireEvent.click(screen.getByRole("button", { name: "Alex 작업" })); fireEvent.click(screen.getByRole("button", { name: "수정" }));
+  fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*친구|Alex.*보관된 인물/ }), { key: "F10", shiftKey: true }); fireEvent.click(screen.getByRole("button", { name: "수정" }));
   await screen.findByLabelText("관계 유형");
   expect(screen.queryByLabelText("기존 인물")).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("역할 메모"), { target: { value: "보관 인물 관계 메모" } });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { RoleDetail } from "@/shared/api/types";
 import { archiveRoleApi } from "@/features/role/api";
@@ -60,7 +61,7 @@ export function RoleContextPanel({ roles, selectedRoleId, isLoading, error, onRo
           {!isLoading && !error && roles.length === 0 ? <p>등록된 역할이 없습니다.</p> : null}
           {actionError ? <p role="alert">{actionError}</p> : null}
         </div>
-        <div className="lag-role-node-list" aria-label="내 역할 목록">{roles.map((role) => <div key={role.id} data-role-id={role.id}><RecordRow title={role.name} subtitle={`${role.roleType} · ${role.status}`} selected={selectedRoleId === role.id} disabled={pending} onSelect={() => onRoleSelect?.(role.id)} onEdit={() => onRoleEdit?.(role.id)} onArchive={() => void archive(role)} /></div>)}</div>
+        <div className="lag-role-node-list" aria-label="내 역할 목록">{roles.map((role) => <div key={role.id} data-role-id={role.id}><RecordRow title={role.name} subtitle={`${consumerLabel(role.roleType)} · ${consumerLabel(role.status)}`} selected={selectedRoleId === role.id} disabled={pending} onSelect={() => onRoleSelect?.(role.id)} onEdit={() => onRoleEdit?.(role.id)} onArchive={() => void archive(role)} /></div>)}</div>
 
       </div>}><RoleForm onCancel={closeCreate} onSaved={async () => { const id = generation.current; await onRefresh?.(); if (id === generation.current) closeCreate(); }} /></CreateSlot>
     </> : null}
