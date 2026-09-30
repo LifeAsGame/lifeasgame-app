@@ -10,15 +10,17 @@ function pointer(target: HTMLElement, type: string, x: number, y: number) {
   fireEvent(target, event);
 }
 
-it("분류 클릭·미달·세로 이동은 생성하지 않고 왼쪽 당김과 Alt+Enter만 같은 이벤트를 실행한다", () => {
-  const create = vi.fn(), list = vi.fn();
-  render(<SwipeButton creation onClick={list} onSwipeLeft={create}>분류</SwipeButton>);
+it("분류 한 번은 목록, 두 번·Alt+Enter는 생성이고 밀기·세로 스크롤은 생성하지 않는다", async () => {
+  const create = vi.fn(), list = vi.fn(), swipe = vi.fn();
+  render(<SwipeButton creation onClick={list} onDoubleClick={create} onSwipeLeft={swipe}>분류</SwipeButton>);
   const category = screen.getByRole("button", { name: "분류" });
-  fireEvent.click(category); expect(list).toHaveBeenCalledOnce();
+  fireEvent.click(category, { detail: 1 });
+  await waitFor(() => expect(list).toHaveBeenCalledOnce());
   for (const [dx, dy] of [[-50, 0], [-90, 120], [-90, 0]]) {
     pointer(category, "pointerdown", 200, 200); pointer(category, "pointermove", 200 + dx, 200 + dy); pointer(category, "pointerup", 200 + dx, 200 + dy); fireEvent.click(category, { detail: 1 });
   }
-  expect(list).toHaveBeenCalledOnce(); expect(create).toHaveBeenCalledOnce();
+  expect(list).toHaveBeenCalledOnce(); expect(swipe).toHaveBeenCalledOnce(); expect(create).not.toHaveBeenCalled();
+  fireEvent.click(category, { detail: 1 }); fireEvent.click(category, { detail: 2 }); expect(create).toHaveBeenCalledOnce();
   fireEvent.keyDown(category, { key: "Enter", altKey: true }); expect(create).toHaveBeenCalledTimes(2);
   expect(category).toHaveAttribute("aria-keyshortcuts", "Alt+Enter");
 });

@@ -51,7 +51,7 @@ describe("PanelStage camera contract", () => {
     expect(container.querySelector('[data-stage-auto-focus="false"]')).toBeInTheDocument();
     expect(focus).not.toHaveBeenCalled();
     expect(source).toContain("initial={reducedMotion ? false");
-    expect(source).toContain("transition={reducedMotion ? { duration: 0 }");
+    expect(source).toContain("duration: reducedMotion ? 0 : 0.16");
   });
 
   it("keeps settled mobile stages single-focus with protected scroll actions", () => {

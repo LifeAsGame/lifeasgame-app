@@ -55,12 +55,12 @@ describe("LeftContext에서 Role을 사용할 때", () => {
     );
     const selector = container.querySelector("[data-role-selector]");
 
-    fireEvent.click(screen.getByRole("button", { name: /Backend Engineer.*ACTIVE/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Backend Engineer.*활성/ }));
     expect(selectRole).toHaveBeenCalledWith(3);
 
     rerender(<LeftContext mode="role" roles={roles} selectedRoleId={3} onRoleSelect={selectRole} />);
     expect(container.querySelector("[data-role-selector]")).toBe(selector);
-    expect(screen.getByRole("button", { name: /Backend Engineer.*ACTIVE/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Backend Engineer.*활성/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "역할" })).toBeInTheDocument();
   });
 
