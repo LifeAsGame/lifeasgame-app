@@ -99,7 +99,7 @@ function PanelContent({
   const isCompactList =
     panel.kind === "list" && (panel.items.length >= 40 || panel.context.route === "market-wallet-summary");
 
-  const CATEGORY_ROW_GAP = 4;
+  const CATEGORY_ROW_GAP = UI_CONSTS.rightPanels.rowGap;
   const categoryScrollHeight = isCategoryPanelRoute && panel.kind === "menu"
     ? (() => {
         const n = panel.items.length;
@@ -119,7 +119,7 @@ function PanelContent({
       contentKey={panel.id}
     >
       {panel.kind === "menu" ? (
-        <div style={{ width: "100%", display: "grid", rowGap: 4 }}>
+        <div style={{ width: "100%", display: "grid", rowGap: UI_CONSTS.rightPanels.rowGap, paddingInline: 24 }}>
           {menuItemsForRender?.map((item, itemIndex) => {
             const isCategoryPanel =
               panel.context.route === "player-category" ||
@@ -163,7 +163,7 @@ function PanelContent({
               </button>
             </div>
           ) : null}
-          <div style={{ width: "100%", display: "grid", rowGap: 4 }}>
+          <div style={{ width: "100%", display: "grid", rowGap: UI_CONSTS.rightPanels.rowGap, paddingInline: 24 }}>
             {panel.items.map((item, itemIndex) => (
               <PanelCard
                 key={item.id}

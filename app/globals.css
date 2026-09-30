@@ -4765,68 +4765,6 @@ textarea.lag-journal-control {
   }
 }
 
-@media (min-width: 1500px) {
-  .lag-journey-shell:not(:has([data-stage-key="journey-detail"]))
-    [data-stage-key="journey-root"] {
-    width: 280px;
-    max-width: 280px;
-  }
-
-  .lag-journey-shell:not(:has([data-stage-key="journey-detail"]))
-    [data-stage-key="journey-root"] .lag-panel-frame {
-    width: 280px !important;
-    max-width: 280px !important;
-  }
-
-  .lag-journey-shell:not(:has([data-stage-key="journey-detail"]))
-    [data-stage-key="journey-list"] {
-    width: 760px;
-    max-width: 760px;
-  }
-
-  .lag-journey-shell:not(:has([data-stage-key="journey-detail"]))
-    [data-stage-key="journey-list"] .lag-panel-frame {
-    width: 760px !important;
-    max-width: 760px !important;
-  }
-
-  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
-    > .lag-panel-rail[data-main="player"] [data-stage-key="player-stage-0"] {
-    width: 220px;
-    max-width: 220px;
-  }
-
-  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
-    > .lag-panel-rail[data-main="player"] .lag-panel-frame {
-    width: 220px !important;
-    max-width: 220px !important;
-  }
-
-  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
-    [data-stage-key="player-growth-profile"] {
-    width: 360px;
-    max-width: 360px;
-  }
-
-  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
-    [data-stage-key="player-growth-profile"] .lag-panel-frame {
-    width: 360px !important;
-    max-width: 360px !important;
-  }
-
-  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
-    [data-stage-key="player-growth-history"] {
-    width: 296px;
-    max-width: 296px;
-  }
-
-  .lag-workspace > div:has(> .lag-growth-shell):not(:has([data-stage-key="player-growth-change-detail"]))
-    [data-stage-key="player-growth-history"] .lag-panel-frame {
-    width: 296px !important;
-    max-width: 296px !important;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .lag-app-surface,
   .lag-orb-nav,

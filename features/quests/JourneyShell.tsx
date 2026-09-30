@@ -625,7 +625,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
   return (
     <div className="lag-panel-rail lag-journey-shell relative" data-testid="journey-shell">{dialog}
-      <PanelStage stageKey="journey-root" panelRole="list" inactive={Boolean(surface)}>
+      <PanelStage stageKey="journey-root" panelRole="list" inactive={compact && Boolean(surface)}>
         <PanelFrame title="여정 / 경로" depth={2}>
           <div className="lag-journey-root">
             <header>

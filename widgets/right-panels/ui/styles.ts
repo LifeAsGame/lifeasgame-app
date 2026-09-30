@@ -12,7 +12,7 @@ export function getFrameStyle(depth: number) {
     background,
     border: "1px solid var(--lag-border)",
     boxShadow: "0 18px 40px color-mix(in srgb, var(--lag-shadow) 24%, transparent)",
-    borderRadius: "var(--lag-radius-md)",
+    borderRadius: "var(--lag-radius-lg)",
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
   };
