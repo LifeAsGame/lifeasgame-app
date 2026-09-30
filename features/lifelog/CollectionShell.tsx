@@ -74,7 +74,7 @@ function CollectionForm({ item, category, pending, create, update, cancel, child
         <p className="lag-journal-intro">주간 회고는 이번 주의 전체 회고를 생성합니다. 간편 기록은 주간 회고 퀘스트 조건을 충족하지 않습니다.</p>
       </> : null}
     </fieldset>
-    <div className="lag-collection-actions">{children}<button type="submit" disabled={pending} className="lag-journal-action">{pending ? "저장 중…" : "수집 기록 저장"}</button><button type="button" className="lag-journal-button" onClick={cancel}>취소</button></div>
+    <div className="lag-collection-actions">{children}<button type="submit" disabled={pending} className="lag-journal-action">{pending ? "저장 중…" : "수집 기록 저장"}</button>{item ? <button type="button" className="lag-journal-button" onClick={cancel}>취소</button> : null}</div>
   </form>;
 }
 
@@ -143,7 +143,7 @@ export default function CollectionShell({ onBack, createRequest = 0 }: { onBack?
       </PanelFrame>
     </PanelStage>
     {category ? <PanelStage stageKey="lifelog-collection-list" panelRole="list" inactive={compact && activeKey !== null}>
-      <PanelFrame title={`${consumerLabel(category)} 목록`} depth={1} resetScrollKey={`${collections.params.page}:${collections.params.category ?? ""}:${collections.params.titleLike ?? ""}`} backButton={<BackButton label="수집 종류로" onClick={() => { creation.close(); collections.clearSelection(); setCategory(null); setDetailVisible(false); setMode(null); }} />}>
+      <PanelFrame title={`${consumerLabel(category)} 목록`} depth={1} resetScrollKey={`${collections.params.page}:${collections.params.category ?? ""}:${collections.params.titleLike ?? ""}`} backButton={<BackButton label={creation.creating ? "수집 목록으로" : "수집 종류로"} onClick={() => { if (creation.creating) { creation.close(); return; } collections.clearSelection(); setCategory(null); setDetailVisible(false); setMode(null); }} />}>
         <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} list={<div className="lag-journal-surface">
           <details className="lag-journal-filter-disclosure"><summary>제목 검색</summary><form className="lag-journal-filters" onSubmit={(event) => { event.preventDefault(); setMode(null); collections.search(category, titleLike); }}>
             <Field title="제목 검색"><input aria-label="제목 검색" value={titleLike} onChange={(event) => setTitleLike(event.target.value)} className="lag-journal-control" /></Field><button type="submit" className="lag-journal-button">검색</button>

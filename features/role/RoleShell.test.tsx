@@ -272,7 +272,7 @@ describe("실제 Role shell을 사용할 때", () => {
     const menu = screen.getByRole("button", { name: /관계.*연결된 기존 인물/ });
     fireEvent.click(menu, { detail: 1 }); fireEvent.click(menu, { detail: 2 });
     await screen.findByLabelText("기존 인물");
-    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "관계 목록으로" }));
     fireEvent.click(screen.getByRole("button", { name: "역할 Backend Engineer로" }));
     await waitFor(() => expect(document.querySelector('[data-stage-key="role-detail"]')).not.toBeInTheDocument());
     fireEvent.click(menu, { detail: 0 });

@@ -66,7 +66,7 @@ describe("운동 기록 source surface를 사용할 때", () => {
     expect(screen.getByLabelText("운동 날짜")).toBeRequired();
     expect(screen.queryByLabelText(/intensity|duration$|calories burned|notes/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "목록으로" }));
     fireEvent.click(screen.getByTestId("exercise-entry"));
     await screen.findByText("운동 기록 #41");
     expect(screen.getByText(/빈 수치 항목/)).toBeInTheDocument();

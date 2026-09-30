@@ -446,7 +446,7 @@ export default function JournalShell({ createRequest = 0, roles, rolesLoading = 
       <PanelStage stageKey="lifelog-journal" panelRole="list" inactive={compact && detailVisible && !quickRecordOpen && journal.selectedLifeLogId !== null}>
         <PanelFrame title="일상 기록" depth={1} resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeQuickRecord} /> : onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
           <CreateCategory title="일상 기록" onOpen={closeQuickRecord} onCreate={creation.open} />
-            <CreateSlot creating={quickRecordOpen} pending={journal.quickRecord.pending} onClose={closeQuickRecord} list={<div className="lag-journal-surface">
+            <CreateSlot showCancel={false} creating={quickRecordOpen} pending={journal.quickRecord.pending} onClose={closeQuickRecord} list={<div className="lag-journal-surface">
             <details className="lag-journal-filter-disclosure">
               <summary>필터 · 역할 / 기록 분류</summary>
             <div className="lag-journal-filters" aria-label="일상 기록 필터">

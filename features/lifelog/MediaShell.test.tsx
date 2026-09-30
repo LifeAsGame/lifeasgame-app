@@ -52,7 +52,7 @@ describe("감상 기록 source surface를 사용할 때", () => {
     expect(screen.getByLabelText("상태")).toBeRequired();
     expect(screen.queryByLabelText(/rating|lifeLogSubtype|reflectionScope|primaryRoleId|roleEventId/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    fireEvent.click(screen.getByRole("button", { name: "목록으로" }));
     fireEvent.click(entry);
     expect(screen.getByText("감상 기록 #51")).toBeInTheDocument();
     expect(screen.getByText("평점: 4.5")).toBeInTheDocument();

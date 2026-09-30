@@ -101,7 +101,7 @@ it("double tap opens the same list slot with a fixed category and cancel restore
   const form = await screen.findByRole("button", { name: "수집 기록 저장" });
   expect(form.closest("[data-create-form]")?.closest("[data-stage-key]")?.getAttribute("data-stage-key")).toBe("lifelog-collection-list");
   expect(screen.getByText("수집 종류: 도서")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  fireEvent.click(screen.getByRole("button", { name: "수집 목록으로" }));
   expect(screen.queryByRole("button", { name: "수집 기록 저장" })).not.toBeInTheDocument();
   expect(api.createCollectionApi).not.toHaveBeenCalled();
 });
@@ -167,6 +167,7 @@ it("keeps a new draft open when an old save finishes after returning to kinds", 
   fireEvent.change(screen.getByRole("textbox", { name: "제목" }), { target: { value: "Old draft" } });
   fireEvent.change(screen.getByRole("spinbutton", { name: "수량" }), { target: { value: "1" } });
   fireEvent.click(screen.getByRole("button", { name: "수집 기록 저장" }));
+  fireEvent.click(screen.getByRole("button", { name: "수집 목록으로" }));
   fireEvent.click(screen.getByRole("button", { name: "수집 종류로" }));
   fireEvent.keyDown(screen.getByRole("button", { name: "피규어" }), { key: "Enter", altKey: true });
   fireEvent.change(screen.getByRole("textbox", { name: "제목" }), { target: { value: "New draft" } });
@@ -193,7 +194,7 @@ it("sends the weekly reflection subtype and scope in the create request", async 
 it("record row opens detail and Shift+F10 exposes edit without an always visible menu", async () => {
   render(<CollectionShell />);
   fireEvent.keyDown(screen.getByRole("button", { name: "도서" }), { key: "Enter", altKey: true });
-  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  fireEvent.click(screen.getByRole("button", { name: "수집 목록으로" }));
   const row = await screen.findByRole("button", { name: /Architecture Notes/ });
   expect(screen.queryByText("⋯")).not.toBeInTheDocument();
   fireEvent.click(row);

@@ -155,7 +155,7 @@ export default function ExerciseShell({ createRequest = 0 }: { createRequest?: n
       <PanelStage stageKey="lifelog-exercise-list" index={1}>
         <PanelFrame title="운동 기록" depth={1} backButton={creation.creating ? <BackButton label="목록으로" onClick={creation.close} /> : undefined}>
         <CreateCategory title="운동 기록" onOpen={creation.close} onCreate={creation.open} />
-        <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} list={<>
+        <CreateSlot showCancel={false} creating={creation.creating} pending={pending} onClose={creation.close} list={<>
           <details><summary>검색 조건</summary><div className="space-y-3 px-3">
           <form className="space-y-2" onSubmit={(event) => {
             event.preventDefault();

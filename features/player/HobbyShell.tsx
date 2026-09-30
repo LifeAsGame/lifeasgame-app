@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import type { HobbyStatus, PlayerHobbyMutationRequest } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
-import CreateSlot, { CreateCategory, useCreateMode } from "@/shared/ui/CreateSlot";
+import CreateSlot, { useCreateMode } from "@/shared/ui/CreateSlot";
 import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { categoryLabel, controlStyle, DetailLine, Feedback, Field } from "./PlayerDetail";
+import PlayerCategories from "./PlayerCategories";
 import { useHobbyQueries } from "./useHobbyQueries";
 
 const STATUS: Record<HobbyStatus, string> = { ACTIVE: "활동 중", PAUSED: "일시 중지", DROPPED: "그만둠" };
@@ -37,28 +38,36 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
   const [detailVisible, setDetailVisible] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [catalogId, setCatalogId] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
   const pending = hobbies.pendingMutation !== null;
-  const selected = detailVisible && !creation.creating ? hobbies.selected : null;
-  const available = hobbies.catalog.items.filter((item) => !hobbies.owned.items.some((owned) => owned.hobbyId === item.hobbyId));
+  const selected = detailVisible && !creation.creating && hobbies.selected?.category === category ? hobbies.selected : null;
+  const categories = [...new Set([...hobbies.catalog.items, ...hobbies.owned.items].map((item) => item.category))].sort();
+  const filteredOwned = hobbies.owned.items.filter((item) => item.category === category);
+  const available = hobbies.catalog.items.filter((item) => item.category === category && !hobbies.owned.items.some((owned) => owned.hobbyId === item.hobbyId));
   const error = hobbies.mutationError;
   const clearMutationError = hobbies.clearMutationError;
 
   useEffect(() => { if (creation.creating) { setDetailVisible(false); setEditingId(null); clearMutationError(); } }, [creation.creating, clearMutationError]);
   const closeCreation = () => { hobbies.clearMutationError(); creation.close(); };
+  const chooseCategory = (next: string, create = false) => {
+    setCategory(next); setCatalogId(""); setDetailVisible(false); setEditingId(null); hobbies.clearSelection(); hobbies.clearMutationError();
+    if (create) creation.open(); else creation.close();
+    requestStageFocus("player-hobby-list", "forward");
+  };
   const select = (id: number, edit = false) => { setDetailVisible(true); setEditingId(edit ? id : null); hobbies.select(id); requestStageFocus("player-hobby-detail", "forward"); };
   const backToList = () => { setEditingId(null); hobbies.clearSelection(); requestStageFocus("player-hobby-list", "back"); };
   const deleteOwned = async (id: number, name: string) => { if (await confirm(`“${name}”을 삭제할까요? 내 취미 등록이 제거됩니다.`)) await hobbies.remove(id); };
 
   return <div className="lag-panel-rail lag-player-shell lag-semantic-controls relative" data-testid="hobby-shell">{dialog}
-    <PanelStage stageKey="player-hobby-list" index={1}>
-      <PanelFrame title="내 취미" depth={1} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeCreation} /> : onBack ? <BackButton label="플레이어 목록으로" onClick={onBack} /> : undefined}>
-        <CreateCategory title="취미" onOpen={closeCreation} onCreate={creation.open} />
-        <CreateSlot creating={creation.creating} pending={pending} onClose={closeCreation} list={<div className="lag-player-content">
+    <PlayerCategories title="취미" stageKey="player-hobby-categories" categories={categories} loading={hobbies.catalog.loading || hobbies.owned.loading} error={hobbies.catalog.error} retry={() => void hobbies.catalog.retry()} selected={category} onSelect={(next) => chooseCategory(next)} onCreate={(next) => chooseCategory(next, true)} onBack={onBack} />
+    {category !== null ? <PanelStage stageKey="player-hobby-list" index={1}>
+      <PanelFrame title={creation.creating ? `${categoryLabel(category)} 등록` : `${categoryLabel(category)} 취미`} depth={1} backButton={<BackButton label={creation.creating ? "취미 목록으로" : "취미 분류로"} onClick={creation.creating ? closeCreation : () => { setCategory(null); backToList(); }} />}>
+        <CreateSlot showCancel={false} creating={creation.creating} pending={pending} onClose={closeCreation} list={<div className="lag-player-content">
           {hobbies.owned.loading && !hobbies.owned.items.length ? <InfoCard>취미를 불러오는 중…</InfoCard> : null}
           {hobbies.owned.error ? <Feedback message={hobbies.owned.error} retry={() => void hobbies.owned.reload()} /> : null}
           {error && hobbies.mutationErrorKey?.startsWith("delete-") ? <Feedback message={error} /> : null}
-          {!hobbies.owned.loading && !hobbies.owned.error && !hobbies.owned.items.length ? <InfoCard>등록된 취미가 없습니다.</InfoCard> : null}
-          {hobbies.owned.items.map((item, index) => <PanelCard key={item.hobbyId} label={item.customName} slotLabel={item.customName.slice(0, 1)} subtitle={`${item.name} · ${label(item.status)} · 숙련도 ${item.proficiency}/100`} selected={selected?.hobbyId === item.hobbyId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.hobbyId, true); else void deleteOwned(item.hobbyId, item.customName); }} onClick={() => select(item.hobbyId)} />)}
+          {!hobbies.owned.loading && !hobbies.owned.error && !filteredOwned.length ? <InfoCard>해당 분류의 취미가 없습니다.</InfoCard> : null}
+          {filteredOwned.map((item, index) => <PanelCard key={item.hobbyId} label={item.customName} slotLabel={item.customName.slice(0, 1)} subtitle={`${item.name} · ${label(item.status)} · 숙련도 ${item.proficiency}/100`} selected={selected?.hobbyId === item.hobbyId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.hobbyId, true); else void deleteOwned(item.hobbyId, item.customName); }} onClick={() => select(item.hobbyId)} />)}
         </div>}>
           <div className="lag-player-content">
             {hobbies.catalog.loading && !hobbies.catalog.items.length ? <InfoCard>취미 카탈로그를 불러오는 중…</InfoCard> : null}
@@ -81,7 +90,7 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
           </div>
         </CreateSlot>
       </PanelFrame>
-    </PanelStage>
+    </PanelStage> : null}
     <AnimatePresence initial={false} mode="popLayout">{selected ? <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" index={2}>
       <PanelFrame title={editingId === selected.hobbyId ? "취미 수정" : "취미 상세"} depth={0} contentKey={selected.hobbyId} backButton={<BackButton label={editingId === selected.hobbyId ? "취미 상세로" : "내 취미 목록으로"} onClick={() => { if (editingId === selected.hobbyId) { setEditingId(null); hobbies.clearMutationError(); } else backToList(); }} />}>
         <div className="lag-player-content">

@@ -69,11 +69,11 @@ it("focuses an activated submenu before navigation even when pointer panning pre
   expect(select).toHaveBeenCalledExactlyOnceWith(0, "title");
 });
 
-it("등록 가능한 분류만 생성 이벤트를 제공하고 일반 클릭은 목록 선택으로 유지한다", () => {
+it("플레이어 상위 메뉴는 분류 선택만 하고 생성 단계를 건너뛰지 않는다", () => {
   const select = vi.fn(), create = vi.fn();
   const panel = { ...root(), items: [{ id: "credentials", label: "자격증", slotLabel: "CE" }, { id: "title", label: "칭호", slotLabel: "TI" }] };
   render(<RightPanels selectedMain="player" panelStack={[panel]} onPanelItemSelect={select} onPanelItemCreate={create} />);
   fireEvent.click(screen.getByRole("button", { name: "자격증" })); expect(select).toHaveBeenCalledWith(0, "credentials"); expect(create).not.toHaveBeenCalled();
-  fireEvent.keyDown(screen.getByRole("button", { name: "자격증" }), { key: "Enter", altKey: true }); expect(create).toHaveBeenCalledWith(0, "credentials");
+  fireEvent.keyDown(screen.getByRole("button", { name: "자격증" }), { key: "Enter", altKey: true }); expect(create).not.toHaveBeenCalled();
   const count = create.mock.calls.length; fireEvent.keyDown(screen.getByRole("button", { name: /칭호/ }), { key: "Enter", altKey: true }); expect(create).toHaveBeenCalledTimes(count);
 });

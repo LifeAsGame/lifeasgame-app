@@ -309,7 +309,6 @@ export default function Home() {
             <div className="lag-player-panels flex w-fit items-center gap-3" data-player-child={Boolean(playerSurface)}>
               <RightPanels
                 selectedMain="player"
-                inactive={Boolean(playerSurface)}
                 panelStack={panelStack.slice(0, 1)}
                 onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />

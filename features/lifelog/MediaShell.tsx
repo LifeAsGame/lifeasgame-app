@@ -107,7 +107,7 @@ export default function MediaShell({ createRequest = 0 }: { createRequest?: numb
       <PanelStage stageKey="lifelog-media-list" index={1}>
         <PanelFrame title="감상 기록" depth={1} backButton={creation.creating ? <BackButton label="목록으로" onClick={creation.close} /> : undefined}>
         <CreateCategory title="감상 기록" onOpen={creation.close} onCreate={creation.open} />
-        <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} list={<>
+        <CreateSlot showCancel={false} creating={creation.creating} pending={pending} onClose={creation.close} list={<>
           <details><summary>검색 조건</summary><div className="space-y-3 px-3">
             <div className="space-y-2">
               <label className="block text-xs" style={{ color: SAO.color.text.label }}>

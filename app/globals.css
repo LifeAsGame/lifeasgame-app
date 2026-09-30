@@ -5075,3 +5075,15 @@ select {
 .lag-person-panels .lag-role-form :where(input,select,textarea), .lag-role-relations .lag-role-form :where(input,select,textarea) { min-width: 0; width: 100%; box-sizing: border-box; font-size: 16px; }
 @media (max-width: 899px) { .lag-person-panels .lag-role-form, .lag-role-relations .lag-role-form, .lag-role-shell [data-stage-key="role-detail"] .lag-role-form { padding-inline: 16px; } }
 .lag-role-selector .lag-role-form { padding-inline: 0; }
+.lag-person-form details { border-top: 1px solid var(--lag-divider); padding-block: 14px; }
+.lag-person-form summary { cursor: pointer; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+.lag-person-form details > :not(summary) { margin-block: 8px; }
+.lag-person-inline { display: flex; align-items: end; gap: 8px; }
+.lag-person-inline > label, .lag-person-inline > input { min-width: 0; flex: 1; }
+.lag-person-repeat { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--lag-divider); border-radius: 12px; }
+.lag-person-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.lag-person-tags span { max-width: 100%; overflow-wrap: anywhere; border-radius: 12px; padding: 4px 8px; background: var(--lag-selected-surface); }
+.lag-person-tags button { margin-left: 6px; min-width: 28px; min-height: 28px; }
+.lag-person-detail dd, .lag-person-form { overflow-wrap: anywhere; }
+.lag-person-form .lag-role-actions { position: sticky; bottom: 0; z-index: 1; background: var(--lag-panel); padding-block: 12px; }
+@media (max-width: 899px) { .lag-person-inline { flex-wrap: wrap; } }

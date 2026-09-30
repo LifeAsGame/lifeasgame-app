@@ -249,6 +249,9 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-panel-title, .sao-player-summary h2, .sao-stage .lag-journey-card strong { overflow-wrap:anywhere; }
 .sao-stage .lag-player-panels .lag-panel-stage { width:var(--lag-list-width); min-width:var(--lag-list-width); max-width:var(--lag-list-width); }
 .sao-stage .lag-player-panels .lag-panel-frame { width:100% !important; max-width:100% !important; }
+.sao-stage .lag-player-panels { gap:var(--lag-panel-gap) !important; }
+.sao-stage .lag-player-panels .lag-player-content { padding-inline:24px; }
+.sao-stage .lag-player-panels .lag-player-shell [data-stage-key$="-detail"] { width:440px; min-width:440px; max-width:440px; }
 @media(min-width:1200px) {
   .sao-player-summary { display:block; }
   .sao-menu-layer[data-main=player] .lag-app-shell { padding-left:320px !important; }
@@ -265,6 +268,8 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
   .sao-menu-chrome:has(.sao-summary-toggle) > div:first-child { display:none; }
   .sao-menu-chrome:has(.sao-summary-toggle) > div:last-child { width:100%; justify-content:space-between; }
   .sao-stage .lag-player-panels .lag-panel-stage { width:calc(100vw - 32px); max-width:calc(100vw - 32px); }
+  .sao-stage .lag-player-panels .lag-player-content { padding-inline:16px; }
+  .sao-stage .lag-player-panels .lag-player-shell [data-stage-key$="-detail"] { width:calc(100vw - 32px); min-width:calc(100vw - 32px); max-width:calc(100vw - 32px); }
 }
 
 /* FE-SAO-02: Latin display face; Korean keeps the licensed Nanum Gothic. */

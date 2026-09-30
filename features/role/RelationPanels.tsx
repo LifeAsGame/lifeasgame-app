@@ -88,7 +88,7 @@ export default function RelationPanels({ roleId, roleName, createRequest, reentr
     <label>역할 메모<textarea className="lag-role-control" name="roleNotes" rows={3} defaultValue={relation?.roleNotes ?? ""} /></label>
     {error ? <p role="alert">{error}</p> : null}
     {list.data.personsUnavailable && !relation ? <p role="alert">연결할 인물을 조회하지 못했습니다. <button type="button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
-    <div className="lag-role-actions"><button type="submit" className="lag-role-action" disabled={pending || (!relation && !list.data.persons.some((person) => person.status === "ACTIVE"))}>{pending ? "저장 중…" : "관계 저장"}</button><button type="button" className="lag-role-button" onClick={relation ? cancelEdit : close}>취소</button></div>
+    <div className="lag-role-actions"><button type="submit" className="lag-role-action" disabled={pending || (!relation && !list.data.persons.some((person) => person.status === "ACTIVE"))}>{pending ? "저장 중…" : "관계 저장"}</button>{relation ? <button type="button" className="lag-role-button" onClick={cancelEdit}>취소</button> : null}</div>
   </form>;
   return <div ref={root} className="lag-panel-rail lag-role-relations">{dialog}
     <PanelStage stageKey="role-detail" instant inactive={compact && (mode === "detail" || mode === "edit")}>
