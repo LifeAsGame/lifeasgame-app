@@ -6,7 +6,8 @@ import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
-import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
+import { InfoCard } from "@/widgets/right-panels/ui/Rows";
+import { categoryLabel, DetailLine } from "./PlayerDetail";
 import { useAchievementQueries } from "./useAchievementQueries";
 
 const buttonStyle = {
@@ -14,16 +15,16 @@ const buttonStyle = {
   background: "var(--lag-control-bg)",
   color: "var(--lag-control-text)",
   borderRadius: "var(--lag-radius-sm)",
-  padding: "7px 10px",
-  fontSize: "0.68rem",
-  letterSpacing: "0.08em",
+  padding: "8px 12px",
+  minHeight: 44,
+  fontSize: "0.875rem",
 } as const;
 
 function ErrorState({ message, retry }: { message: string; retry: () => void }) {
   return (
     <div className="space-y-2 px-3">
       <p role="alert" className="text-xs" style={{ color: "var(--lag-state-error)" }}>{message}</p>
-      <button type="button" style={buttonStyle} onClick={retry}>Retry</button>
+      <button type="button" style={buttonStyle} onClick={retry}>다시 시도</button>
     </div>
   );
 }
@@ -33,20 +34,20 @@ export default function AchievementShell({ onBack }: { onBack?: () => void }) {
   const detail = achievements.detail.data;
 
   return (
-    <div className="lag-panel-rail relative" data-testid="achievement-shell">
+    <div className="lag-panel-rail lag-player-shell relative" data-testid="achievement-shell">
       <PanelStage stageKey="player-achievement-list">
-        <PanelFrame title="Acquired Achievements" depth={1} backButton={onBack ? <BackButton label="Back to Player" onClick={onBack} /> : undefined}>
-        <div className="space-y-3">
-          {achievements.list.loading && achievements.list.items.length === 0 ? <InfoCard>Loading Achievements...</InfoCard> : null}
+        <PanelFrame title="획득한 업적" depth={1} backButton={onBack ? <BackButton label="플레이어 목록으로" onClick={onBack} /> : undefined}>
+        <div className="lag-player-content">
+          {achievements.list.loading && achievements.list.items.length === 0 ? <InfoCard>업적을 불러오는 중…</InfoCard> : null}
           {achievements.list.error ? <ErrorState message={achievements.list.error} retry={() => void achievements.list.reload()} /> : null}
-          {!achievements.list.loading && !achievements.list.error && achievements.list.items.length === 0 ? <InfoCard>No acquired Achievements.</InfoCard> : null}
-          <div className="space-y-2">
+          {!achievements.list.loading && !achievements.list.error && achievements.list.items.length === 0 ? <InfoCard>획득한 업적이 없습니다.</InfoCard> : null}
+          <div className="grid gap-3">
             {achievements.list.items.map((item, index) => (
               <PanelCard
                 key={item.achievementId}
                 label={item.name}
                 slotLabel={item.code.slice(0, 2)}
-                subtitle={`${item.category} · ${item.acquiredAt}`}
+                subtitle={`${categoryLabel(item.category)} · ${item.acquiredAt ?? "획득 시각 미제공"}`}
                 selected={achievements.selectedId === item.achievementId}
                 index={index}
                 onClick={() => achievements.select(item.achievementId)}
@@ -60,19 +61,20 @@ export default function AchievementShell({ onBack }: { onBack?: () => void }) {
       <AnimatePresence initial={false} mode="popLayout">
         {achievements.selectedId ? (
           <PanelStage key="player-achievement-detail" stageKey="player-achievement-detail" index={1}>
-            <PanelFrame title="Achievement Detail" depth={0} contentKey={achievements.selectedId} backButton={<BackButton label="Back to Acquired Achievements" onClick={() => {
+            <PanelFrame title="업적 상세" depth={0} contentKey={achievements.selectedId} backButton={<BackButton label="획득한 업적 목록으로" onClick={() => {
               achievements.clearSelection();
               requestStageFocus("player-achievement-list", "back");
             }} />}>
-              {achievements.detail.loading && !detail ? <InfoCard>Loading Achievement...</InfoCard> : null}
+              {achievements.detail.loading && !detail ? <InfoCard>업적 상세를 불러오는 중…</InfoCard> : null}
               {achievements.detail.error ? <ErrorState message={achievements.detail.error} retry={() => void achievements.detail.retry()} /> : null}
               {detail ? (
-                <div className="space-y-3 px-3">
-                  <InfoCard>{detail.name}</InfoCard>
-                  <GoldRow>Code: {detail.code}</GoldRow>
-                  <GoldRow>Category: {detail.category}</GoldRow>
-                  <GoldRow>Acquired: {detail.acquiredAt}</GoldRow>
-                  <InfoCard label="Description"><span style={{ whiteSpace: "pre-wrap" }}>{detail.descMd}</span></InfoCard>
+                <div className="lag-player-content">
+                  <h4>{detail.name}</h4>
+                  <DetailLine label="상태">획득</DetailLine>
+                  <DetailLine label="분류">{categoryLabel(detail.category)}</DetailLine>
+                  <DetailLine label="획득 시각">{detail.acquiredAt ?? "제공되지 않음"}</DetailLine>
+                  <DetailLine label="코드">{detail.code}</DetailLine>
+                  <DetailLine label="설명">{detail.descMd}</DetailLine>
                 </div>
               ) : null}
             </PanelFrame>

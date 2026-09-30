@@ -31,7 +31,8 @@ export function useCertificationQueries() {
   const mutationLocked = useRef(false);
   const [pendingMutation, setPendingMutation] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
-  const clearMutationError = useCallback(() => setMutationError(null), []);
+  const [mutationErrorKey, setMutationErrorKey] = useState<string | null>(null);
+  const clearMutationError = useCallback(() => { setMutationError(null); setMutationErrorKey(null); }, []);
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -70,6 +71,7 @@ export function useCertificationQueries() {
   useEffect(() => { void Promise.all([loadCatalog(), reloadOwned()]); }, [loadCatalog, reloadOwned]);
 
   const select = (certificationId: number) => {
+    clearMutationError();
     selectedIdRef.current = certificationId;
     setSelectedId(certificationId);
   };
@@ -89,15 +91,17 @@ export function useCertificationQueries() {
     mutationLocked.current = true;
     setPendingMutation(key);
     setMutationError(null);
+    setMutationErrorKey(null);
     try {
       const result = await request();
       onResponse?.(result);
       const next = await reloadOwned();
       if (next) onReload?.(result, next);
-      else setMutationError("Certification changed, but the authoritative owned list could not be reloaded.");
-      return true;
+      else { setMutationErrorKey(key); setMutationError("자격증 변경 후 목록을 다시 조회하지 못했습니다. 서버 상태를 확인해 주세요."); }
+      return Boolean(next);
     } catch (caught) {
       await reloadOwned();
+      setMutationErrorKey(key);
       setMutationError(`요청 결과가 확정되지 않았습니다. 다시 조회한 서버 상태를 확인하세요. ${message(caught, "")}`.trim());
       return false;
     } finally {
@@ -140,6 +144,7 @@ export function useCertificationQueries() {
     clearSelection,
     pendingMutation,
     mutationError,
+    mutationErrorKey,
     clearMutationError,
     register,
     update,

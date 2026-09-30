@@ -137,7 +137,6 @@ export default function CollectionShell({ onBack, createRequest = 0 }: { onBack?
   return <div ref={shell} className="lag-panel-rail lag-collection-shell relative">{dialog}
     <PanelStage stageKey="lifelog-collection-categories" panelRole="list" inactive={compact && category !== null}>
       <PanelFrame title="수집 종류" depth={1} backButton={onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
-        <p className="lag-create-hint">한 번 누르면 종류별 목록, 두 번 누르거나 Alt+Enter로 새 기록을 작성합니다.</p>
         <div className="lag-role-node-list lag-collection-categories">{COLLECTION_CATEGORIES.map((kind) =>
           <SwipeButton key={kind} data-collection-category={kind} creation className="lag-role-node" aria-pressed={category === kind} onClick={() => chooseCategory(kind)} onDoubleClick={() => chooseCategory(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong><span aria-hidden>→</span></SwipeButton>
         )}</div>

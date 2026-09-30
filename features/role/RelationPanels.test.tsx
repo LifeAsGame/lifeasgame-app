@@ -30,16 +30,16 @@ it("같은 Person을 두 역할에서 재사용하고 특정 관계 보관은 Pe
     fireEvent.keyDown(screen.getByRole("button", { name: "관계" }), { key: "Enter", altKey: true });
     fireEvent.change(screen.getByLabelText("기존 인물"), { target: { value: "7" } });
     fireEvent.change(screen.getByLabelText("관계 유형"), { target: { value: "FAMILY" } });
-    fireEvent.click(screen.getByRole("button", { name: "관계 연결" }));
+    fireEvent.click(screen.getByRole("button", { name: "관계 저장" }));
     await waitFor(() => expect(api.createRoleRelationApi).toHaveBeenCalledWith(id, { personId: 7, relationType: "FAMILY", roleNotes: null }));
     await screen.findByRole("button", { name: /Alex.*친구/ });
   }
   view.rerender(<RelationPanels key={1} {...props} />);
   fireEvent.keyDown(await screen.findByRole("button", { name: /Alex.*친구|Alex.*보관된 인물/ }), { key: "F10", shiftKey: true });
-  fireEvent.click(screen.getByRole("button", { name: "보관" }));
+  fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     await answerDialog(false);
     expect(api.archiveRoleRelationApi).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "보관" }));
+  fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     await answerDialog();
   await screen.findByText("연결된 인물이 없습니다.");
   expect(api.archiveRoleRelationApi).toHaveBeenCalledWith(1, 9);
@@ -68,4 +68,18 @@ it("보관 상태·미확인을 표시하며 취소와 늦은 이전 역할 목�
   await act(async () => saving.resolve(relation));
   expect(screen.getByRole("heading", { name: "세 번째 역할 · 관계" })).toBeInTheDocument();
   expect(api.updateRoleRelationApi).toHaveBeenCalledWith(2, 9, { relationType: "FRIEND", roleNotes: "보관 인물 관계 메모" });
+});
+
+
+it("관계 분류 재진입은 목록만 남기고 새 생성은 폼 하나만 연다", async () => {
+  const props = { roleId: 1, roleName: "첫 역할", createRequest: 0, onBack: vi.fn() };
+  const view = render(<RelationPanels {...props} />);
+  fireEvent.click(await screen.findByRole("button", { name: /Alex.*친구/ }));
+  await screen.findByText("관계 상세");
+  const listFrame = document.querySelector('[data-stage-key="role-detail"] .lag-panel-frame');
+  view.rerender(<RelationPanels {...props} reentryRequest={1} />);
+  expect(document.querySelector('[data-stage-key="role-detail"] .lag-panel-frame')).toBe(listFrame);
+  expect(document.querySelector('[data-stage-key="role-relation-detail"]')).not.toBeInTheDocument();
+  view.rerender(<RelationPanels {...props} reentryRequest={1} createRequest={1} />);
+  expect(document.querySelectorAll('[data-create-form] form')).toHaveLength(1);
 });

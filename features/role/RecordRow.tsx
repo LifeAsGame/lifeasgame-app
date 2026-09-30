@@ -55,7 +55,9 @@ export function SwipeButton({ onSwipeLeft, onSwipeRight, onClick, onDoubleClick,
   >{children}</button></>;
 }
 
-export function RecordRow({ title, subtitle, selected, disabled, onSelect, onEdit, onArchive, archiveLabel = "보관" }: {
+const ACTION_WIDTH = 144;
+
+export function RecordRow({ title, subtitle, selected, disabled, onSelect, onEdit, onArchive, archiveLabel = "삭제" }: {
   title: string; subtitle?: string; selected?: boolean; disabled?: boolean; archiveLabel?: string;
   onSelect: () => void; onEdit: () => void; onArchive: () => void;
 }) {
@@ -69,12 +71,12 @@ export function RecordRow({ title, subtitle, selected, disabled, onSelect, onEdi
     scope?.addEventListener("sao-row-open", closeOther);
     return () => scope?.removeEventListener("sao-row-open", closeOther);
   }, []);
-  return <div ref={root} className="lag-role-record-row" data-actions-open={actions} onKeyDown={(event) => { if (event.key === "Escape" && actions) { event.stopPropagation(); close(); } }}>
+  return <div ref={root} className="lag-role-record-row" style={{ "--lag-row-action-width": `${ACTION_WIDTH}px` } as React.CSSProperties} data-actions-open={actions} onKeyDown={(event) => { if (event.key === "Escape" && actions) { event.stopPropagation(); close(); } }}>
     <div className="lag-row-action-area" role="group" aria-label={`${title} 작업 선택`} hidden={!actions} inert={!actions}>
       <button type="button" disabled={disabled} onClick={onEdit}><span className="lag-row-action-symbol" aria-hidden>✎</span>수정</button>
-      <button type="button" disabled={disabled} onClick={onArchive}><span className="lag-row-action-symbol" aria-hidden>{archiveLabel === "보관" ? "▣" : "×"}</span>{archiveLabel}</button>
+      <button type="button" disabled={disabled} onClick={onArchive}><span className="lag-row-action-symbol" aria-hidden>×</span>{archiveLabel}</button>
     </div>
-    <SwipeButton ref={body} className="lag-role-node lag-record-body" aria-pressed={Boolean(selected)} data-selected={Boolean(selected)} restingOffset={actions ? -144 : 0} onClick={() => { announce(); setActions(false); onSelect(); }} onSwipeLeft={() => { announce(); setActions(true); }} onSwipeRight={close} onKeyDown={(event) => { if (event.key === "F10" && event.shiftKey) { event.preventDefault(); announce(); setActions(true); } }}>
+    <SwipeButton ref={body} className="lag-role-node lag-record-body" aria-pressed={Boolean(selected)} data-selected={Boolean(selected)} restingOffset={actions ? -ACTION_WIDTH : 0} onClick={() => { announce(); setActions(false); onSelect(); }} onSwipeLeft={() => { announce(); setActions(true); }} onSwipeRight={close} onKeyDown={(event) => { if (event.key === "F10" && event.shiftKey) { event.preventDefault(); announce(); setActions(true); } }}>
       <span className="lag-role-node-mark" aria-hidden>{title.charAt(0)}</span>
       <span><strong>{title}</strong>{subtitle ? <small>{subtitle}</small> : null}</span><span aria-hidden>→</span>
     </SwipeButton>

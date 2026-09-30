@@ -31,7 +31,7 @@ export function RoleForm({ role, onSaved, onCancel }: { role?: RoleDetail; onSav
     <label>역할 설명<textarea className="lag-role-control" name="description" required defaultValue={role?.description ?? ""} rows={4} /></label>
     {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
     <div className="lag-role-actions">
-      <button type="submit" disabled={pending} className="lag-role-action">{pending ? "저장 중…" : role ? "역할 저장" : "역할 등록"}</button>
+      <button type="submit" disabled={pending} className="lag-role-action">{pending ? "저장 중…" : "역할 저장"}</button>
       <button type="button" className="lag-role-button" onClick={() => { active.current = false; onCancel(); }}>취소</button>
     </div>
   </form>;

@@ -1,5 +1,5 @@
 const labels: Record<string, string> = {
-  IN_PROGRESS: "진행 중", GOAL_REACHED: "목표 도달", COMPLETED: "완료", CANCELED: "취소됨",
+  IN_PROGRESS: "진행 중", GOAL_REACHED: "목표 도달", COMPLETED: "완료", CANCELED: "취소됨", PLANNED: "예정", SERVICE_USER: "사용자",
   CURRENT: "현재 단계", NOT_SELECTED: "선택 안 함", LOCKED: "잠김", AVAILABLE: "시작 가능", READY_TO_ADVANCE: "전진 가능",
   PENDING: "대기 중", SUCCEEDED: "성공", FAILED: "실패", PARTIAL_FAILED: "일부 실패", NOT_ELIGIBLE: "지급 대상 아님",
   AUTO: "자동 완료", USER_CONFIRM: "직접 확인", MANUAL_CHECK: "직접 확인", COUNT: "횟수", BOOLEAN: "달성 여부",

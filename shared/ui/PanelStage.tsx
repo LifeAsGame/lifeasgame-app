@@ -13,6 +13,7 @@ export default function PanelStage({
   onPointerDownCapture,
   zIndex,
   inactive = false,
+  instant = false,
   side = "right",
   panelRole,
 }: {
@@ -23,6 +24,7 @@ export default function PanelStage({
   onPointerDownCapture?: () => void;
   zIndex?: number;
   inactive?: boolean;
+  instant?: boolean;
   side?: "left" | "right";
   panelRole?: "list" | "detail";
 }) {
@@ -46,10 +48,10 @@ export default function PanelStage({
       inert={inactive || !isPresent}
       aria-hidden={isPresent && !inactive ? undefined : true}
       onPointerDownCapture={onPointerDownCapture}
-      initial={reducedMotion ? false : { opacity: 0 }}
+      initial={reducedMotion || instant ? false : { opacity: 0 }}
       animate={{ opacity: inactive ? 0 : 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: reducedMotion ? 0 : 0.16 }}
+      transition={{ duration: reducedMotion || instant ? 0 : 0.16 }}
       style={{ willChange: "opacity", pointerEvents: isPresent && !inactive ? undefined : "none", zIndex }}
     >
       {children}

@@ -28,7 +28,7 @@ describe("Current Player Achievement surface를 사용할 때", () => {
     render(<AchievementShell />);
 
     const entries = await screen.findAllByTestId("achievement-entry");
-    expect(screen.queryByText("Achievement Detail")).not.toBeInTheDocument();
+    expect(screen.queryByText("업적 상세")).not.toBeInTheDocument();
 
     fireEvent.click(entries[0]);
     const detailStage = document.querySelector('[data-stage-key="player-achievement-detail"]');
@@ -45,9 +45,9 @@ describe("Current Player Achievement surface를 사용할 때", () => {
     fireEvent.click(entry);
 
     expect(await screen.findByText("Server detail name")).toBeInTheDocument();
-    expect(screen.getByText("Code: SERVER_CODE")).toBeInTheDocument();
-    expect(screen.getByText("Category: Milestone")).toBeInTheDocument();
-    expect(screen.getByText("Acquired: 2026-08-14T00:00:00Z")).toBeInTheDocument();
+    expect(screen.getByText("SERVER_CODE")).toBeInTheDocument();
+    expect(screen.getByText("Milestone")).toBeInTheDocument();
+    expect(screen.getByText("2026-08-14T00:00:00Z")).toBeInTheDocument();
     expect(screen.getByText("**Server-owned** description")).toBeInTheDocument();
     expect(api.getPlayerAchievementApi).toHaveBeenCalledWith(31);
     expect(screen.queryByText(/Status: Unlocked|source quest|reward|rarity|progress/i)).not.toBeInTheDocument();
@@ -55,6 +55,6 @@ describe("Current Player Achievement surface를 사용할 때", () => {
 
     api.getPlayerAchievementsApi.mockResolvedValueOnce([]);
     render(<AchievementShell />);
-    expect(await screen.findByText("No acquired Achievements.")).toBeInTheDocument();
+    expect(await screen.findByText("획득한 업적이 없습니다.")).toBeInTheDocument();
   });
 });

@@ -14,17 +14,17 @@ it("드래그는 기준과 방향을 구분해 선택지만 열며 click 중복�
   for (const [dx, dy] of [[-40, 0], [-90, 140]]) {
     pointer(row, "pointerdown", 200, 100); pointer(row, "pointermove", 200 + dx, 100 + dy); pointer(row, "pointerup", 200 + dx, 100 + dy);
     fireEvent.click(row, { detail: 1 });
-    expect(screen.queryByRole("button", { name: "보관" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
     expect(row.style.transform).toBe("translateX(0px)");
   }
   pointer(row, "pointerdown", 200, 100); pointer(row, "pointermove", 100, 100); pointer(row, "pointerup", 100, 100); fireEvent.click(row, { detail: 1 });
-  expect(screen.getByRole("button", { name: "보관" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
   expect(onSelect).not.toHaveBeenCalled(); expect(onEdit).not.toHaveBeenCalled(); expect(onArchive).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "수정" })); expect(onEdit).toHaveBeenCalledOnce();
-  fireEvent.keyDown(screen.getByRole("button", { name: "보관" }), { key: "Escape" });
-  expect(screen.queryByRole("button", { name: "보관" })).not.toBeInTheDocument();
+  fireEvent.keyDown(screen.getByRole("button", { name: "삭제" }), { key: "Escape" });
+  expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
   fireEvent.keyDown(row, { key: "F10", shiftKey: true });
-  fireEvent.click(screen.getByRole("button", { name: "보관" }), { detail: 0 }); expect(onArchive).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "삭제" }), { detail: 0 }); expect(onArchive).toHaveBeenCalledOnce();
   fireEvent.click(row, { detail: 0 }); expect(onSelect).toHaveBeenCalledOnce();
 });
 
@@ -38,5 +38,5 @@ it("터치 캡처가 자식에서 행으로 이동해도 진행 중인 스와이
   pointer(row.querySelector("strong")!, "lostpointercapture", 170, 100);
   pointer(row, "pointermove", 100, 100);
   pointer(row, "pointerup", 100, 100);
-  expect(screen.getByRole("button", { name: "보관" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "삭제" })).toBeInTheDocument();
 });

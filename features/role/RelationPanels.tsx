@@ -18,7 +18,7 @@ function personState(status: string | null | undefined) {
   return status === "ARCHIVED" ? "보관된 인물" : status === "ACTIVE" ? "사용 중인 인물" : "인물 상태 미확인";
 }
 
-export default function RelationPanels({ roleId, roleName, createRequest, onBack }: { roleId: number; roleName: string; createRequest: number; onBack: () => void }) {
+export default function RelationPanels({ roleId, roleName, createRequest, reentryRequest = 0, onBack }: { roleId: number; roleName: string; createRequest: number; reentryRequest?: number; onBack: () => void }) {
   const { confirm, dialog } = useSaoConfirm();
   const load = useCallback(async () => {
     const [relations, persons] = await Promise.all([listRoleRelationsApi(roleId), listPersonsApi().catch(() => null)]);
@@ -36,15 +36,17 @@ export default function RelationPanels({ roleId, roleName, createRequest, onBack
     restore.current = { target: document.activeElement instanceof HTMLElement ? document.activeElement : null, scroll, top: scroll?.scrollTop ?? 0 };
   };
   const close = () => {
-    request.current++; setMode("list"); setError(null); setLoading(false);
+    request.current++; setMode("list"); setSelectedId(null); setDetail(null); setError(null); setLoading(false);
     requestStageFocus("role-detail", "back");
     requestAnimationFrame(() => {
       const { target, scroll, top } = restore.current; if (scroll) scroll.scrollTop = top;
       (target?.isConnected && root.current?.contains(target) ? target : root.current?.querySelector<HTMLElement>(`[data-relation-id="${selectedId}"] button`))?.focus({ preventScroll: true });
     });
   };
+  const cancelEdit = () => { request.current++; setMode("detail"); setError(null); setLoading(false); };
   useEffect(() => { const counter = request; active.current = true; return () => { active.current = false; counter.current++; }; }, []);
   useEffect(() => { if (createRequest) { remember(); request.current++; setMode("create"); setError(null); } }, [createRequest]);
+  useEffect(() => { if (reentryRequest && !createRequest) { request.current++; setMode("list"); setSelectedId(null); setDetail(null); setError(null); setLoading(false); } }, [reentryRequest, createRequest]);
   const select = async (relationId: number, editing = false) => {
     remember(); const id = ++request.current;
     setSelectedId(relationId); setDetail(null); setMode(editing ? "edit" : "detail"); setLoading(true); setError(null);
@@ -71,13 +73,13 @@ export default function RelationPanels({ roleId, roleName, createRequest, onBack
     finally { lock.current = false; if (active.current) setPending(false); }
   };
   const archive = async (relation: RoleRelationDetail) => {
-    if (lock.current || !await confirm(`역할 “${roleName}”의 “${relation.personDisplayName}” 관계를 보관할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
+    if (lock.current || !await confirm(`이 역할에서 “${relation.personDisplayName}” 관계를 삭제할까요? 인물 정보와 다른 역할의 관계는 유지됩니다.`)) return;
     const id = ++request.current; lock.current = true; setPending(true); setError(null);
     try {
       await archiveRoleRelationApi(roleId, relation.id);
       if (!active.current) return;
       await list.refresh(); if (id === request.current) close();
-    } catch (caught) { if (id === request.current) setError(caught instanceof Error ? caught.message : "관계를 보관하지 못했습니다."); }
+    } catch (caught) { if (id === request.current) setError(caught instanceof Error ? caught.message : "관계를 삭제하지 못했습니다."); }
     finally { lock.current = false; if (active.current) setPending(false); }
   };
   const form = (relation?: RoleRelationDetail) => <form key={relation?.id ?? "new"} className="lag-role-form" onSubmit={save}>
@@ -86,14 +88,13 @@ export default function RelationPanels({ roleId, roleName, createRequest, onBack
     <label>역할 메모<textarea className="lag-role-control" name="roleNotes" rows={3} defaultValue={relation?.roleNotes ?? ""} /></label>
     {error ? <p role="alert">{error}</p> : null}
     {list.data.personsUnavailable && !relation ? <p role="alert">연결할 인물을 조회하지 못했습니다. <button type="button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
-    <div className="lag-role-actions"><button type="submit" className="lag-role-action" disabled={pending || (!relation && !list.data.persons.some((person) => person.status === "ACTIVE"))}>{pending ? "저장 중…" : relation ? "관계 저장" : "관계 연결"}</button><button type="button" className="lag-role-button" onClick={close}>취소</button></div>
+    <div className="lag-role-actions"><button type="submit" className="lag-role-action" disabled={pending || (!relation && !list.data.persons.some((person) => person.status === "ACTIVE"))}>{pending ? "저장 중…" : "관계 저장"}</button><button type="button" className="lag-role-button" onClick={relation ? cancelEdit : close}>취소</button></div>
   </form>;
   return <div ref={root} className="lag-panel-rail lag-role-relations">{dialog}
-    <PanelStage stageKey="role-detail" inactive={compact && (mode === "detail" || mode === "edit")}>
+    <PanelStage stageKey="role-detail" instant inactive={compact && (mode === "detail" || mode === "edit")}>
       <PanelFrame title={mode === "create" ? "기존 인물 연결" : `${roleName} · 관계`} backButton={<BackButton label={mode === "create" ? "관계 목록으로" : `역할 ${roleName}로`} onClick={mode === "create" ? close : onBack} />}>
         <CreateCategory title="관계" onOpen={close} onCreate={() => { remember(); request.current++; setMode("create"); setError(null); setLoading(false); }} />
         <CreateSlot showCancel={false} creating={mode === "create"} pending={pending} onClose={close} list={<div className="lag-role-detail">
-          <p className="lag-create-hint">관계 분류를 왼쪽으로 당기거나 Alt+Enter로 기존 인물을 연결합니다.</p>
           {list.loading ? <p role="status">관계를 불러오는 중…</p> : null}
           {list.error ? <p role="alert">{list.error} <button type="button" className="lag-role-button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
           {error && mode === "list" ? <p role="alert">{error}</p> : null}
@@ -102,11 +103,11 @@ export default function RelationPanels({ roleId, roleName, createRequest, onBack
         </div>}>{form()}</CreateSlot>
       </PanelFrame>
     </PanelStage>
-    {mode === "detail" || mode === "edit" ? <PanelStage stageKey="role-relation-detail">
-      <PanelFrame title={mode === "edit" ? "관계 수정" : "관계 상세"} backButton={<BackButton label="관계 목록으로" onClick={close} />}>
+    {mode === "detail" || mode === "edit" ? <PanelStage stageKey="role-relation-detail" instant>
+      <PanelFrame title={mode === "edit" ? "관계 수정" : "관계 상세"} backButton={<BackButton label={mode === "edit" ? "관계 상세로" : "관계 목록으로"} onClick={mode === "edit" ? cancelEdit : close} />}>
         {loading ? <p role="status">관계 상세를 불러오는 중…</p> : null}
         {error && !detail ? <p role="alert">{error} <button type="button" className="lag-role-button" onClick={() => void select(selectedId!, mode === "edit")}>다시 조회</button></p> : null}
-        {detail && mode === "edit" ? form(detail) : detail ? <article className="lag-role-detail"><h4>{detail.personDisplayName}</h4><p>{personState(detail.personStatus)}</p><dl><div className="lag-role-data-row"><dt>관계 유형</dt><dd>{consumerLabel(detail.relationType)}</dd></div><div className="lag-role-data-row"><dt>역할 메모</dt><dd>{detail.roleNotes ?? "미등록"}</dd></div></dl><div className="lag-role-actions"><button type="button" className="lag-role-button" disabled={pending} onClick={() => { remember(); request.current++; setMode("edit"); }}>관계 수정</button><button type="button" className="lag-role-button" disabled={pending} onClick={() => void archive(detail)}>관계 보관</button></div></article> : null}
+        {detail && mode === "edit" ? form(detail) : detail ? <article className="lag-role-detail"><h4>{detail.personDisplayName}</h4><p>{personState(detail.personStatus)}</p><dl><div className="lag-role-data-row"><dt>관계 유형</dt><dd>{consumerLabel(detail.relationType)}</dd></div><div className="lag-role-data-row"><dt>역할 메모</dt><dd>{detail.roleNotes ?? "미등록"}</dd></div></dl></article> : null}
       </PanelFrame>
     </PanelStage> : null}
   </div>;

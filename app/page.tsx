@@ -106,6 +106,9 @@ export default function Home() {
   const [roleWorkspace, setRoleWorkspace] = useState<"persons" | "roles" | null>(null);
   const [createRequests, setCreateRequests] = useState<Record<string, number>>({});
   const [personCreateRequest, setPersonCreateRequest] = useState(0);
+  const [personReentryRequest, setPersonReentryRequest] = useState(0);
+  const [roleReentryRequest, setRoleReentryRequest] = useState(0);
+  const [subReentry, setSubReentry] = useState<Record<string, number>>({});
   const [roleDetailsHidden, setRoleDetailsHidden] = useState(false);
   const [roleEditRequest, setRoleEditRequest] = useState<{ id: number; sequence: number } | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
@@ -145,6 +148,7 @@ export default function Home() {
 
   const clearFeatureState = () => {
     setCreateRequests({});
+    setSubReentry({});
     setSelectedRoleId(null); setRoleDetailsHidden(false);
     setRoleWorkspace(null); setRoleEditRequest(null);
   };
@@ -162,6 +166,7 @@ export default function Home() {
 
   const handleRoleSelect = (roleId: number) => {
     if (selectedMain !== "role") handleMainSelect("role");
+    if (selectedMain === "role" && selectedRoleId === roleId) setRoleReentryRequest((value) => value + 1);
     setRoleDetailsHidden(false); setRoleWorkspace("roles");
     setSelectedRoleId(roleId);
   };
@@ -178,7 +183,8 @@ export default function Home() {
 
     setCreateRequests({});
     submenuCaller.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    navigateConsumer(panel.context.main, selectedSubByMain[panel.context.main] === itemId ? null : itemId);
+    if (selectedSubByMain[panel.context.main] === itemId) setSubReentry((values) => ({ ...values, [itemId]: (values[itemId] ?? 0) + 1 }));
+    navigateConsumer(panel.context.main, itemId);
   };
 
   const handlePanelItemCreate = (panelIndex: number, itemId: string) => {
@@ -204,20 +210,20 @@ export default function Home() {
   if (isLoading || !isAuthenticated || !playerId) return null;
 
   const playerSurface = selectedSubByMain.player === "growth"
-    ? <GrowthShell onBack={() => closeFeatureSubmenu("player")} />
+    ? <GrowthShell key={`growth-${subReentry.growth ?? 0}`} onBack={() => closeFeatureSubmenu("player")} />
     : selectedSubByMain.player === "achievement"
-      ? <AchievementShell onBack={() => closeFeatureSubmenu("player")} />
+      ? <AchievementShell key={`achievement-${subReentry.achievement ?? 0}`} onBack={() => closeFeatureSubmenu("player")} />
       : selectedSubByMain.player === "credentials"
-        ? <CertificationShell createRequest={createRequests.credentials ?? 0} onBack={() => closeFeatureSubmenu("player")} />
+        ? <CertificationShell key={`credentials-${subReentry.credentials ?? 0}`} createRequest={createRequests.credentials ?? 0} onBack={() => closeFeatureSubmenu("player")} />
         : selectedSubByMain.player === "title"
-          ? <TitleShell onBack={() => closeFeatureSubmenu("player")} />
+          ? <TitleShell key={`title-${subReentry.title ?? 0}`} onBack={() => closeFeatureSubmenu("player")} />
           : selectedSubByMain.player === "interests"
-            ? <HobbyShell createRequest={createRequests.interests ?? 0} onBack={() => closeFeatureSubmenu("player")} />
+            ? <HobbyShell key={`interests-${subReentry.interests ?? 0}`} createRequest={createRequests.interests ?? 0} onBack={() => closeFeatureSubmenu("player")} />
             : null;
   const inventorySurface = selectedSubByMain.inventory === "gear"
-    ? <GearShell onBack={() => closeFeatureSubmenu("inventory")} />
+    ? <GearShell key={`gear-${subReentry.gear ?? 0}`} onBack={() => closeFeatureSubmenu("inventory")} />
     : selectedSubByMain.inventory === "items" || selectedSubByMain.inventory === "inbox"
-      ? <InventoryShell onBack={() => closeFeatureSubmenu("inventory")} surface={selectedSubByMain.inventory} />
+      ? <InventoryShell key={`${selectedSubByMain.inventory}-${subReentry[selectedSubByMain.inventory] ?? 0}`} onBack={() => closeFeatureSubmenu("inventory")} surface={selectedSubByMain.inventory} />
       : null;
 
   return (
@@ -281,7 +287,7 @@ export default function Home() {
         <LeftContext
           mode={selectedMain === "role" ? "role" : "hidden"}
           roleWorkspace={roleWorkspace}
-          onRoleWorkspaceChange={(workspace, create) => { setRoleWorkspace(workspace); if (create) { setRoleDetailsHidden(true); setRoleEditRequest(null); } if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); }}
+          onRoleWorkspaceChange={(workspace, create) => { if (workspace === "persons" && !create) setPersonReentryRequest((value) => value + 1); if (workspace === "roles" && !create) { setSelectedRoleId(null); setRoleDetailsHidden(false); } setRoleWorkspace(workspace); if (create) { setRoleDetailsHidden(true); setRoleEditRequest(null); } if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); }}
           onRoleEdit={(id) => { handleRoleSelect(id); setRoleEditRequest((value) => ({ id, sequence: (value?.sequence ?? 0) + 1 })); }}
           onRoleRefresh={roleState.refresh}
           onRoleArchived={(id) => setSelectedRoleId((current) => current === id ? null : current)}
@@ -315,6 +321,8 @@ export default function Home() {
                 workspace={roleWorkspace}
                 hideRoleDetails={roleDetailsHidden}
                 personCreateRequest={personCreateRequest}
+                personReentryRequest={personReentryRequest}
+                reentryRequest={roleReentryRequest}
                 onWorkspaceBack={() => setRoleWorkspace(null)}
                 editRequest={roleEditRequest}
                 roles={roleState.roles}
@@ -341,16 +349,16 @@ export default function Home() {
                 panelStack={panelStack.slice(0, 1)}
                 onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />
-              <ExchangeShell
+              <ExchangeShell key={`market-${selectedSubByMain.market}-${subReentry[selectedSubByMain.market ?? ""] ?? 0}`}
                 surface={selectedSubByMain.market as MarketSubId | null}
                 playerId={playerId}
                 onBack={() => closeFeatureSubmenu("market")}
               />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
-            <JournalShell createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} />
+            <JournalShell key={`journal-${subReentry.journal ?? 0}`} createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} />
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "collection" ? (
-            <CollectionShell createRequest={createRequests.collection ?? 0} onBack={() => closeFeatureSubmenu("lifelog")} />
+            <CollectionShell key={`collection-${subReentry.collection ?? 0}`} createRequest={createRequests.collection ?? 0} onBack={() => closeFeatureSubmenu("lifelog")} />
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "exercise" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
@@ -358,12 +366,12 @@ export default function Home() {
                 panelStack={panelStack.slice(0, 1)}
                 onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />
-              <ExerciseShell createRequest={createRequests.exercise ?? 0} />
+              <ExerciseShell key={`exercise-${subReentry.exercise ?? 0}`} createRequest={createRequests.exercise ?? 0} />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "media" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
-              <MediaShell createRequest={createRequests.media ?? 0} />
+              <MediaShell key={`media-${subReentry.media ?? 0}`} createRequest={createRequests.media ?? 0} />
             </div>
           ) : selectedMain === "system" && selectedSubByMain.system === "options" ? (
             <div className="lag-settings-route flex w-fit items-center gap-3">

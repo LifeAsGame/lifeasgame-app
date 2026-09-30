@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PersonDetail, RoleDetail } from "@/shared/api/types";
 import RoleShell from "./RoleShell";
+import PersonPanels from "./PersonPanels";
 
 const api = vi.hoisted(() => ({ listPersonsApi: vi.fn(), getPersonApi: vi.fn(), createPersonApi: vi.fn(), updatePersonApi: vi.fn(), archivePersonApi: vi.fn() }));
 vi.mock("./api", () => api);
@@ -44,7 +45,7 @@ describe("역할과 독립된 인물 관리", () => {
     fireEvent.change(screen.getByLabelText("생일"), { target: { value: "2020-02-29" } });
     view.rerender(<RoleShell {...props} selectedRoleId={99} />);
     expect(screen.getByLabelText("인물 이름")).toHaveValue("새 인물");
-    fireEvent.click(screen.getByRole("button", { name: "인물 등록" }));
+    fireEvent.click(screen.getByRole("button", { name: "인물 저장" }));
     await waitFor(() => expect(api.createPersonApi).toHaveBeenCalledWith({ displayName: "새 인물", birthday: "2020-02-29", contact: null, notes: null }));
     await screen.findByRole("button", { name: /Alex.*인물/ });
     await waitFor(() => expect(add).toHaveFocus());
@@ -55,7 +56,8 @@ describe("역할과 독립된 인물 관리", () => {
     fireEvent.change(screen.getByLabelText("생일"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "인물 저장" }));
     await waitFor(() => expect(api.updatePersonApi).toHaveBeenCalledWith(7, { displayName: "Alex", birthday: null, contact: null, notes: null }));
-    fireEvent.click(screen.getByRole("button", { name: "보관" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*인물/ }), { key: "F10", shiftKey: true });
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     await answerDialog();
     await waitFor(() => expect(api.archivePersonApi).toHaveBeenCalledWith(7));
   });
@@ -78,7 +80,7 @@ describe("역할과 독립된 인물 관리", () => {
     await act(async () => a.resolve({ ...alex, notes: "old A" }));
     expect(screen.getByText("Bea notes")).toBeInTheDocument(); expect(screen.queryByText("old A")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "인물 목록으로" }));
-    expect(screen.getByRole("button", { name: /Bea.*인물/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Bea.*인물/ })).toHaveAttribute("aria-pressed", "false");
     fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*인물/ }), { key: "F10", shiftKey: true });
     fireEvent.click(screen.getByRole("button", { name: "수정" }));
     await screen.findByLabelText("인물 이름");
@@ -91,6 +93,25 @@ describe("역할과 독립된 인물 관리", () => {
     expect(screen.getByText("Bea notes")).toBeInTheDocument(); expect(screen.queryByText("late save")).not.toBeInTheDocument();
     view.rerender(<RoleShell {...props} workspace="roles" selectedRoleId={1} />);
     view.rerender(<RoleShell {...props} selectedRoleId={2} />);
-    expect(screen.getByText("Bea notes")).toBeInTheDocument();
+    expect(screen.queryByText("Bea notes")).not.toBeInTheDocument();
   });
+  it("인물 분류 재진입은 같은 목록 frame을 유지하고 늦은 상세를 버린다", async () => {
+    const gate = deferred<PersonDetail>();
+    api.getPersonApi.mockReturnValueOnce(gate.promise);
+    const view = render(<PersonPanels active createRequest={0} onBack={vi.fn()} />);
+    const row = await screen.findByRole("button", { name: /Alex.*인물/ });
+    const listFrame = document.querySelector('[data-stage-key="person-list"] .lag-panel-frame');
+    fireEvent.click(row);
+    view.rerender(<PersonPanels active createRequest={0} reentryRequest={1} onBack={vi.fn()} />);
+    expect(document.querySelector('[data-stage-key="person-list"] .lag-panel-frame')).toBe(listFrame);
+    expect(document.querySelector('[data-stage-key="person-detail"]')).not.toBeInTheDocument();
+    await act(async () => gate.resolve({ ...alex, notes: "늦은 상세" }));
+    expect(screen.queryByText("늦은 상세")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Bea.*인물/ }));
+    await screen.findByText("Bea notes");
+    view.rerender(<PersonPanels active={false} createRequest={0} reentryRequest={1} onBack={vi.fn()} />);
+    view.rerender(<PersonPanels active createRequest={0} reentryRequest={1} onBack={vi.fn()} />);
+    expect(document.querySelector('[data-stage-key="person-detail"]')).not.toBeInTheDocument();
+  });
+
 });

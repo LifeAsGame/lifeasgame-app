@@ -40,10 +40,10 @@ export function RoleContextPanel({ roles, selectedRoleId, isLoading, error, onRo
     requestAnimationFrame(() => { const { target, scroll, top } = restore.current; if (scroll) scroll.scrollTop = top; (target?.isConnected ? target : root.current?.querySelector<HTMLElement>('[data-role-menu="roles"]'))?.focus({ preventScroll: true }); });
   };
   const archive = async (role: RoleDetail) => {
-    if (lock.current || !await confirm(`역할 “${role.name}”을 보관할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
+    if (lock.current || !await confirm(`역할 “${role.name}”을 삭제할까요? 인물과 다른 역할의 관계는 유지됩니다.`)) return;
     const id = generation.current; lock.current = true; setPending(true); setActionError(null);
     try { await archiveRoleApi(role.id); await onRefresh?.(); if (id === generation.current) onRoleArchived?.(role.id); }
-    catch (caught) { if (id === generation.current) setActionError(caught instanceof Error ? caught.message : "역할을 보관하지 못했습니다."); }
+    catch (caught) { if (id === generation.current) setActionError(caught instanceof Error ? caught.message : "역할을 삭제하지 못했습니다."); }
     finally { lock.current = false; setPending(false); }
   };
   return <section ref={root} className="lag-role-selector" data-role-selector aria-labelledby="role-selector-title">{dialog}
@@ -53,7 +53,6 @@ export function RoleContextPanel({ roles, selectedRoleId, isLoading, error, onRo
       <SwipeButton creation className="lag-role-node" data-role-menu="roles" aria-pressed={workspace === "roles"} onClick={() => { generation.current++; setCreating(false); onWorkspaceChange?.("roles"); }} onDoubleClick={openCreate}><span className="lag-role-node-mark" aria-hidden>역</span><strong>역할</strong><span aria-hidden>→</span></SwipeButton>
     </div>
     {workspace === "roles" ? <>
-      <p className="lag-create-hint">분류 한 번: 목록 · 두 번 누르기 / Alt+Enter: 등록</p>
       <CreateSlot showCancel={false} creating={creating} pending={pending} onClose={closeCreate} list={<div>
         <div className="lag-role-selector-state">
           {isLoading ? <p role="status">역할을 불러오는 중…</p> : null}

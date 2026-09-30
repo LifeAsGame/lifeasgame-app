@@ -49,11 +49,12 @@ function deferred<T>() {
 function Harness({ initialRoleId = 1, availableRoles = roles, loading = false, error = null, refresh = vi.fn().mockResolvedValue(undefined) }: { initialRoleId?: number | null; availableRoles?: RoleDetail[]; loading?: boolean; error?: string | null; refresh?: () => Promise<void> }) {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(initialRoleId);
   const [hideRoleDetails, setHideRoleDetails] = useState(false);
+  const [editRequest, setEditRequest] = useState<{ id: number; sequence: number } | null>(null);
   const selectRole = (id: number) => { setSelectedRoleId(id); setHideRoleDetails(false); };
   return (
     <>
-      <RoleContextPanel roles={availableRoles} selectedRoleId={selectedRoleId} isLoading={loading} error={error} onRoleSelect={selectRole} onWorkspaceChange={(_, create) => { if (create) setHideRoleDetails(true); }} onRetry={() => void refresh()} />
-      <RoleShell roles={availableRoles} selectedRoleId={selectedRoleId} hideRoleDetails={hideRoleDetails} onSelectRole={setSelectedRoleId} onRefresh={refresh} />
+      <RoleContextPanel roles={availableRoles} selectedRoleId={selectedRoleId} isLoading={loading} error={error} onRoleSelect={selectRole} onRoleEdit={(id) => { selectRole(id); setEditRequest((current) => ({ id, sequence: (current?.sequence ?? 0) + 1 })); }} onWorkspaceChange={(_, create) => { if (create) setHideRoleDetails(true); }} onRetry={() => void refresh()} />
+      <RoleShell roles={availableRoles} editRequest={editRequest} selectedRoleId={selectedRoleId} hideRoleDetails={hideRoleDetails} onSelectRole={setSelectedRoleId} onRefresh={refresh} />
     </>
   );
 }
@@ -142,12 +143,14 @@ describe("실제 Role shell을 사용할 때", () => {
 
       expect(screen.getByRole("button", { name: "역할" })).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: "역할 수정" }));
+      fireEvent.keyDown(screen.getByRole("button", { name: /Family Member.*활성/ }), { key: "F10", shiftKey: true });
+      fireEvent.click(screen.getByRole("button", { name: "수정" }));
       fireEvent.change(screen.getByLabelText("역할 이름"), { target: { value: "Family Anchor" } });
       fireEvent.click(screen.getByRole("button", { name: "역할 저장" }));
       await waitFor(() => expect(api.updateRoleApi).toHaveBeenCalledWith(2, { roleType: "FAMILY", name: "Family Anchor", description: "Be present" }));
 
-      fireEvent.click(screen.getByRole("button", { name: "역할 보관" }));
+      fireEvent.keyDown(screen.getByRole("button", { name: /Family Member.*활성/ }), { key: "F10", shiftKey: true });
+      fireEvent.click(screen.getByRole("button", { name: "삭제" }));
       await answerDialog();
       await waitFor(() => expect(api.archiveRoleApi).toHaveBeenCalledWith(2));
       expect(refresh).toHaveBeenCalled();
@@ -158,7 +161,8 @@ describe("실제 Role shell을 사용할 때", () => {
       api.updateRoleApi.mockReturnValue(saving.promise);
       render(<Harness />);
 
-      fireEvent.click(screen.getByRole("button", { name: "역할 수정" }));
+      fireEvent.keyDown(screen.getByRole("button", { name: /Backend Engineer.*활성/ }), { key: "F10", shiftKey: true });
+      fireEvent.click(screen.getByRole("button", { name: "수정" }));
       fireEvent.change(screen.getByLabelText("역할 이름"), { target: { value: "Draft Role" } });
       fireEvent.click(screen.getByRole("button", { name: "역할 저장" }));
       expect(screen.getByRole("button", { name: "저장 중…" })).toBeDisabled();
@@ -177,7 +181,8 @@ describe("실제 Role shell을 사용할 때", () => {
     const refresh = vi.fn().mockResolvedValue(undefined);
     api.updateRoleApi.mockReturnValueOnce(saving.promise);
     render(<Harness refresh={refresh} />);
-    fireEvent.click(screen.getByRole("button", { name: "역할 수정" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: /Backend Engineer.*활성/ }), { key: "F10", shiftKey: true });
+      fireEvent.click(screen.getByRole("button", { name: "수정" }));
     fireEvent.click(screen.getByRole("button", { name: "역할 저장" }));
     fireEvent.click(screen.getByRole("button", { name: /Family Member.*활성/ }));
     fireEvent.click(screen.getByRole("button", { name: /개요/ }));
@@ -285,7 +290,7 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.change(screen.getByLabelText("기존 인물"), { target: { value: "7" } });
       fireEvent.change(screen.getByLabelText("관계 유형"), { target: { value: "FAMILY" } });
       fireEvent.change(screen.getByLabelText("역할 메모"), { target: { value: "Call weekly" } });
-      fireEvent.click(screen.getByRole("button", { name: "관계 연결" }));
+      fireEvent.click(screen.getByRole("button", { name: "관계 저장" }));
       await waitFor(() => expect(api.createRoleRelationApi).toHaveBeenCalledWith(1, { personId: 7, relationType: "FAMILY", roleNotes: "Call weekly" }));
       await waitFor(() => expect(screen.queryByLabelText("기존 인물")).not.toBeInTheDocument());
       fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*친구/ }), { key: "F10", shiftKey: true });
@@ -293,7 +298,8 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.change(await screen.findByLabelText("관계 유형"), { target: { value: "MENTOR" } });
       fireEvent.click(screen.getByRole("button", { name: "관계 저장" }));
       await waitFor(() => expect(api.updateRoleRelationApi).toHaveBeenCalledWith(1, 9, { relationType: "MENTOR", roleNotes: "Call monthly" }));
-      fireEvent.click(screen.getByRole("button", { name: "보관" }));
+      fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*친구/ }), { key: "F10", shiftKey: true });
+      fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     await answerDialog();
       await waitFor(() => expect(api.archiveRoleRelationApi).toHaveBeenCalledWith(1, 9));
       expect(api.createPersonApi).not.toHaveBeenCalled();
@@ -310,7 +316,7 @@ describe("실제 Role shell을 사용할 때", () => {
       expect(screen.getByText(gate)).toBeInTheDocument();
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
 
-      expect(await screen.findByText("SERVICE_USER #99")).toBeInTheDocument();
+      expect(await screen.findByText("사용자 #99")).toBeInTheDocument();
       expect(screen.queryByLabelText(/participant/i)).not.toBeInTheDocument();
       for (const name of ["Create Event", "Edit Event", "Complete Event", "Cancel Event", "Save New Event", "Update Event"]) {
         expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
@@ -325,10 +331,10 @@ describe("실제 Role shell을 사용할 때", () => {
       const empty = render(<Harness />);
       fireEvent.click(screen.getByRole("button", { name: /일정/ }));
       expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.getByText("Loading Events...")).toBeInTheDocument();
+      expect(screen.getByText("일정을 불러오는 중…")).toBeInTheDocument();
       await act(async () => loading.resolve([]));
       expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.getByText("No Events for this Role.")).toBeInTheDocument();
+      expect(screen.getByText("이 역할의 일정이 없습니다.")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Create Event" })).not.toBeInTheDocument();
 
       empty.unmount();
@@ -337,9 +343,9 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /일정/ }));
       expect(await screen.findByRole("alert")).toHaveTextContent("Event list failed");
       expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.queryByText("No Events for this Role.")).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-      expect(await screen.findByText("No Events for this Role.")).toBeInTheDocument();
+      expect(screen.queryByText("이 역할의 일정이 없습니다.")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+      expect(await screen.findByText("이 역할의 일정이 없습니다.")).toBeInTheDocument();
       expect(api.listRoleEventsApi).toHaveBeenCalledTimes(3);
       expect(api.getRoleEventApi).not.toHaveBeenCalled();
     });
@@ -352,9 +358,9 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(row);
       expect(await screen.findByRole("alert")).toHaveTextContent("Event detail failed");
       expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.queryByRole("region", { name: "Event detail" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-      expect(await screen.findByText("SERVICE_USER #99")).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "일정 상세" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+      expect(await screen.findByText("사용자 #99")).toBeInTheDocument();
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
       expect(api.getRoleEventApi).toHaveBeenCalledTimes(2);
       expect(api.getRoleEventApi).toHaveBeenNthCalledWith(2, 1, 11);
@@ -371,9 +377,9 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
       fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
       await act(async () => second.resolve(otherEvent));
-      expect(screen.getByRole("region", { name: "Event detail" })).toHaveTextContent("Review design");
+      expect(screen.getByRole("region", { name: "일정 상세" })).toHaveTextContent("Review design");
       await act(async () => first.resolve(roleEvent));
-      expect(screen.getByRole("region", { name: "Event detail" })).toHaveTextContent("Review design");
+      expect(screen.getByRole("region", { name: "일정 상세" })).toHaveTextContent("Review design");
       expect(screen.queryByText("Review boundaries")).not.toBeInTheDocument();
     });
 
@@ -388,7 +394,7 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
       await act(async () => second.resolve(otherEvent));
       await act(async () => first.reject(new Error("Old detail failed")));
-      expect(screen.getByRole("region", { name: "Event detail" })).toHaveTextContent("Review design");
+      expect(screen.getByRole("region", { name: "일정 상세" })).toHaveTextContent("Review design");
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
 
@@ -404,8 +410,8 @@ describe("실제 Role shell을 사용할 때", () => {
       await act(async () => second.reject(new Error("B detail failed")));
       await act(async () => first.resolve(roleEvent));
       expect(screen.getByRole("alert")).toHaveTextContent("B detail failed");
-      expect(screen.queryByRole("region", { name: "Event detail" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      expect(screen.queryByRole("region", { name: "일정 상세" })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
       expect(await screen.findByText("Review design")).toBeInTheDocument();
       expect(api.getRoleEventApi).toHaveBeenNthCalledWith(3, 1, 12);
       expect(api.listRoleEventsApi).toHaveBeenCalledTimes(1);
@@ -420,11 +426,22 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
       fireEvent.click(screen.getByRole("button", { name: /Family Member.*활성/ }));
       fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      expect(await screen.findByText("No Events for this Role.")).toBeInTheDocument();
+      expect(await screen.findByText("이 역할의 일정이 없습니다.")).toBeInTheDocument();
       await act(async () => pending.resolve(roleEvent));
       expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.queryByText("SERVICE_USER #99")).not.toBeInTheDocument();
+      expect(screen.queryByText("사용자 #99")).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Architecture review/ })).not.toBeInTheDocument();
     });
   });
+  it("개요·관계·일정 전환은 상위 frame을 유지하고 마지막 내용만 표시한다", async () => {
+    render(<Harness />);
+    const summary = document.querySelector('[data-stage-key="role-summary"] .lag-panel-frame');
+    fireEvent.click(screen.getByRole("button", { name: /개요/ }));
+    fireEvent.click(screen.getByRole("button", { name: /관계/ }));
+    fireEvent.click(screen.getByRole("button", { name: /일정/ }));
+    expect(document.querySelector('[data-stage-key="role-summary"] .lag-panel-frame')).toBe(summary);
+    expect(document.querySelector('[data-stage-key="role-detail"]')).toHaveTextContent("역할 사건 기록은 준비 중입니다");
+    expect(document.querySelector('[data-stage-key="role-relation-detail"]')).not.toBeInTheDocument();
+  });
+
 });

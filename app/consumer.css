@@ -270,23 +270,23 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 /* FE-SAO-02: Latin display face; Korean keeps the licensed Nanum Gothic. */
 @font-face { font-family: "Rajdhani"; src:url("/fonts/Rajdhani-Regular.ttf") format("truetype"); font-weight:400; font-display:swap; unicode-range:U+0000-00FF; }
 :is(.lag-panel-title,.sao-mast,.lag-role-hero h4,.lag-player-value,.lag-dialog-message strong) { font-family:"Rajdhani",var(--font-consumer),sans-serif; }
-.lag-create-hint { padding:8px 12px; color:var(--lag-text-2); font-size:11px; line-height:1.6; }
 .lag-create-category { padding:0 12px 10px; }
 .lag-create-slot [hidden] { display:none !important; }
 .lag-create-slot[data-creating=true] > .lag-slot-form { animation:lag-create-in var(--lag-motion-normal) ease-out; }
 .lag-create-slot[data-creating=false] > .lag-slot-list { animation:lag-list-in var(--lag-motion-normal) ease-out; }
 @keyframes lag-create-in { from { opacity:0; } to { opacity:1; } }
 @keyframes lag-list-in { from { opacity:0; } to { opacity:1; } }
-.lag-role-record-row { display:block; position:relative; overflow:hidden; isolation:isolate; background:#cd3d79; border-radius:var(--lag-radius-md); }
+.lag-role-record-row { display:block; position:relative; overflow:hidden; isolation:isolate; background:var(--lag-control-bg); border-radius:var(--lag-radius-md); }
 .lag-record-body { position:relative; width:100%; z-index:1; margin:0; padding-right:12px; }
 .sao-stage :is(.lag-record-body[data-selected=true],.lag-role-node[data-selected=true],.lag-role-node[aria-pressed=true],.lag-panel-card[aria-pressed=true],.lag-role-surface-card[data-selected=true],.lag-growth-change[data-selected=true]) { background:var(--lag-selected-surface) !important; color:var(--lag-text) !important; border-color:var(--lag-state-selected); box-shadow:inset 3px 0 0 var(--lag-state-selected); }
 .sao-stage .lag-role-node[aria-pressed=true] :is(strong,small), .sao-stage .lag-panel-card[aria-pressed=true] p { color:var(--lag-text) !important; }
-.lag-row-action-area { position:absolute; right:0; top:0; bottom:0; width:144px; display:flex; align-items:stretch; background:#cd3d79; color:white; }
+.lag-row-action-area { position:absolute; right:0; top:0; bottom:0; width:var(--lag-row-action-width); display:flex; align-items:center; justify-content:center; gap:10px; padding:6px 8px; background:color-mix(in srgb,var(--lag-state-error) 14%,var(--lag-control-bg)); color:var(--lag-text); }
 .lag-row-action-area[hidden] { display:none; }
-.lag-row-action-area button { width:72px; display:grid; place-content:center; gap:4px; font-size:12px; min-height:44px; border-left:1px solid #ffffff50; }
-.lag-row-action-symbol { display:grid; place-items:center; width:32px; height:32px; margin:auto; border:3px double currentColor; border-radius:50%; font-size:20px; line-height:1; }
-.lag-row-action-area button:first-child .lag-row-action-symbol { color:#fff; background:#287bbf; }
-.lag-row-action-area button:last-child .lag-row-action-symbol { color:#fff; background:#d13378; }
+.lag-row-action-area button { min-width:52px; min-height:56px; display:grid; justify-items:center; align-content:center; gap:2px; font-size:11px; font-weight:700; border-radius:var(--lag-radius-sm); }
+.lag-row-action-area button:hover,.lag-row-action-area button:focus-visible { background:var(--lag-control-hover-bg); }
+.lag-row-action-symbol { display:grid; place-items:center; width:44px; height:44px; border:3px double currentColor; border-radius:50%; font-size:22px; line-height:1; }
+.lag-row-action-area button:first-child .lag-row-action-symbol { color:var(--lag-state-info); background:color-mix(in srgb,var(--lag-state-info) 12%,var(--lag-control-bg)); }
+.lag-row-action-area button:last-child .lag-row-action-symbol { color:var(--lag-state-error); background:color-mix(in srgb,var(--lag-state-error) 12%,var(--lag-control-bg)); }
 .lag-row-action-area button:disabled { opacity:.45; }
 
 .lag-record-body[data-selected=true]::after, .lag-role-node[data-selected=true]::after { content:""; position:absolute; right:4px; border-block:6px solid transparent; border-left:8px solid var(--lag-amber); }

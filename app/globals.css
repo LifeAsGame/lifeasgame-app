@@ -572,6 +572,25 @@ body {
   gap: var(--lag-space-3);
 }
 
+.lag-player-shell [data-stage-key$="-detail"] .lag-panel-frame { width: min(440px, calc(100vw - 32px)) !important; }
+.lag-player-content { display: grid; gap: 12px; padding-inline: 12px; min-width: 0; }
+.lag-player-content h4 { font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.lag-player-detail-line { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; padding: 10px 12px; border: 1px solid var(--lag-divider); border-radius: var(--lag-radius-sm); background: var(--lag-muted-surface); font-size: 14px; }
+.lag-player-detail-line dt, .lag-player-field > span { color: var(--lag-text-2); font-size: 12px; }
+.lag-player-detail-line dd { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.lag-player-form { display: grid; gap: 12px; }
+.lag-player-field { display: grid; gap: 6px; }
+.lag-player-field > span[data-required]::after { content: " · 필수"; }
+.lag-player-field :where(input, select, textarea) { min-height: 44px; font-size: 16px !important; }
+.lag-player-field textarea { min-height: 88px; resize: vertical; }
+.lag-player-actions { display: flex; gap: 8px; }
+.lag-player-button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--lag-control-border); border-radius: var(--lag-radius-sm); background: var(--lag-control-bg); color: var(--lag-control-text); font-size: 14px; }
+.lag-player-button:disabled { opacity: .55; }
+.lag-player-feedback { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--lag-state-error); border-left-width: 4px; border-radius: var(--lag-radius-sm); background: var(--lag-muted-surface); color: var(--lag-text); font-size: 14px; overflow-wrap: anywhere; }
+.lag-player-shell .lag-panel-title { font-size: 16px; font-weight: 700; letter-spacing: normal; }
+.lag-player-shell .lag-panel-header button { min-width: 44px; min-height: 44px; }
+.lag-player-shell .lag-create-slot .lag-role-button { min-height: 44px; }
+
 .lag-panel-stage,
 .lag-panel-frame {
   flex: 0 0 auto;
@@ -649,12 +668,13 @@ body {
 .lag-role-control {
   width: 100%;
   box-sizing: border-box;
+  min-height: 44px;
   padding: 8px 12px;
   border: 1px solid var(--lag-control-border);
   border-radius: var(--lag-radius-sm);
   background: var(--lag-control-bg);
   color: var(--lag-control-text);
-  font-size: 0.875rem;
+  font-size: 16px;
   letter-spacing: 0.04em;
 }
 
@@ -794,11 +814,11 @@ body {
 }
 
 .lag-role-shell [data-stage-key="role-summary"] .lag-panel-frame {
-  width: min(520px, calc(100vw - 32px)) !important;
+  width: min(344px, calc(100vw - 32px)) !important;
 }
 
 .lag-role-shell [data-stage-key="role-detail"] .lag-panel-frame {
-  width: min(660px, calc(100vw - 32px)) !important;
+  width: min(440px, calc(100vw - 32px)) !important;
 }
 
 .lag-role-summary,
@@ -1399,15 +1419,15 @@ body {
 
 /* v7 Growth: canonical profile, EXP history and stable selected detail. */
 .lag-growth-shell [data-stage-key="player-growth-profile"] .lag-panel-frame {
-  width: min(480px, calc(100vw - 32px)) !important;
+  width: min(344px, calc(100vw - 32px)) !important;
 }
 
 .lag-growth-shell [data-stage-key="player-growth-history"] .lag-panel-frame {
-  width: min(410px, calc(100vw - 32px)) !important;
+  width: min(344px, calc(100vw - 32px)) !important;
 }
 
 .lag-growth-shell [data-stage-key="player-growth-change-detail"] .lag-panel-frame {
-  width: min(560px, calc(100vw - 32px)) !important;
+  width: min(440px, calc(100vw - 32px)) !important;
 }
 
 .lag-growth-shell .lag-panel-header button {
@@ -5048,5 +5068,10 @@ select {
 .lag-role-record-row > .lag-role-actions { grid-column: 1 / -1; }
 .lag-role-node-list { min-width: 0; }
 .lag-role-selector [hidden], .lag-person-panels [hidden], .lag-role-relations [hidden] { display: none !important; }
-.lag-person-panels .lag-panel-frame, .lag-role-relations .lag-panel-frame { width: min(440px, calc(100vw - 32px)) !important; }
+.lag-person-panels [data-stage-key="person-list"] .lag-panel-frame, .lag-role-relations [data-stage-key="role-detail"] .lag-panel-frame { width: min(344px, calc(100vw - 32px)) !important; }
+.lag-person-panels [data-stage-key="person-detail"] .lag-panel-frame, .lag-role-relations [data-stage-key="role-relation-detail"] .lag-panel-frame { width: min(440px, calc(100vw - 32px)) !important; }
+.lag-person-panels .lag-role-form, .lag-role-relations .lag-role-form { min-width: 0; padding-inline: 24px; }
+.lag-role-shell [data-stage-key="role-detail"] .lag-role-form { padding-inline: 24px; }
+.lag-person-panels .lag-role-form :where(input,select,textarea), .lag-role-relations .lag-role-form :where(input,select,textarea) { min-width: 0; width: 100%; box-sizing: border-box; font-size: 16px; }
+@media (max-width: 899px) { .lag-person-panels .lag-role-form, .lag-role-relations .lag-role-form, .lag-role-shell [data-stage-key="role-detail"] .lag-role-form { padding-inline: 16px; } }
 .lag-role-selector .lag-role-form { padding-inline: 0; }

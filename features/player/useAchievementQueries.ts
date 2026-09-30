@@ -28,7 +28,7 @@ export function useAchievementQueries() {
       setItems(next);
       return next;
     } catch (caught) {
-      setListError(message(caught, "Unable to load acquired Achievements."));
+      setListError(message(caught, "획득한 업적을 불러오지 못했습니다."));
       return undefined;
     } finally {
       setListLoading(false);
@@ -46,7 +46,7 @@ export function useAchievementQueries() {
       if (requestId === detailRequestId.current) setDetail(next);
       return next;
     } catch (caught) {
-      if (requestId === detailRequestId.current) setDetailError(message(caught, "Unable to load acquired Achievement."));
+      if (requestId === detailRequestId.current) setDetailError(message(caught, "업적 상세를 불러오지 못했습니다."));
       return undefined;
     } finally {
       if (requestId === detailRequestId.current) setDetailLoading(false);

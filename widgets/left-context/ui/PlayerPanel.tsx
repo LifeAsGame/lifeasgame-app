@@ -119,15 +119,15 @@ export function PlayerPanel({
           </div>
         ) : null}
         {/* Identity header */}
-        <div className="text-center">
-          <h2 className="font-semibold" style={{ fontSize: "2.25rem", letterSpacing: "0.08em", color: "var(--lag-text)" }}>
+        <div className="text-left">
+          <h2 className="font-semibold" style={{ fontSize: "1.5rem", color: "var(--lag-text)" }}>
             {name}
           </h2>
-          <p className="mt-0.5 uppercase" style={{ fontSize: "11px", letterSpacing: "0.22em", color: "var(--lag-text-2)" }}>
+          <p className="mt-0.5" style={{ fontSize: "12px", color: "var(--lag-text-2)" }}>
             {gender}
           </p>
-          <p className="mt-1 uppercase" style={{ fontSize: "11px", letterSpacing: "0.22em", color: "var(--lag-text-2)" }}>
-            Lv.{level} {job}
+          <p className="mt-1" style={{ fontSize: "12px", color: "var(--lag-text-2)" }}>
+            레벨 {level} · {job}
           </p>
           <div
             className="mx-auto mt-4"
@@ -137,7 +137,7 @@ export function PlayerPanel({
 
         {roles.length > 0 ? (
           <div className="mt-4 px-1">
-            <p className="mb-2 text-center uppercase" style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--lag-text-2)" }}>역할</p>
+            <p className="mb-2 text-left" style={{ fontSize: 12, color: "var(--lag-text-2)" }}>역할</p>
             <RoleBadges roles={roles} selectedRoleId={selectedRoleId} onSelect={onRoleSelect} />
           </div>
         ) : null}

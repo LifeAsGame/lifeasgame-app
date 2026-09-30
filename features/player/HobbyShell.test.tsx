@@ -6,7 +6,7 @@ import HobbyShell from "./HobbyShell";
 
 const api = vi.hoisted(() => ({ deletePlayerHobbyApi: vi.fn(), getHobbyCatalogApi: vi.fn(), getPlayerHobbiesApi: vi.fn(), registerPlayerHobbyApi: vi.fn(), updatePlayerHobbyApi: vi.fn() }));
 vi.mock("./api", () => api);
-vi.mock("@/shared/ui/PanelCard", () => ({ default: ({ label, subtitle, onClick }: { label: string; subtitle: string; onClick: () => void }) => <button type="button" data-testid="hobby-entry" onClick={onClick}>{label} · {subtitle}</button> }));
+vi.mock("@/shared/ui/PanelCard", () => ({ default: ({ label, subtitle, onClick, onAction }: { label: string; subtitle: string; onClick: () => void; onAction: (type: string) => void }) => <div><button type="button" data-testid="hobby-entry" onClick={onClick}>{label} · {subtitle}</button><button type="button" onClick={() => onAction("edit")}>수정</button><button type="button" onClick={() => onAction("delete")}>삭제</button></div> }));
 
 const catalog: HobbyCatalogInfo[] = [{ hobbyId: 1, name: "Reading", category: "Learning" }, { hobbyId: 2, name: "Running", category: "Fitness" }];
 const owned: PlayerHobbyInfo = { ...catalog[0], customName: "Books", detail: null, proficiency: 40, status: "PAUSED", startedOn: null, xp: 100 };
@@ -36,14 +36,15 @@ describe("취미 management surface를 사용할 때", () => {
   it("canonical statuses, nullable fields와 catalog-only selector를 표시하고 stale values를 제거한다", async () => {
     render(<HobbyShell />);
     const entry = await screen.findByTestId("hobby-entry");
-    expect(entry).toHaveTextContent("Reading · PAUSED · 40/100");
+    expect(entry).toHaveTextContent("Reading · 일시 중지 · 숙련도 40/100");
     expect(screen.queryByLabelText("취미")).not.toBeInTheDocument();
     fireEvent.keyDown(screen.getByRole("button", { name: "취미" }), { key: "Enter", altKey: true });
-    expect(Array.from((screen.getByLabelText("취미") as HTMLSelectElement).options, ({ text }) => text)).toEqual(["선택…", "Running · Fitness"]);
+    expect(Array.from((screen.getByLabelText("취미") as HTMLSelectElement).options, ({ text }) => text)).toEqual(["선택…", "Running · 운동"]);
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     fireEvent.click(entry);
-    expect(screen.getByText("시작일: 미등록")).toBeInTheDocument();
-    expect(screen.getByText("미등록")).toBeInTheDocument();
+    expect(screen.getAllByText("미등록").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "취미 저장" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
     expect(Array.from((screen.getByLabelText("변경할 상태") as HTMLSelectElement).options, ({ value }) => value)).toEqual(["", "ACTIVE", "PAUSED", "DROPPED"]);
     expect(screen.queryByText(/ON_HOLD|INACTIVE/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "취미 저장" }));
@@ -90,7 +91,7 @@ describe("취미 management surface를 사용할 때", () => {
     api.getPlayerHobbiesApi.mockResolvedValue([owned, registered]);
     fireEvent.submit(form);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "처리 중…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "저장 중…" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
     for (const label of ["취미", "취미 이름", "설명", "숙련도", "상태", "시작일"]) {
       expect(screen.getByLabelText(label)).toBeDisabled();
@@ -101,7 +102,7 @@ describe("취미 management surface를 사용할 때", () => {
     await act(async () => { finish(response); });
 
     await waitFor(() => expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/Evening run · Running · ACTIVE · 35\/100/)).toBeVisible());
+    await waitFor(() => expect(screen.getByText(/Evening run · Running · 활동 중 · 숙련도 35\/100/)).toBeVisible());
     expect(document.querySelector(".lag-create-slot")).toBe(slot);
     expect(screen.queryByRole("alert", { hidden: true })).not.toBeInTheDocument();
     expect(api.getPlayerHobbiesApi).toHaveBeenCalledTimes(3);
@@ -124,4 +125,21 @@ describe("취미 management surface를 사용할 때", () => {
     expect(screen.queryByRole("alert", { hidden: true })).not.toBeInTheDocument();
     expect(api.registerPlayerHobbyApi).toHaveBeenCalledTimes(1);
   });
+  it("상세와 편집을 분리하고 실패 입력·삭제 취소를 보존한다", async () => {
+    api.updatePlayerHobbyApi.mockRejectedValueOnce(new Error("수정 실패"));
+    render(<HobbyShell />);
+    fireEvent.click(await screen.findByTestId("hobby-entry"));
+    expect(screen.queryByLabelText("변경할 숙련도")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "수정" }));
+    fireEvent.change(screen.getByLabelText("변경할 숙련도"), { target: { value: "50" } });
+    fireEvent.click(screen.getByRole("button", { name: "취미 저장" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("수정 실패");
+    expect(screen.getByLabelText("변경할 숙련도")).toHaveValue(50);
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(screen.queryByLabelText("변경할 숙련도")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    fireEvent.click(await screen.findByRole("button", { name: /취소/ }));
+    expect(api.deletePlayerHobbyApi).not.toHaveBeenCalled();
+  });
+
 });

@@ -6,7 +6,6 @@ import { SwipeButton } from "@/features/role/RecordRow";
 export function CreateCategory({ title, onOpen, onCreate }: { title: string; onOpen: () => void; onCreate: () => void }) {
   return <div className="lag-create-category">
     <SwipeButton className="lag-role-node" creation onClick={onOpen} onDoubleClick={onCreate}><strong>{title}</strong><span aria-hidden>→</span></SwipeButton>
-    <p className="lag-create-hint">목록: 한 번 누르기 · 등록: 두 번 누르기 / Alt+Enter</p>
   </div>;
 }
 
