@@ -43,10 +43,12 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
     { id: "overview",  label: "개요",  slotLabel: "OV" },
     { id: "relations", label: "관계", slotLabel: "RE" },
     { id: "events",    label: "일정",    slotLabel: "EV" },
+    { id: "parties", label: "소모임", slotLabel: "RP" },
   ],
   social: [
     { id: "guilds", label: "길드", slotLabel: "GI" },
     { id: "parties", label: "파티", slotLabel: "PA" },
+    { id: "role-parties", label: "역할 소모임", slotLabel: "RP" },
   ],
   lifelog: [
     { id: "journal",    label: "기록 모아보기",    slotLabel: "JR" },

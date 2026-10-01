@@ -54,7 +54,7 @@ async function parseResponse<T>(response: Response, method: string, path: string
     throw new ApiError(
       response.status,
       envelope?.code ?? `HTTP_${response.status}`,
-      envelope?.message ?? `${method} ${path} failed: ${response.status} ${response.statusText}`,
+      envelope?.message ?? (body as { detail?: string } | null)?.detail ?? `${method} ${path} failed: ${response.status} ${response.statusText}`,
     );
   }
 
