@@ -126,7 +126,7 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                               ? "Empty"
                               : enrichmentMissing
                                 ? `Occupied · Item details unavailable · itemInstanceId ${slot.itemInstanceId}`
-                                : `${item?.itemName} · ${item?.rarity}`}</small>
+                                : `${item?.itemName?.trim() || `Item #${item?.itemId}`} · ${item?.rarity}`}</small>
                           </span>
                           <span aria-hidden>→</span>
                         </button>
@@ -147,7 +147,7 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                           {candidates.map((item) => (
                             <button key={item.itemInstanceId} type="button" className="lag-gear-card" data-kind="candidate" data-selected={selectedItemInstanceId === item.itemInstanceId} aria-pressed={selectedItemInstanceId === item.itemInstanceId} onClick={() => setSelectedItemInstanceId(item.itemInstanceId)}>
                               <span aria-hidden>x{item.quantity}</span>
-                              <span><strong>{item.itemName}</strong><small>{item.rarity} · {item.category} · {item.type}</small><small>itemInstanceId {item.itemInstanceId}</small></span>
+                              <span><strong>{item.itemName.trim() || `Item #${item.itemId}`}</strong><small>{item.rarity} · {item.category} · {item.type}</small><small>itemInstanceId {item.itemInstanceId}</small></span>
                               <span aria-hidden>→</span>
                             </button>
                           ))}
@@ -182,7 +182,7 @@ export default function GearShell({ onBack }: { onBack?: () => void }) {
                     <DataRow label="Equipped">{selectedSlot.slot.itemInstanceId === null
                       ? "Empty"
                       : selectedSlot.item
-                        ? `${selectedSlot.item.itemName} · ${selectedSlot.item.rarity}`
+                        ? `${selectedSlot.item.itemName.trim() || `Item #${selectedSlot.item.itemId}`} · ${selectedSlot.item.rarity}`
                         : `Item details unavailable · itemInstanceId ${selectedSlot.slot.itemInstanceId}`}</DataRow>
                   </dl>
                 </section>

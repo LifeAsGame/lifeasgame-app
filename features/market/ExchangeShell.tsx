@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import type { MarketSubId } from "@/entities/nav";
@@ -17,6 +17,7 @@ import type {
 } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
+import { SwipeButton } from "@/features/role/RecordRow";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import {
   EXCHANGE_CURRENCIES,
@@ -84,8 +85,16 @@ function ExchangeRow({ selected, title, meta, value, disabled, status, onClick }
 
 function WalletPanel({ query, onBack }: { query: ExchangeQuery<WalletBalance | null>; onBack: () => void }) {
   const wallet = query.data;
+  const [selected, setSelected] = useState<EconomyCurrency | null>(null);
+  const balance = wallet?.balances.find((item) => item.currency === selected);
+  const close = () => {
+    const trigger = document.querySelector<HTMLButtonElement>('.lag-exchange-balance[aria-pressed="true"]');
+    setSelected(null);
+    requestStageFocus("market-stage-1", "back");
+    requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
+  };
   return (
-    <PanelStage stageKey="market-stage-1">
+    <><PanelStage stageKey="market-stage-1" panelRole="list">
       <PanelFrame title="Wallet" depth={0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
         <section className="lag-exchange-surface">
           <SurfaceHeader eyebrow="Balance" title="Wallet" description="Your current Exchange balance." accent="cyan" />
@@ -93,16 +102,24 @@ function WalletPanel({ query, onBack }: { query: ExchangeQuery<WalletBalance | n
           {query.error ? <div className="lag-exchange-state"><Feedback>{query.error} {wallet ? "Showing last confirmed balances." : "No confirmed balances are available."}</Feedback><button type="button" className="lag-exchange-button" onClick={() => void query.reload()}>Retry</button></div> : null}
           {!query.loading && !query.error && !wallet ? <Feedback state="info" role="status">Wallet balances are not yet confirmed.</Feedback> : null}
           {wallet?.balances.map((balance) => (
-            <article key={balance.currency} className="lag-exchange-balance" aria-label={`${balance.currency} balance`}>
+            <button key={balance.currency} type="button" className="lag-exchange-balance" aria-label={`${balance.currency} balance`} aria-pressed={selected === balance.currency} onClick={() => setSelected(balance.currency)}>
               <span>{balance.currency} available</span>
               <strong>{balance.available.toLocaleString()}</strong>
               <em>{balance.currency}</em>
               <div className="lag-exchange-balance-held"><span>Held</span><b>{balance.held.toLocaleString()} {balance.currency}</b></div>
-            </article>
+            </button>
           ))}
         </section>
       </PanelFrame>
     </PanelStage>
+    <AnimatePresence initial={false}>{balance ? <PanelStage stageKey="market-stage-2" panelRole="detail">
+      <PanelFrame title={`${balance.currency} 상세`} depth={0} backButton={<BackButton label="지갑으로" onClick={close} />}>
+        <article className="lag-exchange-detail"><SurfaceHeader eyebrow="잔액" title={balance.currency} description="서버에서 확인한 지갑 잔액" accent="cyan" />
+          <DetailSection title="잔액"><DataRow label="사용 가능">{formatCurrency(balance.available, balance.currency)}</DataRow><DataRow label="예약 보류">{formatCurrency(balance.held, balance.currency)}</DataRow></DetailSection>
+          {query.loading || query.error ? <Feedback state="info" role="status">마지막으로 확인한 잔액입니다. 최신 조회를 확인하세요.</Feedback> : null}
+        </article>
+      </PanelFrame>
+    </PanelStage> : null}</AnimatePresence></>
   );
 }
 
@@ -198,10 +215,9 @@ function MyListingDetail({ listing, itemName, pending, onBack, onCancel }: { lis
   );
 }
 
-function CreateListingForm({ entries, pending, onBack, onSubmit }: {
+function CreateListingForm({ entries, pending, onSubmit }: {
   entries: InventoryEntry[];
   pending: boolean;
-  onBack: () => void;
   onSubmit: (entry: InventoryEntry, price: number, currency: EconomyCurrency) => void;
 }) {
   const [selectedEntryId, setSelectedEntryId] = useState<number | null>(null);
@@ -241,15 +257,22 @@ function CreateListingForm({ entries, pending, onBack, onSubmit }: {
       {selectedEntry ? <Feedback state="info" role="status">Selected: {selectedEntry.itemName} · complete stack x{selectedEntry.quantity}</Feedback> : null}
       <div className="lag-exchange-actions">
         <button type="submit" className="lag-exchange-action" disabled={pending || !selectedEntry || !priceValid}>{pending ? "Working..." : "Create Listing"}</button>
-        <button type="button" className="lag-exchange-button" onClick={onBack}>Cancel</button>
       </div>
     </form>
   );
 }
 
 function TradePanel({ query, playerId, onBack }: { query: ExchangeQuery<TradeSummary[]>; playerId: number; onBack: () => void }) {
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const selected = query.data.find((trade) => trade.id === selectedId);
+  const close = () => {
+    const trigger = document.querySelector<HTMLButtonElement>('.lag-exchange-trade[aria-pressed="true"]');
+    setSelectedId(null);
+    requestStageFocus("market-stage-1", "back");
+    requestAnimationFrame(() => trigger?.focus({ preventScroll: true }));
+  };
   return (
-    <PanelStage stageKey="market-stage-1">
+    <><PanelStage stageKey="market-stage-1" panelRole="list">
       <PanelFrame title="Trade History" depth={0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
         <section className="lag-exchange-surface">
           <SurfaceHeader eyebrow="Trade History" title="Trade History" description="Your completed Marketplace purchases and sales." accent="violet" />
@@ -257,13 +280,20 @@ function TradePanel({ query, playerId, onBack }: { query: ExchangeQuery<TradeSum
             <div className="lag-exchange-list">
               {query.data.map((trade) => {
                 const presentation = tradePresentation(trade, playerId);
-                return <article key={trade.id} className="lag-exchange-trade"><span>{presentation.direction}</span><strong>{presentation.counterparty}</strong><small>Listing #{trade.listingId}</small><em>{formatCurrency(trade.price, trade.currency)}</em></article>;
+                return <button type="button" key={trade.id} className="lag-exchange-trade" aria-pressed={selectedId === trade.id} onClick={() => setSelectedId(trade.id)}><span>{presentation.direction}</span><strong>{presentation.counterparty}</strong><small>Listing #{trade.listingId}</small><em>{formatCurrency(trade.price, trade.currency)}</em></button>;
               })}
             </div>
           </QueryState>
         </section>
       </PanelFrame>
     </PanelStage>
+    <AnimatePresence initial={false}>{selected ? <PanelStage stageKey="market-stage-2" panelRole="detail">
+      <PanelFrame title="거래 상세" depth={0} backButton={<BackButton label="거래 내역으로" onClick={close} />}>
+        <article className="lag-exchange-detail"><SurfaceHeader eyebrow={`Trade #${selected.id}`} title={tradePresentation(selected, playerId).direction} description={tradePresentation(selected, playerId).counterparty} accent="violet" />
+          <DetailSection title="거래 내용"><DataRow label="매물 ID">{selected.listingId}</DataRow><DataRow label="구매자">Player #{selected.buyerId}</DataRow><DataRow label="판매자">Player #{selected.sellerId}</DataRow><DataRow label="전체 가격">{formatCurrency(selected.price, selected.currency)}</DataRow></DetailSection>
+        </article>
+      </PanelFrame>
+    </PanelStage> : null}</AnimatePresence></>
   );
 }
 
@@ -277,8 +307,10 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
   const [listingReservation, setListingReservation] = useState<ListingReservation | null>(null);
   const [creatingListing, setCreatingListing] = useState(false);
+  const selectionEpoch = useRef(0);
 
   useEffect(() => {
+    selectionEpoch.current += 1;
     setShopSurface("system-shop");
     setSelectedShopItemId(null);
     setActivePurchaseId(null);
@@ -302,14 +334,13 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
   const effectivePurchaseId = activePurchaseId ?? recoveredPurchase?.id ?? null;
   const listingSource = shopSurface === "marketplace" ? queries.openListings.data : queries.myListings.data;
   const selectedListing = listingSource.find((listing) => listing.id === selectedListingId) ?? null;
-  const detailIdentity = creatingListing
-    ? "create-listing"
-    : selectedShopItem
+  const detailIdentity = creatingListing ? null : selectedShopItem
       ? `shop-${selectedShopItem.id}-${activePurchase?.status ?? (effectivePurchaseId === null ? "new" : `pending-${effectivePurchaseId}`)}`
       : selectedListing
         ? `${shopSurface}-${selectedListing.id}-${listingReservation?.reservationToken ?? "new"}`
         : null;
   const clearDetailState = () => {
+    selectionEpoch.current += 1;
     setSelectedShopItemId(null);
     setActivePurchaseId(null);
     setSelectedListingId(null);
@@ -318,9 +349,9 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
     mutations.clearError();
   };
   const closeDetail = () => {
-    const trigger = document.querySelector<HTMLButtonElement>('[data-stage-key="market-stage-1"] .lag-exchange-row[data-selected="true"]');
+    const trigger = document.querySelector<HTMLButtonElement>('[data-stage-key="market-stage-2"] .lag-exchange-row[data-selected="true"]');
     clearDetailState();
-    requestStageFocus("market-stage-1", "back");
+    requestStageFocus("market-stage-2", "back");
     requestAnimationFrame(() => {
       const target = trigger?.isConnected ? trigger : document.querySelector<HTMLButtonElement>('.lag-exchange-tabs button[data-selected="true"]');
       target?.focus({ preventScroll: true });
@@ -329,24 +360,30 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
 
   return (
     <div className="lag-panel-rail lag-exchange-shell" data-testid="exchange-shell">{dialog}
-      <PanelStage stageKey="market-stage-1">
-        <PanelFrame title="Shop" depth={detailIdentity ? 1 : 0} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
+      <PanelStage stageKey="market-stage-1" panelRole="list">
+        <PanelFrame title="상점 분류" depth={2} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
           <section className="lag-exchange-surface">
             <SurfaceHeader eyebrow="Exchange Shop" title="Shop" description="Browse System Shop items and player listings, or sell an inventory item." accent="cyan" />
-            {mutations.completedTrades.map((trade) => <Feedback key={trade.id} state="info" role="status">Purchase completed · Trade #{trade.id} · Listing #{trade.listingId}. Check Wallet, Items and Trade History for the latest state.</Feedback>)}
-            {mutations.marketplaceRefreshError ? <Feedback>{mutations.marketplaceRefreshError}</Feedback> : null}
-            <button type="button" className="lag-exchange-button" disabled={mutations.pendingKey !== null} onClick={() => void mutations.refreshMarketplace()}>{mutations.marketplaceRefreshError ? "Retry Exchange lookup" : "Refresh Exchange"}</button>
             <div className="lag-exchange-tabs" aria-label="Shop surfaces">
               {([
                 ["system-shop", "System Shop"],
                 ["marketplace", "Marketplace"],
                 ["my-listings", "My Listings"],
-              ] as const).map(([id, label]) => <button key={id} type="button" data-selected={shopSurface === id} aria-pressed={shopSurface === id} onClick={() => { setShopSurface(id); clearDetailState(); }}>{label}</button>)}
+              ] as const).map(([id, label]) => <SwipeButton key={id} data-selected={shopSurface === id} aria-pressed={shopSurface === id} creation={id === "my-listings"} onClick={() => { setShopSurface(id); clearDetailState(); requestStageFocus("market-stage-2", "forward"); }} onDoubleClick={id === "my-listings" ? () => { clearDetailState(); setShopSurface(id); setCreatingListing(true); requestStageFocus("market-stage-2", "forward"); } : undefined}>{label}</SwipeButton>)}
             </div>
+          </section>
+        </PanelFrame>
+      </PanelStage>
+      <PanelStage stageKey="market-stage-2" panelRole="list">
+        <PanelFrame title={creatingListing ? "매물 등록" : shopSurface === "system-shop" ? "System Shop" : shopSurface === "marketplace" ? "Marketplace" : "My Listings"} depth={detailIdentity ? 1 : 0} backButton={<BackButton label={creatingListing ? "내 매물로" : "상점 분류로"} onClick={creatingListing ? () => setCreatingListing(false) : () => requestStageFocus("market-stage-1", "back")} />}>
+          {creatingListing ? <>{mutations.error ? <div className="lag-exchange-state"><Feedback>{mutations.error}</Feedback></div> : null}<CreateListingForm entries={queries.inventory.data} pending={mutations.pendingKey !== null} onSubmit={(entry, price, currency) => void mutations.createListing(entry, price, currency).then((listing) => { if (listing) setCreatingListing(false); })} /></> : <section className="lag-exchange-surface">
+            {mutations.completedTrades.map((trade) => <Feedback key={trade.id} state="info" role="status">Purchase completed · Trade #{trade.id} · Listing #{trade.listingId}. Check Wallet, Items and Trade History for the latest state.</Feedback>)}
+            {mutations.marketplaceRefreshError ? <Feedback>{mutations.marketplaceRefreshError}</Feedback> : null}
+            <button type="button" className="lag-exchange-button" disabled={mutations.pendingKey !== null} onClick={() => void mutations.refreshMarketplace()}>{mutations.marketplaceRefreshError ? "Retry Exchange lookup" : "Refresh Exchange"}</button>
             {shopSurface === "system-shop" ? (
               <QueryState query={queries.shopItems} empty="No System Shop items.">
                 <div className="lag-exchange-list">
-                  {queries.shopItems.data.map((item) => <ExchangeRow key={item.id} selected={selectedShopItemId === item.id} title={itemIdentity(item.itemId)} meta={`Shop item #${item.id} · ${item.available ? "Available" : "Unavailable"}`} value={formatCurrency(item.price, item.currency)} status={item.reservationTtlSec ? `Reservation · ${item.reservationTtlSec}s` : "Direct purchase"} onClick={() => { setSelectedShopItemId(item.id); setActivePurchaseId(null); setSelectedListingId(null); }} />)}
+                  {queries.shopItems.data.map((item) => <ExchangeRow key={item.id} selected={selectedShopItemId === item.id} title={itemIdentity(item.itemId)} meta={`Shop item #${item.id} · ${item.available ? "Available" : "Unavailable"}`} value={formatCurrency(item.price, item.currency)} status={item.reservationTtlSec ? `Reservation · ${item.reservationTtlSec}s` : "Direct purchase"} onClick={() => { selectionEpoch.current++; setSelectedShopItemId(item.id); setActivePurchaseId(null); setSelectedListingId(null); }} />)}
                 </div>
               </QueryState>
             ) : null}
@@ -354,34 +391,32 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
             {shopSurface === "marketplace" ? (
               <QueryState query={queries.openListings} empty="No open Marketplace listings.">
                 <div className="lag-exchange-list">
-                  {queries.openListings.data.filter((listing) => !mutations.completedTrades.some((trade) => trade.listingId === listing.id)).map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={(listing.itemId === null ? null : queries.itemNames[listing.itemId]) ?? itemIdentity(listing.itemId)} meta={listing.sellerId === playerId ? "Your listing" : `Seller · Player #${listing.sellerId}`} value={formatCurrency(listing.price, listing.currency)} status={`${listing.status} · ${listingQuantity(listing.saleQuantity)}`} onClick={() => { setSelectedListingId(listing.id); setListingReservation(null); setSelectedShopItemId(null); }} />)}
+                  {queries.openListings.data.filter((listing) => !mutations.completedTrades.some((trade) => trade.listingId === listing.id)).map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={(listing.itemId === null ? null : queries.itemNames[listing.itemId]) ?? itemIdentity(listing.itemId)} meta={listing.sellerId === playerId ? "Your listing" : `Seller · Player #${listing.sellerId}`} value={formatCurrency(listing.price, listing.currency)} status={`${listing.status} · ${listingQuantity(listing.saleQuantity)}`} onClick={() => { selectionEpoch.current++; setSelectedListingId(listing.id); setListingReservation(null); setSelectedShopItemId(null); }} />)}
                 </div>
               </QueryState>
             ) : null}
 
             {shopSurface === "my-listings" ? (
               <>
-                <button type="button" className="lag-exchange-action" disabled={mutations.pendingKey !== null} onClick={() => { setCreatingListing(true); setSelectedListingId(null); }}>Create Listing</button>
                 <QueryState query={queries.myListings} empty="No My Listings.">
                   <div className="lag-exchange-list">
-                    {queries.myListings.data.map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={(listing.itemId === null ? null : queries.itemNames[listing.itemId]) ?? itemIdentity(listing.itemId)} meta={`Listing #${listing.id}`} value={formatCurrency(listing.price, listing.currency)} status={`${listing.status} · ${listingQuantity(listing.saleQuantity)}`} onClick={() => { setSelectedListingId(listing.id); setCreatingListing(false); setListingReservation(null); }} />)}
+                    {queries.myListings.data.map((listing) => <ExchangeRow key={listing.id} selected={selectedListingId === listing.id} title={(listing.itemId === null ? null : queries.itemNames[listing.itemId]) ?? itemIdentity(listing.itemId)} meta={`Listing #${listing.id}`} value={formatCurrency(listing.price, listing.currency)} status={`${listing.status} · ${listingQuantity(listing.saleQuantity)}`} onClick={() => { selectionEpoch.current++; setSelectedListingId(listing.id); setCreatingListing(false); setListingReservation(null); }} />)}
                   </div>
                 </QueryState>
               </>
             ) : null}
-          </section>
+          </section>}
         </PanelFrame>
       </PanelStage>
 
       <AnimatePresence initial={false}>
         {detailIdentity ? (
-          <PanelStage key="market-stage-2" stageKey="market-stage-2" index={1}>
-            <PanelFrame title={creatingListing ? "New Listing" : "Exchange Detail"} depth={0} contentKey={detailIdentity} backButton={<BackButton label="Back to Shop" onClick={closeDetail} />}>
+          <PanelStage key="market-stage-3" stageKey="market-stage-3" index={1} panelRole="detail">
+            <PanelFrame title="Exchange Detail" depth={0} contentKey={detailIdentity} backButton={<BackButton label="Back to Shop" onClick={closeDetail} />}>
               {mutations.error ? <div className="lag-exchange-state"><Feedback>{mutations.error}</Feedback></div> : null}
-              {selectedShopItem ? <ShopItemDetail item={selectedShopItem} purchase={activePurchase} purchaseId={effectivePurchaseId} pending={mutations.pendingKey !== null} onBack={closeDetail} onRefresh={() => { if (effectivePurchaseId !== null) void mutations.refreshShopPurchase(effectivePurchaseId).then((purchase) => setActivePurchaseId(purchase?.id ?? effectivePurchaseId)); }} /> : null}
-              {shopSurface === "marketplace" && selectedListing ? <ListingDetail listing={selectedListing} itemName={selectedListing.itemId === null ? null : queries.itemNames[selectedListing.itemId]} playerId={playerId} reservation={listingReservation} pending={mutations.pendingKey !== null} onBack={closeDetail} onReserve={() => void mutations.reserveListing(selectedListing).then((reservation) => setListingReservation(reservation ?? null))} onPurchase={() => { if (listingReservation) void mutations.purchaseListing(selectedListing, listingReservation.reservationToken).then((trade) => { if (trade) closeDetail(); }); }} /> : null}
+              {selectedShopItem ? <ShopItemDetail item={selectedShopItem} purchase={activePurchase} purchaseId={effectivePurchaseId} pending={mutations.pendingKey !== null} onBack={closeDetail} onRefresh={() => { if (effectivePurchaseId !== null) { const epoch = selectionEpoch.current; void mutations.refreshShopPurchase(effectivePurchaseId).then((purchase) => { if (epoch === selectionEpoch.current) setActivePurchaseId(purchase?.id ?? effectivePurchaseId); }); } }} /> : null}
+              {shopSurface === "marketplace" && selectedListing ? <ListingDetail listing={selectedListing} itemName={selectedListing.itemId === null ? null : queries.itemNames[selectedListing.itemId]} playerId={playerId} reservation={listingReservation} pending={mutations.pendingKey !== null} onBack={closeDetail} onReserve={() => { const epoch = selectionEpoch.current; void mutations.reserveListing(selectedListing).then((reservation) => { if (epoch === selectionEpoch.current && reservation) setListingReservation(reservation); }); }} onPurchase={() => { if (listingReservation) { const epoch = selectionEpoch.current; void mutations.purchaseListing(selectedListing, listingReservation.reservationToken).then((trade) => { if (trade && epoch === selectionEpoch.current) closeDetail(); }); } }} /> : null}
               {shopSurface === "my-listings" && selectedListing ? <MyListingDetail listing={selectedListing} itemName={selectedListing.itemId === null ? null : queries.itemNames[selectedListing.itemId]} pending={mutations.pendingKey !== null} onBack={closeDetail} onCancel={async () => { if (await confirm(`판매 글 #${selectedListing.id}을 취소할까요?`)) void mutations.cancelListing(selectedListing).then((done) => { if (done) closeDetail(); }); }} /> : null}
-              {shopSurface === "my-listings" && creatingListing ? <CreateListingForm entries={queries.inventory.data} pending={mutations.pendingKey !== null} onBack={closeDetail} onSubmit={(entry, price, currency) => void mutations.createListing(entry, price, currency).then((listing) => { if (listing) closeDetail(); })} /> : null}
             </PanelFrame>
           </PanelStage>
         ) : null}

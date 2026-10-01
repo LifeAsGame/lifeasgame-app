@@ -106,7 +106,7 @@ export function useExchangeMutations(queries: ExchangeQueries) {
 
   const reserveListing = (listing: ListingSummary) => run(`listing-reserve-${listing.id}`, async () => {
     const reservation = await reserveListingApi(listing.id, 300);
-    await queries.wallet.reload();
+    if (!await queries.wallet.reload()) setMarketplaceRefreshError("Reservation succeeded, but Wallet could not be refreshed.");
     return reservation;
   });
 
@@ -136,13 +136,15 @@ export function useExchangeMutations(queries: ExchangeQueries) {
 
   const createListing = (entry: InventoryEntry, price: number, currency: EconomyCurrency) => run(`listing-create-${entry.itemInstanceId}`, async () => {
     const listing = await createListingApi({ inventoryEntryId: entry.itemInstanceId, price, currency });
-    await Promise.all([queries.myListings.reload(), queries.openListings.reload(), queries.inventory.reload()]);
+    const results = await Promise.allSettled([queries.myListings.reload(), queries.openListings.reload(), queries.inventory.reload()]);
+    if (!fullyReloaded(results)) setMarketplaceRefreshError("Listing created, but some Exchange data could not be refreshed.");
     return listing;
   });
 
   const cancelListing = (listing: ListingSummary) => run(`listing-cancel-${listing.id}`, async () => {
     await cancelListingApi(listing.id);
-    await Promise.all([queries.myListings.reload(), queries.openListings.reload(), queries.inventory.reload()]);
+    const results = await Promise.allSettled([queries.myListings.reload(), queries.openListings.reload(), queries.inventory.reload()]);
+    if (!fullyReloaded(results)) setMarketplaceRefreshError("Listing canceled, but some Exchange data could not be refreshed.");
     return true;
   });
 

@@ -373,6 +373,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     }
     try {
       await recover(() => epoch === navigationEpoch.current);
+    } catch (caught) {
+      if (epoch === navigationEpoch.current) setMutationError(`요청 후 최신 상태를 확인하지 못했습니다. 다시 조회하세요. ${message(caught, "")}`.trim());
     } finally {
       if (requestError && epoch === navigationEpoch.current) setMutationError(`요청 결과가 확정되지 않았습니다. 다시 조회한 상태를 확인하세요. ${message(requestError, "")}`.trim());
       mutationLocked.current = false;
@@ -381,7 +383,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   };
 
   const recoverQuest = async (code: string, isCurrent: () => boolean) => {
-    await Promise.all([queries.current.reload(), queries.catalog.reload()]);
+    const [current, catalog] = await Promise.all([queries.current.reload(), queries.catalog.reload()]);
+    if (!current || !catalog) throw new Error("퀘스트 목록 재조회 실패");
     if (isCurrent()) await loadQuestDetail(code, true);
   };
 
@@ -389,7 +392,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     if (!await confirm(`${route.title} 경로를 선택할까요?`)) return;
     await runMutation(`select-${route.id}`, () => selectQuestRouteApi(route.id), async (isCurrent) => {
       const latest = await queries.routes.reload();
-      if (isCurrent()) await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
+      if (!latest) throw new Error("경로 목록 재조회 실패");
+      if (isCurrent()) await loadRouteDetail(route.id, latest.mine.some((item) => item.id === route.id), true);
     });
   };
 
@@ -398,7 +402,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     if (!expectedStepId || !await confirm("현재 경로 단계를 진행할까요?")) return;
     await runMutation(`advance-${route.id}`, () => advanceQuestRouteApi(route.id, expectedStepId), async (isCurrent) => {
       const latest = await queries.routes.reload();
-      if (isCurrent()) await loadRouteDetail(route.id, Boolean(latest?.mine.some((item) => item.id === route.id)), true);
+      if (!latest) throw new Error("경로 목록 재조회 실패");
+      if (isCurrent()) await loadRouteDetail(route.id, latest.mine.some((item) => item.id === route.id), true);
     });
   };
 

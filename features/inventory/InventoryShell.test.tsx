@@ -89,7 +89,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       render(<InventoryShell surface="items" />);
 
       expect(await screen.findAllByTestId("inventory-entry")).toHaveLength(3);
-      expect(screen.getByRole("button", { name: "ALL" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "전체 아이템" })).toHaveAttribute("aria-pressed", "true");
       expect(screen.getByRole("button", { name: "CONSUMABLE" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "WEAPON" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "MEMORY" })).not.toBeInTheDocument();
