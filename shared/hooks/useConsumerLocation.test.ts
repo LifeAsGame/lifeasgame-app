@@ -5,7 +5,7 @@ describe("consumer navigation", () => {
   it("keeps navigation identifiers separate from commands", () => {
     expect(parseConsumerLocation("#/menu/quests/current/31")).toEqual({ open: true, main: "quests", sub: "current", detail: "31" });
     expect(parseConsumerLocation("#/menu/system/logout").sub).toBeNull();
-    expect(parseConsumerLocation("#/menu/social").main).toBeNull();
+    expect(parseConsumerLocation("#/menu/social/guilds")).toEqual({ open: true, main: "social", sub: "guilds", detail: null });
     expect(parseConsumerLocation("#/menu/quests/catalog/%EA%B8%B0%EB%A1%9D").detail).toBe("기록");
     expect(parseConsumerLocation("#/%zz").open).toBe(false);
   });
