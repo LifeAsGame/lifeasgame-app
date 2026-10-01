@@ -66,11 +66,33 @@ it("내 분류 등록은 먼저 소유 등록 후 연결하고 연결 실패 재
   fireEvent.keyDown(category, { key: "Enter", altKey: true });
   fireEvent.change(screen.getByRole("combobox", { name: "자격증" }), { target: { value: "2" } });
   fireEvent.click(screen.getByRole("button", { name: "자격증 저장" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("연결 실패");
+  expect(await screen.findByRole("alert")).toHaveTextContent("등록됨 / 분류 배정 실패: 연결 실패");
   fireEvent.click(screen.getByRole("button", { name: "자격증 저장" }));
   await waitFor(() => expect(personal.assignPersonalCategoryApi).toHaveBeenCalledTimes(2));
   expect(api.registerPlayerCertificationApi).toHaveBeenCalledTimes(1);
   expect(personal.assignPersonalCategoryApi).toHaveBeenLastCalledWith("CERTIFICATION", 2, 123);
+});
+
+it("POST 성공 뒤 재조회가 실패해도 등록을 반복하지 않고 확인 후 PATCH만 보낸다", async () => {
+  let current = [owned];
+  let failNextRead = false;
+  api.getPlayerCertificationsApi.mockImplementation(async () => {
+    if (failNextRead) { failNextRead = false; throw new Error("일시적 조회 실패"); }
+    return current;
+  });
+  api.registerPlayerCertificationApi.mockImplementation(async () => {
+    current = [...current, { ...catalog[1], acquiredDate: null, expiresDate: null, grantedAt: "2026-09-01", personalCategoryId: null }];
+    failNextRead = true;
+    return { certificationId: 2 };
+  });
+  render(<CertificationShell />);
+  fireEvent.keyDown(await screen.findByRole("button", { name: /Cloud notes/ }), { key: "Enter", altKey: true });
+  fireEvent.change(screen.getByRole("combobox", { name: "자격증" }), { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "자격증 저장" }));
+  await screen.findByText(/자격증 변경 후 목록을 다시 조회하지 못했습니다/);
+  fireEvent.click(screen.getByRole("button", { name: "자격증 저장" }));
+  await waitFor(() => expect(personal.assignPersonalCategoryApi).toHaveBeenCalledWith("CERTIFICATION", 2, 123));
+  expect(api.registerPlayerCertificationApi).toHaveBeenCalledTimes(1);
 });
 
 it("내 분류 삭제는 소유 항목 삭제와 분리하고 수정에서 연결 해제를 보낸다", async () => {

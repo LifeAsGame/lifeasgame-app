@@ -34,6 +34,30 @@ it("카탈로그가 비어도 기본 18개와 빈 개인 분류를 표시한다"
   expect(screen.getByText("해당 분류의 취미가 없습니다.")).toBeInTheDocument();
 });
 
+it("POST 성공 뒤 재조회 실패 시 취미를 중복 등록하지 않는다", async () => {
+  let current = [owned];
+  let failNextRead = false;
+  api.getPlayerHobbiesApi.mockImplementation(async () => {
+    if (failNextRead) { failNextRead = false; throw new Error("일시적 조회 실패"); }
+    return current;
+  });
+  api.registerPlayerHobbyApi.mockImplementation(async () => {
+    current = [...current, { ...catalog[1], customName: "Chess club", detail: null, proficiency: 10, status: "ACTIVE", startedOn: null, xp: 0, personalCategoryId: null }];
+    failNextRead = true;
+    return { hobbyId: 2 };
+  });
+  render(<HobbyShell />);
+  fireEvent.keyDown(await screen.findByRole("button", { name: /Weekend/ }), { key: "Enter", altKey: true });
+  fireEvent.change(screen.getByRole("combobox", { name: "취미" }), { target: { value: "2" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "취미 이름" }), { target: { value: "Chess club" } });
+  fireEvent.change(screen.getByRole("spinbutton", { name: "숙련도" }), { target: { value: "10" } });
+  fireEvent.click(screen.getByRole("button", { name: "취미 저장" }));
+  await screen.findByText(/취미 변경 후 목록을 다시 조회하지 못했습니다/);
+  fireEvent.click(screen.getByRole("button", { name: "취미 저장" }));
+  await waitFor(() => expect(personal.assignPersonalCategoryApi).toHaveBeenCalledWith("HOBBY", 2, 7));
+  expect(api.registerPlayerHobbyApi).toHaveBeenCalledTimes(1);
+});
+
 it("상위 더블클릭은 개인 분류 생성, 분류 더블클릭은 항목 등록이다", async () => {
   render(<HobbyShell createRequest={1} />);
   expect(await screen.findByRole("textbox", { name: "분류 이름" })).toBeInTheDocument();
