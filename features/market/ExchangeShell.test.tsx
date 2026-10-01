@@ -1,5 +1,5 @@
 import { answerDialog } from "@/shared/ui/dialogTest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -112,13 +112,17 @@ describe("canonical Exchange surfaces", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Wallet unavailable");
     expect(screen.getByRole("alert")).toHaveTextContent("No confirmed balances are available.");
-    expect(screen.queryByRole("article", { name: "GOLD balance" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "GOLD balance" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
-    const gold = await screen.findByRole("article", { name: "GOLD balance" });
-    const gem = screen.getByRole("article", { name: "GEM balance" });
+    const gold = await screen.findByRole("button", { name: "GOLD balance" });
+    const gem = screen.getByRole("button", { name: "GEM balance" });
     expect(gold).toHaveTextContent("GOLD available80GOLDHeld20 GOLD");
     expect(gem).toHaveTextContent("GEM available7GEMHeld3 GEM");
+    fireEvent.click(gold);
+    expect(screen.getByText("사용 가능").nextElementSibling).toHaveTextContent("80 GOLD");
+    fireEvent.click(screen.getByRole("button", { name: "지갑으로" }));
+    await waitFor(() => expect(gold).toHaveFocus());
     expect(screen.queryByText(/transaction|monthly|reserved balance/i)).not.toBeInTheDocument();
   });
 
@@ -128,12 +132,12 @@ describe("canonical Exchange surfaces", () => {
     render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
 
     expect(screen.getByRole("status")).toHaveTextContent("Loading Wallet...");
-    expect(screen.queryByRole("article", { name: "GOLD balance" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "GOLD balance" })).not.toBeInTheDocument();
     pending.resolve(wallet(0, 0, 0, 0));
 
-    const gold = await screen.findByRole("article", { name: "GOLD balance" });
+    const gold = await screen.findByRole("button", { name: "GOLD balance" });
     expect(gold).toHaveTextContent("GOLD available0GOLDHeld0 GOLD");
-    expect(screen.getByRole("article", { name: "GEM balance" })).toHaveTextContent("GEM available0GEMHeld0 GEM");
+    expect(screen.getByRole("button", { name: "GEM balance" })).toHaveTextContent("GEM available0GEMHeld0 GEM");
     expect(screen.queryByText("No confirmed balances are available.")).not.toBeInTheDocument();
   });
 
@@ -141,21 +145,21 @@ describe("canonical Exchange surfaces", () => {
     const pending = deferred<WalletBalance>();
     api.getWalletApi.mockResolvedValueOnce(wallet(80, 20, 7, 3)).mockReturnValueOnce(pending.promise);
     const view = render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
-    await screen.findByRole("article", { name: "GOLD balance" });
+    await screen.findByRole("button", { name: "GOLD balance" });
 
     view.rerender(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
     view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
     expect(screen.getByRole("status")).toHaveTextContent("Refreshing Wallet. Showing last confirmed balances.");
-    expect(screen.getByRole("article", { name: "GOLD balance" })).toHaveTextContent("80");
+    expect(screen.getByRole("button", { name: "GOLD balance" })).toHaveTextContent("80");
     pending.resolve(wallet(0, 0, 0, 0));
-    await waitFor(() => expect(screen.getByRole("article", { name: "GEM balance" })).toHaveTextContent("0"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "GEM balance" })).toHaveTextContent("0"));
 
     view.rerender(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
     api.getWalletApi.mockRejectedValueOnce(new Error("Refresh failed"));
     view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Refresh failed Showing last confirmed balances.");
-    expect(screen.getByRole("article", { name: "GOLD balance" })).toHaveTextContent("0");
-    expect(screen.getByRole("article", { name: "GEM balance" })).toHaveTextContent("0");
+    expect(screen.getByRole("button", { name: "GOLD balance" })).toHaveTextContent("0");
+    expect(screen.getByRole("button", { name: "GEM balance" })).toHaveTextContent("0");
   });
 
   it("keeps System Shop checkout unavailable and one detail frame during replacement", async () => {
@@ -180,7 +184,7 @@ describe("canonical Exchange surfaces", () => {
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
-  it("keeps Shop tab replacement camera-stable while real detail Back focuses the parent", async () => {
+  it("moves from Shop category to list and returns from detail to its parent", async () => {
     const focus = vi.fn();
     window.addEventListener(STAGE_FOCUS_EVENT, focus);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
@@ -189,16 +193,16 @@ describe("canonical Exchange surfaces", () => {
     focus.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "Marketplace" }));
 
-    expect(document.querySelector('[data-stage-key="market-stage-2"]')).toHaveAttribute("aria-hidden", "true");
+    expect(document.querySelector('[data-stage-key="market-stage-3"]')).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("button", { name: "Back to System Shop" })).not.toBeInTheDocument();
-    expect(focus).not.toHaveBeenCalled();
+    expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "market-stage-2", align: "forward" } });
 
     fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
     focus.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "Back to Marketplace" }));
 
     expect(focus).toHaveBeenCalledTimes(1);
-    expect(focus.mock.calls[0][0]).toMatchObject({ detail: { key: "market-stage-1", align: "back" } });
+    expect(focus.mock.calls[0][0]).toMatchObject({ detail: { key: "market-stage-2", align: "back" } });
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
@@ -310,6 +314,19 @@ describe("canonical Exchange surfaces", () => {
     expect(api.reserveListingApi).toHaveBeenCalledWith(201, 300);
   });
 
+  it("does not reopen a reservation after switching listings", async () => {
+    const reservation = deferred<{ reservationToken: string; holdId: string; expiresAt: string }>();
+    api.reserveListingApi.mockReturnValueOnce(reservation.promise);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Marketplace" }));
+    fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
+    fireEvent.click(screen.getByRole("button", { name: /Item #1003/ }));
+    await act(async () => reservation.resolve({ reservationToken: "late", holdId: "late", expiresAt: "2026-08-23T01:00:00Z" }));
+    expect(screen.queryByText("Hold ID")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Your listing" })).toBeDisabled();
+  });
+
   it("keeps purchase success visible after GET failures and Retry cannot purchase again", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: "Marketplace" }));
@@ -347,7 +364,7 @@ describe("canonical Exchange surfaces", () => {
   it("creates a whole-entry listing from a real InventoryEntry with only total price and GOLD/GEM", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: "My Listings" }));
-    fireEvent.click(screen.getByRole("button", { name: "Create Listing" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "My Listings" }), { key: "Enter", altKey: true });
 
     expect(screen.getByRole("button", { name: /Bound Boots/ })).toBeDisabled();
     const stack = screen.getByRole("button", { name: /Owned Potion Stack/ });
@@ -373,7 +390,7 @@ describe("canonical Exchange surfaces", () => {
     api.createListingApi.mockRejectedValue(new Error("Listing rejected"));
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: "My Listings" }));
-    fireEvent.click(screen.getByRole("button", { name: "Create Listing" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "My Listings" }), { key: "Enter", altKey: true });
     fireEvent.click(screen.getByRole("button", { name: /Owned Potion Stack/ }));
     fireEvent.change(screen.getByLabelText("Total Price"), { target: { value: "1" } });
     fireEvent.click(within(screen.getByLabelText("Total Price").closest("form")!).getByRole("button", { name: "Create Listing" }));
@@ -402,6 +419,8 @@ describe("canonical Exchange surfaces", () => {
     expect(screen.getByText("Sold")).toBeInTheDocument();
     expect(screen.getByText("Player #24")).toBeInTheDocument();
     expect(screen.getByText("Player #13")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /BoughtPlayer #24/ }));
+    expect(screen.getByText("구매자").nextElementSibling).toHaveTextContent("Player #7");
     expect(screen.queryByText(/friend|barter|offered|received/i)).not.toBeInTheDocument();
   });
 
@@ -414,7 +433,7 @@ describe("canonical Exchange surfaces", () => {
     view.rerender(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
     await screen.findByRole("button", { name: "My Listings" });
     fireEvent.click(screen.getByRole("button", { name: "My Listings" }));
-    fireEvent.click(screen.getByRole("button", { name: "Create Listing" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "My Listings" }), { key: "Enter", altKey: true });
     await screen.findByText("Sell Item");
     renderedCopy.push(document.body.textContent ?? "");
 
@@ -425,12 +444,12 @@ describe("canonical Exchange surfaces", () => {
     expect(renderedCopy.join(" ")).not.toMatch(/Canonical|backend-owned|PD-01/i);
   });
 
-  it("keeps Exchange at two feature stages and translates the dual-theme hierarchy semantically", () => {
+  it("keeps Exchange at category, list, and detail stages with shared controls", () => {
     const source = readFileSync("features/market/ExchangeShell.tsx", "utf8");
     const css = readFileSync("app/globals.css", "utf8");
     const exchangeCss = css.slice(css.indexOf("/* Exchange uses"), css.indexOf("@media (min-width: 768px)"));
 
-    expect(new Set(source.match(/market-stage-[12]/g))).toEqual(new Set(["market-stage-1", "market-stage-2"]));
+    expect(new Set(source.match(/market-stage-[123]/g))).toEqual(new Set(["market-stage-1", "market-stage-2", "market-stage-3"]));
     expect(source).not.toMatch(/MARKET_|friend|barter|Wishlist|Plan & Rhythm|Income|Asset Trace/);
     expect(exchangeCss).toContain("var(--lag-control-bg)");
     expect(exchangeCss).toContain(".lag-exchange-row:not(:disabled):hover");

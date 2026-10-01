@@ -365,4 +365,54 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 }
 .sao-stage .lag-role-node :is(strong,small) { overflow-wrap:anywhere; }
 .sao-stage .lag-role-node small { white-space:normal; }
+
+/* S4: keep every parent at its reference width while the child opens to its right. */
+.sao-stage :is(.lag-journey-shell,.lag-inventory-shell,.lag-gear-shell,.lag-exchange-shell) { gap:var(--lag-panel-gap) !important; }
+.sao-stage :is(.lag-journey-shell,.lag-inventory-shell,.lag-gear-shell,.lag-exchange-shell) > [data-stage-key] { flex:0 0 var(--lag-list-width); width:var(--lag-list-width); }
+.sao-stage :is(.lag-journey-shell,.lag-inventory-shell,.lag-gear-shell,.lag-exchange-shell) > [data-panel-role=detail],
+.sao-stage .lag-inventory-shell > [data-stage-key$="-detail"],
+.sao-stage .lag-gear-shell > [data-stage-key="inventory-gear-action"] { flex-basis:440px; width:440px; }
+.sao-stage :is(.lag-journey-shell,.lag-inventory-shell,.lag-gear-shell,.lag-exchange-shell) .lag-panel-frame { width:100% !important; max-width:100% !important; }
+.sao-stage :is(.lag-inventory-surface,.lag-inventory-detail,.lag-gear-parts,.lag-gear-workspace,.lag-gear-action-detail,.lag-exchange-surface,.lag-exchange-detail) { padding-inline:24px; gap:12px; min-width:0; }
+.sao-stage .lag-gear-workspace { grid-template-columns:minmax(0,1fr); }
+.sao-stage :is(.lag-inventory-grid,.lag-gear-parts > div,.lag-gear-card-list,.lag-exchange-list,.lag-exchange-entry-picker) { gap:12px; }
+.sao-stage .lag-inventory-filters { display:grid; gap:12px; padding:0 24px; }
+.sao-stage .lag-inventory-filter { min-height:68px; padding:12px 16px; border-radius:var(--lag-radius-sm); background:var(--lag-panel-2); text-align:left; font-size:15px; }
+.sao-stage .lag-inventory-filter[data-selected=true], .sao-stage .lag-exchange-tabs button[data-selected=true] { box-shadow:inset 3px 0 0 var(--lag-state-selected); border-color:var(--lag-state-selected); }
+.sao-stage .lag-inventory-grid { grid-template-columns:minmax(0,1fr); }
+.sao-stage .lag-inventory-tile { grid-template-columns:36px minmax(0,1fr) auto; align-content:center; align-items:center; gap:12px; padding:12px 16px; }
+.sao-stage .lag-inventory-tile-mark { width:36px; height:36px; justify-self:start; font-size:11px; }
+.sao-stage .lag-inventory-tile-copy { gap:4px; }
+.sao-stage .lag-inventory-tile-copy :is(span,small) { font-size:12px; }
+.sao-stage :is(.lag-inventory-tile,.lag-gear-part,.lag-gear-card,.lag-exchange-row,.lag-exchange-entry,.lag-exchange-trade,.lag-exchange-balance) { min-height:68px; height:auto; border-radius:var(--lag-radius-sm); background:var(--lag-panel-2); }
+.sao-stage :is(.lag-inventory-tile,.lag-gear-part,.lag-gear-card,.lag-exchange-row,.lag-exchange-entry,.lag-exchange-trade) strong { font-size:15px; font-weight:700; line-height:1.4; overflow-wrap:anywhere; white-space:normal; text-overflow:clip; }
+.sao-stage :is(.lag-inventory-tile,.lag-gear-part,.lag-gear-card,.lag-exchange-row,.lag-exchange-entry,.lag-exchange-trade) :is(span,small,em) { overflow-wrap:anywhere; white-space:normal; text-overflow:clip; }
+.sao-stage :is(.lag-inventory-detail,.lag-gear-action-detail,.lag-exchange-detail,.lag-journey-detail) :is(h4,h5,dd,p,strong) { overflow-wrap:anywhere; }
+.sao-stage :is(.lag-inventory-section,.lag-gear-section,.lag-exchange-section) { border-radius:var(--lag-radius-sm); }
+.sao-stage .lag-exchange-row { grid-template-columns:36px minmax(0,1fr) auto; }
+.sao-stage .lag-exchange-row .lag-exchange-value { grid-column:2; grid-row:2; font-size:12px; }
+.sao-stage .lag-exchange-row > span:last-child { grid-column:3; grid-row:1 / span 2; }
+.sao-stage .lag-exchange-trade { width:100%; text-align:left; }
+.sao-stage .lag-exchange-balance { width:100%; text-align:left; cursor:pointer; }
+.sao-stage .lag-exchange-balance[aria-pressed=true], .sao-stage .lag-exchange-trade[aria-pressed=true] { border-color:var(--lag-state-selected); box-shadow:inset 3px 0 0 var(--lag-state-selected); }
+.sao-stage .lag-exchange-balance strong { font-size:clamp(24px,3vw,32px); font-weight:700; overflow-wrap:anywhere; }
+.sao-stage .lag-exchange-tabs { grid-template-columns:1fr; gap:12px; }
+.sao-stage .lag-exchange-tabs button { min-height:68px; text-align:left; font-size:15px; }
+.sao-stage .lag-exchange-header { background:transparent; border:0; border-bottom:1px solid var(--lag-divider); border-radius:0; padding:0 0 12px; }
+.sao-stage .lag-exchange-header h4 { font-size:16px; font-weight:700; }
+.sao-stage .lag-exchange-field :is(input,select) { font-size:16px; }
+.sao-stage .lag-quest-rewards { display:grid; gap:12px; }
+.sao-stage .lag-quest-rewards ul { display:grid; gap:12px; }
+.sao-stage .lag-quest-rewards li { border:1px solid var(--lag-divider); border-radius:var(--lag-radius-sm); padding:12px; background:var(--lag-panel-2); font-size:14px; }
+.sao-stage .lag-quest-rewards li p { margin-top:8px; color:var(--lag-text-2); }
+.sao-stage .lag-reward-result { font-family:var(--font-consumer),sans-serif; font-size:15px; }
+.sao-menu-layer[data-main=quests] .lag-workspace { gap:var(--lag-panel-gap); }
+@media(max-width:899px) {
+  .sao-stage :is(.lag-journey-shell,.lag-inventory-shell,.lag-gear-shell,.lag-exchange-shell) > [data-stage-key],
+  .sao-stage :is(.lag-journey-shell,.lag-inventory-shell,.lag-gear-shell,.lag-exchange-shell) > [data-panel-role=detail],
+  .sao-stage .lag-inventory-shell > [data-stage-key$="-detail"],
+  .sao-stage .lag-gear-shell > [data-stage-key="inventory-gear-action"] { flex-basis:calc(100vw - 32px); width:calc(100vw - 32px); }
+  .sao-stage :is(.lag-inventory-surface,.lag-inventory-detail,.lag-gear-parts,.lag-gear-workspace,.lag-gear-action-detail,.lag-exchange-surface,.lag-exchange-detail) { padding-inline:16px; }
+  .sao-stage .lag-inventory-filters { padding-inline:16px; }
+}
 .sao-stage .lag-collection-categories { padding:0 12px; }

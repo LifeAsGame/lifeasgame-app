@@ -42,6 +42,8 @@ function attributeValue(value: unknown): string {
   }
 }
 
+const itemName = (entry: InventoryEntry | MailEntry) => entry.itemName.trim() || `Item #${entry.itemId}`;
+
 function Attributes({ attrs }: { attrs: Record<string, unknown> }) {
   const entries = Object.entries(attrs);
   return (
@@ -58,7 +60,7 @@ function InventoryTile({ entry, selected, kind, onSelect }: { entry: InventoryEn
     <button type="button" className="lag-inventory-tile" data-testid="inventory-entry" data-selected={selected} aria-pressed={selected} onClick={(event) => onSelect(event.currentTarget)}>
       <span className="lag-inventory-tile-mark" aria-hidden>x{entry.quantity}</span>
       <span className="lag-inventory-tile-copy">
-        <strong>{entry.itemName}</strong>
+        <strong>{itemName(entry)}</strong>
         <span>{entry.rarity} · {entry.category}</span>
         <small>{entry.type}{kind === "item" && entry.bound ? " · Bound" : ""}</small>
       </span>
@@ -72,14 +74,14 @@ function ItemDetail({ item }: { item: InventoryEntry }) {
     <article className="lag-inventory-detail">
       <header className="lag-inventory-hero">
         <span>Inventory Entry</span>
-        <h4>{item.itemName}</h4>
+        <h4>{itemName(item)}</h4>
         <ItemDescription itemId={item.itemId} />
         <div><span>{item.rarity}</span><span>{item.category}</span><span>{item.type}</span></div>
       </header>
       <DetailSection title="Identity">
         <DataRow label="Item instance ID">{item.itemInstanceId}</DataRow>
         <DataRow label="Item ID">{item.itemId}</DataRow>
-        <DataRow label="Item name">{item.itemName}</DataRow>
+        <DataRow label="Item name">{itemName(item)}</DataRow>
       </DetailSection>
       <DetailSection title="Inventory">
         <DataRow label="Slot index">{item.slotIndex}</DataRow>
@@ -106,7 +108,7 @@ function MailDetail({ mail, pending, claimed, recoveryBlocked, recoveryError, on
     <article className="lag-inventory-detail">
       <header className="lag-inventory-hero">
         <span>{claimed ? "Claim succeeded · list refresh pending" : "Inbox Entry · Not yet owned"}</span>
-        <h4>{mail.itemName}</h4>
+        <h4>{itemName(mail)}</h4>
         <ItemDescription itemId={mail.itemId} />
         <div><span>{mail.rarity}</span><span>{mail.category}</span><span>{mail.type}</span></div>
       </header>
@@ -148,7 +150,7 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
   const selectedEntryButton = useRef<HTMLButtonElement | null>(null);
   const [selectedItemInstanceId, setSelectedItemInstanceId] = useState<number | null>(null);
   const [selectedMailId, setSelectedMailId] = useState<number | null>(null);
-  const [category, setCategory] = useState("ALL");
+  const [category, setCategory] = useState<string | null>("ALL");
   const items = surface === "items";
   const categories = useMemo(
     () => Array.from(new Set(queries.inventory.data.entries.map((entry) => entry.category))).sort(),
@@ -181,7 +183,7 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
   }, [focusList, items, selectedMail, selectedMailId, query.loading]);
 
   useEffect(() => {
-    if (category !== "ALL" && !categories.includes(category)) {
+    if (category !== null && category !== "ALL" && !categories.includes(category)) {
       setCategory("ALL");
       setSelectedItemInstanceId(null);
     } else if (category !== "ALL" && selectedItemInstanceId !== null && !queries.inventory.data.entries.some((entry) => entry.itemInstanceId === selectedItemInstanceId && entry.category === category)) {
@@ -191,7 +193,8 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
 
   const selectCategory = (next: string) => {
     setCategory(next);
-    if (selectedItem && next !== "ALL" && selectedItem.category !== next) setSelectedItemInstanceId(null);
+    setSelectedItemInstanceId(null);
+    requestStageFocus("inventory-items-list", "forward");
   };
 
   const closeDetail = () => {
@@ -203,20 +206,20 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
 
   return (
     <div className="lag-panel-rail lag-inventory-shell relative" data-testid="inventory-shell">{dialog}
-      <PanelStage stageKey={`inventory-${surface}-list`}>
-        <PanelFrame title={items ? "Items" : "Inbox"} depth={1} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
+      {items ? <PanelStage stageKey="inventory-items-categories" panelRole="list">
+        <PanelFrame title="아이템 분류" depth={2} backButton={onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
+          <div className="lag-inventory-filters" aria-label="Item category filters">
+            {["ALL", ...categories].map((filter) => <button key={filter} type="button" className="lag-inventory-filter" aria-pressed={category === filter} data-selected={category === filter} onClick={() => selectCategory(filter)}>{filter === "ALL" ? "전체 아이템" : filter}</button>)}
+          </div>
+        </PanelFrame>
+      </PanelStage> : null}
+      {!items || category !== null ? <PanelStage stageKey={`inventory-${surface}-list`} panelRole="list">
+        <PanelFrame title={items ? "Items" : "Inbox"} depth={1} backButton={items ? <BackButton label="아이템 분류로" onClick={() => { setCategory(null); setSelectedItemInstanceId(null); requestStageFocus("inventory-items-categories", "back"); }} /> : onBack ? <BackButton label="Back to Inventory" onClick={onBack} /> : undefined}>
           <section className="lag-inventory-surface" aria-label={items ? "Inventory Items" : "Inbox Mail"} tabIndex={-1}>
             <header>
               <p>{items ? "Owned InventoryEntry data" : "Mailbox entries pending Claim or Delete"}</p>
               {!query.loading && !query.error ? <button type="button" className="lag-inventory-button" onClick={() => void query.reload()}>Refresh {items ? "Items" : "Inbox"}</button> : null}
             </header>
-            {items && categories.length > 0 ? (
-              <div className="lag-inventory-filters" aria-label="Item category filters">
-                {["ALL", ...categories].map((filter) => (
-                  <button key={filter} type="button" className="lag-inventory-filter" aria-pressed={category === filter} data-selected={category === filter} onClick={() => selectCategory(filter)}>{filter}</button>
-                ))}
-              </div>
-            ) : null}
             {query.loading && query.data.entries.length === 0 ? <InfoCard>Loading {items ? "Items" : "Inbox"}...</InfoCard> : null}
             {query.error ? <ErrorState text={query.error} retry={() => void (queries.claimRecoveryNeeded ? queries.retryClaimRecovery() : query.reload())} /> : null}
             {query.error && query.data.entries.length > 0 ? <p role="status" className="lag-inventory-feedback">Previously loaded entries are shown below. Current server state could not be confirmed.</p> : null}
@@ -235,7 +238,7 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
             </div>
           </section>
         </PanelFrame>
-      </PanelStage>
+      </PanelStage> : null}
 
       <AnimatePresence initial={false}>
         {selectedItem || selectedMail ? (
@@ -251,10 +254,10 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
                   recoveryError={queries.mutationError}
                   onRetry={() => void queries.retryClaimRecovery()}
                   onClaim={async () => {
-                    if (await confirm(`“${selectedMail.itemName}” ${selectedMail.quantity}개를 수령할까요?`)) void queries.claimMail(selectedMail);
+                    if (await confirm(`“${itemName(selectedMail)}” ${selectedMail.quantity}개를 수령할까요?`)) void queries.claimMail(selectedMail);
                   }}
                   onDelete={async () => {
-                    if (await confirm(`“${selectedMail.itemName}” 우편을 삭제할까요? 수령하지 않은 내용이 제거됩니다.`)) void queries.deleteMail(selectedMail);
+                    if (await confirm(`“${itemName(selectedMail)}” 우편을 삭제할까요? 수령하지 않은 내용이 제거됩니다.`)) void queries.deleteMail(selectedMail);
                   }}
                 />
               ) : null}
