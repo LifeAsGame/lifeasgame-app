@@ -48,6 +48,7 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
   const [assignmentPending, setAssignmentPending] = useState(false);
   const [registeredUnassignedId, setRegisteredUnassignedId] = useState<number | null>(null);
   const registrationLock = useRef(false);
+  const registrationAttemptedIds = useRef(new Set<number>());
   const pending = hobbies.pendingMutation !== null || assignmentPending;
   const selectedCategory = personalCategories.categories.find((item) => categoryKey(item) === category) ?? null;
   const inCategory = (item: { category: string; personalCategoryId?: number | null }) => selectedCategory?.source === "PERSONAL" ? item.personalCategoryId === selectedCategory.id : item.category === selectedCategory?.code;
@@ -71,13 +72,24 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
     if (registrationLock.current) return false;
     registrationLock.current = true; setAssignmentPending(true); setAssignmentError(null);
     try {
-      if (registeredUnassignedId !== id && !await hobbies.register(id, body)) return false;
+      if (registrationAttemptedIds.current.has(id)) {
+        const owned = await hobbies.owned.reload();
+        if (!owned) throw new Error("등록 상태를 다시 조회하지 못했습니다. 중복 등록을 막기 위해 재시도하지 않았습니다.");
+        const existing = owned.find((item) => item.hobbyId === id);
+        if (!existing) throw new Error("등록 결과를 확인할 수 없습니다. 목록에서 서버 상태를 확인해 주세요.");
+        if (selectedCategory?.source === "PERSONAL" && existing.personalCategoryId === selectedCategory.id) { registrationAttemptedIds.current.delete(id); return true; }
+        setRegisteredUnassignedId(id);
+      } else {
+        registrationAttemptedIds.current.add(id);
+        if (!await hobbies.register(id, body)) return false;
+      }
       if (selectedCategory?.source === "PERSONAL") {
         setRegisteredUnassignedId(id);
-        await assignPersonalCategoryApi("HOBBY", id, selectedCategory.id);
+        try { await assignPersonalCategoryApi("HOBBY", id, selectedCategory.id); }
+        catch (caught) { throw new Error(`등록됨 / 분류 배정 실패: ${caught instanceof Error ? caught.message : "다시 시도해 주세요."}`); }
         if (!await hobbies.owned.reload()) throw new Error("분류 연결 후 취미 목록을 다시 조회하지 못했습니다.");
       }
-      setRegisteredUnassignedId(null); return true;
+      registrationAttemptedIds.current.delete(id); setRegisteredUnassignedId(null); return true;
     } catch (caught) { setAssignmentError(caught instanceof Error ? caught.message : "내 분류에 연결하지 못했습니다. 저장을 다시 누르면 연결만 재시도합니다."); return false; }
     finally { registrationLock.current = false; setAssignmentPending(false); }
   };
