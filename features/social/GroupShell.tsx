@@ -10,6 +10,8 @@ import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { SwipeButton } from "@/features/role/RecordRow";
 import { ApiError } from "@/shared/api/client";
 import { groupCommand, groupCreate, groupInfo, groupMe, groupMembers, groupMine, groupPending, groupPreview, groupSearch, groupWaiters } from "./groups";
+import GuildGroupPanels from "./GuildGroupPanels";
+import GuildEventPanels from "./GuildEventPanels";
 import type { GroupCreate, GroupInfo, GroupKind, GroupMe, GroupMember, GroupPage, GroupPending, GroupSummary, MyGroup } from "./groups";
 
 type ListMode = "mine" | "search" | "requests" | "invitations";
@@ -29,6 +31,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack }
   const [ownRequest, setOwnRequest] = useState<{ name: string; code: string } | null>(null);
   const [info, setInfo] = useState<GroupInfo | null>(null), [me, setMe] = useState<GroupMe | null>(null), [detailError, setDetailError] = useState<string | null>(null), [detailLoading, setDetailLoading] = useState(false);
   const [sub, setSub] = useState<SubMode | null>(null), [subPage, setSubPage] = useState(0), [subList, setSubList] = useState<GroupPage<GroupMember | GroupPending> | null>(null), [subError, setSubError] = useState<string | null>(null);
+  const [guildCategory, setGuildCategory] = useState<"members" | "groups" | "events" | null>(null), [guildCategoryKey, setGuildCategoryKey] = useState(0), [guildCreating, setGuildCreating] = useState(false);
   const [pending, setPending] = useState(false), [actionError, setActionError] = useState<string | null>(null);
   const listSeq = useRef(0), detailSeq = useRef(0), subSeq = useRef(0), busy = useRef(false);
   const loadList = useCallback(async (nextMode = mode, nextPage = page) => {
@@ -45,7 +48,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack }
 
   const select = async (id: number) => {
     const seq = ++detailSeq.current; subSeq.current++;
-    setCreating(false); setSelectedId(id); setSummary(null); setInfo(null); setMe(null); setSub(null); setDetailError(null); setDetailLoading(true); setActionError(null);
+    setCreating(false); setSelectedId(id); setSummary(null); setInfo(null); setMe(null); setSub(null); setGuildCategory(null); setDetailError(null); setDetailLoading(true); setActionError(null);
     const pendingRecord = mode === "invitations" || mode === "requests" ? list?.contents.find((item) => "type" in item && (kind === "guilds" ? item.guildId : item.partyId) === id) as GroupPending | undefined : undefined;
     const pendingInvitation = mode === "invitations" ? pendingRecord : undefined;
     setInvitation(pendingInvitation ? { name: pendingInvitation.name ?? names[kind], code: pendingInvitation.code ?? "" } : null);
@@ -90,7 +93,8 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack }
     try { const result = view === "members" ? await groupMembers(kind, id, nextPage) : await groupWaiters(kind, id, nextPage); if (seq === subSeq.current) setSubList(result); }
     catch (error) { if (seq === subSeq.current) setSubError(errorText(error)); }
   }, [kind]);
-  const openSub = (view: SubMode) => { if (selectedId === null) return; setSub(view); setSubPage(0); setSubError(null); setActionError(null); void loadSub(view, selectedId, 0); };
+  const openSub = (view: SubMode) => { if (selectedId === null) return; setGuildCategory(null); setSub(view); setSubPage(0); setSubError(null); setActionError(null); void loadSub(view, selectedId, 0); };
+  const openGuildCategory = (category: "members" | "groups" | "events", create = false) => { if (!me?.myRole || selectedId === null) return; setSub(category === "members" ? "members" : null); if (category === "members") { setSubPage(0); void loadSub("members", selectedId, 0); } setGuildCategory(category); setGuildCreating(create && me.myRole === "LEADER"); setGuildCategoryKey((value) => value + 1); };
   const changeSubPage = (next: number) => { if (selectedId === null || !sub) return; setSubPage(next); void loadSub(sub, selectedId, next); };
   const manage = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault(); if (!sub || selectedId === null) return;
@@ -118,7 +122,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack }
         </CreateSlot>
       </PanelFrame>
     </PanelStage>
-    {selectedId !== null ? <PanelStage stageKey="social-detail" instant inactive={compact && sub !== null}><PanelFrame title={`${label} 상세`} backButton={<BackButton label="모임 목록으로" onClick={() => { detailSeq.current++; subSeq.current++; setSelectedId(null); setSub(null); requestStageFocus("social-list", "back"); }} />}>
+    {selectedId !== null ? <PanelStage stageKey="social-detail" instant inactive={compact && (sub !== null || guildCategory !== null)}><PanelFrame title={`${label} 상세`} backButton={<BackButton label="모임 목록으로" onClick={() => { detailSeq.current++; subSeq.current++; setSelectedId(null); setSub(null); setGuildCategory(null); requestStageFocus("social-list", "back"); }} />}>
       <article className="lag-role-detail lag-group-main">
         {detailLoading ? <p role="status">상세를 불러오는 중…</p> : null}
         {detailError ? <p role="alert">{detailError} <button type="button" onClick={() => void select(selectedId)}>다시 조회</button></p> : null}
@@ -127,10 +131,11 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack }
         {current ? <><h4>{current.name}</h4>{info?.descriptionMd ? <p>{info.descriptionMd}</p> : null}<dl><div className="lag-role-data-row"><dt>코드</dt><dd>{current.code}</dd></div><div className="lag-role-data-row"><dt>공개 범위</dt><dd>{word(current.visibility)}</dd></div><div className="lag-role-data-row"><dt>가입 방식</dt><dd>{word(current.joinPolicy)}</dd></div><div className="lag-role-data-row"><dt>정원</dt><dd>{current.maxMembers}명</dd></div><div className="lag-role-data-row"><dt>내 역할</dt><dd>{word(me?.myRole)}</dd></div></dl></> : null}
         {actionError ? <p role="alert">{actionError}</p> : null}
         {me ? <div className="lag-group-actions">{(["request-join", "cancel-join", "accept-invitation", "decline-invitation", "leave", "disband"] as const).filter((action) => actions.has(action)).map((action) => <button key={action} type="button" className="lag-role-button" disabled={pending} onClick={() => void run(action, action === "request-join" ? { message: null } : {}, ["leave", "disband", "decline-invitation"].includes(action), ["leave", "disband"].includes(action) ? `${label}에서 ${action === "leave" ? "탈퇴" : "해산"}할까요?` : undefined)}>{{ "request-join": "가입 신청", "cancel-join": "신청 취소", "accept-invitation": "초대 수락", "decline-invitation": "초대 거절", leave: "탈퇴", disband: "해산" }[action]}</button>)}</div> : null}
-        {info && me?.myRole ? <div className="lag-group-actions">{(["members", "pending", "invite", "rename", "description", "policy"] as const).filter((view) => view === "members" || view !== "pending" && actions.has(view) || view === "pending" && actions.has("approve")).map((view) => <button key={view} type="button" className="lag-role-button" onClick={() => openSub(view)}>{{ members: "멤버", pending: "대기 신청", invite: "초대", rename: "이름 수정", description: "설명 수정", policy: "정책 수정" }[view]}</button>)}</div> : null}
+        {info && me?.myRole && kind === "guilds" ? <section className="lag-role-surface-grid" aria-label="길드 내부 분류">{(["members", "groups", "events"] as const).map((category) => <SwipeButton key={category} className="lag-role-surface-card" aria-label={{ members: "멤버", groups: "모임", events: "행사" }[category]} creation={category !== "members" && me.myRole === "LEADER"} onClick={() => openGuildCategory(category)} onDoubleClick={category !== "members" && me.myRole === "LEADER" ? () => openGuildCategory(category, true) : undefined} aria-pressed={guildCategory === category} data-selected={guildCategory === category}><span aria-hidden>{ { members: "ME", groups: "GR", events: "EV" }[category]}</span><strong>{ { members: "멤버", groups: "모임", events: "행사" }[category]}</strong><small>{ { members: "길드 구성원", groups: "연결된 모임", events: "공유 행사" }[category]}</small><span aria-hidden>→</span></SwipeButton>)}</section> : null}
+        {info && me?.myRole ? <div className="lag-group-actions">{(["members", "pending", "invite", "rename", "description", "policy"] as const).filter((view) => (kind !== "guilds" || view !== "members") && (view === "members" || view !== "pending" && actions.has(view) || view === "pending" && actions.has("approve"))).map((view) => <button key={view} type="button" className="lag-role-button" onClick={() => openSub(view)}>{{ members: "멤버", pending: "대기 신청", invite: "초대", rename: "이름 수정", description: "설명 수정", policy: "정책 수정" }[view]}</button>)}</div> : null}
       </article>
     </PanelFrame></PanelStage> : null}
-    {selectedId !== null && sub ? <PanelStage stageKey="social-sub" instant><PanelFrame title={{ members: "멤버", pending: "대기 신청", invite: "멤버 초대", rename: "이름 수정", description: "설명 수정", policy: "정책 수정" }[sub]} backButton={<BackButton label="모임 상세로" onClick={() => { subSeq.current++; setSub(null); setActionError(null); requestStageFocus("social-detail", "back"); }} />}>
+    {selectedId !== null && sub ? <PanelStage stageKey="social-sub" instant><PanelFrame title={{ members: "멤버", pending: "대기 신청", invite: "멤버 초대", rename: "이름 수정", description: "설명 수정", policy: "정책 수정" }[sub]} backButton={<BackButton label="모임 상세로" onClick={() => { subSeq.current++; setSub(null); setGuildCategory(null); setActionError(null); requestStageFocus("social-detail", "back"); }} />}>
       <div className="lag-role-detail lag-group-main">
         {subError ? <p role="alert">{subError} <button type="button" onClick={() => void loadSub(sub, selectedId, subPage)}>다시 조회</button></p> : null}
         {(sub === "members" || sub === "pending") ? <>{!subList && !subError ? <p role="status">불러오는 중…</p> : null}{subList?.contents.length === 0 ? <p>표시할 항목이 없습니다.</p> : null}{subList?.contents.map((item) => <div className="lag-group-member" key={item.playerId}><strong>플레이어 #{item.playerId}</strong><small>{"role" in item ? word(item.role) : item.message || "가입 대기"}</small><div className="lag-group-actions">{"role" in item ? (["promote", "demote", "kick", "transfer-leader"] as const).filter((action) => actions.has(action) && item.playerId !== playerId && (action !== "promote" || item.role === "MEMBER") && (action !== "demote" || item.role === "OFFICER")).map((action) => <button key={action} className="lag-role-button" type="button" disabled={pending} onClick={() => void run(action, action === "transfer-leader" ? kind === "guilds" ? { toPlayerId: item.playerId } : { fromLeaderPlayerId: info?.leaderPlayerId, toPlayerId: item.playerId } : { targetPlayerId: item.playerId }, false, ["kick", "transfer-leader"].includes(action) ? `플레이어 #${item.playerId}에게 ${action === "kick" ? "멤버 제외" : "리더 위임"}할까요?` : undefined).then((ok) => { if (ok) { setSub(sub); void loadSub(sub, selectedId, subPage); } })}>{ { promote: "승격", demote: "강등", kick: "멤버 제외", "transfer-leader": "리더 위임" }[action] }</button>) : (["approve", "reject"] as const).filter((action) => actions.has(action)).map((action) => <button key={action} className="lag-role-button" type="button" disabled={pending} onClick={() => void run(action, { applicantPlayerId: item.playerId }).then((ok) => { if (ok) { setSub(sub); void loadSub(sub, selectedId, subPage); } })}>{action === "approve" ? "승인" : "거절"}</button>)}</div></div>)}<div className="lag-connection-pagination"><button type="button" className="lag-role-button" disabled={subPage === 0} onClick={() => changeSubPage(subPage - 1)}>이전</button><span>{subList ? `${subPage + 1} / ${Math.max(1, subList.totalPages)}` : ""}</span><button type="button" className="lag-role-button" disabled={!subList || subPage + 1 >= subList.totalPages} onClick={() => changeSubPage(subPage + 1)}>다음</button></div></> : <form className="lag-role-form" onSubmit={(event) => void manage(event)}>
@@ -138,5 +143,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack }
           {actionError ? <p role="alert">{actionError}</p> : null}<button type="submit" className="lag-role-action" disabled={pending}>{pending ? "처리 중…" : "저장"}</button></form>}
       </div>
     </PanelFrame></PanelStage> : null}
+    {kind === "guilds" && selectedId !== null && me?.myRole && guildCategory === "groups" ? <GuildGroupPanels key={`${selectedId}-${guildCategoryKey}`} guildId={selectedId} playerId={playerId} creating={guildCreating} onBack={() => { setGuildCategory(null); requestStageFocus("social-detail", "back"); }} /> : null}
+    {kind === "guilds" && selectedId !== null && me?.myRole && guildCategory === "events" ? <GuildEventPanels key={`${selectedId}-${guildCategoryKey}`} guildId={selectedId} creating={guildCreating} onBack={() => { setGuildCategory(null); requestStageFocus("social-detail", "back"); }} /> : null}
   </div>;
 }
