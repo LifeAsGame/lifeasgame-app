@@ -61,6 +61,7 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
   const save = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault(); if (busy.current) return; const input = body(new FormData(event.currentTarget));
     if (!valid(input)) { setError("이름(1~120자), 설명(1000자 이하), 정원(2~50명)을 확인해주세요."); return; }
+    if (child !== "edit" && (!roleId || roleStatus !== "ACTIVE")) { setError("활성 역할에서만 소모임을 만들 수 있습니다."); return; }
     busy.current = true; setPending(true); setError(null);
     try { if (child === "edit" && selectedId !== null) { const saved = await updateRoleParty(selectedId, input); setDetail(saved); setChild(null); await loadList(); } else if (roleId && roleStatus === "ACTIVE") { const saved = await createRoleParty(roleId, input); setCreating(false); await loadList(); await select(saved.id); } }
     catch (caught) { setError(errorText(caught)); }
