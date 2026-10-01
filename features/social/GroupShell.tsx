@@ -17,7 +17,7 @@ type SubMode = "members" | "pending" | "invite" | "rename" | "description" | "po
 const names = { guilds: "길드", parties: "파티" };
 const words: Record<string, string> = { PUBLIC: "공개", PRIVATE: "비공개", OPEN: "자유 가입", APPROVAL: "승인 후 가입", INVITE_ONLY: "초대 전용", ACTIVE: "활동 중", LEADER: "리더", OFFICER: "운영진", MEMBER: "멤버" };
 const word = (value: string | null | undefined) => value ? words[value] ?? value : "없음";
-const errorText = (error: unknown) => error instanceof ApiError ? `${error.message} (HTTP ${error.status})` : error instanceof Error ? error.message : "요청을 완료하지 못했습니다.";
+const errorText = (error: unknown) => error instanceof ApiError ? error.status === 404 ? "모임을 찾을 수 없거나 조회 권한이 없습니다." : error.status === 403 ? "이 작업을 수행할 권한이 없습니다." : `${error.message} (HTTP ${error.status})` : error instanceof Error ? error.message : "요청을 완료하지 못했습니다.";
 
 export default function GroupShell({ kind, createRequest = 0, playerId, onBack }: { kind: GroupKind; createRequest?: number; playerId: number; onBack: () => void }) {
   const { confirm, dialog } = useSaoConfirm();
