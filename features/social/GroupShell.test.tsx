@@ -36,6 +36,10 @@ it("내 모임에서 멤버와 허용된 관리 화면을 연결한다", async (
 
 it("생성 폼은 서버 계약의 공개 범위·가입 방식·정원을 전송한다", async () => {
   const view = render(<GroupShell kind="parties" playerId={6} onBack={vi.fn()} />);
+  await screen.findByRole("button", { name: /산책 모임.*리더/ });
+  api.groupMine.mockResolvedValueOnce(page([{ id: 4, name: "새 파티", code: "NEW", status: "ACTIVE", maxMembers: 8, memberCount: 1, myRole: "LEADER" }]));
+  api.groupCreate.mockResolvedValueOnce({ ...group, id: 4, name: "새 파티", code: "NEW" });
+  api.groupInfo.mockResolvedValueOnce({ ...group, id: 4, name: "새 파티", code: "NEW" });
   view.rerender(<GroupShell kind="parties" playerId={6} createRequest={1} onBack={vi.fn()} />);
   fireEvent.change(screen.getByRole("textbox", { name: "이름" }), { target: { value: "새 파티" } });
   fireEvent.change(screen.getByRole("textbox", { name: "코드 (직접 입력)" }), { target: { value: "NEW" } });
@@ -44,6 +48,22 @@ it("생성 폼은 서버 계약의 공개 범위·가입 방식·정원을 전�
   fireEvent.change(screen.getByRole("spinbutton", { name: "정원" }), { target: { value: "8" } });
   fireEvent.click(screen.getByRole("button", { name: "파티 생성" }));
   await waitFor(() => expect(api.groupCreate).toHaveBeenCalledWith("parties", { name: "새 파티", code: "NEW", descriptionMd: null, visibility: "PRIVATE", joinPolicy: "INVITE_ONLY", maxMembers: 8 }));
+  expect(await screen.findByRole("button", { name: /새 파티.*리더/ })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "새 파티" })).toBeInTheDocument();
+  expect(api.groupMine).toHaveBeenCalledTimes(2);
+});
+
+it("생성 후 목록 재조회 실패는 생성 실패로 표시하지 않는다", async () => {
+  const view = render(<GroupShell kind="guilds" playerId={6} onBack={vi.fn()} />);
+  await screen.findByRole("button", { name: /산책 모임.*리더/ });
+  api.groupMine.mockRejectedValueOnce(new ApiError(503, "UNAVAILABLE", "목록 조회 실패"));
+  view.rerender(<GroupShell kind="guilds" playerId={6} createRequest={1} onBack={vi.fn()} />);
+  fireEvent.change(screen.getByRole("textbox", { name: "이름" }), { target: { value: "새 길드" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "코드 (직접 입력)" }), { target: { value: "NEW" } });
+  fireEvent.click(screen.getByRole("button", { name: "길드 생성" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("목록 조회 실패");
+  expect(screen.queryByRole("button", { name: "길드 생성" })).not.toBeInTheDocument();
+  expect(api.groupCreate).toHaveBeenCalledTimes(1);
 });
 
 it("비공개 초대는 최소 정보와 수락 작업만 표시하고 멤버 상세를 요청하지 않는다", async () => {

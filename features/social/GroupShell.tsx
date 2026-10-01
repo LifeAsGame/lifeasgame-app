@@ -31,10 +31,10 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack }
   const [sub, setSub] = useState<SubMode | null>(null), [subPage, setSubPage] = useState(0), [subList, setSubList] = useState<GroupPage<GroupMember | GroupPending> | null>(null), [subError, setSubError] = useState<string | null>(null);
   const [pending, setPending] = useState(false), [actionError, setActionError] = useState<string | null>(null);
   const listSeq = useRef(0), detailSeq = useRef(0), subSeq = useRef(0), busy = useRef(false);
-  const loadList = useCallback(async () => {
+  const loadList = useCallback(async (nextMode = mode, nextPage = page) => {
     const seq = ++listSeq.current; setList(null); setListLoading(true); setListError(null);
     try {
-      const next = mode === "mine" ? await groupMine(kind, page) : mode === "search" ? await groupSearch(kind, term, page) : await groupPending(kind, mode, page);
+      const next = nextMode === "mine" ? await groupMine(kind, nextPage) : nextMode === "search" ? await groupSearch(kind, term, nextPage) : await groupPending(kind, nextMode, nextPage);
       if (seq === listSeq.current) setList(next);
     } catch (error) { if (seq === listSeq.current) { setList(null); setListError(errorText(error)); } }
     finally { if (seq === listSeq.current) setListLoading(false); }
@@ -80,7 +80,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack }
     if (!body.name || body.name.length > 128 || !body.code || body.code.length > 32 || !Number.isInteger(body.maxMembers) || body.maxMembers < 1 || body.maxMembers > 500) { setActionError("이름(128자), 코드(32자), 정원(1~500명)을 확인해주세요."); return; }
     const seq = detailSeq.current;
     busy.current = true; setPending(true); setActionError(null);
-    try { const made = await groupCreate(kind, body); if (seq === detailSeq.current) { setCreating(false); setMode("mine"); setPage(0); await select(made.id); } }
+    try { const made = await groupCreate(kind, body); if (seq === detailSeq.current) { setCreating(false); setMode("mine"); setPage(0); void loadList("mine", 0); await select(made.id); } }
     catch (error) { if (seq === detailSeq.current) setActionError(errorText(error)); }
     finally { busy.current = false; setPending(false); }
   };
