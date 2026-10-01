@@ -16,6 +16,7 @@ export const myRoleParties = (index = 0) => apiGet<ConnectionPage<MyRoleParty>>(
 export const myRolePartyInvitations = (index = 0) => apiGet<ConnectionPage<RolePartyInvitation>>(`${base}/invitations/mine${page(index)}`);
 export const rolePartyDetail = (id: number) => apiGet<RolePartyDetail>(`${base}/${id}`);
 export const rolePartyMembers = (id: number, index = 0) => apiGet<ConnectionPage<RolePartyMember>>(`${base}/${id}/members${page(index)}`);
+export const rolePartyInvitations = (id: number, index = 0) => apiGet<ConnectionPage<RolePartyInvitation>>(`${base}/${id}/invitations${page(index)}`);
 export const updateRoleParty = (id: number, body: RolePartyInput) => apiPatch<RolePartyDetail>(`${base}/${id}`, body);
 export const inviteToRoleParty = (id: number, inviteePlayerId: number) => apiPost<RolePartyInvitation>(`${base}/${id}/invitations`, { inviteePlayerId });
 export const answerRolePartyInvitation = (id: number, invitationId: number, answer: "accept" | "decline") => apiPost<RolePartyDetail | void>(`${base}/${id}/invitations/${invitationId}/${answer}`, {});

@@ -26,7 +26,7 @@ export default function RoleEventPanels({ roleId, roleName, roleStatus, createRe
   const [persons, setPersons] = useState<PersonDetail[]>([]), [participantType, setParticipantType] = useState<"PERSON" | "SERVICE_USER">("PERSON");
   const listSeq = useRef(0), detailSeq = useRef(0), busy = useRef(false);
   const load = useCallback(async () => { const seq = ++listSeq.current; setListLoading(true); setListError(null); try { const next = await listRoleEventsApi(roleId); if (seq === listSeq.current) setEvents(next); } catch (error) { if (seq === listSeq.current) setListError(error instanceof Error ? error.message : "일정을 불러오지 못했습니다."); } finally { if (seq === listSeq.current) setListLoading(false); } }, [roleId]);
-  useEffect(() => { const listCounter = listSeq, detailCounter = detailSeq; void load(); return () => { listCounter.current++; detailCounter.current++; }; }, [load]);
+  useEffect(() => { const listCounter = listSeq, detailCounter = detailSeq; void load(); return () => { listCounter.current++; detailCounter.current++; }; }, [load, reentryRequest]);
   useEffect(() => { if (createRequest || reentryRequest) { detailSeq.current++; setMode(createRequest && roleStatus === "ACTIVE" ? "create" : "list"); setDetail(null); setSelectedId(null); setDetailError(null); } }, [createRequest, reentryRequest, roleStatus]);
   useEffect(() => { void listPersonsApi().then(setPersons).catch(() => setPersons([])); }, []);
   const close = () => { detailSeq.current++; setMode("list"); setDetail(null); setSelectedId(null); setDetailError(null); requestStageFocus("role-detail", "back"); };

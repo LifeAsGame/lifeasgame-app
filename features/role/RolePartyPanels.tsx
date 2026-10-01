@@ -11,7 +11,7 @@ import PanelStage from "@/shared/ui/PanelStage";
 import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { RecordRow, SwipeButton } from "./RecordRow";
-import { answerRolePartyInvitation, cancelRolePartyInvitation, createRoleParty, disbandRoleParty, inviteToRoleParty, leaveRoleParty, myRoleParties, myRolePartyInvitations, rolePartiesForRole, rolePartyDetail, rolePartyMembers, transferRolePartyLeader, updateRoleParty } from "./roleParties";
+import { answerRolePartyInvitation, cancelRolePartyInvitation, createRoleParty, disbandRoleParty, inviteToRoleParty, leaveRoleParty, myRoleParties, myRolePartyInvitations, rolePartiesForRole, rolePartyDetail, rolePartyInvitations, rolePartyMembers, transferRolePartyLeader, updateRoleParty } from "./roleParties";
 import type { MyRoleParty, RolePartyDetail, RolePartyInput, RolePartyInvitation, RolePartyMember, RolePartySummary } from "./roleParties";
 
 type View = "mine" | "invitations";
@@ -25,16 +25,17 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
   const [list, setList] = useState<ConnectionPage<RolePartySummary | MyRoleParty | RolePartyInvitation> | null>(null), [listError, setListError] = useState<string | null>(null), [loadingList, setLoadingList] = useState(true);
   const [creating, setCreating] = useState(false), [selectedId, setSelectedId] = useState<number | null>(null), [detail, setDetail] = useState<RolePartyDetail | null>(null);
   const [invitation, setInvitation] = useState<RolePartyInvitation | null>(null), [child, setChild] = useState<Child | null>(null), [members, setMembers] = useState<ConnectionPage<RolePartyMember> | null>(null), [memberPage, setMemberPage] = useState(0);
-  const [peers, setPeers] = useState<ConnectionPeer[]>([]), [peersError, setPeersError] = useState<string | null>(null), [recentInvite, setRecentInvite] = useState<RolePartyInvitation | null>(null);
+  const [peers, setPeers] = useState<ConnectionPeer[]>([]), [peersError, setPeersError] = useState<string | null>(null);
+  const [sentInvites, setSentInvites] = useState<ConnectionPage<RolePartyInvitation> | null>(null), [invitePage, setInvitePage] = useState(0), [invitesError, setInvitesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null), [pending, setPending] = useState(false), [detailLoading, setDetailLoading] = useState(false);
-  const listSeq = useRef(0), detailSeq = useRef(0), busy = useRef(false);
+  const listSeq = useRef(0), detailSeq = useRef(0), inviteSeq = useRef(0), busy = useRef(false);
   const loadList = useCallback(async (nextView = view, nextPage = page) => {
     const seq = ++listSeq.current; setLoadingList(true); setListError(null);
     try { const next = nextView === "invitations" ? await myRolePartyInvitations(nextPage) : roleId ? await rolePartiesForRole(roleId, nextPage) : await myRoleParties(nextPage); if (seq === listSeq.current) setList(next); }
     catch (caught) { if (seq === listSeq.current) { setList(null); setListError(errorText(caught)); } }
     finally { if (seq === listSeq.current) setLoadingList(false); }
   }, [view, page, roleId]);
-  useEffect(() => { const seq = listSeq; void loadList(); return () => { seq.current++; }; }, [loadList]);
+  useEffect(() => { const seq = listSeq; void loadList(); return () => { seq.current++; }; }, [loadList, reentryRequest]);
   useEffect(() => { if (createRequest || reentryRequest) { detailSeq.current++; setSelectedId(null); setDetail(null); setChild(null); setCreating(Boolean(createRequest && roleId && roleStatus === "ACTIVE")); } }, [createRequest, reentryRequest, roleId, roleStatus]);
   useEffect(() => () => { detailSeq.current++; }, []);
   const closeDetail = () => { detailSeq.current++; setSelectedId(null); setDetail(null); setInvitation(null); setChild(null); setError(null); requestStageFocus("role-party-list", "back"); };
@@ -46,14 +47,19 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
     finally { if (seq === detailSeq.current) setDetailLoading(false); }
     return null;
   };
-  const reloadDetail = async (id: number) => { const next = await rolePartyDetail(id); setDetail(next); return next; };
+  const reloadDetail = async (id: number) => { const seq = detailSeq.current, next = await rolePartyDetail(id); if (seq === detailSeq.current) setDetail(next); return next; };
   const afterCommand = async (id: number, close = false) => { await loadList(); if (close) closeDetail(); else await reloadDetail(id); };
   const command = async (request: () => Promise<unknown>, close = false, ask?: string) => {
     if (selectedId === null || busy.current || ask && !await confirm(ask)) return false;
     const id = selectedId, seq = detailSeq.current; if (seq !== detailSeq.current || busy.current) return false;
     busy.current = true; setPending(true); setError(null);
-    try { await request(); if (seq === detailSeq.current) await afterCommand(id, close); return true; }
-    catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); return false; }
+    try {
+      try { await request(); }
+      catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); return false; }
+      try { if (seq === detailSeq.current) await afterCommand(id, close); }
+      catch { if (seq === detailSeq.current) setError("작업은 완료됐지만 최신 정보를 불러오지 못했습니다. 다시 조회해주세요."); }
+      return true;
+    }
     finally { busy.current = false; setPending(false); }
   };
   const body = (form: FormData): RolePartyInput => ({ name: String(form.get("name") ?? "").trim(), description: String(form.get("description") ?? "").trim() || null, maxMembers: Number(form.get("maxMembers")) });
@@ -68,13 +74,14 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
     finally { busy.current = false; setPending(false); }
   };
   const loadMembers = async (id: number, nextPage = 0) => { setMembers(null); try { setMembers(await rolePartyMembers(id, nextPage)); } catch (caught) { setError(errorText(caught)); } };
-  const openChild = (next: Child) => { if (selectedId === null) return; setChild(next); setError(null); if (next === "members") { setMemberPage(0); void loadMembers(selectedId); } if (next === "invite") void loadPeers(); };
+  const loadInvites = async (id: number, nextPage = 0) => { const seq = ++inviteSeq.current, detail = detailSeq.current; setSentInvites(null); setInvitesError(null); try { const next = await rolePartyInvitations(id, nextPage); if (seq === inviteSeq.current && detail === detailSeq.current) setSentInvites(next); } catch (caught) { if (seq === inviteSeq.current && detail === detailSeq.current) setInvitesError(errorText(caught)); } };
+  const openChild = (next: Child) => { if (selectedId === null) return; setChild(next); setError(null); if (next === "members") { setMemberPage(0); void loadMembers(selectedId); } if (next === "invite" && detail?.status === "ACTIVE" && detail.leaderPlayerId === playerId) { setInvitePage(0); void loadPeers(); void loadInvites(selectedId); } };
   const loadPeers = async () => {
     setPeersError(null);
     try { const friends: ConnectionPeer[] = []; for (let page = 0; ; page++) { const result = await getFollowersApi(page, 100); friends.push(...result.contents.filter((item) => item.followedBack).map((item) => item.peer)); if (page + 1 >= result.totalPages) break; } setPeers(friends); }
     catch (caught) { setPeersError(errorText(caught)); }
   };
-  const sendInvite = async (event: React.SubmitEvent<HTMLFormElement>) => { event.preventDefault(); if (selectedId === null) return; const peerId = Number(new FormData(event.currentTarget).get("peer")); if (!peers.some((peer) => peer.playerId === peerId)) return; await command(async () => { const next = await inviteToRoleParty(selectedId, peerId); setRecentInvite(next); }); };
+  const sendInvite = async (event: React.SubmitEvent<HTMLFormElement>) => { event.preventDefault(); if (selectedId === null) return; const id = selectedId, peerId = Number(new FormData(event.currentTarget).get("peer")); if (!peers.some((peer) => peer.playerId === peerId)) return; if (await command(() => inviteToRoleParty(id, peerId))) { setInvitePage(0); await loadInvites(id); } };
   const disbandFromRow = async (id: number) => { if (busy.current || !await confirm("이 역할 소모임을 해산할까요?")) return; busy.current = true; setPending(true); setListError(null); try { await disbandRoleParty(id); await loadList(); if (selectedId === id) await select(id); } catch (caught) { setListError(errorText(caught)); } finally { busy.current = false; setPending(false); } };
   const leader = detail?.leaderPlayerId === playerId, active = detail?.status === "ACTIVE";
   const form = (record?: RolePartyDetail) => <form className="lag-role-form" onSubmit={(event) => void save(event)}><label>이름<input className="lag-role-control" name="name" required maxLength={120} autoFocus defaultValue={record?.name ?? ""} /></label><label>설명<textarea className="lag-role-control" name="description" maxLength={1000} rows={3} defaultValue={record?.description ?? ""} /></label><label>정원 (리더 포함)<input className="lag-role-control" name="maxMembers" type="number" min="2" max="50" required defaultValue={record?.maxMembers ?? 10} /></label><p>초대 전용 · 생성자는 리더이자 첫 멤버입니다.</p>{error ? <p role="alert">{error}</p> : null}<button className="lag-role-action" type="submit" disabled={pending}>{pending ? "저장 중…" : record ? "변경 저장" : "소모임 생성"}</button></form>;
@@ -100,7 +107,10 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
     {selectedId !== null && child ? <PanelStage stageKey="role-party-child" instant><PanelFrame title={{ members: "멤버", edit: "소모임 수정", invite: "멤버 초대" }[child]} backButton={<BackButton label="소모임 상세로" onClick={() => { setChild(null); setError(null); requestStageFocus("role-party-detail", "back"); }} />}><div className="lag-role-detail">
       {child === "edit" && detail && leader && active ? form(detail) : null}
       {child === "members" ? <>{!members && !error ? <p role="status">멤버를 불러오는 중…</p> : null}{members?.contents.map((member) => <div className="lag-group-member" key={member.playerId}><strong>플레이어 #{member.playerId}</strong><small>{member.role === "LEADER" ? "리더" : "멤버"}</small>{leader && active && member.playerId !== playerId ? <button type="button" className="lag-role-button" disabled={pending} onClick={() => void command(() => transferRolePartyLeader(selectedId, member.playerId), false, `플레이어 #${member.playerId}에게 리더를 이전할까요?`).then((ok) => { if (ok) void loadMembers(selectedId, memberPage); })}>리더 이전</button> : null}</div>)}{members?.contents.length === 0 ? <p>멤버가 없습니다.</p> : null}<div className="lag-connection-pagination"><button type="button" disabled={memberPage === 0} onClick={() => { setMemberPage(memberPage - 1); void loadMembers(selectedId, memberPage - 1); }}>이전</button><span>{members ? `${memberPage + 1} / ${Math.max(1, members.totalPages)}` : ""}</span><button type="button" disabled={!members || memberPage + 1 >= members.totalPages} onClick={() => { setMemberPage(memberPage + 1); void loadMembers(selectedId, memberPage + 1); }}>다음</button></div></> : null}
-      {child === "invite" && leader && active ? <><form className="lag-role-form" onSubmit={(event) => void sendInvite(event)}><label>연결된 친구<select className="lag-role-control" name="peer" required defaultValue=""><option value="" disabled>친구 선택</option>{peers.filter((peer) => peer.playerId !== playerId).map((peer) => <option key={peer.playerId} value={peer.playerId}>{peer.name}</option>)}</select></label>{peersError ? <p role="alert">{peersError} <button type="button" onClick={() => void loadPeers()}>다시 조회</button></p> : null}{!peersError && !peers.length ? <p>초대할 수 있는 연결된 친구가 없습니다.</p> : null}<button type="submit" className="lag-role-action" disabled={pending || !peers.length}>초대 보내기</button></form>{recentInvite?.rolePartyId === selectedId ? <div className="lag-group-member"><span>최근 초대 #{recentInvite.invitationId}</span><button type="button" className="lag-role-button" disabled={pending} onClick={() => void command(() => cancelRolePartyInvitation(selectedId, recentInvite.invitationId)).then((ok) => { if (ok) setRecentInvite(null); })}>초대 취소</button></div> : null}</> : null}
+      {child === "invite" && leader && active ? <><form className="lag-role-form" onSubmit={(event) => void sendInvite(event)}><label>연결된 친구<select className="lag-role-control" name="peer" required defaultValue=""><option value="" disabled>친구 선택</option>{peers.filter((peer) => peer.playerId !== playerId).map((peer) => <option key={peer.playerId} value={peer.playerId}>{peer.name}</option>)}</select></label>{peersError ? <p role="alert">{peersError} <button type="button" onClick={() => void loadPeers()}>다시 조회</button></p> : null}{!peersError && !peers.length ? <p>초대할 수 있는 연결된 친구가 없습니다.</p> : null}<button type="submit" className="lag-role-action" disabled={pending || !peers.length}>초대 보내기</button></form>
+        <h5 className="lag-role-subheading">대기 초대</h5>{invitesError ? <p role="alert">{invitesError} <button type="button" onClick={() => void loadInvites(selectedId, invitePage)}>다시 조회</button></p> : null}{!sentInvites && !invitesError ? <p role="status">대기 초대를 불러오는 중…</p> : null}{sentInvites?.contents.length === 0 ? <p>대기 초대가 없습니다.</p> : null}
+        {sentInvites?.contents.map((item) => <div className="lag-group-member" key={item.invitationId}><span>플레이어 #{item.inviteePlayerId} · {new Date(item.expiresAt).toLocaleString("ko-KR")}까지</span><button type="button" className="lag-role-button" disabled={pending} onClick={() => void command(() => cancelRolePartyInvitation(selectedId, item.invitationId)).then((ok) => { if (ok) void loadInvites(selectedId, invitePage); })}>초대 취소</button></div>)}
+        {sentInvites && sentInvites.totalPages > 1 ? <div className="lag-connection-pagination"><button type="button" disabled={invitePage === 0} onClick={() => { setInvitePage(invitePage - 1); void loadInvites(selectedId, invitePage - 1); }}>이전</button><span>{invitePage + 1} / {sentInvites.totalPages}</span><button type="button" disabled={invitePage + 1 >= sentInvites.totalPages} onClick={() => { setInvitePage(invitePage + 1); void loadInvites(selectedId, invitePage + 1); }}>다음</button></div> : null}</> : null}
       {error ? <p role="alert">{error}</p> : null}
     </div></PanelFrame></PanelStage> : null}
   </div>;
