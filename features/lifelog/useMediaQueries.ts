@@ -85,6 +85,7 @@ export function useMediaQueries() {
   const search = (category?: MediaCategory, status?: MediaStatus, titleLike?: string) => {
     clearSelection();
     listRequestId.current += 1;
+    setItems([]);
     paramsRef.current = { page: 0, size: paramsRef.current.size, category, status, titleLike: titleLike?.trim() || undefined };
     setParams(paramsRef.current);
   };
@@ -92,6 +93,7 @@ export function useMediaQueries() {
   const changePage = (page: number) => {
     clearSelection();
     listRequestId.current += 1;
+    setItems([]);
     paramsRef.current = { ...paramsRef.current, page: Math.max(0, page) };
     setParams(paramsRef.current);
   };
@@ -162,5 +164,5 @@ export function useMediaQueries() {
     : command("status", id, () => markMediaStatusApi(id, { status }));
   const rewatch = (id: number) => command("rewatch", id, () => rewatchMediaApi(id));
 
-  return { params, list: { items, loading, error, reload }, detail, selectedId, select, search, changePage, pendingMutation, mutationError, create, update, remove, rate, advance, markStatus, rewatch };
+  return { params, list: { items, loading, error, reload }, detail, selectedId, select, clearSelection, search, changePage, pendingMutation, mutationError, create, update, remove, rate, advance, markStatus, rewatch };
 }

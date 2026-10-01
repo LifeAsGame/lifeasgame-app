@@ -59,6 +59,7 @@ export interface PlayerAchievementInfo {
 
 export interface PlayerCertificationInfo {
   certificationId: number;
+  personalCategoryId?: number | null;
   name: string;
   issuer: string;
   category: string;
@@ -102,6 +103,7 @@ export type PlayerHobbyMutationRequest = {
 };
 
 export interface PlayerHobbyInfo extends HobbyCatalogInfo {
+  personalCategoryId?: number | null;
   customName: string;
   detail: string | null;
   proficiency: number;

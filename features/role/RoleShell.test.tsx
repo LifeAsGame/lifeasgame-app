@@ -49,12 +49,13 @@ function deferred<T>() {
 function Harness({ initialRoleId = 1, availableRoles = roles, loading = false, error = null, refresh = vi.fn().mockResolvedValue(undefined) }: { initialRoleId?: number | null; availableRoles?: RoleDetail[]; loading?: boolean; error?: string | null; refresh?: () => Promise<void> }) {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(initialRoleId);
   const [hideRoleDetails, setHideRoleDetails] = useState(false);
+  const [roleCreateRequest, setRoleCreateRequest] = useState(0);
   const [editRequest, setEditRequest] = useState<{ id: number; sequence: number } | null>(null);
   const selectRole = (id: number) => { setSelectedRoleId(id); setHideRoleDetails(false); };
   return (
     <>
-      <RoleContextPanel roles={availableRoles} selectedRoleId={selectedRoleId} isLoading={loading} error={error} onRoleSelect={selectRole} onRoleEdit={(id) => { selectRole(id); setEditRequest((current) => ({ id, sequence: (current?.sequence ?? 0) + 1 })); }} onWorkspaceChange={(_, create) => { if (create) setHideRoleDetails(true); }} onRetry={() => void refresh()} />
-      <RoleShell roles={availableRoles} editRequest={editRequest} selectedRoleId={selectedRoleId} hideRoleDetails={hideRoleDetails} onSelectRole={setSelectedRoleId} onRefresh={refresh} />
+      <RoleContextPanel workspace="roles" onWorkspaceChange={(_, create) => { if (create) { setHideRoleDetails(true); setRoleCreateRequest((value) => value + 1); } else { setSelectedRoleId(null); setHideRoleDetails(false); } }} />
+      <RoleShell roles={availableRoles} rolesLoading={loading} rolesError={error} roleCreateRequest={roleCreateRequest} onEditRole={(id) => { selectRole(id); setEditRequest((current) => ({ id, sequence: (current?.sequence ?? 0) + 1 })); }} editRequest={editRequest} selectedRoleId={selectedRoleId} hideRoleDetails={hideRoleDetails} onSelectRole={(id) => { setSelectedRoleId(id); setHideRoleDetails(false); }} onRefresh={refresh} />
     </>
   );
 }
@@ -80,7 +81,7 @@ describe("실제 Role shell을 사용할 때", () => {
 
     expect(source).toContain("lag-role-summary");
     expect(selector).toContain("data-role-selector");
-    expect(source).not.toMatch(/role-list|PanelCard|GoldRow|outline:\s*["']?none|Knowledge|Consistency|Connection|Confidence|Role (?:score|rank|level)/i);
+    expect(source).not.toMatch(/PanelCard|GoldRow|outline:\s*["']?none|Knowledge|Consistency|Connection|Confidence|Role (?:score|rank|level)/i);
     expect(`${source}\n${selector}`).not.toContain("data-theme");
 
     const css = readFileSync("app/globals.css", "utf8");
@@ -111,7 +112,7 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /개요/ }));
       fireEvent.keyDown(screen.getByRole("button", { name: "역할" }), { key: "Enter", altKey: true });
       expect(screen.getByLabelText("역할 이름")).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "취소" }));
+      fireEvent.click(screen.getByRole("button", { name: "역할 목록으로" }));
       const selected = screen.getByRole("button", { name: /Backend Engineer.*활성/ });
       expect(selected).toHaveAttribute("aria-pressed", "true");
       await waitFor(() => expect(document.querySelector('[data-stage-key="role-summary"]')).not.toBeInTheDocument());
@@ -197,7 +198,7 @@ describe("실제 Role shell을 사용할 때", () => {
       render(<RoleShell roles={roles} selectedRoleId={null} onSelectRole={onSelectRole} onRefresh={vi.fn()} />);
 
       expect(onSelectRole).not.toHaveBeenCalled();
-      expect(document.querySelector('[data-stage-key="role-list"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="role-list"]')).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /개요/ })).not.toBeInTheDocument();
       expect(screen.queryByText("Build systems")).not.toBeInTheDocument();
       expect(api.listPersonsApi).not.toHaveBeenCalled();
@@ -286,7 +287,8 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /관계/ }));
       await screen.findByRole("button", { name: /Alex.*친구/ });
       expect(screen.queryByLabelText("인물 이름")).not.toBeInTheDocument();
-      fireEvent.keyDown(screen.getByRole("button", { name: "관계" }), { key: "Enter", altKey: true });
+      const menu = screen.getByRole("button", { name: /관계.*연결된 기존 인물/ });
+      fireEvent.keyDown(menu, { key: "Enter", altKey: true });
       fireEvent.change(screen.getByLabelText("기존 인물"), { target: { value: "7" } });
       fireEvent.change(screen.getByLabelText("관계 유형"), { target: { value: "FAMILY" } });
       fireEvent.change(screen.getByLabelText("역할 메모"), { target: { value: "Call weekly" } });

@@ -6,7 +6,7 @@ import type { PersonDetail, RoleRelationDetail } from "@/shared/api/types";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
-import CreateSlot, { CreateCategory } from "@/shared/ui/CreateSlot";
+import CreateSlot from "@/shared/ui/CreateSlot";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { archiveRoleRelationApi, createRoleRelationApi, getRoleRelationApi, listPersonsApi, listRoleRelationsApi, resolveRelationPersonStatus, updateRoleRelationApi } from "./api";
@@ -93,7 +93,6 @@ export default function RelationPanels({ roleId, roleName, createRequest, reentr
   return <div ref={root} className="lag-panel-rail lag-role-relations">{dialog}
     <PanelStage stageKey="role-detail" instant inactive={compact && (mode === "detail" || mode === "edit")}>
       <PanelFrame title={mode === "create" ? "기존 인물 연결" : `${roleName} · 관계`} backButton={<BackButton label={mode === "create" ? "관계 목록으로" : `역할 ${roleName}로`} onClick={mode === "create" ? close : onBack} />}>
-        <CreateCategory title="관계" onOpen={close} onCreate={() => { remember(); request.current++; setMode("create"); setError(null); setLoading(false); }} />
         <CreateSlot showCancel={false} creating={mode === "create"} pending={pending} onClose={close} list={<div className="lag-role-detail">
           {list.loading ? <p role="status">관계를 불러오는 중…</p> : null}
           {list.error ? <p role="alert">{list.error} <button type="button" className="lag-role-button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}

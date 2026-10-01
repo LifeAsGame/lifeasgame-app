@@ -128,6 +128,7 @@ it("cancels deletion without a command and accepts a bodyless delete response", 
   fireEvent.click(screen.getByRole("button", { name: "도서" }));
   fireEvent.click(await screen.findByRole("button", { name: /Architecture Notes/ }));
   expect(await screen.findByText("수집 기록 #31")).toBeInTheDocument();
+  fireEvent.keyDown(screen.getByRole("button", { name: /Architecture Notes/ }), { key: "F10", shiftKey: true });
   fireEvent.click(screen.getByRole("button", { name: "삭제" }));
   await answerDialog(false);
   expect(api.deleteCollectionApi).not.toHaveBeenCalled();

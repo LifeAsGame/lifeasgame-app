@@ -25,9 +25,8 @@ it("같은 Person을 두 역할에서 재사용하고 특정 관계 보관은 Pe
   for (const id of [1, 2]) {
     if (id === 2) view.rerender(<RelationPanels key={2} {...props} roleId={2} roleName="두 번째 역할" />);
     await screen.findByText("연결된 인물이 없습니다.");
-    fireEvent.click(screen.getByRole("button", { name: "관계" }));
     expect(screen.queryByLabelText("기존 인물")).not.toBeInTheDocument();
-    fireEvent.keyDown(screen.getByRole("button", { name: "관계" }), { key: "Enter", altKey: true });
+    view.rerender(<RelationPanels key={id} {...props} roleId={id} roleName={id === 1 ? "첫 역할" : "두 번째 역할"} createRequest={1} />);
     fireEvent.change(screen.getByLabelText("기존 인물"), { target: { value: "7" } });
     fireEvent.change(screen.getByLabelText("관계 유형"), { target: { value: "FAMILY" } });
     fireEvent.click(screen.getByRole("button", { name: "관계 저장" }));

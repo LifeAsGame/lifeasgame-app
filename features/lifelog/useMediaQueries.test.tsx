@@ -37,8 +37,9 @@ describe("Media query/mutation state를 관리할 때", () => {
     expect(result.current.detail).toBeNull();
     await waitFor(() => expect(api.searchMediaApi).toHaveBeenLastCalledWith({ category: "ANIME", status: "WATCHING", titleLike: "Frieren", page: 0, size: 20 }));
     act(() => result.current.changePage(2));
+    expect(result.current.list.items).toEqual([]);
     await waitFor(() => expect(api.searchMediaApi).toHaveBeenLastCalledWith({ category: "ANIME", status: "WATCHING", titleLike: "Frieren", page: 2, size: 20 }));
-    expect(result.current.list.items).toEqual([first]);
+    await waitFor(() => expect(result.current.list.items).toEqual([first]));
   });
 
   it("ignores a stale server-backed search response", async () => {

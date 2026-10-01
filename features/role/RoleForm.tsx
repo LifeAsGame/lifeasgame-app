@@ -32,7 +32,7 @@ export function RoleForm({ role, onSaved, onCancel }: { role?: RoleDetail; onSav
     {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
     <div className="lag-role-actions">
       <button type="submit" disabled={pending} className="lag-role-action">{pending ? "저장 중…" : "역할 저장"}</button>
-      <button type="button" className="lag-role-button" onClick={() => { active.current = false; onCancel(); }}>취소</button>
+      {role ? <button type="button" className="lag-role-button" onClick={() => { active.current = false; onCancel(); }}>취소</button> : null}
     </div>
   </form>;
 }

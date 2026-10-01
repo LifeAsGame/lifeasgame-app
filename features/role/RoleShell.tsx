@@ -16,6 +16,7 @@ import { getRoleEventApi, listRoleEventsApi } from "./api";
 import PersonPanels from "./PersonPanels";
 import RelationPanels from "./RelationPanels";
 import { RoleForm } from "./RoleForm";
+import RoleListPanel from "./RoleListPanel";
 import { SwipeButton } from "./RecordRow";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 
@@ -149,12 +150,17 @@ export default function RoleShell({
   selectedRoleId,
   reentryRequest = 0,
   onSelectRole,
-  onRefresh, hideRoleDetails = false, workspace = "roles", personCreateRequest = 0, personReentryRequest = 0, onWorkspaceBack = () => {}, editRequest,
+  onRefresh, hideRoleDetails = false, workspace = "roles", personCreateRequest = 0, personReentryRequest = 0, roleCreateRequest = 0, onWorkspaceBack = () => {}, editRequest, rolesLoading, rolesError, onRoleArchived, onEditRole,
 }: {
   hideRoleDetails?: boolean;
   workspace?: "persons" | "roles" | null;
   personCreateRequest?: number;
   personReentryRequest?: number;
+  roleCreateRequest?: number;
+  rolesLoading?: boolean;
+  rolesError?: string | null;
+  onRoleArchived?: (id: number) => void;
+  onEditRole?: (id: number) => void;
   onWorkspaceBack?: () => void;
   editRequest?: { id: number; sequence: number } | null;
   roles: RoleDetail[];
@@ -204,16 +210,17 @@ export default function RoleShell({
     setSurfaceRoleId(null);
     setEditingRoleId(null);
     onSelectRole(null);
-    requestStageFocus("left-context", "back");
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-role-selector] [data-role-id="${selectedRoleId}"] button`)?.focus({ preventScroll: true }));
+    requestStageFocus("role-list", "back");
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-stage-key="role-list"] [data-role-id="${selectedRoleId}"] button`)?.focus({ preventScroll: true }));
   };
 
   return (
     <div className="lag-panel-rail lag-role-shell relative" data-testid="role-shell">
       <PersonPanels active={workspace === "persons"} createRequest={personCreateRequest} reentryRequest={personReentryRequest} onBack={onWorkspaceBack} />
+      {workspace === "roles" ? <RoleListPanel roles={roles} selectedRoleId={selectedRoleId} loading={rolesLoading} error={rolesError} createRequest={roleCreateRequest} inactive={compact && Boolean(selectedRole) && !hideRoleDetails} onSelect={onSelectRole} onEdit={(id) => onEditRole?.(id)} onRetry={() => void onRefresh()} onRefresh={onRefresh} onArchived={(id) => { if (selectedRoleId === id) onSelectRole(null); onRoleArchived?.(id); }} onBack={onWorkspaceBack} /> : null}
       <AnimatePresence initial={false}>
         {selectedRole ? (
-          <PanelStage stageKey="role-summary" index={1} inactive={compact && Boolean(editingRole || activeSurface)}>
+          <PanelStage stageKey="role-summary" index={2} inactive={compact && Boolean(editingRole || activeSurface)}>
             <PanelFrame title={selectedRole.name} depth={1} contentKey={selectedRole.id} backButton={<BackButton label="역할 목록으로" onClick={closeSummary} />}>
               <article className="lag-role-summary">
                 <header className="lag-role-hero">
@@ -239,7 +246,7 @@ export default function RoleShell({
       </AnimatePresence>
 
         {selectedRole && (editingRole || activeSurface) ? (
-          activeSurface === "relations" && !editingRole ? <RelationPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} createRequest={relationCreateRequest} reentryRequest={relationReentryRequest} onBack={closeDetail} /> : <PanelStage stageKey="role-detail" index={2} instant>
+          activeSurface === "relations" && !editingRole ? <RelationPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} createRequest={relationCreateRequest} reentryRequest={relationReentryRequest} onBack={closeDetail} /> : <PanelStage stageKey="role-detail" index={3} instant>
             <PanelFrame title={editingRole ? "역할 수정" : ROLE_SURFACES.find(({ id }) => id === activeSurface)?.label ?? "역할"} depth={0} contentKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} backButton={<BackButton label={`역할 ${selectedRole.name}로`} onClick={closeDetail} />}>
               {editingRole ? (
                 <RoleForm role={selectedRole} onSaved={async () => { const generation = roleGeneration.current; await onRefresh(); if (generation === roleGeneration.current) closeDetail(); }} onCancel={closeDetail} />

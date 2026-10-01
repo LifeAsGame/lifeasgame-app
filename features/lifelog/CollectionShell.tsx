@@ -95,7 +95,7 @@ function subscribeCompact(notify: () => void) {
   return () => media.removeEventListener("change", notify);
 }
 
-export default function CollectionShell({ onBack, createRequest = 0 }: { onBack?: () => void; createRequest?: number }) {
+export default function CollectionShell({ onBack, createRequest = 0, initialRecord }: { onBack?: () => void; createRequest?: number; initialRecord?: { id: number; category: CollectionCategory; title: string } }) {
   const creation = useCreateMode(createRequest);
   const { confirm, dialog } = useSaoConfirm();
   const collections = useCollectionQueries(true);
@@ -106,11 +106,16 @@ export default function CollectionShell({ onBack, createRequest = 0 }: { onBack?
   const [mode, setMode] = useState<"edit" | null>(null);
   const [category, setCategory] = useState<CollectionCategory | null>(null);
   const [titleLike, setTitleLike] = useState("");
+  const jumped = useRef(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!initialRecord) return; setCategory(initialRecord.category); setTitleLike(initialRecord.title); collections.search(initialRecord.category, initialRecord.title); }, [initialRecord?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!initialRecord || jumped.current || collections.params.category !== initialRecord.category || collections.params.titleLike !== initialRecord.title || collections.list.loading || !collections.list.items.some((item) => item.id === initialRecord.id)) return; jumped.current = true; setDetailVisible(true); collections.select(initialRecord.id); }, [initialRecord?.id, collections.params, collections.list.loading, collections.list.items]);
   const chooseCategory = (next: CollectionCategory, create = false) => {
     setCategory(next); setTitleLike(""); collections.search(next); setMode(null); setDetailVisible(false);
     if (create) creation.open(); else creation.close();
   };
-  const shell = useRef<HTMLDivElement>(null), caller = useRef<HTMLButtonElement | null>(null), editButton = useRef<HTMLButtonElement | null>(null);
+  const shell = useRef<HTMLDivElement>(null), caller = useRef<HTMLButtonElement | null>(null);
   const pending = collections.pendingMutation !== null, item = collections.detail.data;
   const activeKey = creation.creating || !detailVisible ? null : mode === "edit" ? "lifelog-collection-form" : collections.selectedId !== null ? "lifelog-collection-detail" : null;
   useEffect(() => {
@@ -129,7 +134,7 @@ export default function CollectionShell({ onBack, createRequest = 0 }: { onBack?
     if (mode === "edit" && collections.selectedId !== null) {
       setMode(null);
       requestStageFocus("lifelog-collection-detail", "back");
-      requestAnimationFrame(() => editButton.current?.focus({ preventScroll: true }));
+      requestAnimationFrame(() => shell.current?.querySelector<HTMLElement>('[data-stage-key="lifelog-collection-detail"] button')?.focus({ preventScroll: true }));
     } else returnToList();
   };
   const feedback = <Feedback pending={pending} error={collections.mutationError} success={collections.mutationSuccess} refreshError={collections.refreshError} reload={() => void collections.list.reload(true)} />;
@@ -163,7 +168,7 @@ export default function CollectionShell({ onBack, createRequest = 0 }: { onBack?
           {mode && !item ? <InfoCard>수집 기록을 불러오는 중…</InfoCard> : mode ? <div className="lag-collection-form-surface"><CollectionForm item={mode === "edit" && item ? item : undefined} category={category!} pending={pending} cancel={cancelForm} create={async (body) => { const saved = await collections.create(body); if (saved) setMode(null); return saved; }} update={async (body) => { const saved = item ? await collections.update(item.id, body) : false; if (saved) { setMode(null); requestStageFocus("lifelog-collection-detail", "back"); } return saved; }}>{feedback}</CollectionForm></div> : <>
             {collections.detail.loading && !item ? <InfoCard>수집 기록을 불러오는 중…</InfoCard> : null}
             {collections.detail.error ? <div className="lag-collection-feedback"><p role="alert" className="lag-journal-feedback" data-state="error">{collections.detail.error}</p><button type="button" className="lag-journal-button" onClick={() => void collections.detail.retry()}>상세 다시 조회</button></div> : null}
-            {item ? <><CollectionDetail item={item} /><div className="lag-collection-detail-actions">{feedback}<button ref={editButton} type="button" className="lag-journal-action" disabled={pending} onClick={() => { collections.resetMutation(); setMode("edit"); }}>수집 기록 수정</button><button type="button" className="lag-journal-button" disabled={pending} onClick={async () => { if (await confirm(`“${item.title}” 수집 기록을 삭제할까요?`)) { if (await collections.remove(item.id)) returnToList(false); } }}>삭제</button></div></> : null}
+            {item ? <><CollectionDetail item={item} />{feedback}</> : null}
           </>}
         </PanelFrame>
       </PanelStage> : null}

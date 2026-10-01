@@ -165,9 +165,10 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-quest-rewards > button { width:100%; }
 
 /* Menu stages stay in normal flow; the workspace owns horizontal scrolling. */
-.sao-stage :is(.lag-journal-shell,.lag-collection-shell) { width:max-content; display:flex; gap:var(--lag-panel-gap); }
-.sao-stage :is(.lag-journal-shell,.lag-collection-shell) > [data-stage-key] { position:relative; flex:0 0 var(--lag-list-width); width:var(--lag-list-width); }
-.sao-stage :is(.lag-journal-shell,.lag-collection-shell) .lag-panel-frame,
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell,.lag-lifelog-shell) { width:max-content; display:flex; gap:var(--lag-panel-gap); }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell,.lag-lifelog-shell) > [data-stage-key] { position:relative; flex:0 0 var(--lag-list-width); width:var(--lag-list-width); }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell,.lag-lifelog-shell) [data-panel-role=detail] { flex-basis:440px; width:440px; }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell,.lag-lifelog-shell) .lag-panel-frame,
 .sao-stage .lag-journey-shell .lag-panel-frame { width:100% !important; max-width:100% !important; }
 .sao-stage :is(.lag-journal-surface,.lag-quick-record-form,.lag-journal-state) { padding-inline:0; }
 .sao-stage :is(.lag-quick-record-surface,.lag-journal-detail) { padding-inline:20px; gap:20px; }
@@ -181,14 +182,13 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-journal-filters { padding-bottom:16px; }
 .sao-stage .lag-journal-archive { border:0; padding:0; gap:0; background:none; }
 .sao-stage .lag-journal-section-heading { padding:12px 20px; margin:0; }
-.sao-stage .lag-journal-list { gap:0; }
-.sao-stage .lag-journal-entry { grid-template-columns:32px minmax(0,1fr); gap:8px 12px; min-height:96px; padding:16px 20px; border:0; border-bottom:1px solid var(--lag-divider); border-radius:0; background:transparent; }
+.sao-stage .lag-journal-list { gap:12px; padding-inline:16px; }
+.sao-stage .lag-journal-entry { grid-template-columns:36px minmax(0,1fr); gap:8px 12px; min-height:68px; padding:12px 16px; border:1px solid var(--lag-divider); border-radius:var(--lag-radius-md); background:var(--lag-muted-surface); }
 .sao-stage .lag-journal-entry:not([data-selected=true]):hover { background:var(--lag-hover); }
-.sao-stage .lag-journal-entry[data-selected=true] { background:var(--lag-gold); color:#332708; box-shadow:none; }
-.sao-stage .lag-journal-entry[data-selected=true] :is(span,strong,time) { color:#332708; }
-.sao-stage .lag-journal-source { width:32px; height:32px; border-radius:50%; background:none; font-size:10px; letter-spacing:0; align-self:start; }
+.sao-stage .lag-journal-entry[data-selected=true] { border-color:var(--lag-focus); background:var(--lag-control-hover-bg); box-shadow:inset 4px 0 0 var(--lag-state-selected); }
+.sao-stage .lag-journal-source { width:36px; height:36px; border-radius:50%; background:var(--lag-paper); font-size:12px; letter-spacing:0; align-self:start; }
 .sao-stage .lag-journal-entry-copy { gap:6px; }
-.sao-stage .lag-journal-entry-copy strong { font-size:15px; font-weight:400; line-height:1.5; }
+.sao-stage .lag-journal-entry-copy strong { font-size:15px; font-weight:700; line-height:1.4; }
 .sao-stage .lag-journal-entry-summary { font-size:12px; }
 .sao-stage .lag-journal-entry-chips > span { background:none; border:0; padding:0; font-size:11px; }
 .sao-stage .lag-journal-entry time { grid-column:2; justify-self:start; white-space:normal; overflow-wrap:anywhere; font-size:11px; }
@@ -229,7 +229,7 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 }
 
 /* Collection keeps the shared Journal reading and field tokens. */
-.sao-stage .lag-collection-form-surface { padding-inline:20px; }
+.sao-stage .lag-collection-form-surface { padding-inline:24px; }
 .sao-stage .lag-collection-form { display:grid; gap:20px; }
 .sao-stage .lag-collection-form fieldset { display:grid; min-width:0; }
 .sao-stage .lag-collection-actions { display:grid; gap:10px; }
@@ -307,7 +307,8 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .lag-dialog-confirm { --dialog-action:#287bbf; }.lag-dialog-cancel { --dialog-action:#d13378; }
 .lag-sao-dialog button:focus-visible { outline:2px solid var(--lag-focus); outline-offset:8px; }
 @media(max-width:899px) {
-  .sao-stage :is(.lag-journal-shell,.lag-collection-shell,.lag-journey-shell) > [data-stage-key] { flex-basis:calc(100vw - 32px); width:calc(100vw - 32px); }
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell,.lag-lifelog-shell,.lag-journey-shell) > [data-stage-key],
+.sao-stage :is(.lag-journal-shell,.lag-collection-shell,.lag-lifelog-shell) [data-panel-role=detail] { flex-basis:calc(100vw - 32px); width:calc(100vw - 32px); }
 }
 @media(prefers-reduced-motion:reduce) {
   .lag-create-slot *, .lag-role-record-row * { animation:none !important; transition:none !important; }
@@ -334,6 +335,16 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-role-selector > header p { font-size:12px; font-weight:400; letter-spacing:0; text-transform:none; }
 .sao-stage .lag-role-shell [data-stage-key="role-summary"] .lag-panel-frame,
 .sao-stage .lag-role-shell [data-stage-key="role-detail"] .lag-panel-frame { width:min(440px,calc(100vw - 32px)) !important; }
+.sao-stage .lag-role-shell [data-stage-key="role-list"] .lag-panel-frame { width:min(344px,calc(100vw - 32px)) !important; }
+.sao-stage .lag-lifelog-shell .lag-role-form { padding-inline:24px; }
+.sao-stage .lag-lifelog-shell .lag-role-form label { display:grid; gap:8px; color:var(--lag-text-2); font-size:12px; font-weight:700; letter-spacing:0; text-transform:none; }
+.sao-stage .lag-lifelog-shell .lag-role-form :is(input,select,textarea) { min-width:0; width:100%; }
+.sao-stage .lag-lifelog-shell .lag-lifelog-detail > h4 { font-size:16px; font-weight:700; overflow-wrap:anywhere; }
+.sao-stage .lag-lifelog-shell .lag-lifelog-search { display:grid; gap:12px; padding:16px 0; }
+.sao-stage .lag-lifelog-shell .lag-role-detail > details > summary { min-height:44px; cursor:pointer; }
+.sao-stage .lag-player-category-heading { color:var(--lag-text-2); font-size:12px; font-weight:700; }
+.sao-stage .lag-personal-category-form { padding-inline:24px; }
+.sao-stage .lag-personal-category-form input { min-height:44px; width:100%; padding:8px 12px; border:1px solid var(--lag-control-border); border-radius:var(--lag-radius-sm); background:var(--lag-control-bg); color:var(--lag-control-text); font-size:16px; }
 .sao-stage .lag-journey-shell [data-stage-key="journey-detail"] { flex-basis:440px; width:440px; }
 .sao-stage .lag-player-panels [data-stage-key="player-growth-change-detail"] { width:440px; min-width:440px; max-width:440px; }
 .sao-stage :is(.lag-role-summary,.lag-role-detail,.lag-growth-profile,.lag-growth-history,.lag-growth-detail) { padding-inline:24px; }
@@ -343,6 +354,9 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 }
 @media(max-width:899px) {
   .sao-stage .lag-role-selector { padding:16px; }
+  .sao-stage .lag-lifelog-shell .lag-role-form { padding-inline:16px; }
+  .sao-stage .lag-collection-form-surface { padding-inline:16px; }
+  .sao-stage .lag-personal-category-form { padding-inline:16px; }
   .sao-stage :is(.lag-role-summary,.lag-role-detail,.lag-growth-profile,.lag-growth-history,.lag-growth-detail,.lag-journey-detail) { padding-inline:16px; }
   .sao-stage .lag-journey-shell [data-stage-key="journey-detail"] { flex-basis:calc(100vw - 32px); width:calc(100vw - 32px); }
   .sao-stage .lag-player-panels .lag-panel-stage { min-width:calc(100vw - 32px); }

@@ -41,6 +41,7 @@ import type { MainNavId, MarketSubId, PanelStackItem, QuestsSubId } from "@/enti
 import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { NotificationBell } from "@/features/notification/NotificationBell";
+import type { JournalDetail } from "@/shared/api/types";
 
 type SurfaceFocusState = {
   counter: number;
@@ -105,7 +106,9 @@ export default function Home() {
   const roleState = useRoles(Boolean(playerId && (selectedMain === "player" || selectedMain === "role" || selectedMain === "lifelog")));
   const [roleWorkspace, setRoleWorkspace] = useState<"persons" | "roles" | null>(null);
   const [createRequests, setCreateRequests] = useState<Record<string, number>>({});
+  const [sourceJump, setSourceJump] = useState<JournalDetail | null>(null);
   const [personCreateRequest, setPersonCreateRequest] = useState(0);
+  const [roleCreateRequest, setRoleCreateRequest] = useState(0);
   const [personReentryRequest, setPersonReentryRequest] = useState(0);
   const [roleReentryRequest, setRoleReentryRequest] = useState(0);
   const [subReentry, setSubReentry] = useState<Record<string, number>>({});
@@ -154,6 +157,7 @@ export default function Home() {
   };
 
   const handleMainSelect = (nextMain: MainNavId) => {
+    setSourceJump(null);
     if (nextMain === selectedMain) {
       navigateConsumer(null);
       clearFeatureState();
@@ -182,6 +186,7 @@ export default function Home() {
     }
 
     setCreateRequests({});
+    setSourceJump(null);
     submenuCaller.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (selectedSubByMain[panel.context.main] === itemId) setSubReentry((values) => ({ ...values, [itemId]: (values[itemId] ?? 0) + 1 }));
     navigateConsumer(panel.context.main, itemId);
@@ -191,12 +196,14 @@ export default function Home() {
     const panel = panelStack[panelIndex];
     if (!panel || panel.kind !== "menu" || panel.context.route !== "main-submenu") return;
     submenuCaller.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSourceJump(null);
     navigateConsumer(panel.context.main, itemId);
     setCreateRequests((values) => ({ ...values, [itemId]: (values[itemId] ?? 0) + 1 }));
   };
 
   const closeFeatureSubmenu = (main: "player" | "inventory" | "market" | "lifelog") => {
     setCreateRequests({});
+    setSourceJump(null);
     navigateConsumer(main);
     requestStageFocus(`${main}-stage-0`, "back");
     requestAnimationFrame(() => {
@@ -287,7 +294,7 @@ export default function Home() {
         <LeftContext
           mode={selectedMain === "role" ? "role" : "hidden"}
           roleWorkspace={roleWorkspace}
-          onRoleWorkspaceChange={(workspace, create) => { if (workspace === "persons" && !create) setPersonReentryRequest((value) => value + 1); if (workspace === "roles" && !create) { setSelectedRoleId(null); setRoleDetailsHidden(false); } setRoleWorkspace(workspace); if (create) { setRoleDetailsHidden(true); setRoleEditRequest(null); } if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); }}
+          onRoleWorkspaceChange={(workspace, create) => { if (workspace === "persons" && !create) setPersonReentryRequest((value) => value + 1); if (workspace === "roles") { setSelectedRoleId(null); setRoleDetailsHidden(Boolean(create)); } setRoleWorkspace(workspace); if (create) setRoleEditRequest(null); if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); if (workspace === "roles" && create) setRoleCreateRequest((value) => value + 1); }}
           onRoleEdit={(id) => { handleRoleSelect(id); setRoleEditRequest((value) => ({ id, sequence: (value?.sequence ?? 0) + 1 })); }}
           onRoleRefresh={roleState.refresh}
           onRoleArchived={(id) => setSelectedRoleId((current) => current === id ? null : current)}
@@ -320,13 +327,18 @@ export default function Home() {
                 workspace={roleWorkspace}
                 hideRoleDetails={roleDetailsHidden}
                 personCreateRequest={personCreateRequest}
+                roleCreateRequest={roleCreateRequest}
                 personReentryRequest={personReentryRequest}
+                rolesLoading={roleState.isLoading}
+                rolesError={roleState.error}
+                onRoleArchived={(id) => setSelectedRoleId((current) => current === id ? null : current)}
+                onEditRole={(id) => { handleRoleSelect(id); setRoleEditRequest((value) => ({ id, sequence: (value?.sequence ?? 0) + 1 })); }}
                 reentryRequest={roleReentryRequest}
                 onWorkspaceBack={() => setRoleWorkspace(null)}
                 editRequest={roleEditRequest}
                 roles={roleState.roles}
                 selectedRoleId={selectedRoleId}
-                onSelectRole={setSelectedRoleId}
+                onSelectRole={(id) => { if (id === null) setSelectedRoleId(null); else handleRoleSelect(id); }}
                 onRefresh={roleState.refresh}
               />
             </div>
@@ -355,9 +367,15 @@ export default function Home() {
               />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
-            <JournalShell key={`journal-${subReentry.journal ?? 0}`} createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} />
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
+              <JournalShell key={`journal-${subReentry.journal ?? 0}`} createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} onOpenSource={(detail) => { setSourceJump(detail); navigateConsumer("lifelog", detail.sourceType.toLowerCase()); }} />
+            </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "collection" ? (
-            <CollectionShell key={`collection-${subReentry.collection ?? 0}`} createRequest={createRequests.collection ?? 0} onBack={() => closeFeatureSubmenu("lifelog")} />
+            <div className="flex w-fit items-center gap-3">
+              <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
+              <CollectionShell key={`collection-${subReentry.collection ?? 0}`} createRequest={createRequests.collection ?? 0} initialRecord={sourceJump?.sourceType === "COLLECTION" ? { id: sourceJump.sourceId, category: sourceJump.source.category, title: sourceJump.source.title } : undefined} onBack={() => closeFeatureSubmenu("lifelog")} />
+            </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "exercise" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels
@@ -365,12 +383,12 @@ export default function Home() {
                 panelStack={panelStack.slice(0, 1)}
                 onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate}
               />
-              <ExerciseShell key={`exercise-${subReentry.exercise ?? 0}`} createRequest={createRequests.exercise ?? 0} />
+              <ExerciseShell key={`exercise-${subReentry.exercise ?? 0}`} createRequest={createRequests.exercise ?? 0} initialRecord={sourceJump?.sourceType === "EXERCISE" ? { id: sourceJump.sourceId, category: sourceJump.source.category, exercisedOn: sourceJump.source.exercisedOn } : undefined} />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "media" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
-              <MediaShell key={`media-${subReentry.media ?? 0}`} createRequest={createRequests.media ?? 0} />
+              <MediaShell key={`media-${subReentry.media ?? 0}`} createRequest={createRequests.media ?? 0} initialRecord={sourceJump?.sourceType === "MEDIA" ? { id: sourceJump.sourceId, category: sourceJump.source.category, title: sourceJump.source.title } : undefined} />
             </div>
           ) : selectedMain === "system" && selectedSubByMain.system === "options" ? (
             <div className="lag-settings-route flex w-fit items-center gap-3">

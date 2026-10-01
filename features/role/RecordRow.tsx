@@ -57,9 +57,9 @@ export function SwipeButton({ onSwipeLeft, onSwipeRight, onClick, onDoubleClick,
 
 const ACTION_WIDTH = 144;
 
-export function RecordRow({ title, subtitle, selected, disabled, onSelect, onEdit, onArchive, archiveLabel = "삭제" }: {
+export function RecordRow({ title, subtitle, selected, disabled, onSelect, onCreate, onEdit, onArchive, archiveLabel = "삭제" }: {
   title: string; subtitle?: string; selected?: boolean; disabled?: boolean; archiveLabel?: string;
-  onSelect: () => void; onEdit: () => void; onArchive: () => void;
+  onSelect: () => void; onCreate?: () => void; onEdit: () => void; onArchive: () => void;
 }) {
   const [actions, setActions] = useState(false);
   const root = useRef<HTMLDivElement>(null), body = useRef<HTMLButtonElement>(null);
@@ -76,7 +76,7 @@ export function RecordRow({ title, subtitle, selected, disabled, onSelect, onEdi
       <button type="button" disabled={disabled} onClick={onEdit}><span className="lag-row-action-symbol" aria-hidden>✎</span>수정</button>
       <button type="button" disabled={disabled} onClick={onArchive}><span className="lag-row-action-symbol" aria-hidden>×</span>{archiveLabel}</button>
     </div>
-    <SwipeButton ref={body} className="lag-role-node lag-record-body" aria-pressed={Boolean(selected)} data-selected={Boolean(selected)} restingOffset={actions ? -ACTION_WIDTH : 0} onClick={() => { announce(); setActions(false); onSelect(); }} onSwipeLeft={() => { announce(); setActions(true); }} onSwipeRight={close} onKeyDown={(event) => { if (event.key === "F10" && event.shiftKey) { event.preventDefault(); announce(); setActions(true); } }}>
+    <SwipeButton ref={body} className="lag-role-node lag-record-body" creation={Boolean(onCreate)} aria-pressed={Boolean(selected)} data-selected={Boolean(selected)} restingOffset={actions ? -ACTION_WIDTH : 0} onClick={() => { announce(); setActions(false); onSelect(); }} onDoubleClick={onCreate} onSwipeLeft={() => { announce(); setActions(true); }} onSwipeRight={close} onKeyDown={(event) => { if (event.key === "F10" && event.shiftKey) { event.preventDefault(); announce(); setActions(true); } }}>
       <span className="lag-role-node-mark" aria-hidden>{title.charAt(0)}</span>
       <span><strong>{title}</strong>{subtitle ? <small>{subtitle}</small> : null}</span><span aria-hidden>→</span>
     </SwipeButton>

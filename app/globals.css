@@ -814,6 +814,10 @@ body {
 }
 
 .lag-role-shell [data-stage-key="role-summary"] .lag-panel-frame {
+  width: min(440px, calc(100vw - 32px)) !important;
+}
+
+.lag-role-shell [data-stage-key="role-list"] .lag-panel-frame {
   width: min(344px, calc(100vw - 32px)) !important;
 }
 
@@ -5072,8 +5076,9 @@ select {
 .lag-person-panels [data-stage-key="person-detail"] .lag-panel-frame, .lag-role-relations [data-stage-key="role-relation-detail"] .lag-panel-frame { width: min(440px, calc(100vw - 32px)) !important; }
 .lag-person-panels .lag-role-form, .lag-role-relations .lag-role-form { min-width: 0; padding-inline: 24px; }
 .lag-role-shell [data-stage-key="role-detail"] .lag-role-form { padding-inline: 24px; }
+.lag-role-shell [data-stage-key="role-list"] .lag-role-form { padding-inline: 24px; }
 .lag-person-panels .lag-role-form :where(input,select,textarea), .lag-role-relations .lag-role-form :where(input,select,textarea) { min-width: 0; width: 100%; box-sizing: border-box; font-size: 16px; }
-@media (max-width: 899px) { .lag-person-panels .lag-role-form, .lag-role-relations .lag-role-form, .lag-role-shell [data-stage-key="role-detail"] .lag-role-form { padding-inline: 16px; } }
+@media (max-width: 899px) { .lag-person-panels .lag-role-form, .lag-role-relations .lag-role-form, .lag-role-shell .lag-role-form { padding-inline: 16px; } }
 .lag-role-selector .lag-role-form { padding-inline: 0; }
 .lag-person-form details { border-top: 1px solid var(--lag-divider); padding-block: 14px; }
 .lag-person-form summary { cursor: pointer; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
