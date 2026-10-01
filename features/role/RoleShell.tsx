@@ -1,18 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
-import type {
-  RoleDetail,
-  RoleEventDetail,
-} from "@/shared/api/types";
+import type { RoleDetail } from "@/shared/api/types";
 import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
-import { InfoCard } from "@/widgets/right-panels/ui/Rows";
-import { getRoleEventApi, listRoleEventsApi } from "./api";
+import RoleEventPanels from "./RoleEventPanels";
 import PersonPanels from "./PersonPanels";
 import RelationPanels from "./RelationPanels";
 import { RoleForm } from "./RoleForm";
@@ -27,15 +23,6 @@ const ROLE_SURFACES: Array<{ id: RoleSurface; label: string; slotLabel: string }
   { id: "relations", label: "관계", slotLabel: "RE" },
   { id: "events", label: "일정", slotLabel: "EV" },
 ];
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="lag-role-state">
-      <p role="alert" className="lag-role-feedback" data-state="error">{message}</p>
-      <button type="button" className="lag-role-button" onClick={onRetry}>다시 시도</button>
-    </div>
-  );
-}
 
 function RoleDataRow({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="lag-role-data-row"><dt>{label}</dt><dd>{children}</dd></div>;
@@ -62,86 +49,6 @@ function Overview({ role }: { role: RoleDetail }) {
         </dl>
       </RoleSection>
     </article>
-  );
-}
-
-function EventsSurface({ roleId }: { roleId: number }) {
-  const [events, setEvents] = useState<RoleEventDetail[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<RoleEventDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [detailError, setDetailError] = useState<{ eventId: number; message: string } | null>(null);
-  const detailRequest = useRef(0);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setEvents(await listRoleEventsApi(roleId));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "일정을 불러오지 못했습니다.");
-    } finally {
-      setLoading(false);
-    }
-  }, [roleId]);
-
-  useEffect(() => {
-    const counter = detailRequest;
-    void load();
-    return () => { counter.current++; };
-  }, [load]);
-
-  const selectEvent = async (eventId: number) => {
-    const request = ++detailRequest.current;
-    setDetailError(null);
-    setSelectedEvent(null);
-    try {
-      const detail = await getRoleEventApi(roleId, eventId);
-      if (request === detailRequest.current) setSelectedEvent(detail);
-    } catch (caught) {
-      if (request === detailRequest.current) {
-        setDetailError({ eventId, message: caught instanceof Error ? caught.message : "일정 상세를 불러오지 못했습니다." });
-      }
-    }
-  };
-
-  return (
-    <div className="lag-role-detail lag-role-events">
-      <InfoCard>역할 사건 기록은 준비 중입니다. 기록은 Journal에서 남길 수 있습니다.</InfoCard>
-      {loading ? <InfoCard>일정을 불러오는 중…</InfoCard> : error && events.length === 0 ? <ErrorState message={error} onRetry={() => void load()} /> : (
-        <>
-          {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
-          {detailError ? <ErrorState message={detailError.message} onRetry={() => void selectEvent(detailError.eventId)} /> : null}
-          <div className="lag-role-event-list" aria-label="역할 일정">
-            {events.length ? events.map((roleEvent) => (
-              <button key={roleEvent.id} type="button" className="lag-role-event" data-selected={selectedEvent?.id === roleEvent.id} aria-pressed={selectedEvent?.id === roleEvent.id} onClick={() => void selectEvent(roleEvent.id)}>
-                <span aria-hidden>{roleEvent.status === "PLANNED" ? "○" : roleEvent.status === "COMPLETED" ? "✓" : "×"}</span>
-                <span><strong>{roleEvent.title}</strong><small>{consumerLabel(roleEvent.status)}</small></span>
-                <span aria-hidden>→</span>
-              </button>
-            )) : <InfoCard>이 역할의 일정이 없습니다.</InfoCard>}
-          </div>
-
-          {selectedEvent ? (
-            <section className="lag-role-section" aria-label="일정 상세">
-              <h4>{selectedEvent.title}</h4>
-              <div className="lag-role-section-body">
-                <p className="lag-role-description">{selectedEvent.description || "설명 없음"}</p>
-                <dl>
-                  <RoleDataRow label="상태">{consumerLabel(selectedEvent.status)}</RoleDataRow>
-                  <RoleDataRow label="시작">{selectedEvent.startsAt || "미등록"}</RoleDataRow>
-                  <RoleDataRow label="종료">{selectedEvent.endsAt || "미등록"}</RoleDataRow>
-                </dl>
-                <h5 className="lag-role-subheading">참여자</h5>
-                {selectedEvent.participants.length ? selectedEvent.participants.map((participant) => (
-                  <div className="lag-role-record" key={participant.participantLinkId} data-kind="participant"><strong>{consumerLabel(participant.participantType)} #{participant.participantId}</strong></div>
-                )) : <InfoCard>참여자가 없습니다.</InfoCard>}
-              </div>
-            </section>
-          ) : <InfoCard>일정을 선택하면 상세를 볼 수 있습니다.</InfoCard>}
-        </>
-      )}
-    </div>
   );
 }
 
@@ -175,7 +82,8 @@ export default function RoleShell({
   const trigger = useRef<HTMLElement | null>(null);
   const [relationCreateRequest, setRelationCreateRequest] = useState(0);
   const [relationReentryRequest, setRelationReentryRequest] = useState(0);
-  const [surfaceVisit, setSurfaceVisit] = useState(0);
+  const [eventCreateRequest, setEventCreateRequest] = useState(0);
+  const [eventReentryRequest, setEventReentryRequest] = useState(0);
   const [surface, setSurface] = useState<RoleSurface | null>(null);
   const [surfaceRoleId, setSurfaceRoleId] = useState<number | null>(null);
   const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
@@ -186,7 +94,7 @@ export default function RoleShell({
   useEffect(() => {
     const counter = roleGeneration;
     counter.current++;
-    setRelationCreateRequest(0);
+    setRelationCreateRequest(0); setEventCreateRequest(0);
     setSurface(null);
     setSurfaceRoleId(null);
     setEditingRoleId(null);
@@ -231,10 +139,10 @@ export default function RoleShell({
                 </header>
                 <section className="lag-role-surface-grid" aria-label="Role surfaces">
                   {ROLE_SURFACES.map((item) => (
-                    <SwipeButton key={item.id} className="lag-role-surface-card" creation={item.id === "relations"} onDoubleClick={item.id === "relations" ? () => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setSurface("relations"); setSurfaceRoleId(selectedRole.id); setRelationCreateRequest((value) => value + 1); setEditingRoleId(null); } : undefined} aria-pressed={activeSurface === item.id} data-selected={activeSurface === item.id} onClick={() => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setRelationCreateRequest(0); if (item.id === "relations") setRelationReentryRequest((value) => value + 1); setSurfaceVisit((value) => value + 1); setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }}>
+                    <SwipeButton key={item.id} className="lag-role-surface-card" creation={item.id !== "overview"} onDoubleClick={item.id !== "overview" ? () => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setSurface(item.id); setSurfaceRoleId(selectedRole.id); if (item.id === "relations") setRelationCreateRequest((value) => value + 1); else setEventCreateRequest((value) => value + 1); setEditingRoleId(null); } : undefined} aria-pressed={activeSurface === item.id} data-selected={activeSurface === item.id} onClick={() => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setRelationCreateRequest(0); setEventCreateRequest(0); if (item.id === "relations") setRelationReentryRequest((value) => value + 1); if (item.id === "events") setEventReentryRequest((value) => value + 1); setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }}>
                       <span aria-hidden>{item.slotLabel}</span>
                       <strong>{item.label}</strong>
-                      <small>{item.id === "overview" ? "역할 정보" : item.id === "relations" ? "연결된 기존 인물" : "일정 이력 · 준비 중"}</small>
+                      <small>{item.id === "overview" ? "역할 정보" : item.id === "relations" ? "연결된 기존 인물" : "역할 일정"}</small>
                       <span aria-hidden>→</span>
                     </SwipeButton>
                   ))}
@@ -246,12 +154,11 @@ export default function RoleShell({
       </AnimatePresence>
 
         {selectedRole && (editingRole || activeSurface) ? (
-          activeSurface === "relations" && !editingRole ? <RelationPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} createRequest={relationCreateRequest} reentryRequest={relationReentryRequest} onBack={closeDetail} /> : <PanelStage stageKey="role-detail" index={3} instant>
+          activeSurface === "relations" && !editingRole ? <RelationPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} createRequest={relationCreateRequest} reentryRequest={relationReentryRequest} onBack={closeDetail} /> : activeSurface === "events" && !editingRole ? <RoleEventPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} createRequest={eventCreateRequest} reentryRequest={eventReentryRequest} onBack={closeDetail} /> : <PanelStage stageKey="role-detail" index={3} instant>
             <PanelFrame title={editingRole ? "역할 수정" : ROLE_SURFACES.find(({ id }) => id === activeSurface)?.label ?? "역할"} depth={0} contentKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} backButton={<BackButton label={`역할 ${selectedRole.name}로`} onClick={closeDetail} />}>
               {editingRole ? (
                 <RoleForm role={selectedRole} onSaved={async () => { const generation = roleGeneration.current; await onRefresh(); if (generation === roleGeneration.current) closeDetail(); }} onCancel={closeDetail} />
-              ) : activeSurface === "overview" ? <Overview role={selectedRole} />
-                : <EventsSurface key={`${selectedRole.id}-${surfaceVisit}`} roleId={selectedRole.id} />}
+              ) : <Overview role={selectedRole} />}
             </PanelFrame>
           </PanelStage>
         ) : null}

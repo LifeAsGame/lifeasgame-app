@@ -27,6 +27,7 @@ import GrowthShell from "@/features/player/GrowthShell";
 import { usePlayerContext } from "@/features/player/usePlayerContext";
 import ExchangeShell from "@/features/market/ExchangeShell";
 import SocialUtilityHub from "@/features/social/SocialUtilityHub";
+import GroupShell from "@/features/social/GroupShell";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
@@ -207,7 +208,7 @@ export default function Home() {
     setCreateRequests((values) => ({ ...values, [itemId]: (values[itemId] ?? 0) + 1 }));
   };
 
-  const closeFeatureSubmenu = (main: "player" | "inventory" | "market" | "lifelog") => {
+  const closeFeatureSubmenu = (main: "player" | "inventory" | "market" | "lifelog" | "social") => {
     setCreateRequests({});
     setSourceJump(null);
     navigateConsumer(main);
@@ -352,6 +353,11 @@ export default function Home() {
             </div>
           ) : selectedMain === "quests" ? (
             <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} navigation={{ surface: location.sub as QuestsSubId | null, detail: location.detail }} onNavigate={(sub, detail) => navigateConsumer("quests", sub, detail)} />
+          ) : selectedMain === "social" ? (
+            <div className="flex w-fit items-center gap-6">
+              <RightPanels selectedMain="social" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
+              {selectedSubByMain.social === "guilds" || selectedSubByMain.social === "parties" ? <GroupShell key={`${selectedSubByMain.social}-${subReentry[selectedSubByMain.social] ?? 0}`} kind={selectedSubByMain.social} playerId={playerId} createRequest={createRequests[selectedSubByMain.social] ?? 0} onBack={() => closeFeatureSubmenu("social")} /> : null}
+            </div>
           ) : selectedMain === "inventory" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels

@@ -3,6 +3,7 @@ export type MainNavId =
   | "inventory"
   | "quests"
   | "role"
+  | "social"
   | "lifelog"
   | "market"
   | "system";
@@ -12,6 +13,7 @@ export type InventorySubId = "items" | "gear" | "inbox";
 export type InventoryGearPartId = "weapon" | "armor" | "accessory" | "boots";
 export type QuestsSubId = "current" | "catalog" | "routes";
 export type RoleSubId = "overview" | "relations" | "events";
+export type SocialSubId = "guilds" | "parties";
 export type LifelogSubId = "journal" | "collection" | "media" | "exercise";
 export type MarketSubId = "wallet" | "shop" | "trade";
 export type MarketShopSubId = "catalog" | "myListings";

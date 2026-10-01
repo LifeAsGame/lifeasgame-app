@@ -10,6 +10,7 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
   { id: "inventory", label: "소지품", slotLabel: "IN" },
   { id: "quests",    label: "여정",   slotLabel: "QU" },
   { id: "role",      label: "인물 · 역할",      slotLabel: "RL" },
+  { id: "social",    label: "모임", slotLabel: "SO" },
   { id: "lifelog",   label: "생활 기록",   slotLabel: "LI" },
   { id: "market",    label: "거래소",  slotLabel: "EX" },
   { id: "system",    label: "설정",    slotLabel: "SY" },
@@ -17,7 +18,7 @@ export const MAIN_NAV_ITEMS: Array<{ id: MainNavId; label: string; slotLabel: st
 
 export const MAIN_PANEL_TITLES: Record<MainNavId, string> = {
   player: "플레이어", inventory: "소지품", quests: "여정", role: "인물 · 역할",
-  lifelog: "생활 기록", market: "거래소", system: "설정",
+  social: "모임", lifelog: "생활 기록", market: "거래소", system: "설정",
 };
 
 export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
@@ -43,6 +44,10 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
     { id: "relations", label: "관계", slotLabel: "RE" },
     { id: "events",    label: "일정",    slotLabel: "EV" },
   ],
+  social: [
+    { id: "guilds", label: "길드", slotLabel: "GI" },
+    { id: "parties", label: "파티", slotLabel: "PA" },
+  ],
   lifelog: [
     { id: "journal",    label: "기록 모아보기",    slotLabel: "JR" },
     { id: "collection", label: "수집 기록", slotLabel: "CL" },
@@ -61,7 +66,7 @@ export const SUBMENUS_BY_MAIN: Record<MainNavId, PanelMenuItem[]> = {
 };
 
 export const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string | null> = {
-  player: null, inventory: null, quests: null, role: null,
+  player: null, inventory: null, quests: null, role: null, social: null,
   lifelog: null, market: null, system: null,
 };
 

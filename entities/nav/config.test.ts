@@ -23,13 +23,13 @@ describe("primary Orb navigation을 구성할 때", () => {
     });
   });
 
-  describe("현재 Role 정책을 적용하면", () => {
-    it("Social 자리에 Role/RL을 노출하고 Role surface를 세 개로 제한한다", () => {
+  describe("Role과 모임을 분리하면", () => {
+    it("개인 Role과 공유 Guild/Party에 각각 진입한다", () => {
       const role = MAIN_NAV_ITEMS.find(({ id }) => id === "role");
 
       expect(role).toEqual({ id: "role", label: "인물 · 역할", slotLabel: "RL" });
-      expect(MAIN_NAV_ITEMS.some(({ id }) => (id as string) === "social")).toBe(false);
-      expect("social" in SUBMENUS_BY_MAIN).toBe(false);
+      expect(MAIN_NAV_ITEMS.find(({ id }) => id === "social")).toEqual({ id: "social", label: "모임", slotLabel: "SO" });
+      expect(SUBMENUS_BY_MAIN.social.map(({ id }) => id)).toEqual(["guilds", "parties"]);
       expect(SUBMENUS_BY_MAIN.role.map(({ id }) => id)).toEqual(["overview", "relations", "events"]);
       expect(DEFAULT_SUB_SELECTIONS.role).toBeNull();
     });

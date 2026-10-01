@@ -9,11 +9,12 @@ const ICONS: Record<MainNavId, string> = {
   inventory: "M8 3h8l2 5h3l-1 14H4L3 8h3l2-5Zm2 2L9 8h6l-1-3h-4Z",
   quests: "M5 2h14v20l-7-4-7 4V2Zm6 4v3H8v2h3v3h2v-3h3V9h-3V6Z",
   role: "M8 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm8 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM3 11h10v9H2v-6Zm11 2h6l2 3v5h-8Z",
+  social: "M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM4 20v-3a8 8 0 0 1 16 0v3H4Z",
   lifelog: "M4 2h13v3h3v17H4V2Zm4 5v2h6V7Zm0 5v2h8v-2Zm0 5v2h8v-2Z",
   market: "M3 6h13V3l6 5-6 5v-3H3V6Zm18 12H8v3l-6-5 6-5v3h13v4Z",
   system: "M9 2h6l1 4 4 1 2 5-3 3-1 5-5 2-3-3-5-1-2-5 3-3 1-5Zm3 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z",
 };
-const CAPTIONS: Record<MainNavId, string> = { player: "나의 성장", inventory: "가지고 있는 것", quests: "이어가는 여정", role: "삶의 여러 역할", lifelog: "일상의 기록", market: "자산과 교환", system: "나에게 맞추기" };
+const CAPTIONS: Record<MainNavId, string> = { player: "나의 성장", inventory: "가지고 있는 것", quests: "이어가는 여정", role: "삶의 여러 역할", social: "함께하는 모임", lifelog: "일상의 기록", market: "자산과 교환", system: "나에게 맞추기" };
 
 type OrbItem = { id: MainNavId; label: string; slotLabel: string };
 type OrbNavProps = { items: OrbItem[]; selectedId: MainNavId | null; onSelect: (id: MainNavId) => void; zIndex?: number; onFocus?: () => void };

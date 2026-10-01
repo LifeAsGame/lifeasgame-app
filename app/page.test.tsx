@@ -172,7 +172,7 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
       expect(screen.getByTestId("home-shell")).toBeInTheDocument();
       expect(screen.getByTestId("social-utility")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /^Home$/ })).not.toBeInTheDocument();
-      expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(7);
+      expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(8);
       expect(roleHook.useRoles).toHaveBeenCalledWith(false);
     });
   });

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PersonDetail, RoleDetail, RoleEventDetail, RoleRelationDetail } from "@/shared/api/types";
+import { ApiError } from "@/shared/api/client";
 import { STAGE_FOCUS_EVENT } from "@/shared/hooks/useStageCamera";
 import { RoleContextPanel } from "@/widgets/left-context/ui/RoleContextPanel";
 import RoleShell from "./RoleShell";
@@ -19,6 +20,12 @@ const api = vi.hoisted(() => ({
   createPersonApi: vi.fn(),
   createRoleRelationApi: vi.fn(),
   getRoleEventApi: vi.fn(),
+  createRoleEventApi: vi.fn(),
+  updateRoleEventApi: vi.fn(),
+  completeRoleEventApi: vi.fn(),
+  cancelRoleEventApi: vi.fn(),
+  addRoleEventParticipantApi: vi.fn(),
+  removeRoleEventParticipantApi: vi.fn(),
   listPersonsApi: vi.fn(),
   listRoleEventsApi: vi.fn(),
   listRoleRelationsApi: vi.fn(),
@@ -70,6 +77,8 @@ describe("실제 Role shell을 사용할 때", () => {
     api.listRoleRelationsApi.mockResolvedValue([relation]);
     api.listRoleEventsApi.mockResolvedValue([roleEvent]);
     api.getRoleEventApi.mockResolvedValue(roleEvent);
+    api.createRoleEventApi.mockResolvedValue(roleEvent);
+    api.completeRoleEventApi.mockResolvedValue({ ...roleEvent, status: "COMPLETED" });
     api.createPersonApi.mockResolvedValue(person);
     api.createRoleRelationApi.mockResolvedValue(relation);
     api.updateRoleRelationApi.mockResolvedValue({ ...relation, relationType: "MENTOR" });
@@ -222,7 +231,7 @@ describe("실제 Role shell을 사용할 때", () => {
       focus.mockClear();
       fireEvent.click(screen.getByRole("button", { name: /일정/ }));
       await waitFor(() => expect(api.listRoleEventsApi).toHaveBeenCalledWith(1));
-      expect(focus).not.toHaveBeenCalled();
+      expect(focus).toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole("button", { name: /Family Member.*활성/ }));
       await waitFor(() => expect(document.querySelector('[data-stage-key="role-detail"]')).not.toBeInTheDocument());
@@ -308,68 +317,34 @@ describe("실제 Role shell을 사용할 때", () => {
     });
   });
 
-  describe("Events surface를 열면", () => {
-    const gate = "역할 사건 기록은 준비 중입니다. 기록은 Journal에서 남길 수 있습니다.";
-
-    it("기존 사건과 participant는 읽되 쓰기 control은 노출하지 않는다", async () => {
+  describe("일정 화면을 열면", () => {
+    it("목록과 읽기 상세를 다른 패널에 두고, 상태 명령을 명시적으로 호출한다", async () => {
       render(<Harness />);
-      expect(screen.getByText("일정 이력 · 준비 중")).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      expect(screen.getByText(gate)).toBeInTheDocument();
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
-
-      expect(await screen.findByText("사용자 #99")).toBeInTheDocument();
-      expect(screen.queryByLabelText(/participant/i)).not.toBeInTheDocument();
-      for (const name of ["Create Event", "Edit Event", "Complete Event", "Cancel Event", "Save New Event", "Update Event"]) {
-        expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
-      }
-      expect(api.listRoleEventsApi).toHaveBeenCalledWith(1);
-      expect(api.getRoleEventApi).toHaveBeenCalledWith(1, 11);
+      await waitFor(() => expect(document.querySelector('[data-stage-key="role-event-detail"]')).toHaveTextContent("Review boundaries"));
+      expect(document.querySelector('[data-stage-key="role-detail"]')).not.toHaveTextContent("Review boundaries");
+      expect(screen.getByText("서비스 사용자 #99")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "완료" }));
+      await answerDialog();
+      await waitFor(() => expect(api.completeRoleEventApi).toHaveBeenCalledWith(1, 11));
     });
 
-    it("loading과 빈 목록에서도 gate를 보여주고 조회 실패는 retry로 복구한다", async () => {
-      const loading = deferred<RoleEventDetail[]>();
-      api.listRoleEventsApi.mockReturnValueOnce(loading.promise).mockResolvedValue([]);
-      const empty = render(<Harness />);
-      fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.getByText("일정을 불러오는 중…")).toBeInTheDocument();
-      await act(async () => loading.resolve([]));
-      expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.getByText("이 역할의 일정이 없습니다.")).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Create Event" })).not.toBeInTheDocument();
-
-      empty.unmount();
-      api.listRoleEventsApi.mockRejectedValueOnce(new Error("Event list failed"));
+    it("일정 더블클릭은 생성 폼을 열고 실패해도 입력을 유지한다", async () => {
+      api.createRoleEventApi.mockRejectedValueOnce(new ApiError(403, "ROL-403-EVENT-COMMAND-GATED", "Role event commands are not available"));
       render(<Harness />);
-      fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      expect(await screen.findByRole("alert")).toHaveTextContent("Event list failed");
-      expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.queryByText("이 역할의 일정이 없습니다.")).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
-      expect(await screen.findByText("이 역할의 일정이 없습니다.")).toBeInTheDocument();
-      expect(api.listRoleEventsApi).toHaveBeenCalledTimes(3);
-      expect(api.getRoleEventApi).not.toHaveBeenCalled();
+      const menu = screen.getByRole("button", { name: /일정.*역할 일정/ });
+      fireEvent.click(menu);
+      fireEvent.keyDown(menu, { key: "Enter", altKey: true });
+      expect(await screen.findByRole("textbox", { name: "제목" })).toBeInTheDocument();
+      fireEvent.change(screen.getByRole("textbox", { name: "제목" }), { target: { value: "New event" } });
+      fireEvent.click(screen.getByRole("button", { name: "일정 저장" }));
+      await waitFor(() => expect(api.createRoleEventApi).toHaveBeenCalledWith(1, { title: "New event", description: null, startsAt: null, endsAt: null }));
+      expect(await screen.findByRole("alert")).toHaveTextContent("현재 서버에서 일정 변경이 허용되지 않습니다.");
+      expect(screen.getByRole("textbox", { name: "제목" })).toHaveValue("New event");
     });
 
-    it("detail 조회 실패 후 Retry가 같은 상세만 재조회해 복구한다", async () => {
-      api.getRoleEventApi.mockRejectedValueOnce(new Error("Event detail failed"));
-      render(<Harness />);
-      fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      const row = await screen.findByRole("button", { name: /Architecture review/ });
-      fireEvent.click(row);
-      expect(await screen.findByRole("alert")).toHaveTextContent("Event detail failed");
-      expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.queryByRole("region", { name: "일정 상세" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
-      expect(await screen.findByText("사용자 #99")).toBeInTheDocument();
-      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-      expect(api.getRoleEventApi).toHaveBeenCalledTimes(2);
-      expect(api.getRoleEventApi).toHaveBeenNthCalledWith(2, 1, 11);
-      expect(api.listRoleEventsApi).toHaveBeenCalledTimes(1);
-    });
-
-    it("같은 Role에서 B 상세가 먼저 성공하면 늦은 A 성공을 버린다", async () => {
+    it("늦은 이전 일정 상세 응답을 선택한 다른 일정에 표시하지 않는다", async () => {
       const first = deferred<RoleEventDetail>();
       const second = deferred<RoleEventDetail>();
       api.listRoleEventsApi.mockResolvedValue([roleEvent, otherEvent]);
@@ -379,60 +354,9 @@ describe("실제 Role shell을 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
       fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
       await act(async () => second.resolve(otherEvent));
-      expect(screen.getByRole("region", { name: "일정 상세" })).toHaveTextContent("Review design");
       await act(async () => first.resolve(roleEvent));
-      expect(screen.getByRole("region", { name: "일정 상세" })).toHaveTextContent("Review design");
-      expect(screen.queryByText("Review boundaries")).not.toBeInTheDocument();
-    });
-
-    it("B 성공 뒤 늦은 A 실패가 B 상세와 오류 상태를 바꾸지 않는다", async () => {
-      const first = deferred<RoleEventDetail>();
-      const second = deferred<RoleEventDetail>();
-      api.listRoleEventsApi.mockResolvedValue([roleEvent, otherEvent]);
-      api.getRoleEventApi.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
-      render(<Harness />);
-      fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
-      fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
-      await act(async () => second.resolve(otherEvent));
-      await act(async () => first.reject(new Error("Old detail failed")));
-      expect(screen.getByRole("region", { name: "일정 상세" })).toHaveTextContent("Review design");
-      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    });
-
-    it("B 실패 뒤 늦은 A 성공이 B 오류와 Retry 대상을 바꾸지 않는다", async () => {
-      const first = deferred<RoleEventDetail>();
-      const second = deferred<RoleEventDetail>();
-      api.listRoleEventsApi.mockResolvedValue([roleEvent, otherEvent]);
-      api.getRoleEventApi.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise).mockResolvedValueOnce(otherEvent);
-      render(<Harness />);
-      fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
-      fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
-      await act(async () => second.reject(new Error("B detail failed")));
-      await act(async () => first.resolve(roleEvent));
-      expect(screen.getByRole("alert")).toHaveTextContent("B detail failed");
-      expect(screen.queryByRole("region", { name: "일정 상세" })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
-      expect(await screen.findByText("Review design")).toBeInTheDocument();
-      expect(api.getRoleEventApi).toHaveBeenNthCalledWith(3, 1, 12);
-      expect(api.listRoleEventsApi).toHaveBeenCalledTimes(1);
-    });
-
-    it("Role 변경 중 늦게 도착한 이전 Role detail을 보여주지 않는다", async () => {
-      const pending = deferred<RoleEventDetail>();
-      api.getRoleEventApi.mockReturnValueOnce(pending.promise);
-      api.listRoleEventsApi.mockImplementation((roleId: number) => Promise.resolve(roleId === 1 ? [roleEvent] : []));
-      render(<Harness />);
-      fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
-      fireEvent.click(screen.getByRole("button", { name: /Family Member.*활성/ }));
-      fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      expect(await screen.findByText("이 역할의 일정이 없습니다.")).toBeInTheDocument();
-      await act(async () => pending.resolve(roleEvent));
-      expect(screen.getByText(gate)).toBeInTheDocument();
-      expect(screen.queryByText("사용자 #99")).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: /Architecture review/ })).not.toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="role-event-detail"]')).toHaveTextContent("Review design");
+      expect(document.querySelector('[data-stage-key="role-event-detail"]')).not.toHaveTextContent("Review boundaries");
     });
   });
   it("개요·관계·일정 전환은 상위 frame을 유지하고 마지막 내용만 표시한다", async () => {
@@ -442,7 +366,7 @@ describe("실제 Role shell을 사용할 때", () => {
     fireEvent.click(screen.getByRole("button", { name: /관계/ }));
     fireEvent.click(screen.getByRole("button", { name: /일정/ }));
     expect(document.querySelector('[data-stage-key="role-summary"] .lag-panel-frame')).toBe(summary);
-    expect(document.querySelector('[data-stage-key="role-detail"]')).toHaveTextContent("역할 사건 기록은 준비 중입니다");
+    expect(document.querySelector('[data-stage-key="role-detail"]')).toHaveTextContent("Backend Engineer · 일정");
     expect(document.querySelector('[data-stage-key="role-relation-detail"]')).not.toBeInTheDocument();
   });
 

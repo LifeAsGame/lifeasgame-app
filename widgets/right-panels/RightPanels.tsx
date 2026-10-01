@@ -124,7 +124,7 @@ function PanelContent({
             const isCategoryPanel =
               panel.context.route === "player-category" ||
               panel.context.route === "lifelog-category";
-            const canCreate = panel.context.route === "main-submenu" && panel.context.main === "lifelog" && ["journal", "exercise", "media"].includes(item.id);
+            const canCreate = panel.context.route === "main-submenu" && ((panel.context.main === "lifelog" && ["journal", "exercise", "media"].includes(item.id)) || panel.context.main === "social");
             if (canCreate && onPanelItemCreate) return <div key={item.id}>
               <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onDoubleClick={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong><span aria-hidden>→</span></SwipeButton>
             </div>;
