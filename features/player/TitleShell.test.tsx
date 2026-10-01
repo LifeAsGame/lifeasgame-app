@@ -45,18 +45,18 @@ describe("Title surface와 routing을 사용할 때", () => {
   it("acquired fields와 representative marker를 표시하고 fabricated state는 만들지 않는다", async () => {
     const { unmount } = render(<TitleShell />);
     const entry = await screen.findByTestId("title-entry");
-    expect(entry).toHaveTextContent("Combat · 2026-08-01T00:00:00Z · Representative Title");
+    expect(entry).toHaveTextContent("전투 · 2026-08-01T00:00:00Z · 대표 칭호");
     fireEvent.click(entry);
-    expect(screen.getByText("Code: BLACK_SWORDSMAN")).toBeInTheDocument();
+    expect(screen.getByText("BLACK_SWORDSMAN")).toBeInTheDocument();
     expect(screen.getByText("Canonical description.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Representative Title" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "대표 칭호" })).toBeDisabled();
     expect(screen.queryByText(/Status: Unlocked/)).not.toBeInTheDocument();
     unmount();
 
     api.getCurrentPlayerApi.mockResolvedValue({ ...MOCK_CHARACTER_SHEET.player, representativeTitleId: 99 });
     api.getPlayerTitlesApi.mockResolvedValue([]);
     render(<TitleShell />);
-    expect(await screen.findByText("No acquired Titles.")).toBeInTheDocument();
-    expect(screen.getByText("Representative Title #99 is unavailable in acquired Titles.")).toBeInTheDocument();
+    expect(await screen.findByText("획득한 칭호가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("대표 칭호 #99을 획득 목록에서 찾을 수 없습니다.")).toBeInTheDocument();
   });
 });

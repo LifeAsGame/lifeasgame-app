@@ -284,6 +284,19 @@ describe("Home shell에서 feature surface를 routing할 때", () => {
     });
   });
 
+  it("같은 플레이어 분류를 다시 누르면 상위 메뉴를 유지하고 상세만 닫는다", () => {
+    renderHome();
+    fireEvent.click(screen.getByRole("button", { name: "플레이어" }));
+    fireEvent.click(screen.getByRole("button", { name: "칭호" }));
+    const menu = screen.getByTestId("right-panels");
+    fireEvent.click(screen.getByRole("button", { name: "Select Mock Title" }));
+    expect(screen.getByText("Mock Title Detail")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "칭호" }));
+    expect(screen.getByTestId("right-panels")).toBe(menu);
+    expect(screen.getByTestId("title-shell")).toBeInTheDocument();
+    expect(screen.queryByText("Mock Title Detail")).not.toBeInTheDocument();
+  });
+
   describe("인증된 player가 Growth를 선택하면", () => {
     it("첫 Player submenu에서 backend-owned overview와 ordered history를 렌더한다", async () => {
       renderHome();

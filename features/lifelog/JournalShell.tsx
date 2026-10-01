@@ -18,7 +18,7 @@ import type {
   RoleDetail,
 } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
-import CreateSlot, { CreateCategory, useCreateMode } from "@/shared/ui/CreateSlot";
+import CreateSlot, { useCreateMode } from "@/shared/ui/CreateSlot";
 import PanelStage, { StageContentTransition } from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
@@ -408,7 +408,7 @@ function subscribeCompact(notify: () => void) {
   return () => media.removeEventListener("change", notify);
 }
 
-export default function JournalShell({ createRequest = 0, roles, rolesLoading = false, rolesError = null, onBack }: { createRequest?: number; roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void }) {
+export default function JournalShell({ createRequest = 0, roles, rolesLoading = false, rolesError = null, onBack, onOpenSource }: { createRequest?: number; roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void; onOpenSource?: (detail: JournalDetail) => void }) {
   const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
   const caller = useRef<HTMLButtonElement | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -445,8 +445,7 @@ export default function JournalShell({ createRequest = 0, roles, rolesLoading = 
     <div ref={shellRef} className="lag-panel-rail lag-journal-shell relative" data-testid="journal-shell">
       <PanelStage stageKey="lifelog-journal" panelRole="list" inactive={compact && detailVisible && !quickRecordOpen && journal.selectedLifeLogId !== null}>
         <PanelFrame title="일상 기록" depth={1} resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeQuickRecord} /> : onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
-          <CreateCategory title="일상 기록" onOpen={closeQuickRecord} onCreate={creation.open} />
-            <CreateSlot creating={quickRecordOpen} pending={journal.quickRecord.pending} onClose={closeQuickRecord} list={<div className="lag-journal-surface">
+            <CreateSlot showCancel={false} creating={quickRecordOpen} pending={journal.quickRecord.pending} onClose={closeQuickRecord} list={<div className="lag-journal-surface">
             <details className="lag-journal-filter-disclosure">
               <summary>필터 · 역할 / 기록 분류</summary>
             <div className="lag-journal-filters" aria-label="일상 기록 필터">
@@ -556,7 +555,7 @@ export default function JournalShell({ createRequest = 0, roles, rolesLoading = 
 
       <AnimatePresence initial={false}>
         {detailVisible && !quickRecordOpen && journal.selectedLifeLogId ? (
-          <PanelStage stageKey="lifelog-journal-detail" panelRole="detail" side={compact ? "right" : "left"}>
+          <PanelStage stageKey="lifelog-journal-detail" panelRole="detail" side="right">
             <PanelFrame
               title="일상 기록 상세"
               depth={0}
@@ -574,6 +573,7 @@ export default function JournalShell({ createRequest = 0, roles, rolesLoading = 
                     <time dateTime={detail.recordedAt}>{displayTimestamp(detail.recordedAt)}</time>
                   </div>
                   <SourceDetail detail={detail} />
+                  {onOpenSource ? <button type="button" className="lag-journal-button" onClick={() => onOpenSource(detail)}>원본에서 수정·삭제</button> : null}
                   <DetailSection title="기록 정보">
                     <DetailItem name="기록 유형" value={label(detail.sourceType)} />
                     <DetailItem name="기록 일시" value={displayTimestamp(detail.recordedAt)} />

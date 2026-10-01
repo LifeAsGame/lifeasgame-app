@@ -95,6 +95,7 @@ export function useExerciseQueries() {
   const search = (category?: ExerciseCategory, from?: string, to?: string) => {
     clearSelection();
     listRequestId.current += 1;
+    setItems([]);
     paramsRef.current = { page: 0, size: paramsRef.current.size, category, from: from || undefined, to: to || undefined };
     setParams(paramsRef.current);
   };
@@ -102,6 +103,7 @@ export function useExerciseQueries() {
   const changePage = (page: number) => {
     clearSelection();
     listRequestId.current += 1;
+    setItems([]);
     paramsRef.current = { ...paramsRef.current, page: Math.max(0, page) };
     setParams(paramsRef.current);
   };
@@ -163,6 +165,7 @@ export function useExerciseQueries() {
     detail: { data: detail, loading: detailLoading, error: detailError, retry: () => selectedIdRef.current === null ? Promise.resolve(undefined) : loadDetail(selectedIdRef.current) },
     selectedId,
     select,
+    clearSelection,
     search,
     changePage,
     pendingMutation,

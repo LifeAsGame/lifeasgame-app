@@ -48,20 +48,20 @@ describe("LeftContext에서 Role을 사용할 때", () => {
     expect(lane).toHaveAttribute("data-context-present", "true");
   });
 
-  it("Role mode에서 canonical Role Nodes selector를 유지하며 selection을 전달한다", () => {
-    const selectRole = vi.fn();
+  it("Role mode에서 selector를 유지하며 역할 목록을 우측으로 연다", () => {
+    const changeWorkspace = vi.fn();
     const { container, rerender } = render(
-      <LeftContext mode="role" roles={roles} selectedRoleId={null} onRoleSelect={selectRole} />,
+      <LeftContext mode="role" roles={roles} selectedRoleId={null} onRoleWorkspaceChange={changeWorkspace} />,
     );
     const selector = container.querySelector("[data-role-selector]");
 
-    fireEvent.click(screen.getByRole("button", { name: /Backend Engineer.*ACTIVE/ }));
-    expect(selectRole).toHaveBeenCalledWith(3);
+    fireEvent.click(screen.getByRole("button", { name: "역할" }), { detail: 0 });
+    expect(changeWorkspace).toHaveBeenCalledWith("roles");
+    expect(screen.queryByRole("button", { name: /Backend Engineer.*활성/ })).not.toBeInTheDocument();
 
-    rerender(<LeftContext mode="role" roles={roles} selectedRoleId={3} onRoleSelect={selectRole} />);
+    rerender(<LeftContext mode="role" roles={roles} selectedRoleId={3} roleWorkspace="roles" onRoleWorkspaceChange={changeWorkspace} />);
     expect(container.querySelector("[data-role-selector]")).toBe(selector);
-    expect(screen.getByRole("button", { name: /Backend Engineer.*ACTIVE/ })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "역할" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "역할" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("keeps a stable collapsible lane and shared bounded content scroll", () => {

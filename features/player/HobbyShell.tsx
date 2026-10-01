@@ -1,125 +1,153 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-
 import type { HobbyStatus, PlayerHobbyMutationRequest } from "@/shared/api/types";
-import { INPUT_STYLE, SAO } from "@/shared/design/tokens";
-import CreateSlot, { CreateCategory, useCreateMode } from "@/shared/ui/CreateSlot";
+import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
+import CreateSlot, { useCreateMode } from "@/shared/ui/CreateSlot";
 import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
-import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
-import { GoldRow, InfoCard } from "@/widgets/right-panels/ui/Rows";
+import { InfoCard } from "@/widgets/right-panels/ui/Rows";
+import { categoryLabel, controlStyle, DetailLine, Feedback, Field } from "./PlayerDetail";
+import PlayerCategories from "./PlayerCategories";
+import { assignPersonalCategoryApi, categoryKey, type PersonalCategory } from "./personalCategories";
 import { useHobbyQueries } from "./useHobbyQueries";
+import { usePersonalCategories } from "./usePersonalCategories";
 
-const STATUSES: HobbyStatus[] = ["ACTIVE", "PAUSED", "DROPPED"];
-const buttonStyle = {
-  border: `1px solid ${SAO.color.border.panel}`,
-  background: SAO.color.bg.inset,
-  color: SAO.color.text.secondary,
-  borderRadius: SAO.radius.panel,
-  padding: "7px 10px",
-  fontSize: "0.68rem",
-  letterSpacing: "0.08em",
-} as const;
-
-function value(form: FormData, key: string): string | undefined {
-  return String(form.get(key) ?? "").trim() || undefined;
-}
-
+const STATUS: Record<HobbyStatus, string> = { ACTIVE: "활동 중", PAUSED: "일시 중지", DROPPED: "그만둠" };
+function label(value: string) { return STATUS[value as HobbyStatus] ?? value; }
 function fields(form: FormData): PlayerHobbyMutationRequest {
-  const proficiency = value(form, "proficiency");
+  const value = (key: string) => String(form.get(key) ?? "").trim();
+  const proficiency = value("proficiency");
   return {
-    ...(value(form, "customName") ? { customName: value(form, "customName") } : {}),
-    ...(value(form, "detail") ? { detail: value(form, "detail") } : {}),
-    ...(proficiency !== undefined ? { proficiency: Number(proficiency) } : {}),
-    ...(value(form, "status") ? { status: value(form, "status") as HobbyStatus } : {}),
-    ...(value(form, "startedOn") ? { startedOn: value(form, "startedOn") } : {}),
+    ...(value("customName") ? { customName: value("customName") } : {}),
+    ...(value("detail") ? { detail: value("detail") } : {}),
+    ...(proficiency ? { proficiency: Number(proficiency) } : {}),
+    ...(value("status") ? { status: value("status") as HobbyStatus } : {}),
+    ...(value("startedOn") ? { startedOn: value("startedOn") } : {}),
   };
 }
-
-function ErrorState({ message, retry }: { message: string; retry: () => void }) {
-  return <div className="space-y-2 px-3"><p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{message}</p><button type="button" style={buttonStyle} onClick={retry}>다시 시도</button></div>;
+function StatusOptions({ keep = false }: { keep?: boolean }) {
+  return <>{keep ? <option value="">현재 값 유지…</option> : null}{Object.entries(STATUS).map(([value, text]) => <option key={value} value={value}>{text}</option>)}</>;
 }
 
 export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () => void; createRequest?: number }) {
-  const creation = useCreateMode(createRequest);
+  const creation = useCreateMode();
   const { confirm, dialog } = useSaoConfirm();
   const hobbies = useHobbyQueries();
-  const clearMutationError = hobbies.clearMutationError;
+  const personalCategories = usePersonalCategories("HOBBY");
+  const compact = useMediaQuery("(max-width: 1199px)");
   const [detailVisible, setDetailVisible] = useState(true);
-  useEffect(() => { if (creation.creating) { setDetailVisible(false); clearMutationError(); } }, [creation.creating, clearMutationError]);
-  const closeCreation = () => { if (creation.creating) clearMutationError(); creation.close(); };
-  const select = (id: number) => { setDetailVisible(true); hobbies.select(id); };
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [catalogId, setCatalogId] = useState("");
-  const pending = hobbies.pendingMutation !== null;
-  const available = hobbies.catalog.items.filter((item) => !hobbies.owned.items.some((owned) => owned.hobbyId === item.hobbyId));
-  const selected = detailVisible && !creation.creating && hobbies.selected;
+  const [category, setCategory] = useState<string | null>(null);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [assignmentPending, setAssignmentPending] = useState(false);
+  const [registeredUnassignedId, setRegisteredUnassignedId] = useState<number | null>(null);
+  const registrationLock = useRef(false);
+  const pending = hobbies.pendingMutation !== null || assignmentPending;
+  const selectedCategory = personalCategories.categories.find((item) => categoryKey(item) === category) ?? null;
+  const inCategory = (item: { category: string; personalCategoryId?: number | null }) => selectedCategory?.source === "PERSONAL" ? item.personalCategoryId === selectedCategory.id : item.category === selectedCategory?.code;
+  const selected = detailVisible && !creation.creating && hobbies.selected && inCategory(hobbies.selected) ? hobbies.selected : null;
+  const filteredOwned = hobbies.owned.items.filter(inCategory);
+  const available = hobbies.catalog.items.filter((item) => (selectedCategory?.source === "PERSONAL" || item.category === selectedCategory?.code) && (!hobbies.owned.items.some((owned) => owned.hobbyId === item.hobbyId) || registeredUnassignedId === item.hobbyId));
+  const error = hobbies.mutationError;
+  const clearMutationError = hobbies.clearMutationError;
 
-  return (
-    <div className="lag-panel-rail relative" data-testid="hobby-shell">{dialog}
-      <PanelStage stageKey="player-hobby-list" index={1}>
-        <PanelFrame title="내 취미" depth={1} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeCreation} /> : onBack ? <BackButton label="플레이어 목록으로" onClick={onBack} /> : undefined}>
-        <CreateCategory title="취미" onOpen={closeCreation} onCreate={creation.open} />
-        {hobbies.mutationError ? <p role="alert" className="px-3 text-xs" style={{ color: SAO.color.action.red }}>{hobbies.mutationError}</p> : null}
-        <CreateSlot creating={creation.creating} pending={pending} onClose={closeCreation} list={<>
-        <div className="space-y-3">
-          {hobbies.owned.loading && hobbies.owned.items.length === 0 ? <InfoCard>취미를 불러오는 중…</InfoCard> : null}
-          {hobbies.owned.error ? <ErrorState message={hobbies.owned.error} retry={() => void hobbies.owned.reload()} /> : null}
-          {!hobbies.owned.loading && !hobbies.owned.error && hobbies.owned.items.length === 0 ? <InfoCard>등록된 취미가 없습니다.</InfoCard> : null}
-          <div className="space-y-2">{hobbies.owned.items.map((item, index) => <PanelCard key={item.hobbyId} label={item.customName} slotLabel={item.category.slice(0, 2).toUpperCase()} subtitle={`${item.name} · ${item.status} · ${item.proficiency}/100`} selected={hobbies.selectedId === item.hobbyId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={async (type) => { if (type === "edit") select(item.hobbyId); else if (await confirm(`“${item.customName}”을 삭제할까요? 내 취미 등록이 제거됩니다.`)) await hobbies.remove(item.hobbyId); }} onClick={() => select(item.hobbyId)} />)}</div>
-        </div>
-        </>}>
-        <div className="space-y-3 px-3">
-          {hobbies.catalog.loading && hobbies.catalog.items.length === 0 ? <InfoCard>취미 카탈로그를 불러오는 중…</InfoCard> : null}
-          {hobbies.catalog.error ? <ErrorState message={hobbies.catalog.error} retry={() => void hobbies.catalog.retry()} /> : null}
-          {!hobbies.catalog.loading && !hobbies.catalog.error ? (
-            <form className="space-y-2" onSubmit={async (event) => {
-              event.preventDefault();
+  useEffect(() => { if (creation.creating) { setDetailVisible(false); setEditingId(null); clearMutationError(); } }, [creation.creating, clearMutationError]);
+  const closeCreation = () => { hobbies.clearMutationError(); creation.close(); };
+  const chooseCategory = (next: PersonalCategory, create = false) => {
+    setCategory(categoryKey(next)); setCatalogId(""); setDetailVisible(false); setEditingId(null); setAssignmentError(null); setRegisteredUnassignedId(null); hobbies.clearSelection(); hobbies.clearMutationError();
+    if (create) creation.open(); else creation.close();
+    requestStageFocus("player-hobby-list", "forward");
+  };
+  const select = (id: number, edit = false) => { setDetailVisible(true); setEditingId(edit ? id : null); hobbies.select(id); requestStageFocus("player-hobby-detail", "forward"); };
+  const backToList = () => { setEditingId(null); hobbies.clearSelection(); requestStageFocus("player-hobby-list", "back"); };
+  const deleteOwned = async (id: number, name: string) => { if (await confirm(`“${name}”을 삭제할까요? 내 취미 등록이 제거됩니다.`)) await hobbies.remove(id); };
+  const registerOwned = async (id: number, body: PlayerHobbyMutationRequest) => {
+    if (registrationLock.current) return false;
+    registrationLock.current = true; setAssignmentPending(true); setAssignmentError(null);
+    try {
+      if (registeredUnassignedId !== id && !await hobbies.register(id, body)) return false;
+      if (selectedCategory?.source === "PERSONAL") {
+        setRegisteredUnassignedId(id);
+        await assignPersonalCategoryApi("HOBBY", id, selectedCategory.id);
+        if (!await hobbies.owned.reload()) throw new Error("분류 연결 후 취미 목록을 다시 조회하지 못했습니다.");
+      }
+      setRegisteredUnassignedId(null); return true;
+    } catch (caught) { setAssignmentError(caught instanceof Error ? caught.message : "내 분류에 연결하지 못했습니다. 저장을 다시 누르면 연결만 재시도합니다."); return false; }
+    finally { registrationLock.current = false; setAssignmentPending(false); }
+  };
+  const assignOwned = async (id: number, next: number | null) => {
+    setAssignmentPending(true); setAssignmentError(null);
+    try { await assignPersonalCategoryApi("HOBBY", id, next); if (!await hobbies.owned.reload()) throw new Error("분류 연결 후 목록을 다시 조회하지 못했습니다."); return true; }
+    catch (caught) { setAssignmentError(caught instanceof Error ? caught.message : "내 분류를 변경하지 못했습니다."); return false; }
+    finally { setAssignmentPending(false); }
+  };
+
+  return <div className="lag-panel-rail lag-player-shell lag-semantic-controls relative" data-testid="hobby-shell">{dialog}
+    <PlayerCategories title="취미" stageKey="player-hobby-categories" model={personalCategories} createRequest={createRequest} selectedKey={category} onSelect={(next) => chooseCategory(next)} onCreate={(next) => chooseCategory(next, true)} onDeleted={(id) => { if (category === "personal:" + id) { setCategory(null); backToList(); } }} onBack={onBack} />
+    {category !== null ? <PanelStage stageKey="player-hobby-list" index={1} panelRole="list" inactive={compact && selected !== null}>
+      <PanelFrame title={creation.creating ? "취미 등록" : (selectedCategory?.source === "SYSTEM" ? categoryLabel(selectedCategory.name) : selectedCategory?.name ?? "") + " 취미"} depth={1} backButton={<BackButton label={creation.creating ? "취미 목록으로" : "취미 분류로"} onClick={creation.creating ? closeCreation : () => { setCategory(null); backToList(); }} />}>
+        <CreateSlot showCancel={false} creating={creation.creating} pending={pending} onClose={closeCreation} list={<div className="lag-player-content">
+          {hobbies.owned.loading && !hobbies.owned.items.length ? <InfoCard>취미를 불러오는 중…</InfoCard> : null}
+          {hobbies.owned.error ? <Feedback message={hobbies.owned.error} retry={() => void hobbies.owned.reload()} /> : null}
+          {error && hobbies.mutationErrorKey?.startsWith("delete-") ? <Feedback message={error} /> : null}
+          {!hobbies.owned.loading && !hobbies.owned.error && !filteredOwned.length ? <InfoCard>해당 분류의 취미가 없습니다.</InfoCard> : null}
+          {filteredOwned.map((item, index) => <PanelCard key={item.hobbyId} label={item.customName} slotLabel={item.customName.slice(0, 1)} subtitle={`${item.name} · ${label(item.status)} · 숙련도 ${item.proficiency}/100`} selected={selected?.hobbyId === item.hobbyId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.hobbyId, true); else void deleteOwned(item.hobbyId, item.customName); }} onClick={() => select(item.hobbyId)} />)}
+        </div>}>
+          <div className="lag-player-content">
+            {hobbies.catalog.loading && !hobbies.catalog.items.length ? <InfoCard>취미 카탈로그를 불러오는 중…</InfoCard> : null}
+            {hobbies.catalog.error ? <Feedback message={hobbies.catalog.error} retry={() => void hobbies.catalog.retry()} /> : null}
+            {!hobbies.catalog.loading && !hobbies.catalog.error ? <form className="lag-player-form" onSubmit={async (event) => {
+              event.preventDefault(); if (pending || !catalogId) return;
               const element = event.currentTarget;
-              const saved = await creation.save(() => hobbies.register(Number(catalogId), fields(new FormData(element))));
+              const saved = await creation.save(() => registerOwned(Number(catalogId), fields(new FormData(element))));
               if (saved) { element.reset(); setCatalogId(""); }
             }}>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>취미<select aria-label="취미" value={catalogId} onChange={(event) => setCatalogId(event.target.value)} required disabled={pending} style={INPUT_STYLE}><option value="">선택…</option>{available.map((item) => <option key={item.hobbyId} value={item.hobbyId}>{item.name} · {item.category}</option>)}</select></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>취미 이름<input name="customName" required disabled={pending} style={INPUT_STYLE} /></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>설명<textarea name="detail" disabled={pending} style={INPUT_STYLE} /></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>숙련도<input name="proficiency" type="number" min="0" max="100" required disabled={pending} style={INPUT_STYLE} /></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>상태<select name="status" required defaultValue="ACTIVE" disabled={pending} style={INPUT_STYLE}>{STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>시작일<input name="startedOn" type="date" disabled={pending} style={INPUT_STYLE} /></label>
-              <button type="submit" disabled={pending || available.length === 0} style={buttonStyle}>{pending ? "처리 중…" : "취미 저장"}</button>
-            </form>
-          ) : null}
-        </div>
+              <Field label="취미" required><select aria-label="취미" value={catalogId} onChange={(event) => setCatalogId(event.target.value)} required disabled={pending} style={controlStyle}><option value="">선택…</option>{available.map((item) => <option key={item.hobbyId} value={item.hobbyId}>{item.name} · {categoryLabel(item.category)}</option>)}</select></Field>
+              <Field label="취미 이름" required><input name="customName" required disabled={pending} style={controlStyle} /></Field>
+              <Field label="설명"><textarea name="detail" disabled={pending} style={controlStyle} /></Field>
+              <Field label="숙련도" required><input name="proficiency" type="number" min="0" max="100" required disabled={pending} style={controlStyle} /></Field>
+              <Field label="상태" required><select name="status" required defaultValue="ACTIVE" disabled={pending} style={controlStyle}><StatusOptions /></select></Field>
+              <Field label="시작일"><input name="startedOn" type="date" disabled={pending} style={controlStyle} /></Field>
+              {error && hobbies.mutationErrorKey === "register" ? <Feedback message={error} /> : null}
+              {assignmentError ? <Feedback message={assignmentError} /> : null}
+              <button type="submit" className="lag-player-button" disabled={pending || !available.length}>{pending ? "저장 중…" : "취미 저장"}</button>
+            </form> : null}
+          </div>
         </CreateSlot>
-        </PanelFrame>
-      </PanelStage>
-
-      <AnimatePresence initial={false} mode="popLayout">
-        {selected ? (
-          <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" index={2}>
-            <PanelFrame title="취미 상세" depth={0} contentKey={selected.hobbyId} backButton={<BackButton label="내 취미 목록으로" onClick={() => {
-              hobbies.clearSelection();
-              requestStageFocus("player-hobby-list", "back");
-            }} />}>
-              <div className="space-y-3 px-3">
-            <InfoCard>{selected.customName}</InfoCard>
-            <GoldRow>취미: {selected.name}</GoldRow><GoldRow>분류: {selected.category}</GoldRow><GoldRow>상태: {selected.status}</GoldRow><GoldRow>숙련도: {selected.proficiency}/100</GoldRow><GoldRow>시작일: {selected.startedOn ?? "미등록"}</GoldRow><GoldRow>경험치: {selected.xp}</GoldRow><InfoCard label="설명">{selected.detail ?? "미등록"}</InfoCard>
-            <form key={selected.hobbyId} className="space-y-2" onSubmit={(event) => { event.preventDefault(); void hobbies.update(selected.hobbyId, fields(new FormData(event.currentTarget))); }}>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>변경할 취미 이름<input name="customName" disabled={pending} style={INPUT_STYLE} /></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>변경할 설명<textarea name="detail" disabled={pending} style={INPUT_STYLE} /></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>변경할 숙련도<input name="proficiency" type="number" min="0" max="100" disabled={pending} style={INPUT_STYLE} /></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>변경할 상태<select name="status" defaultValue="" disabled={pending} style={INPUT_STYLE}><option value="">현재 값 유지…</option>{STATUSES.map((status) => <option key={status}>{status}</option>)}</select></label>
-              <label className="block text-xs" style={{ color: SAO.color.text.label }}>변경할 시작일<input name="startedOn" type="date" disabled={pending} style={INPUT_STYLE} /></label>
-              <p className="text-xs" style={{ color: SAO.color.text.label }}>빈 항목은 현재 값을 유지합니다. 항목 지우기는 지원하지 않습니다.</p>
-              <div className="flex gap-2"><button type="submit" disabled={pending} style={{ ...buttonStyle, flex: 1 }}>{pending ? "처리 중…" : "취미 저장"}</button><button type="button" disabled={pending} style={buttonStyle} onClick={async () => { if (await confirm(`“${selected.customName}”을 삭제할까요? 내 취미 등록이 제거됩니다.`)) void hobbies.remove(selected.hobbyId); }}>삭제</button></div>
-            </form>
-              </div>
-            </PanelFrame>
-          </PanelStage>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  );
+      </PanelFrame>
+    </PanelStage> : null}
+    <AnimatePresence initial={false} mode="popLayout">{selected ? <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" index={2} panelRole="detail">
+      <PanelFrame title={editingId === selected.hobbyId ? "취미 수정" : "취미 상세"} depth={0} contentKey={selected.hobbyId} backButton={<BackButton label={editingId === selected.hobbyId ? "취미 상세로" : "내 취미 목록으로"} onClick={() => { if (editingId === selected.hobbyId) { setEditingId(null); hobbies.clearMutationError(); } else backToList(); }} />}>
+        <div className="lag-player-content">
+          <h4>{selected.customName}</h4>
+          {editingId === selected.hobbyId ? <form key={selected.hobbyId} className="lag-player-form" onSubmit={async (event) => {
+            event.preventDefault(); if (pending) return;
+            const form = new FormData(event.currentTarget), body = fields(form), next = Number(form.get("personalCategoryId") || 0) || null;
+            const fieldsSaved = Object.keys(body).length ? await hobbies.update(selected.hobbyId, body) : true;
+            const saved = fieldsSaved && (next === (selected.personalCategoryId ?? null) || await assignOwned(selected.hobbyId, next));
+            if (saved) setEditingId((id) => id === selected.hobbyId ? null : id);
+          }}>
+            <Field label="변경할 취미 이름"><input name="customName" disabled={pending} style={controlStyle} /></Field>
+            <Field label="변경할 설명"><textarea name="detail" disabled={pending} style={controlStyle} /></Field>
+            <Field label="변경할 숙련도"><input name="proficiency" type="number" min="0" max="100" disabled={pending} style={controlStyle} /></Field>
+            <Field label="변경할 상태"><select name="status" defaultValue="" disabled={pending} style={controlStyle}><StatusOptions keep /></select></Field>
+            <Field label="변경할 시작일"><input name="startedOn" type="date" disabled={pending} style={controlStyle} /></Field>
+            <p className="text-xs">빈 항목은 현재 값을 유지합니다. 항목 지우기는 지원하지 않습니다.</p>
+            <Field label="내 분류"><select name="personalCategoryId" aria-label="내 분류" defaultValue={selected.personalCategoryId ?? ""} disabled={pending} style={controlStyle}><option value="">연결 안 함</option>{personalCategories.categories.filter((item) => item.source === "PERSONAL").map((item) => <option key={item.id} value={item.id!}>{item.name}</option>)}</select></Field>
+            {error && hobbies.mutationErrorKey === `update-${selected.hobbyId}` ? <Feedback message={error} /> : null}
+            {assignmentError ? <Feedback message={assignmentError} /> : null}
+            <div className="lag-player-actions"><button type="submit" className="lag-player-button" disabled={pending}>{pending ? "저장 중…" : "취미 저장"}</button><button type="button" className="lag-player-button" disabled={pending} onClick={() => { setEditingId(null); hobbies.clearMutationError(); }}>취소</button></div>
+          </form> : <>
+            <DetailLine label="취미">{selected.name}</DetailLine><DetailLine label="기본 분류">{categoryLabel(selected.category)}</DetailLine><DetailLine label="내 분류">{personalCategories.categories.find((item) => item.id !== null && item.id === selected.personalCategoryId)?.name ?? "연결 안 함"}</DetailLine><DetailLine label="상태">{label(selected.status)}</DetailLine><DetailLine label="숙련도">{selected.proficiency}/100</DetailLine><DetailLine label="시작일">{selected.startedOn}</DetailLine><DetailLine label="경험치">{selected.xp}</DetailLine><DetailLine label="설명">{selected.detail}</DetailLine>
+          </>}
+        </div>
+      </PanelFrame>
+    </PanelStage> : null}</AnimatePresence>
+  </div>;
 }

@@ -15,7 +15,7 @@ import { MOTION } from "@/shared/lib/motion";
 import type { PanelItemAction } from "@/entities/nav";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
-import { RecordRow } from "@/features/role/RecordRow";
+import { RecordRow, SwipeButton } from "@/features/role/RecordRow";
 import IconSlot from "@/shared/ui/IconSlot";
 
 type PanelCardProps = {
@@ -267,7 +267,6 @@ function LegacyPanelCard({
           onPointerUp={(hasActions || hasDelete || onDoubleClick) ? handlePointerUp : undefined}
           onPointerLeave={(hasActions || hasDelete || onDoubleClick) ? handlePointerLeave : undefined}
           onPointerCancel={(hasActions || hasDelete || onDoubleClick) ? handlePointerCancel : undefined}
-          whileTap={isInteractive ? { scale: 0.97 } : undefined}
           aria-pressed={selected}
           transition={{ type: "spring", stiffness: 480, damping: 28 }}
           className={[
@@ -277,7 +276,7 @@ function LegacyPanelCard({
             isInteractive || hasActions || onDoubleClick ? "cursor-pointer" : "cursor-default",
           ].join(" ")}
           style={{
-            height: UI_CONSTS.rightPanels.rowHeight,
+            minHeight: UI_CONSTS.rightPanels.rowHeight,
             borderRadius: "var(--lag-radius-sm)",
             background: showActions
               ? "var(--lag-personal)"
@@ -316,7 +315,7 @@ function LegacyPanelCard({
             }}
           />
           <div style={{ paddingLeft: UI_CONSTS.rightPanels.cardPaddingX }}>
-            <IconSlot label={slotLabel} active={selected} size={44} subtle />
+            <IconSlot label={slotLabel} active={selected} size={36} subtle />
           </div>
           <div
             className="min-w-0 flex-1"
@@ -326,11 +325,11 @@ function LegacyPanelCard({
             }}
           >
             <p
-              className="break-words font-semibold uppercase tracking-[0.08em]"
+              className="break-words font-semibold"
               style={{
-                color: selected ? "var(--lag-text)" : "var(--lag-text-2)",
-                fontSize: compact ? "0.9rem" : "1.1rem",
-                lineHeight: compact ? 1.2 : 1.15,
+                color: "var(--lag-text)",
+                fontSize: "15px",
+                lineHeight: 1.4,
                 display: "-webkit-box",
                 WebkitLineClamp: compact ? 1 : 2,
                 WebkitBoxOrient: "vertical",
@@ -341,9 +340,10 @@ function LegacyPanelCard({
             </p>
             {subtitle ? (
               <p
-                className="mt-1 break-words text-sm tracking-[0.08em]"
+              className="mt-1 break-words text-sm"
                 style={{
-                  color: rarityColor(subtitle) ?? (selected ? "var(--lag-text-2)" : "var(--lag-meta)"),
+                  color: rarityColor(subtitle) ?? "var(--lag-text-2)",
+                  fontSize: "12px",
                   display: "-webkit-box",
                   WebkitLineClamp: compact ? 1 : 2,
                   WebkitBoxOrient: "vertical",
@@ -436,6 +436,7 @@ function LegacyPanelCard({
 }
 
 export default function PanelCard(props: PanelCardProps) {
+  if (!props.actions?.length) return <div data-scroll-center-target={props.centerTarget ? "true" : undefined}><SwipeButton className="lag-role-node" aria-pressed={Boolean(props.selected)} disabled={props.disabled} onClick={props.onClick} onDoubleClick={props.onDoubleClick}><span className="lag-role-node-mark" aria-hidden>{props.slotLabel}</span><span><strong>{props.label}</strong>{props.subtitle ? <small>{props.subtitle}</small> : null}</span><span aria-hidden>→</span></SwipeButton></div>;
   if (props.actions?.some((action) => action.type === "edit") && props.actions.some((action) => action.type === "delete") && props.onAction) {
     return <div data-scroll-center-target={props.centerTarget ? "true" : undefined}><RecordRow title={props.label} subtitle={props.subtitle} selected={props.selected} disabled={props.disabled} archiveLabel="삭제" onSelect={() => props.onClick?.()} onEdit={() => props.onAction?.("edit")} onArchive={() => props.onAction?.("delete")} /></div>;
   }

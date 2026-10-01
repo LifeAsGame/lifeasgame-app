@@ -210,33 +210,6 @@ const CSS = `
 
 }
 
-@media (min-width: 1500px) {
-  .lag-journey-shell:has([data-stage-key="journey-detail"])
-    > [data-stage-key="journey-root"] {
-    position: absolute;
-    width: 24px;
-    max-width: 24px;
-    overflow: hidden;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .lag-journey-shell:has([data-stage-key="journey-detail"])
-    > [data-stage-key="journey-list"],
-  .lag-journey-shell:has([data-stage-key="journey-detail"])
-    > [data-stage-key="journey-list"] > .lag-panel-frame {
-    width: 420px !important;
-    max-width: 420px !important;
-  }
-
-  .lag-journey-shell:has([data-stage-key="journey-detail"])
-    > [data-stage-key="journey-detail"],
-  .lag-journey-shell:has([data-stage-key="journey-detail"])
-    > [data-stage-key="journey-detail"] > .lag-panel-frame {
-    width: 760px !important;
-    max-width: 760px !important;
-  }
-}
 `;
 
 export default function RuntimeFidelityStyles() {

@@ -46,6 +46,6 @@ describe("Title query/mutation state를 관리할 때", () => {
     api.setRepresentativeTitleApi.mockResolvedValueOnce({ titleId: 1 });
     await act(async () => { await result.current.setRepresentative(1); });
     expect(result.current.representativeTitleId).toBe(2);
-    expect(result.current.mutationError).toMatch(/authority could not be reloaded/);
+    expect(result.current.mutationError).toMatch(/플레이어를 다시 조회하지 못했습니다/);
   });
 });

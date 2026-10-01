@@ -37,8 +37,13 @@ function deferred<T>() {
   return { promise, reject, resolve };
 }
 
+let journalView: ReturnType<typeof render>;
+let createSequence = 0;
+function requestQuickRecord() { journalView.rerender(<JournalShell roles={roles} createRequest={++createSequence} />); }
+
 async function renderJournal() {
   const view = render(<JournalShell roles={roles} />);
+  journalView = view;
   await screen.findAllByTestId("journal-entry");
   return view;
 }
@@ -46,7 +51,7 @@ async function renderJournal() {
 async function openQuickRecord() {
   await renderJournal();
   expect(document.querySelector('[data-create-form]')).not.toBeInTheDocument();
-  fireEvent.keyDown(screen.getByRole("button", { name: "일상 기록" }), { key: "Enter", altKey: true });
+  requestQuickRecord();
   return document.querySelector('[data-stage-key="lifelog-journal"]')!;
 }
 
@@ -71,13 +76,11 @@ describe("LifeLog Journal consumer surface", () => {
 
   it("빈 목록 클릭은 생성하지 않고 Alt+Enter·Escape가 같은 슬롯을 전환한다", async () => {
     api.listJournalApi.mockReset().mockResolvedValue({ ...mixedPage, content: [], totalElements: 0, totalPages: 0 });
-    render(<JournalShell roles={roles} />);
+    journalView = render(<JournalShell roles={roles} />);
     await screen.findByText("일상 기록이 없습니다.");
-    const category = screen.getByRole("button", { name: "일상 기록" });
     const slot = document.querySelector(".lag-create-slot");
-    fireEvent.click(category);
     expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
-    fireEvent.keyDown(category, { key: "Enter", altKey: true });
+    requestQuickRecord();
     expect(document.querySelector("[data-create-form]")?.closest(".lag-create-slot")).toBe(slot);
     fireEvent.keyDown(document.querySelector("[data-create-form]")!, { key: "Escape" });
     expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
@@ -228,12 +231,11 @@ describe("LifeLog Journal consumer surface", () => {
     const entry = screen.getAllByTestId("journal-entry")[0];
     fireEvent.click(entry);
     await screen.findByText("Annotated");
-    const category = screen.getByRole("button", { name: "일상 기록" });
-    fireEvent.keyDown(category, { key: "Enter", altKey: true });
+    requestQuickRecord();
     fireEvent.keyDown(screen.getByLabelText("수집 제목"), { key: "Escape" });
     await waitFor(() => expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument());
     expect(entry).toHaveAttribute("aria-pressed", "true");
-    await waitFor(() => expect(category).toHaveFocus());
+
   });
 
   it("does not reopen stale detail after leaving and returning", async () => {
@@ -244,6 +246,15 @@ describe("LifeLog Journal consumer surface", () => {
 
     await renderJournal();
     expect(document.querySelector('[data-stage-key="lifelog-journal-detail"]')).not.toBeInTheDocument();
+  });
+
+  it("통합 상세에서 실제 원본 종류와 ID를 전달한다", async () => {
+    const openSource = vi.fn();
+    render(<JournalShell roles={roles} onOpenSource={openSource} />);
+    fireEvent.click((await screen.findAllByTestId("journal-entry"))[0]);
+    await screen.findByRole("button", { name: "원본에서 수정·삭제" });
+    fireEvent.click(screen.getByRole("button", { name: "원본에서 수정·삭제" }));
+    expect(openSource).toHaveBeenCalledWith(expect.objectContaining({ sourceType: "COLLECTION", sourceId: expect.any(Number) }));
   });
 
   it("opens 간편 기록 explicitly, keeps its frame stable across real types, and Back returns", async () => {
@@ -304,7 +315,7 @@ describe("LifeLog Journal consumer surface", () => {
 
     await waitFor(() => expect(screen.queryByLabelText("수집 제목")).not.toBeInTheDocument());
     await waitFor(() => expect(screen.queryByLabelText("수집 제목")).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByRole("button", { name: "일상 기록" })).toHaveFocus());
+    expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
     expect(api.quickRecordApi).toHaveBeenCalledWith({
       type: "COLLECTION",
       lifeLogSubtype: "PROJECT",
@@ -323,7 +334,7 @@ describe("LifeLog Journal consumer surface", () => {
 
     await waitFor(() => expect(api.quickRecordApi).toHaveBeenCalledOnce());
     await waitFor(() => expect(screen.queryByLabelText("수집 제목")).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByRole("button", { name: "일상 기록" })).toHaveFocus());
+    expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
     expect(api.quickRecordApi.mock.calls[0][0]).toEqual({
       type: "COLLECTION",
       lifeLogSubtype: "REFLECTION",
@@ -348,7 +359,7 @@ describe("LifeLog Journal consumer surface", () => {
     });
 
     api.quickRecordApi.mockClear();
-    fireEvent.keyDown(screen.getByRole("button", { name: "일상 기록" }), { key: "Enter", altKey: true });
+    requestQuickRecord();
     selectQuickType("MEDIA");
     fireEvent.change(screen.getByLabelText("감상 분류"), { target: { value: "ANIME" } });
     fireEvent.change(screen.getByLabelText("감상 제목"), { target: { value: "Frieren" } });
@@ -386,7 +397,7 @@ describe("LifeLog Journal consumer surface", () => {
 
   it("does not reopen stale 간편 기록 after leaving and returning", async () => {
     const view = await renderJournal();
-    fireEvent.keyDown(screen.getByRole("button", { name: "일상 기록" }), { key: "Enter", altKey: true });
+    requestQuickRecord();
     expect(document.querySelector('[data-create-form]')).toBeInTheDocument();
     view.unmount();
 
@@ -405,7 +416,7 @@ describe("LifeLog Journal consumer surface", () => {
     expect(screen.getByRole("status")).toHaveFocus();
     fireEvent.click(screen.getByRole("button", { name: "목록으로" }));
     await waitFor(() => expect(document.querySelector('[data-create-form]')).not.toBeInTheDocument());
-    fireEvent.keyDown(screen.getByRole("button", { name: "일상 기록" }), { key: "Enter", altKey: true });
+    requestQuickRecord();
     expect(screen.getByRole("radio", { name: "COLLECTION" })).toHaveFocus();
     fireEvent.keyDown(screen.getByRole("radio", { name: "COLLECTION" }), { key: "ArrowRight" });
     expect(screen.getByRole("radio", { name: "EXERCISE" })).toHaveFocus();

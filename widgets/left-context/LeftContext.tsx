@@ -40,12 +40,10 @@ export default function LeftContext({
   playerLoading,
   playerError,
   roles = [],
-  rolesLoading,
-  rolesError,
   selectedRoleId,
   onPlayerRetry,
   onRoleSelect,
-  onRoleRetry, roleWorkspace, onRoleWorkspaceChange, onRoleEdit, onRoleRefresh, onRoleArchived,
+  roleWorkspace, onRoleWorkspaceChange,
   zIndex,
   onFocus,
 }: LeftContextProps) {
@@ -108,15 +106,6 @@ export default function LeftContext({
                 <RoleContextPanel
                   workspace={roleWorkspace}
                   onWorkspaceChange={onRoleWorkspaceChange}
-                  onRoleEdit={onRoleEdit}
-                  onRefresh={onRoleRefresh}
-                  onRoleArchived={onRoleArchived}
-                  roles={roles}
-                  selectedRoleId={selectedRoleId ?? null}
-                  isLoading={rolesLoading}
-                  error={rolesError}
-                  onRoleSelect={onRoleSelect}
-                  onRetry={onRoleRetry}
                 />
               ) : null}
             </motion.div>

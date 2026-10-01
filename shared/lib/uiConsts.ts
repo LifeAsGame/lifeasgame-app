@@ -27,9 +27,8 @@ export const UI_CONSTS = {
   },
   rightPanels: {
     // Fixed rail width keeps list edges visually aligned across panel levels.
-    panelWidth: 344,
     listRailWidth: 304,
-    panelGap: 18,
+    panelGap: 24,
     panelPadding: 12,
     panelHeaderPaddingX: 16,
     panelHeaderPaddingY: 12,
@@ -37,10 +36,10 @@ export const UI_CONSTS = {
     panelContentPaddingY: 14,
     panelContentBottomSafePadding: 28,
     stackBottomSafePadding: 28,
-    cardPaddingX: 18,
-    cardPaddingY: 14,
-    rowHeight: 86,
-    rowGap: 10,
+    cardPaddingX: 16,
+    cardPaddingY: 12,
+    rowHeight: 68,
+    rowGap: 12,
     maxVisibleColumns: 3,
   },
   leftContext: {

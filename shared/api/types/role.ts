@@ -19,13 +19,44 @@ export interface PersonDetail {
   notes: string | null;
   birthday: string | null;
   contact: string | null;
+  profile?: PersonProfile | null;
   status: string;
   createdAt: string;
   updatedAt: string;
   version: number;
 }
 
-export type PersonInput = Pick<PersonDetail, "displayName" | "notes" | "birthday" | "contact">;
+export type PersonProfile = {
+  nickname: string | null;
+  gender: string | null;
+  ageAtReference: number | null;
+  ageReferenceDate: string | null;
+  occupation: string | null;
+  organization: string | null;
+  area: string | null;
+  mbti: string | null;
+  contactChannels: { kind: "PHONE" | "EMAIL" | "MESSENGER" | "SOCIAL" | "OTHER"; label: string | null; value: string }[];
+  hobbies: string[];
+  interests: string[];
+  favoriteFoods: string[];
+  avoidedFoods: string[];
+  favoriteAnimals: string[];
+  avoidedAnimals: string[];
+  favoriteMusic: string[];
+  favoriteMedia: string[];
+  favoriteActivities: string[];
+  conversationTopics: string[];
+  avoidTopics: string[];
+  giftIdeas: string[];
+  firstMetOn: string | null;
+  metContext: string | null;
+  lastContactOn: string | null;
+  conversationNotes: string | null;
+  importantDates: { label: string; date: string; repeatYearly: boolean }[];
+  customNotes: { label: string; value: string }[];
+};
+
+export type PersonInput = Pick<PersonDetail, "displayName" | "notes" | "birthday" | "contact"> & { profile?: PersonProfile | null };
 
 export interface RoleRelationDetail {
   id: number;

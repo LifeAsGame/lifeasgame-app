@@ -46,7 +46,7 @@ export function PanelFrame({
       className="lag-panel-frame relative overflow-hidden"
       style={{
         ...getFrameStyle(depth),
-        width: UI_CONSTS.rightPanels.panelWidth,
+        width: "var(--lag-list-width, 344px)",
         minHeight: 160,
       }}
     >
@@ -60,19 +60,7 @@ export function PanelFrame({
       >
         <div className="flex items-center gap-2">
           {backButton}
-          {/* ◆ ─── TITLE ─── ◆ */}
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <div style={{ flex: 1, height: "1px", background: "var(--lag-divider)" }} />
-            <span aria-hidden style={{ color: "var(--lag-violet)", fontSize: "9px", flexShrink: 0 }}>◆</span>
-            <h3
-              className="lag-panel-title font-semibold uppercase"
-              style={{ fontSize: "0.9rem", letterSpacing: "0.20em", color: D.text }}
-            >
-              {title}
-            </h3>
-            <span aria-hidden style={{ color: "var(--lag-violet)", fontSize: "9px", flexShrink: 0 }}>◆</span>
-            <div style={{ flex: 1, height: "1px", background: "var(--lag-divider)" }} />
-          </div>
+          <h3 className="lag-panel-title min-w-0 flex-1" style={{ color: D.text }}>{title}</h3>
         </div>
       </div>
 

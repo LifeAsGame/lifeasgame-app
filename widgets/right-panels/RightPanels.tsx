@@ -99,7 +99,7 @@ function PanelContent({
   const isCompactList =
     panel.kind === "list" && (panel.items.length >= 40 || panel.context.route === "market-wallet-summary");
 
-  const CATEGORY_ROW_GAP = 4;
+  const CATEGORY_ROW_GAP = UI_CONSTS.rightPanels.rowGap;
   const categoryScrollHeight = isCategoryPanelRoute && panel.kind === "menu"
     ? (() => {
         const n = panel.items.length;
@@ -119,15 +119,14 @@ function PanelContent({
       contentKey={panel.id}
     >
       {panel.kind === "menu" ? (
-        <div style={{ width: "100%", display: "grid", rowGap: 4 }}>
+        <div style={{ width: "100%", display: "grid", rowGap: UI_CONSTS.rightPanels.rowGap, paddingInline: 24 }}>
           {menuItemsForRender?.map((item, itemIndex) => {
             const isCategoryPanel =
               panel.context.route === "player-category" ||
               panel.context.route === "lifelog-category";
-            const canCreate = panel.context.route === "main-submenu" && ((panel.context.main === "player" && ["credentials", "interests"].includes(item.id)) || (panel.context.main === "lifelog" && ["journal", "collection", "exercise", "media"].includes(item.id)));
+            const canCreate = panel.context.route === "main-submenu" && panel.context.main === "lifelog" && ["journal", "exercise", "media"].includes(item.id);
             if (canCreate && onPanelItemCreate) return <div key={item.id}>
-              <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onSwipeLeft={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong><span aria-hidden>→</span></SwipeButton>
-              <p className="lag-create-hint">왼쪽으로 당긴 후 놓기 / Alt+Enter: 등록</p>
+              <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onDoubleClick={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong><span aria-hidden>→</span></SwipeButton>
             </div>;
             return (
               <PanelCard
@@ -163,7 +162,7 @@ function PanelContent({
               </button>
             </div>
           ) : null}
-          <div style={{ width: "100%", display: "grid", rowGap: 4 }}>
+          <div style={{ width: "100%", display: "grid", rowGap: UI_CONSTS.rightPanels.rowGap, paddingInline: 24 }}>
             {panel.items.map((item, itemIndex) => (
               <PanelCard
                 key={item.id}

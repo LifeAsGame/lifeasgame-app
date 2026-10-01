@@ -29,7 +29,7 @@ export function useTitleQueries() {
       setPlayer(next);
       return next;
     } catch (caught) {
-      setPlayerError(message(caught, "Unable to load Current Player."));
+      setPlayerError(message(caught, "플레이어를 불러오지 못했습니다."));
       return undefined;
     } finally {
       setPlayerLoading(false);
@@ -45,7 +45,7 @@ export function useTitleQueries() {
       setSelectedId((current) => current !== null && next.some(({ titleId }) => titleId === current) ? current : null);
       return next;
     } catch (caught) {
-      setTitlesError(message(caught, "Unable to load acquired Titles."));
+      setTitlesError(message(caught, "획득한 칭호를 불러오지 못했습니다."));
       return undefined;
     } finally {
       setTitlesLoading(false);
@@ -69,12 +69,12 @@ export function useTitleQueries() {
       await setRepresentativeTitleApi(titleId);
       const refreshed = await loadPlayer();
       if (!refreshed) {
-        setMutationError("Representative Title changed, but Current Player authority could not be reloaded.");
+        setMutationError("대표 칭호 변경 후 플레이어를 다시 조회하지 못했습니다.");
         return false;
       }
       return true;
     } catch (caught) {
-      setMutationError(message(caught, "Unable to set representative Title."));
+      setMutationError(message(caught, "대표 칭호를 설정하지 못했습니다."));
       return false;
     } finally {
       mutationLocked.current = false;

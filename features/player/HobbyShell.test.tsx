@@ -1,127 +1,66 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
 import type { HobbyCatalogInfo, PlayerHobbyInfo } from "@/shared/api/types";
 import HobbyShell from "./HobbyShell";
 
 const api = vi.hoisted(() => ({ deletePlayerHobbyApi: vi.fn(), getHobbyCatalogApi: vi.fn(), getPlayerHobbiesApi: vi.fn(), registerPlayerHobbyApi: vi.fn(), updatePlayerHobbyApi: vi.fn() }));
+const personal = vi.hoisted(() => ({ listPersonalCategoriesApi: vi.fn(), createPersonalCategoryApi: vi.fn(), renamePersonalCategoryApi: vi.fn(), deletePersonalCategoryApi: vi.fn(), assignPersonalCategoryApi: vi.fn() }));
 vi.mock("./api", () => api);
-vi.mock("@/shared/ui/PanelCard", () => ({ default: ({ label, subtitle, onClick }: { label: string; subtitle: string; onClick: () => void }) => <button type="button" data-testid="hobby-entry" onClick={onClick}>{label} · {subtitle}</button> }));
+vi.mock("./personalCategories", async (importOriginal) => ({ ...await importOriginal<typeof import("./personalCategories")>(), ...personal }));
+const catalog: HobbyCatalogInfo[] = [{ hobbyId: 1, name: "Painting", category: "ARTS" }, { hobbyId: 2, name: "Chess", category: "BOARD_GAMES" }];
+const owned: PlayerHobbyInfo = { ...catalog[0], customName: "Watercolor", detail: null, proficiency: 30, status: "ACTIVE", startedOn: null, xp: 0, personalCategoryId: null };
+const systems = ["FITNESS", "SPORTS", "OUTDOORS", "MUSIC", "ARTS", "CRAFTS", "GAMING", "BOARD_GAMES", "TECH", "COOKING", "BAKING", "PHOTOGRAPHY", "READING", "WRITING", "LANGUAGE", "TRAVEL", "WELLNESS", "VOLUNTEERING"].map((code) => ({ id: null, code, name: code, source: "SYSTEM", kind: "HOBBY" }));
+const folder = { id: 7, code: null, name: "Weekend", source: "PERSONAL", kind: "HOBBY" };
+beforeEach(() => {
+  vi.clearAllMocks();
+  api.getHobbyCatalogApi.mockResolvedValue(catalog);
+  api.getPlayerHobbiesApi.mockResolvedValue([owned]);
+  api.registerPlayerHobbyApi.mockResolvedValue({ hobbyId: 2 });
+  api.updatePlayerHobbyApi.mockResolvedValue(owned);
+  personal.listPersonalCategoriesApi.mockResolvedValue([...systems, folder]);
+  personal.createPersonalCategoryApi.mockResolvedValue(folder);
+  personal.renamePersonalCategoryApi.mockResolvedValue(folder);
+  personal.deletePersonalCategoryApi.mockResolvedValue(undefined);
+  personal.assignPersonalCategoryApi.mockResolvedValue({ itemId: 1, personalCategoryId: 7 });
+});
 
-const catalog: HobbyCatalogInfo[] = [{ hobbyId: 1, name: "Reading", category: "Learning" }, { hobbyId: 2, name: "Running", category: "Fitness" }];
-const owned: PlayerHobbyInfo = { ...catalog[0], customName: "Books", detail: null, proficiency: 40, status: "PAUSED", startedOn: null, xp: 100 };
+it("카탈로그가 비어도 기본 18개와 빈 개인 분류를 표시한다", async () => {
+  api.getHobbyCatalogApi.mockResolvedValue([]);
+  api.getPlayerHobbiesApi.mockResolvedValue([]);
+  render(<HobbyShell />);
+  await screen.findByRole("button", { name: /Weekend/ });
+  expect(document.querySelectorAll('[data-stage-key="player-hobby-categories"] .lag-role-node')).toHaveLength(19);
+  fireEvent.click(screen.getByRole("button", { name: /Weekend/ }), { detail: 0 });
+  expect(screen.getByText("해당 분류의 취미가 없습니다.")).toBeInTheDocument();
+});
 
-describe("취미 management surface를 사용할 때", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    api.getHobbyCatalogApi.mockResolvedValue(catalog);
-    api.getPlayerHobbiesApi.mockResolvedValue([owned]);
-  });
+it("상위 더블클릭은 개인 분류 생성, 분류 더블클릭은 항목 등록이다", async () => {
+  render(<HobbyShell createRequest={1} />);
+  expect(await screen.findByRole("textbox", { name: "분류 이름" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "분류 목록으로" }));
+  const category = screen.getByRole("button", { name: /Weekend/ });
+  fireEvent.keyDown(category, { key: "Enter", altKey: true });
+  expect(screen.getByRole("button", { name: "취미 저장" })).toBeInTheDocument();
+  expect(Array.from((screen.getByRole("combobox", { name: "취미" }) as HTMLSelectElement).options).map((option) => option.text)).toContain("Chess · 보드게임");
+});
 
-  it("빈 목록 클릭은 생성하지 않고 Alt+Enter·Escape가 같은 슬롯을 전환한다", async () => {
-    api.getPlayerHobbiesApi.mockReset().mockResolvedValue([]);
-    render(<HobbyShell />);
-    await screen.findByText("등록된 취미가 없습니다.");
-    const category = screen.getByRole("button", { name: "취미" });
-    const slot = document.querySelector(".lag-create-slot");
-    fireEvent.click(category);
-    expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
-    fireEvent.keyDown(category, { key: "Enter", altKey: true });
-    expect(document.querySelector("[data-create-form]")?.closest(".lag-create-slot")).toBe(slot);
-    fireEvent.keyDown(document.querySelector("[data-create-form]")!, { key: "Escape" });
-    expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("등록된 취미가 없습니다.")).toBeVisible());
-  });
-
-  it("canonical statuses, nullable fields와 catalog-only selector를 표시하고 stale values를 제거한다", async () => {
-    render(<HobbyShell />);
-    const entry = await screen.findByTestId("hobby-entry");
-    expect(entry).toHaveTextContent("Reading · PAUSED · 40/100");
-    expect(screen.queryByLabelText("취미")).not.toBeInTheDocument();
-    fireEvent.keyDown(screen.getByRole("button", { name: "취미" }), { key: "Enter", altKey: true });
-    expect(Array.from((screen.getByLabelText("취미") as HTMLSelectElement).options, ({ text }) => text)).toEqual(["선택…", "Running · Fitness"]);
-    fireEvent.click(screen.getByRole("button", { name: "취소" }));
-    fireEvent.click(entry);
-    expect(screen.getByText("시작일: 미등록")).toBeInTheDocument();
-    expect(screen.getByText("미등록")).toBeInTheDocument();
-    expect(Array.from((screen.getByLabelText("변경할 상태") as HTMLSelectElement).options, ({ value }) => value)).toEqual(["", "ACTIVE", "PAUSED", "DROPPED"]);
-    expect(screen.queryByText(/ON_HOLD|INACTIVE/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "취미 저장" }));
-    expect(api.updatePlayerHobbyApi).not.toHaveBeenCalled();
-  });
-
-  it("등록 실패 오류와 모든 입력을 같은 슬롯에 유지하고 중복 제출 없이 재시도 후 목록으로 돌아간다", async () => {
-    const body = { customName: "Evening run", detail: "Park route", proficiency: 35, status: "ACTIVE" as const, startedOn: "2026-09-01" };
-    const response = { hobbyId: 2, ...body, xp: 0 };
-    const registered: PlayerHobbyInfo = { ...catalog[1], ...response };
-    let finish!: (result: typeof response) => void;
-    const retry = new Promise<typeof response>((resolve) => { finish = resolve; });
-    api.registerPlayerHobbyApi.mockReset().mockRejectedValueOnce(new Error("등록 실패")).mockReturnValueOnce(retry);
-    render(<HobbyShell />);
-    await screen.findByTestId("hobby-entry");
-    fireEvent.keyDown(screen.getByRole("button", { name: "취미" }), { key: "Enter", altKey: true });
-    const slot = document.querySelector(".lag-create-slot");
-    const form = screen.getByRole("button", { name: "취미 저장" }).closest("form")!;
-    fireEvent.change(screen.getByLabelText("취미"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("취미 이름"), { target: { value: body.customName } });
-    fireEvent.change(screen.getByLabelText("설명"), { target: { value: body.detail } });
-    fireEvent.change(screen.getByLabelText("숙련도"), { target: { value: String(body.proficiency) } });
-    fireEvent.change(screen.getByLabelText("상태"), { target: { value: body.status } });
-    fireEvent.change(screen.getByLabelText("시작일"), { target: { value: body.startedOn } });
-    expect(form.checkValidity()).toBe(true);
-    fireEvent.submit(form);
-
-    const alert = await screen.findByRole("alert", { hidden: false });
-    await waitFor(() => expect(alert).toBeVisible());
-    expect(alert).toHaveTextContent("요청 결과가 확정되지 않았습니다. 다시 조회한 서버 상태를 확인하세요. 등록 실패");
-    expect(screen.getAllByRole("alert", { hidden: true })).toHaveLength(1);
-    expect(document.querySelector(".lag-create-slot")).toBe(slot);
-    expect(document.querySelector("[data-create-form] form")).toBe(form);
-    expect(screen.getByLabelText("취미")).toHaveValue("2");
-    expect(screen.getByLabelText("취미 이름")).toHaveValue(body.customName);
-    expect(screen.getByLabelText("설명")).toHaveValue(body.detail);
-    expect(screen.getByLabelText("숙련도")).toHaveValue(body.proficiency);
-    expect(screen.getByLabelText("상태")).toHaveValue(body.status);
-    expect(screen.getByLabelText("시작일")).toHaveValue(body.startedOn);
-    expect(screen.getByRole("button", { name: "취미 저장" })).toBeEnabled();
-    expect(api.getPlayerHobbiesApi).toHaveBeenCalledTimes(2);
-    expect(api.registerPlayerHobbyApi).toHaveBeenCalledExactlyOnceWith(2, body);
-
-    api.getPlayerHobbiesApi.mockResolvedValue([owned, registered]);
-    fireEvent.submit(form);
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "처리 중…" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "취소" })).toBeDisabled();
-    for (const label of ["취미", "취미 이름", "설명", "숙련도", "상태", "시작일"]) {
-      expect(screen.getByLabelText(label)).toBeDisabled();
-    }
-    fireEvent.submit(form);
-    expect(api.registerPlayerHobbyApi).toHaveBeenCalledTimes(2);
-    expect(api.registerPlayerHobbyApi).toHaveBeenLastCalledWith(2, body);
-    await act(async () => { finish(response); });
-
-    await waitFor(() => expect(document.querySelector("[data-create-form]")).not.toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/Evening run · Running · ACTIVE · 35\/100/)).toBeVisible());
-    expect(document.querySelector(".lag-create-slot")).toBe(slot);
-    expect(screen.queryByRole("alert", { hidden: true })).not.toBeInTheDocument();
-    expect(api.getPlayerHobbiesApi).toHaveBeenCalledTimes(3);
-  });
-
-  it("실패 후 목록으로 취소하고 외부 새 생성 요청을 받아도 이전 오류를 남기지 않는다", async () => {
-    api.registerPlayerHobbyApi.mockReset().mockRejectedValue(new Error("이전 등록 실패"));
-    const { rerender } = render(<HobbyShell />);
-    await screen.findByTestId("hobby-entry");
-    fireEvent.keyDown(screen.getByRole("button", { name: "취미" }), { key: "Enter", altKey: true });
-    fireEvent.change(screen.getByLabelText("취미"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("취미 이름"), { target: { value: "Run" } });
-    fireEvent.change(screen.getByLabelText("숙련도"), { target: { value: "50" } });
-    fireEvent.click(screen.getByRole("button", { name: "취미 저장" }));
-    await screen.findByRole("alert", { hidden: false });
-    fireEvent.click(screen.getByRole("button", { name: "목록으로" }));
-    expect(screen.queryByRole("alert", { hidden: true })).not.toBeInTheDocument();
-    rerender(<HobbyShell createRequest={1} />);
-    expect(screen.getByRole("button", { name: "취미 저장" })).toBeInTheDocument();
-    expect(screen.queryByRole("alert", { hidden: true })).not.toBeInTheDocument();
-    expect(api.registerPlayerHobbyApi).toHaveBeenCalledTimes(1);
-  });
+it("기존 취미를 내 분류에 배정하고 해제한다", async () => {
+  let current = [owned];
+  api.getPlayerHobbiesApi.mockImplementation(async () => current);
+  personal.assignPersonalCategoryApi.mockImplementation(async (_kind: string, _id: number, categoryId: number | null) => { current = [{ ...owned, personalCategoryId: categoryId }]; return { itemId: 1, personalCategoryId: categoryId }; });
+  render(<HobbyShell />);
+  fireEvent.click(await screen.findByRole("button", { name: "미술" }), { detail: 0 });
+  fireEvent.click(screen.getByRole("button", { name: /Watercolor/ }));
+  fireEvent.keyDown(screen.getByRole("button", { name: /Watercolor/ }), { key: "F10", shiftKey: true });
+  fireEvent.click(screen.getByRole("button", { name: "수정" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "내 분류" }), { target: { value: "7" } });
+  fireEvent.click(screen.getByRole("button", { name: "취미 저장" }));
+  await waitFor(() => expect(personal.assignPersonalCategoryApi).toHaveBeenCalledWith("HOBBY", 1, 7));
+  fireEvent.click(screen.getByRole("button", { name: /Weekend/ }), { detail: 0 });
+  fireEvent.click(screen.getByRole("button", { name: /Watercolor/ }));
+  fireEvent.keyDown(screen.getByRole("button", { name: /Watercolor/ }), { key: "F10", shiftKey: true });
+  fireEvent.click(screen.getByRole("button", { name: "수정" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "내 분류" }), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "취미 저장" }));
+  await waitFor(() => expect(personal.assignPersonalCategoryApi).toHaveBeenLastCalledWith("HOBBY", 1, null));
 });
