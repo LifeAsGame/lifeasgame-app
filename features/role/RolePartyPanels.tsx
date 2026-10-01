@@ -38,12 +38,13 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
   useEffect(() => { if (createRequest || reentryRequest) { detailSeq.current++; setSelectedId(null); setDetail(null); setChild(null); setCreating(Boolean(createRequest && roleId && roleStatus === "ACTIVE")); } }, [createRequest, reentryRequest, roleId, roleStatus]);
   useEffect(() => () => { detailSeq.current++; }, []);
   const closeDetail = () => { detailSeq.current++; setSelectedId(null); setDetail(null); setInvitation(null); setChild(null); setError(null); requestStageFocus("role-party-list", "back"); };
-  const select = async (id: number, invite: RolePartyInvitation | null = null) => {
+  const select = async (id: number, invite: RolePartyInvitation | null = null): Promise<RolePartyDetail | null> => {
     const seq = ++detailSeq.current; setSelectedId(id); setInvitation(invite); setDetail(null); setChild(null); setError(null); setDetailLoading(!invite);
-    if (invite) return;
-    try { const next = await rolePartyDetail(id); if (seq === detailSeq.current) setDetail(next); }
+    if (invite) return null;
+    try { const next = await rolePartyDetail(id); if (seq === detailSeq.current) { setDetail(next); return next; } }
     catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); }
     finally { if (seq === detailSeq.current) setDetailLoading(false); }
+    return null;
   };
   const reloadDetail = async (id: number) => { const next = await rolePartyDetail(id); setDetail(next); return next; };
   const afterCommand = async (id: number, close = false) => { await loadList(); if (close) closeDetail(); else await reloadDetail(id); };
@@ -73,7 +74,7 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
     catch (caught) { setPeersError(errorText(caught)); }
   };
   const sendInvite = async (event: React.SubmitEvent<HTMLFormElement>) => { event.preventDefault(); if (selectedId === null) return; const peerId = Number(new FormData(event.currentTarget).get("peer")); if (!peers.some((peer) => peer.playerId === peerId)) return; await command(async () => { const next = await inviteToRoleParty(selectedId, peerId); setRecentInvite(next); }); };
-  const disbandFromRow = async (id: number) => { if (busy.current || !await confirm("이 역할 소모임을 해산할까요?")) return; busy.current = true; setPending(true); setError(null); try { await disbandRoleParty(id); await loadList(); if (selectedId === id) await select(id); } catch (caught) { setError(errorText(caught)); } finally { busy.current = false; setPending(false); } };
+  const disbandFromRow = async (id: number) => { if (busy.current || !await confirm("이 역할 소모임을 해산할까요?")) return; busy.current = true; setPending(true); setListError(null); try { await disbandRoleParty(id); await loadList(); if (selectedId === id) await select(id); } catch (caught) { setListError(errorText(caught)); } finally { busy.current = false; setPending(false); } };
   const leader = detail?.leaderPlayerId === playerId, active = detail?.status === "ACTIVE";
   const form = (record?: RolePartyDetail) => <form className="lag-role-form" onSubmit={(event) => void save(event)}><label>이름<input className="lag-role-control" name="name" required maxLength={120} autoFocus defaultValue={record?.name ?? ""} /></label><label>설명<textarea className="lag-role-control" name="description" maxLength={1000} rows={3} defaultValue={record?.description ?? ""} /></label><label>정원 (리더 포함)<input className="lag-role-control" name="maxMembers" type="number" min="2" max="50" required defaultValue={record?.maxMembers ?? 10} /></label><p>초대 전용 · 생성자는 리더이자 첫 멤버입니다.</p>{error ? <p role="alert">{error}</p> : null}<button className="lag-role-action" type="submit" disabled={pending}>{pending ? "저장 중…" : record ? "변경 저장" : "소모임 생성"}</button></form>;
   return <div className="lag-panel-rail lag-role-party-shell">{dialog}
@@ -86,7 +87,7 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
         const left = "membershipStatus" in item && item.membershipStatus === "LEFT";
         const subtitle = `${left ? "탈퇴" : group.status === "ACTIVE" ? "활동 중" : "해산"} · ${group.memberCount}/${group.maxMembers}명`;
         if (left) return <div key={group.id} className="lag-role-node"><span className="lag-role-node-mark" aria-hidden>소</span><span><strong>{group.name}</strong><small>{subtitle}</small></span></div>;
-        return group.status === "ACTIVE" && group.leaderPlayerId === playerId ? <RecordRow key={group.id} title={group.name} subtitle={subtitle} selected={selectedId === group.id} disabled={pending} onSelect={() => void select(group.id)} onEdit={() => void select(group.id).then(() => setChild("edit"))} onArchive={() => void disbandFromRow(group.id)} archiveLabel="해산" /> : <SwipeButton key={group.id} className="lag-role-node" aria-pressed={selectedId === group.id} onClick={() => void select(group.id)}><span className="lag-role-node-mark" aria-hidden>소</span><span><strong>{group.name}</strong><small>{subtitle}</small></span><span aria-hidden>→</span></SwipeButton>;
+        return group.status === "ACTIVE" && group.leaderPlayerId === playerId ? <RecordRow key={group.id} title={group.name} subtitle={subtitle} selected={selectedId === group.id} disabled={pending} onSelect={() => void select(group.id)} onEdit={() => void select(group.id).then((next) => { if (next?.status === "ACTIVE" && next.leaderPlayerId === playerId) setChild("edit"); })} onArchive={() => void disbandFromRow(group.id)} archiveLabel="해산" /> : <SwipeButton key={group.id} className="lag-role-node" aria-pressed={selectedId === group.id} onClick={() => void select(group.id)}><span className="lag-role-node-mark" aria-hidden>소</span><span><strong>{group.name}</strong><small>{subtitle}</small></span><span aria-hidden>→</span></SwipeButton>;
       })}
       <div className="lag-connection-pagination"><button type="button" className="lag-role-button" disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button><span>{list ? `${page + 1} / ${Math.max(1, list.totalPages)}` : ""}</span><button type="button" className="lag-role-button" disabled={!list || page + 1 >= list.totalPages} onClick={() => setPage(page + 1)}>다음</button></div>
     </div>}>{form()}</CreateSlot></PanelFrame></PanelStage>
