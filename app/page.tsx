@@ -28,6 +28,7 @@ import { usePlayerContext } from "@/features/player/usePlayerContext";
 import ExchangeShell from "@/features/market/ExchangeShell";
 import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import GroupShell from "@/features/social/GroupShell";
+import RolePartyPanels from "@/features/role/RolePartyPanels";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
@@ -346,6 +347,7 @@ export default function Home() {
                 onWorkspaceBack={() => setRoleWorkspace(null)}
                 editRequest={roleEditRequest}
                 roles={roleState.roles}
+                playerId={playerId}
                 selectedRoleId={selectedRoleId}
                 onSelectRole={(id) => { if (id === null) setSelectedRoleId(null); else handleRoleSelect(id); }}
                 onRefresh={roleState.refresh}
@@ -357,6 +359,7 @@ export default function Home() {
             <div className="flex w-fit items-center gap-6">
               <RightPanels selectedMain="social" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
               {selectedSubByMain.social === "guilds" || selectedSubByMain.social === "parties" ? <GroupShell key={`${selectedSubByMain.social}-${subReentry[selectedSubByMain.social] ?? 0}`} kind={selectedSubByMain.social} playerId={playerId} createRequest={createRequests[selectedSubByMain.social] ?? 0} onBack={() => closeFeatureSubmenu("social")} /> : null}
+              {selectedSubByMain.social === "role-parties" ? <RolePartyPanels key={`role-parties-${subReentry["role-parties"] ?? 0}`} playerId={playerId} onBack={() => closeFeatureSubmenu("social")} /> : null}
             </div>
           ) : selectedMain === "inventory" ? (
             <div className="flex w-fit items-center gap-3">
