@@ -80,6 +80,11 @@ describe("backend API에 요청할 때", () => {
       expect(error).toMatchObject({ status: 400, code: "AUTH4001", message: "Bad credentials" });
     });
 
+    it("problem+json 실패 응답의 code와 detail을 보존한다", async () => {
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ status: 409, code: "ROL-409-EVENT-NOT-PLANNED", detail: "Event is no longer planned" }), { status: 409, headers: { "Content-Type": "application/problem+json" } }));
+      await expect(apiPost("/api/v1/roles/1/events/2/complete", {})).rejects.toMatchObject({ status: 409, code: "ROL-409-EVENT-NOT-PLANNED", message: "Event is no longer planned" });
+    });
+
     it("빈 실패 응답도 성공값으로 해석하지 않는다", async () => {
       fetchMock.mockResolvedValueOnce(new Response(null, { status: 401, headers: { "Content-Length": "0" } }));
 

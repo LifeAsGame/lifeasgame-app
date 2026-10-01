@@ -3,6 +3,7 @@ import type { ConnectionPage } from "@/shared/api/types";
 
 export type RolePartySummary = { id: number; name: string; description: string | null; status: "ACTIVE" | "DISBANDED"; creatorPlayerId: number; leaderPlayerId: number; memberCount: number; maxMembers: number; roleId?: number; createdAt: string; updatedAt: string };
 export type RolePartyDetail = RolePartySummary & { members: RolePartyMember[] };
+export type MyRoleParty = { group: RolePartySummary; membershipStatus: "ACTIVE" | "LEFT" };
 export type RolePartyMember = { playerId: number; role: "LEADER" | "MEMBER"; joinedAt: string };
 export type RolePartyInvitation = { invitationId: number; rolePartyId: number; groupName: string; inviterPlayerId: number; inviteePlayerId: number; expiresAt: string; status: string };
 export type RolePartyInput = Pick<RolePartySummary, "name" | "description" | "maxMembers">;
@@ -11,7 +12,7 @@ const base = "/api/v1/role-parties";
 const page = (index: number) => `?page=${index}&size=20`;
 export const rolePartiesForRole = (roleId: number, index = 0) => apiGet<ConnectionPage<RolePartySummary>>(`/api/v1/roles/${roleId}/role-parties${page(index)}`);
 export const createRoleParty = (roleId: number, body: RolePartyInput) => apiPost<RolePartyDetail>(`/api/v1/roles/${roleId}/role-parties`, body);
-export const myRoleParties = (index = 0) => apiGet<ConnectionPage<RolePartySummary>>(`${base}/mine${page(index)}`);
+export const myRoleParties = (index = 0) => apiGet<ConnectionPage<MyRoleParty>>(`${base}/mine${page(index)}`);
 export const myRolePartyInvitations = (index = 0) => apiGet<ConnectionPage<RolePartyInvitation>>(`${base}/invitations/mine${page(index)}`);
 export const rolePartyDetail = (id: number) => apiGet<RolePartyDetail>(`${base}/${id}`);
 export const rolePartyMembers = (id: number, index = 0) => apiGet<ConnectionPage<RolePartyMember>>(`${base}/${id}/members${page(index)}`);

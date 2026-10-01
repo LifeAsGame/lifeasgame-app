@@ -24,3 +24,11 @@ it("creates an invitation-only role party without a role event and opens its mem
   expect(await screen.findByText("1/5명")).toBeInTheDocument();
   expect(screen.getByText("초대 전용")).toBeInTheDocument();
 });
+
+it("shows former membership history without opening protected detail", async () => {
+  api.myRoleParties.mockResolvedValue({ contents: [{ group: party, membershipStatus: "LEFT" }], page: 0, size: 20, totalElements: 1, totalPages: 1 });
+  render(<RolePartyPanels playerId={7} onBack={() => {}} />);
+  expect(await screen.findByText("탈퇴 · 1/5명")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /동료 모임/ })).not.toBeInTheDocument();
+  expect(api.rolePartyDetail).not.toHaveBeenCalled();
+});
