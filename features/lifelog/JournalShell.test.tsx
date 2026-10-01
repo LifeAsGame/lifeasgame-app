@@ -189,6 +189,13 @@ describe("LifeLog Journal consumer surface", () => {
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
 
+  it("opens the Home-selected record once without requiring a list click", async () => {
+    render(<JournalShell roles={roles} initialLifeLogId={104} />);
+    await screen.findByText("Annotated");
+    expect(api.getJournalDetailApi).toHaveBeenCalledTimes(1);
+    expect(api.getJournalDetailApi).toHaveBeenCalledWith(104);
+  });
+
   it("renders all current detail fields in semantic common/source sections", async () => {
     await renderJournal();
     const entries = screen.getAllByTestId("journal-entry");

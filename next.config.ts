@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    const target = process.env.LAG_PREVIEW_API_TARGET;
+    return target ? [{ source: "/api/:path*", destination: `${target}/api/:path*` }] : [];
+  },
 };
 
 export default nextConfig;

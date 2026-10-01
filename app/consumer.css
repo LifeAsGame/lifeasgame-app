@@ -34,7 +34,9 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-home { height: 100%; overflow: auto; padding: 0 max(24px,calc((100vw - 1120px)/2)) 100px; }
 .sao-mast { height: 94px; display:flex; align-items:center; border-bottom: 1px solid var(--lag-border); margin-bottom: 32px; color: var(--lag-text); font-size:24px; letter-spacing: .035em; }
 .sao-mast span span { opacity: .65; }
-.sao-home .lag-home-surface { width:100%; min-width:0; max-width:none; background: transparent; padding: 0; border:0; box-shadow:none; }
+.sao-home .lag-home-surface { width:100%; min-width:0; max-width:none; background:var(--lag-panel); padding:24px; border:1px solid var(--lag-border); border-radius:22px; box-shadow:0 12px 28px color-mix(in srgb,var(--lag-shadow) 16%,transparent); }
+.sao-home .lag-home-grid { gap:24px; }
+.sao-home .lag-home-hero { border-left:4px solid var(--lag-cyan); }
 .sao-home .lag-home-card { background:var(--lag-panel); }
 .sao-menu-toggle { position:fixed; left:28px; bottom:24px; z-index:500010; display:flex; align-items:center; gap:12px; min-height:48px; padding:10px 18px; background:var(--lag-panel); border:1px solid var(--lag-border); box-shadow:0 3px 10px #17223120; }
 .sao-menu-toggle[aria-expanded=true] { visibility:hidden; }
@@ -93,6 +95,7 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-consumer .lag-chat-composer button { flex:0 0 76px; min-width:76px; white-space:nowrap; }
 @media(max-width:899px) {
   .sao-home { padding:0 16px 100px; }
+  .sao-home .lag-home-surface { padding:16px; }
   .sao-mast { height:80px; font-size:19px; }
   .sao-global-utilities { right:16px; top:20px; }
   .sao-menu-chrome { inset:76px 16px auto; padding:0; }

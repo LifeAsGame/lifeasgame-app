@@ -26,9 +26,9 @@ describe("로그인 form을 제출할 때", () => {
       });
       render(<LoginPage />);
 
-      fireEvent.change(screen.getByLabelText("Email"), { target: { value: "player@lag.io" } });
-      fireEvent.change(screen.getByLabelText("Password"), { target: { value: "player123" } });
-      fireEvent.click(screen.getByRole("button", { name: "LOGIN" }));
+      fireEvent.change(screen.getByLabelText("이메일"), { target: { value: "player@lag.io" } });
+      fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "player123" } });
+      fireEvent.click(screen.getByRole("button", { name: "로그인" }));
 
       await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/"));
     });
@@ -40,9 +40,9 @@ describe("로그인 form을 제출할 때", () => {
       });
       render(<LoginPage />);
 
-      fireEvent.change(screen.getByLabelText("Email"), { target: { value: "new@lag.io" } });
-      fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password123" } });
-      fireEvent.click(screen.getByRole("button", { name: "LOGIN" }));
+      fireEvent.change(screen.getByLabelText("이메일"), { target: { value: "new@lag.io" } });
+      fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "password123" } });
+      fireEvent.click(screen.getByRole("button", { name: "로그인" }));
 
       await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/linkstart"));
     });

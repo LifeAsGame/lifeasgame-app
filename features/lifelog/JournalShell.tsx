@@ -408,11 +408,18 @@ function subscribeCompact(notify: () => void) {
   return () => media.removeEventListener("change", notify);
 }
 
-export default function JournalShell({ createRequest = 0, roles, rolesLoading = false, rolesError = null, onBack, onOpenSource }: { createRequest?: number; roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void; onOpenSource?: (detail: JournalDetail) => void }) {
+export default function JournalShell({ createRequest = 0, initialLifeLogId, roles, rolesLoading = false, rolesError = null, onBack, onOpenSource }: { createRequest?: number; initialLifeLogId?: number | null; roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void; onOpenSource?: (detail: JournalDetail) => void }) {
   const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
   const caller = useRef<HTMLButtonElement | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const journal = useJournalQueries();
+  const initialSelection = useRef(false);
+  useEffect(() => {
+    if (initialLifeLogId && !initialSelection.current) {
+      initialSelection.current = true;
+      journal.selectEntry(initialLifeLogId);
+    }
+  }, [initialLifeLogId, journal]);
   const creation = useCreateMode(createRequest);
   const quickRecordOpen = creation.creating;
   const [detailVisible, setDetailVisible] = useState(true);

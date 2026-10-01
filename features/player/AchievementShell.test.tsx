@@ -57,4 +57,11 @@ describe("Current Player Achievement surface를 사용할 때", () => {
     render(<AchievementShell />);
     expect(await screen.findByText("획득한 업적이 없습니다.")).toBeInTheDocument();
   });
+
+  it("opens the Home-selected achievement detail", async () => {
+    render(<AchievementShell initialAchievementId={31} />);
+    expect(await screen.findByText("Server detail name")).toBeInTheDocument();
+    expect(api.getPlayerAchievementApi).toHaveBeenCalledTimes(1);
+    expect(api.getPlayerAchievementApi).toHaveBeenCalledWith(31);
+  });
 });

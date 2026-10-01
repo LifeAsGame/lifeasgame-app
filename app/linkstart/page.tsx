@@ -52,22 +52,22 @@ export default function LinkStartPage() {
 
   if (isLoading || !currentUser || playerId) return null;
   return (
-    <EntryPanel title="LINK START" subtitle="CHARACTER INITIALIZATION">
+    <EntryPanel title="시작하기" subtitle="플레이어 생성">
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block uppercase" style={labelStyle}>
-          Character Name
+          플레이어 이름
           <input className="mt-1.5" required minLength={1} maxLength={40} autoComplete="nickname" value={name} onChange={(event) => setName(event.target.value)} style={INPUT_STYLE} />
         </label>
         <label className="block uppercase" style={labelStyle}>
-          Gender
+          성별
           <select className="mt-1.5" required value={gender} onChange={(event) => setGender(event.target.value)} style={INPUT_STYLE}>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
+            <option value="MALE">남성</option>
+            <option value="FEMALE">여성</option>
           </select>
         </label>
         {error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{error}</p> : null}
         <button type="submit" disabled={isPending} className="w-full py-3 disabled:opacity-60" style={GOLD_BTN_STYLE}>
-          {isPending ? "LINKING..." : "LINK START"}
+          {isPending ? "생성 중…" : "시작하기"}
         </button>
       </form>
     </EntryPanel>

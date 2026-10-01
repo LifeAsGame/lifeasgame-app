@@ -45,7 +45,7 @@ export function useSettings() {
       setDraft(parsed.view);
       setSaveError(null);
     } catch (caught) {
-      setError(message(caught, "Unable to load Settings."));
+      setError(message(caught, "설정을 불러오지 못했습니다."));
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,7 @@ export function useSettings() {
   const save = async () => {
     if (!canonical || !draft || saveLocked.current || themeSaveLocked.current) return false;
     if (!Number.isInteger(draft.volume) || draft.volume < 0 || draft.volume > 100) {
-      setSaveError("Master Volume must be a whole number from 0 to 100.");
+      setSaveError("전체 음량은 0부터 100까지의 정수여야 합니다.");
       return false;
     }
     saveLocked.current = true;
@@ -78,7 +78,7 @@ export function useSettings() {
       setDraft({ ...parsed.view, themePreference: themePreferenceRef.current });
       return true;
     } catch (caught) {
-      setSaveError(message(caught, "Unable to save Settings."));
+      setSaveError(message(caught, "설정을 저장하지 못했습니다."));
       return false;
     } finally {
       saveLocked.current = false;
@@ -101,7 +101,7 @@ export function useSettings() {
       setDraft((current) => current ? { ...current, themePreference: parsed.view.themePreference } : parsed.view);
       return true;
     } catch (caught) {
-      setThemeSaveError(message(caught, "Unable to save theme preference."));
+      setThemeSaveError(message(caught, "테마를 저장하지 못했습니다."));
       return false;
     } finally {
       themeSaveLocked.current = false;

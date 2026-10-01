@@ -63,9 +63,13 @@ describe("Home world summary를 표시할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /Developer/ }));
 
       expect(callbacks.onOpenJournal).toHaveBeenCalledOnce();
+      expect(callbacks.onOpenJournal).toHaveBeenCalledWith(301);
       expect(callbacks.onOpenAchievements).toHaveBeenCalledOnce();
+      expect(callbacks.onOpenAchievements).toHaveBeenCalledWith(601);
       expect(callbacks.onOpenCurrentQuests).toHaveBeenCalledOnce();
+      expect(callbacks.onOpenCurrentQuests).toHaveBeenCalledWith(401);
       expect(callbacks.onOpenRoutes).toHaveBeenCalledOnce();
+      expect(callbacks.onOpenRoutes).toHaveBeenCalledWith(501);
       expect(callbacks.onOpenRole).toHaveBeenCalledWith(31);
     });
   });

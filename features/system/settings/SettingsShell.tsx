@@ -15,19 +15,19 @@ const THEME_OPTIONS: Array<{
   description: string;
   previewTheme?: "astral" | "warm-beige";
 }> = [
-  { value: "ASTRAL", title: "Astral Neutral", description: "Dark · spatial · focused", previewTheme: "astral" },
-  { value: "WARM_BEIGE", title: "Warm Beige / Analog Spatial", description: "Analog · calm · archive", previewTheme: "warm-beige" },
-  { value: "SYSTEM", title: "System follow", description: "Dark OS → Astral · Light OS → Warm Beige" },
+  { value: "ASTRAL", title: "아스트랄", description: "어두운 화면 · 집중", previewTheme: "astral" },
+  { value: "WARM_BEIGE", title: "웜 베이지", description: "밝은 화면 · 차분한 기록", previewTheme: "warm-beige" },
+  { value: "SYSTEM", title: "기기 설정 따르기", description: "기기의 밝기 설정에 맞춰 자동 변경" },
 ];
 
 const SETTINGS_GROUPS: Array<{ title: string; description: string; keys: string[] }> = [
-  { title: "Appearance", description: "Scale and visual presentation.", keys: ["uiScale"] },
-  { title: "Audio", description: "Master output and voice chat.", keys: ["volume", "voiceChat"] },
-  { title: "Display & Gameplay", description: "Rendering quality and gameplay feedback.", keys: ["graphicsQuality", "showDamageNumbers", "showParticles"] },
-  { title: "Controls", description: "Active control layout.", keys: ["inputPreset"] },
-  { title: "Privacy & Presence", description: "How your online state is shared.", keys: ["showOnlineStatus"] },
-  { title: "Notifications", description: "In-game and email notices.", keys: ["notifications", "emailAlerts"] },
-  { title: "Language", description: "Application language.", keys: ["language"] },
+  { title: "화면", description: "화면 크기와 표시 방식", keys: ["uiScale"] },
+  { title: "소리", description: "전체 음량과 음성 채팅", keys: ["volume", "voiceChat"] },
+  { title: "그래픽과 플레이", description: "화질과 효과 표시", keys: ["graphicsQuality", "showDamageNumbers", "showParticles"] },
+  { title: "조작", description: "조작 방식", keys: ["inputPreset"] },
+  { title: "공개 범위", description: "온라인 상태 표시", keys: ["showOnlineStatus"] },
+  { title: "알림", description: "게임 및 이메일 알림", keys: ["notifications", "emailAlerts"] },
+  { title: "언어", description: "앱 표시 언어", keys: ["language"] },
 ];
 
 const UI_SCALES = [75, 100, 125, 150] as const;
@@ -39,7 +39,7 @@ const isThemePreference = (value: string): value is ThemePreference => ["SYSTEM"
 
 function displayValue(settings: SettingsView, key: keyof SettingsView) {
   const value = settings[key];
-  if (typeof value === "boolean") return value ? "On" : "Off";
+  if (typeof value === "boolean") return value ? "켬" : "끔";
   if (key === "volume" || key === "uiScale") return `${value}%`;
   if (key === "themePreference") return THEME_OPTIONS.find((option) => option.value === value)?.title ?? String(value);
   const field = SYSTEM_OPTIONS_FORM_FIELDS.find((candidate) => candidate.key === key);
@@ -75,30 +75,30 @@ export default function SettingsShell() {
     event.preventDefault();
     if (await settings.save()) {
       setEditing(false);
-      showToast({ variant: "success", title: "Settings saved", body: "System options updated." });
+      showToast({ variant: "success", title: "설정 저장됨", body: "환경 설정이 저장되었습니다." });
     }
   };
 
   return (
     <div className="lag-settings-shell">
       <PanelStage stageKey="system-options">
-        <PanelFrame title="Settings" depth={1} contentKey={editing ? "edit" : "summary"}>
+        <PanelFrame title="환경 설정" depth={1} contentKey={editing ? "edit" : "summary"}>
           <div className="lag-settings-surface" data-testid="settings-shell">
-            {settings.loading && !settings.canonical ? <p role="status" className="lag-settings-state">Loading Settings...</p> : null}
+            {settings.loading && !settings.canonical ? <p role="status" className="lag-settings-state">설정을 불러오는 중…</p> : null}
             {settings.error ? (
               <div className="lag-settings-state lag-settings-state-error">
                 <p role="alert" className="lag-state-error text-xs">{settings.error}</p>
-                <button type="button" className="lag-button-secondary lag-settings-button" onClick={() => void settings.retry()}>Retry</button>
+                <button type="button" className="lag-button-secondary lag-settings-button" onClick={() => void settings.retry()}>다시 조회</button>
               </div>
             ) : null}
 
             {!settings.error && settings.canonical ? (
               <fieldset className="lag-settings-theme">
-                <legend>Theme</legend>
-                <p className="lag-settings-group-description">Choose a theme. Changes apply immediately and save separately.</p>
+                <legend>테마</legend>
+                <p className="lag-settings-group-description">선택 즉시 적용되며 다른 설정과 별도로 저장됩니다.</p>
                 <div className="lag-theme-preview" aria-live="polite">
                   <div>
-                    <strong>Current theme</strong>
+                    <strong>현재 테마</strong>
                     <span>{THEME_OPTIONS.find((option) => option.value === settings.themePreference)?.title}</span>
                   </div>
                 </div>
@@ -119,7 +119,7 @@ export default function SettingsShell() {
                       />
                       <strong>{option.title}</strong>
                       <span className="lag-text-meta">{option.description}</span>
-                      {settings.themePreference === option.value ? <span className="lag-theme-current">Current</span> : null}
+                      {settings.themePreference === option.value ? <span className="lag-theme-current">선택됨</span> : null}
                       {option.previewTheme ? (
                         <span className="lag-theme-swatches" aria-hidden>
                           {Array.from({ length: 5 }, (_, index) => <span key={index} className="lag-theme-swatch" />)}
@@ -128,7 +128,7 @@ export default function SettingsShell() {
                     </label>
                   ))}
                 </div>
-                {settings.themeSaving ? <p role="status" className="lag-settings-pending">Saving theme...</p> : null}
+                {settings.themeSaving ? <p role="status" className="lag-settings-pending">테마 저장 중…</p> : null}
                 {settings.themeSaveError ? <p role="alert" className="lag-state-error text-xs">{settings.themeSaveError}</p> : null}
               </fieldset>
             ) : null}
@@ -137,10 +137,10 @@ export default function SettingsShell() {
               <section className="lag-settings-preferences" aria-labelledby="settings-preferences-title">
                 <div className="lag-settings-section-header">
                   <div>
-                    <h2 id="settings-preferences-title">Preferences</h2>
-                    <p>Audio, display, controls, privacy, notifications, and language.</p>
+                    <h2 id="settings-preferences-title">기본 설정</h2>
+                    <p>화면, 소리, 조작, 공개 범위, 알림과 언어를 확인하세요.</p>
                   </div>
-                  <button type="button" className="lag-button-primary lag-settings-button" onClick={() => setEditing(true)}>Edit Settings</button>
+                  <button type="button" className="lag-button-primary lag-settings-button" onClick={() => setEditing(true)}>설정 수정</button>
                 </div>
                 <div className="lag-settings-group-grid">
                   {SETTINGS_GROUPS.map((group) => (
@@ -148,8 +148,8 @@ export default function SettingsShell() {
                       <h3>{group.title}</h3>
                       <p className="lag-settings-group-description">{group.description}</p>
                       <dl className="lag-settings-values">
-                        {group.title === "Appearance" ? (
-                          <div><dt>Theme</dt><dd>{displayValue(canonicalView, "themePreference")}</dd></div>
+                        {group.title === "화면" ? (
+                          <div><dt>테마</dt><dd>{displayValue(canonicalView, "themePreference")}</dd></div>
                         ) : null}
                         {SYSTEM_OPTIONS_FORM_FIELDS.filter((field) => group.keys.includes(field.key)).map((field) => (
                           <div key={field.key}>
@@ -168,8 +168,8 @@ export default function SettingsShell() {
               <form className="lag-settings-form" onSubmit={submit}>
                 <div className="lag-settings-section-header">
                   <div>
-                    <h2>Edit preferences</h2>
-                    <p>Theme changes above remain independent from these settings.</p>
+                    <h2>기본 설정 수정</h2>
+                    <p>테마는 위에서 별도로 저장됩니다.</p>
                   </div>
                 </div>
                 <div className="lag-settings-group-grid">
@@ -204,8 +204,8 @@ export default function SettingsShell() {
                 </div>
                 {settings.saveError ? <p role="alert" className="lag-state-error text-xs">{settings.saveError}</p> : null}
                 <div className="lag-settings-actions">
-                  <button type="submit" className="lag-button-primary lag-settings-button" disabled={!settings.dirty || settings.saving || settings.themeSaving}>{settings.saving ? "Saving..." : "Save Settings"}</button>
-                  <button type="button" className="lag-button-secondary lag-settings-button" disabled={settings.saving || settings.themeSaving} onClick={() => { settings.cancel(); setEditing(false); }}>Cancel</button>
+                  <button type="submit" className="lag-button-primary lag-settings-button" disabled={!settings.dirty || settings.saving || settings.themeSaving}>{settings.saving ? "저장 중…" : "설정 저장"}</button>
+                  <button type="button" className="lag-button-secondary lag-settings-button" disabled={settings.saving || settings.themeSaving} onClick={() => { settings.cancel(); setEditing(false); }}>취소</button>
                 </div>
               </form>
             ) : null}

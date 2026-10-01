@@ -10,15 +10,15 @@ import UtilityPortal from "@/shared/ui/UtilityPortal";
 import { useNotifications } from "./useNotifications";
 
 const TYPE_META: Record<NotificationType, { icon: string; label: string; tone: string }> = {
-  MAIL_RECEIVED: { icon: "✉", label: "Mail received", tone: "info" },
-  QUEST_PROGRESS: { icon: "⚔", label: "Quest progress", tone: "pending" },
-  QUEST_COMPLETED: { icon: "✓", label: "Quest completed", tone: "success" },
-  QUEST_REWARD_READY: { icon: "★", label: "Quest reward ready", tone: "pending" },
-  LISTING_SOLD: { icon: "◆", label: "Listing sold", tone: "success" },
-  ACHIEVEMENT_UNLOCK: { icon: "★", label: "Achievement unlocked", tone: "selected" },
-  SYSTEM_NOTICE: { icon: "!", label: "System notice", tone: "neutral" },
+  MAIL_RECEIVED: { icon: "✉", label: "편지 도착", tone: "info" },
+  QUEST_PROGRESS: { icon: "⚔", label: "퀘스트 진행", tone: "pending" },
+  QUEST_COMPLETED: { icon: "✓", label: "퀘스트 완료", tone: "success" },
+  QUEST_REWARD_READY: { icon: "★", label: "퀘스트 보상 준비", tone: "pending" },
+  LISTING_SOLD: { icon: "◆", label: "판매 완료", tone: "success" },
+  ACHIEVEMENT_UNLOCK: { icon: "★", label: "업적 획득", tone: "selected" },
+  SYSTEM_NOTICE: { icon: "!", label: "시스템 알림", tone: "neutral" },
 };
-const UNKNOWN_TYPE_META = { icon: "!", label: "Notification", tone: "neutral" };
+const UNKNOWN_TYPE_META = { icon: "!", label: "알 수 없는 종류", tone: "neutral" };
 
 function isKnownNotificationType(type: string): type is NotificationType {
   return Object.prototype.hasOwnProperty.call(TYPE_META, type);
@@ -51,14 +51,14 @@ function NotificationRow({ notification, pending, selected, onSelect, onMarkRead
       <button type="button" className="lag-notification-select" aria-pressed={selected} onClick={(event) => onSelect(notification.id, event.currentTarget)}>
         <TypeMark notification={notification} />
         <span className="lag-notification-copy">
-          <span className="lag-notification-row-meta"><span>{meta.label}</span><span>{notification.read ? "Read" : "Unread"}</span></span>
+          <span className="lag-notification-row-meta"><span>{meta.label}</span><span>{notification.read ? "읽음" : "읽지 않음"}</span></span>
           <strong>{notification.title}</strong>
           <span className="lag-notification-body">{notification.body}</span>
           <span className="lag-notification-time"><NotificationTimestamp occurredAt={notification.occurredAt} /></span>
         </span>
         <span className="lag-notification-arrow" aria-hidden>→</span>
       </button>
-      {!notification.read ? <button type="button" className="lag-notification-action" disabled={pending} onClick={() => onMarkRead(notification.id)}>{pending ? "Saving..." : "Mark read"}</button> : null}
+      {!notification.read ? <button type="button" className="lag-notification-action" disabled={pending} onClick={() => onMarkRead(notification.id)}>{pending ? "저장 중…" : "읽음 표시"}</button> : null}
     </article>
   );
 }
@@ -215,9 +215,9 @@ export function NotificationBell() {
         onClick={toggle}
         whileHover={reducedMotion ? undefined : { scale: 1.06 }}
         whileTap={reducedMotion ? undefined : { scale: 0.94 }}
-        aria-label={`Notifications, ${state.unreadCount} unread`}
+        aria-label={`알림, 읽지 않음 ${state.unreadCount}개`}
         aria-expanded={open}
-        title="Notifications"
+        title="알림"
         className="lag-utility-button lag-notification-trigger"
         data-active={open}
         data-unread={state.unreadCount > 0}
@@ -245,7 +245,7 @@ export function NotificationBell() {
                 ref={popupRef}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Notifications"
+                aria-label="알림"
                 key="notification-dropdown"
                 initial={reducedMotion ? false : { opacity: 0, y: -6, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -257,38 +257,43 @@ export function NotificationBell() {
                 style={{ position: "fixed", left: popupPosition?.x ?? 16, top: popupPosition?.y ?? 16, zIndex: 600100, visibility: popupPosition ? "visible" : "hidden" }}
               >
               <header className="lag-notification-header">
-                <div><span>Current Player</span><h2>Notifications</h2></div>
+                <div><span>내 계정</span><h2>알림</h2></div>
                 <div>
-                  <button type="button" disabled={state.markAllPending} onClick={() => void state.markAllRead()} className="lag-notification-action">{state.markAllPending ? "Saving..." : "Mark all read"}</button>
-                  <button ref={closeRef} type="button" aria-label="Close Notifications" onClick={close} className="lag-notification-action">Close</button>
+                  <button type="button" disabled={state.markAllPending} onClick={() => void state.markAllRead()} className="lag-notification-action">{state.markAllPending ? "저장 중…" : "모두 읽음 표시"}</button>
+                  <button ref={closeRef} type="button" aria-label="알림 닫기" onClick={close} className="lag-notification-action">닫기</button>
                 </div>
               </header>
 
-              {state.unreadError ? <div className="lag-notification-feedback-row"><p role="alert" className="lag-notification-feedback" data-state="error">{state.unreadError}</p><button type="button" className="lag-notification-action" onClick={() => void state.unreadRetry()}>Retry count</button></div> : null}
-              {state.inboxError ? <div className="lag-notification-feedback-row"><p role="alert" className="lag-notification-feedback" data-state="error">{state.inboxError}</p><button type="button" className="lag-notification-action" onClick={() => void state.inboxRetry()}>Retry</button></div> : null}
+              {state.unreadError ? <div className="lag-notification-feedback-row"><p role="alert" className="lag-notification-feedback" data-state="error">{state.unreadError}</p><button type="button" className="lag-notification-action" onClick={() => void state.unreadRetry()}>개수 다시 조회</button></div> : null}
+              {state.inboxError ? <div className="lag-notification-feedback-row"><p role="alert" className="lag-notification-feedback" data-state="error">{state.inboxError}</p><button type="button" className="lag-notification-action" onClick={() => void state.inboxRetry()}>다시 조회</button></div> : null}
               {state.mutationError ? <p role="alert" className="lag-notification-feedback" data-state="error">{state.mutationError}</p> : null}
 
               <div className="lag-notification-composition">
-                <section className="lag-notification-inbox" aria-label="Notification inbox">
-                  <div className="lag-notification-summary"><span>Durable inbox</span><strong>{state.unreadCount} unread</strong></div>
+                <section className="lag-notification-inbox" aria-label="알림 목록">
+                  <div className="lag-notification-summary"><span>알림 목록</span><strong>읽지 않음 {state.unreadCount}개</strong></div>
                   <div className="lag-notification-list">
-                    {state.inboxLoading ? <p role="status" className="lag-notification-empty">Loading notifications...</p> : null}
-                    {!state.inboxLoading && state.inboxLoaded && state.inbox.length === 0 ? <p className="lag-notification-empty">No notifications</p> : null}
+                    {state.inboxLoading ? <p role="status" className="lag-notification-empty">알림을 불러오는 중…</p> : null}
+                    {!state.inboxLoading && state.inboxLoaded && state.inbox.length === 0 ? <p className="lag-notification-empty">알림이 없습니다.</p> : null}
                     {state.inbox.map((notification) => <NotificationRow key={notification.id} notification={notification} pending={state.pendingId === notification.id} selected={selectedId === notification.id} onSelect={selectNotification} onMarkRead={(id) => void state.markRead(id)} />)}
-                    {state.hasMore ? <button type="button" className="lag-notification-load-older" disabled={state.olderLoading} onClick={() => void state.loadOlder()}>{state.olderLoading ? "Loading..." : "Load older"}</button> : null}
+                    {state.hasMore ? <button type="button" className="lag-notification-load-older" disabled={state.olderLoading} onClick={() => void state.loadOlder()}>{state.olderLoading ? "불러오는 중…" : "이전 알림"}</button> : null}
                   </div>
                 </section>
 
                 {selected ? (
-                  <section className="lag-notification-detail" aria-label="Notification detail">
-                    <header><button type="button" className="lag-notification-action" onClick={returnToInbox}>← Back to inbox</button><span>{selected.read ? "Read" : "Unread"}</span></header>
+                  <section className="lag-notification-detail" aria-label="알림 상세">
+                    <header><button type="button" className="lag-notification-action" onClick={returnToInbox}>← 목록으로</button><span>{selected.read ? "읽음" : "읽지 않음"}</span></header>
                     <div className="lag-notification-detail-content">
                       <TypeMark notification={selected} />
                       <span>{metaFor(selected.type).label}</span>
                       <h3>{selected.title}</h3>
                       <p>{selected.body}</p>
                       <div><NotificationTimestamp occurredAt={selected.occurredAt} /></div>
-                      {!selected.read ? <button type="button" className="lag-notification-action" disabled={state.pendingId === selected.id} onClick={() => void state.markRead(selected.id)}>{state.pendingId === selected.id ? "Saving..." : "Mark read"}</button> : <span className="lag-notification-read-state">Read</span>}
+                      {selected.copyLocale || selected.titleCopyId || selected.bodyCopyId ? <dl className="lag-notification-provenance">
+                        {selected.copyLocale ? <div><dt>언어</dt><dd>{selected.copyLocale}</dd></div> : null}
+                        {selected.titleCopyId ? <div><dt>제목 문구</dt><dd>{selected.titleCopyId}{selected.titleCopyVersion === null ? "" : ` · v${selected.titleCopyVersion}`}</dd></div> : null}
+                        {selected.bodyCopyId ? <div><dt>본문 문구</dt><dd>{selected.bodyCopyId}{selected.bodyCopyVersion === null ? "" : ` · v${selected.bodyCopyVersion}`}</dd></div> : null}
+                      </dl> : null}
+                      {!selected.read ? <button type="button" className="lag-notification-action" disabled={state.pendingId === selected.id} onClick={() => void state.markRead(selected.id)}>{state.pendingId === selected.id ? "저장 중…" : "읽음 표시"}</button> : <span className="lag-notification-read-state">읽음</span>}
                     </div>
                   </section>
                 ) : null}

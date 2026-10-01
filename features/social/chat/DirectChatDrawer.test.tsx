@@ -45,18 +45,18 @@ it("renders canonical identity fields and opens an existing read-only channel wi
   } as unknown as DirectChatState;
 
   render(<DirectChatDrawer chat={chat} />);
-  expect(screen.getByRole("dialog", { name: "Direct Friend Chat" })).toBeInTheDocument();
-  expect(screen.getAllByText("Mage · Level 2")).toHaveLength(2);
-  expect(screen.getByText("You")).toBeInTheDocument();
-  expect(screen.getByLabelText("Message from you")).toHaveAttribute("data-owner", "mine");
-  expect(screen.getByLabelText("Message from B")).toHaveAttribute("data-owner", "peer");
-  expect(screen.getByText("Edited")).toBeInTheDocument();
-  expect(screen.getByRole("textbox", { name: "Message" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
-  expect(screen.getByText("This channel is read-only.")).toHaveAttribute("role", "status");
+  expect(screen.getByRole("dialog", { name: "친구와 직접 채팅" })).toBeInTheDocument();
+  expect(screen.getAllByText("Mage · 레벨 2")).toHaveLength(2);
+  expect(screen.getByText("나")).toBeInTheDocument();
+  expect(screen.getByLabelText("내 메시지")).toHaveAttribute("data-owner", "mine");
+  expect(screen.getByLabelText("B의 메시지")).toHaveAttribute("data-owner", "peer");
+  expect(screen.getByText("수정됨")).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "메시지" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "메시지 보내기" })).toBeDisabled();
+  expect(screen.getByText("이 대화는 읽기 전용입니다.")).toHaveAttribute("role", "status");
   expect(screen.queryByText(/presence|typing|unread/i)).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("button", { name: /A\s*Level 1/i }));
+  fireEvent.click(screen.getByRole("button", { name: /A\s*레벨 1/i }));
   expect(selectChannel).toHaveBeenCalledWith(10);
   expect(openFriendChat).not.toHaveBeenCalled();
 
@@ -100,12 +100,12 @@ it("keeps blocked history visible and requires explicit open or send retry", () 
 
   render(<DirectChatDrawer chat={chat} />);
   expect(screen.getByText("history")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Load older" })).toBeEnabled();
-  expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("saved draft");
-  expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "이전 메시지" })).toBeEnabled();
+  expect(screen.getByRole("textbox", { name: "메시지" })).toHaveValue("saved draft");
+  expect(screen.getByRole("button", { name: "메시지 보내기" })).toBeDisabled();
   expect(send).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Retry open" }));
-  fireEvent.click(screen.getByRole("button", { name: "Retry send" }));
+  fireEvent.click(screen.getByRole("button", { name: "다시 열기" }));
+  fireEvent.click(screen.getByRole("button", { name: "전송 재시도" }));
   expect(openFriendChat).toHaveBeenCalledWith(70);
   expect(retryBlockedSend).toHaveBeenCalledTimes(1);
 });
@@ -148,7 +148,7 @@ it("uses the same bounded shared drag behavior as Connections", () => {
     openError: null,
   } as unknown as DirectChatState;
   render(<DirectChatDrawer chat={chat} />);
-  const dialog = screen.getByRole("dialog", { name: "Direct Friend Chat" });
+  const dialog = screen.getByRole("dialog", { name: "친구와 직접 채팅" });
   dialog.getBoundingClientRect = () => ({ left: 0, right: 720, top: 0, bottom: 680, width: 720, height: 680, x: 0, y: 0, toJSON: () => ({}) });
 
   fireEvent.pointerDown(dialog.querySelector("header")!, { button: 0, clientX: 20, clientY: 20 });
@@ -187,6 +187,6 @@ it("initializes the first desktop portal position after the Chat dialog mounts",
 
   render(<DirectChatDrawer chat={chat} />);
 
-  await waitFor(() => expect(screen.getByRole("dialog", { name: "Direct Friend Chat" })).toHaveStyle({ left: "456px", top: "24px" }));
+  await waitFor(() => expect(screen.getByRole("dialog", { name: "친구와 직접 채팅" })).toHaveStyle({ left: "456px", top: "24px" }));
   rect.mockRestore();
 });

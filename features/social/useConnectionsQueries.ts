@@ -16,7 +16,7 @@ import {
 
 const PAGE_SIZE = 20;
 const emptyPage = <T,>(page = 0): ConnectionPage<T> => ({ contents: [], page, size: PAGE_SIZE, totalElements: 0, totalPages: 0 });
-const errorMessage = (caught: unknown) => caught instanceof Error ? caught.message : "Unable to update Connections.";
+const errorMessage = (caught: unknown) => caught instanceof Error ? caught.message : "연결 정보를 변경하지 못했습니다.";
 
 export function useConnectionsQueries() {
   const [activeTab, setActiveTab] = useState<"followings" | "followers">("followings");

@@ -40,9 +40,9 @@ describe("Link Start를 완료할 때", () => {
       mocks.reloadMe.mockResolvedValue({});
       const view = render(<LinkStartPage />);
 
-      fireEvent.change(screen.getByLabelText("Character Name"), { target: { value: "Kirito" } });
-      fireEvent.change(screen.getByLabelText("Gender"), { target: { value: "FEMALE" } });
-      fireEvent.click(screen.getByRole("button", { name: "LINK START" }));
+      fireEvent.change(screen.getByLabelText("플레이어 이름"), { target: { value: "Kirito" } });
+      fireEvent.change(screen.getByLabelText("성별"), { target: { value: "FEMALE" } });
+      fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
 
       await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/roles/create"));
       expect(tokenStorage.read()).toEqual({ accessToken: "new-a", refreshToken: "new-r", userId: 1, playerId: 77 });

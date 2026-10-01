@@ -9,8 +9,8 @@ const state = vi.hoisted(() => ({
   inbox: [
     { id: 4, type: "QUEST_COMPLETED", title: "Saved completion title", body: "Saved completion body", titleCopyId: "notification.ntf_quest_completed.title", titleCopyVersion: 1, bodyCopyId: "notification.ntf_quest_completed.body", bodyCopyVersion: 1, copyLocale: "ko-KR", occurredAt: "2026-09-22T12:34:56Z", read: false },
     { id: 3, type: "QUEST_REWARD_READY", title: "Saved reward title", body: "Saved reward body", titleCopyId: "notification.ntf_quest_reward_ready.title", titleCopyVersion: 1, bodyCopyId: "notification.ntf_quest_reward_ready.body", bodyCopyVersion: 1, copyLocale: "ko-KR", occurredAt: "2026-09-22T12:30:00Z", read: false },
-    { id: 2, type: "SYSTEM_NOTICE" as const, title: "Unread", body: "Canonical body", titleCopyId: null, titleCopyVersion: null, bodyCopyId: null, bodyCopyVersion: null, copyLocale: null, occurredAt: "2026-08-18T12:34:56Z", read: false },
-    { id: 1, type: "MAIL_RECEIVED" as const, title: "Read", body: "Older body", titleCopyId: null, titleCopyVersion: null, bodyCopyId: null, bodyCopyVersion: null, copyLocale: null, occurredAt: "2026-08-17T11:22:33Z", read: true },
+    { id: 2, type: "SYSTEM_NOTICE" as const, title: "읽지 않음", body: "Canonical body", titleCopyId: null, titleCopyVersion: null, bodyCopyId: null, bodyCopyVersion: null, copyLocale: null, occurredAt: "2026-08-18T12:34:56Z", read: false },
+    { id: 1, type: "MAIL_RECEIVED" as const, title: "읽음", body: "Older body", titleCopyId: null, titleCopyVersion: null, bodyCopyId: null, bodyCopyVersion: null, copyLocale: null, occurredAt: "2026-08-17T11:22:33Z", read: true },
     { id: 0, type: "FUTURE_ANNOUNCEMENT", title: "Future title", body: "Future body", titleCopyId: null, titleCopyVersion: null, bodyCopyId: null, bodyCopyVersion: null, copyLocale: null, occurredAt: "2026-08-16T10:20:30Z", read: true },
   ],
   inboxLoaded: false,
@@ -39,7 +39,7 @@ describe("NotificationBell canonical surface", () => {
 
   it("uses unread authority and opens inbox without an implicit read mutation", () => {
     render(<NotificationBell />);
-    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    const trigger = screen.getByRole("button", { name: "알림, 읽지 않음 7개" });
     expect(trigger).toHaveTextContent("7");
     expect(state.loadInbox).not.toHaveBeenCalled();
 
@@ -47,47 +47,47 @@ describe("NotificationBell canonical surface", () => {
     expect(state.loadInbox).toHaveBeenCalledTimes(1);
     expect(state.markRead).not.toHaveBeenCalled();
     expect(state.markAllRead).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "Notifications" })).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByRole("dialog", { name: "알림" })).toHaveAttribute("aria-modal", "true");
     expect(document.querySelector(".lag-notification-backdrop")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mark all read" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Load older" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "모두 읽음 표시" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "이전 알림" })).toBeInTheDocument();
     expect(screen.queryByText(/clear|delete/i)).not.toBeInTheDocument();
   });
 
   it("selects a stable local detail without marking read, then reads only through explicit actions", () => {
     render(<NotificationBell />);
-    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+    fireEvent.click(screen.getByRole("button", { name: "알림, 읽지 않음 7개" }));
 
     fireEvent.click(screen.getByText("Canonical body").closest("button")!);
-    const detail = screen.getByLabelText("Notification detail");
+    const detail = screen.getByLabelText("알림 상세");
     expect(detail).toBeInTheDocument();
-    expect(within(detail).getByText("System notice")).toBeInTheDocument();
+    expect(within(detail).getByText("시스템 알림")).toBeInTheDocument();
     expect(within(detail).getByText("Canonical body")).toBeInTheDocument();
     expect(state.markRead).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("Future body").closest("button")!);
-    expect(screen.getByLabelText("Notification detail")).toBe(detail);
-    expect(within(detail).getByRole("img", { name: "Notification" })).toHaveTextContent("!");
+    expect(screen.getByLabelText("알림 상세")).toBe(detail);
+    expect(within(detail).getByRole("img", { name: "알 수 없는 종류" })).toHaveTextContent("!");
     expect(state.markRead).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("Canonical body").closest("button")!);
-    fireEvent.click(within(detail).getByRole("button", { name: "Mark read" }));
+    fireEvent.click(within(detail).getByRole("button", { name: "읽음 표시" }));
     expect(state.markRead).toHaveBeenCalledWith(2);
-    fireEvent.click(screen.getByRole("button", { name: "Mark all read" }));
+    fireEvent.click(screen.getByRole("button", { name: "모두 읽음 표시" }));
     expect(state.markAllRead).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(within(detail).getByRole("button", { name: /Back to inbox/ }));
-    expect(screen.queryByLabelText("Notification detail")).not.toBeInTheDocument();
+    fireEvent.click(within(detail).getByRole("button", { name: /목록으로/ }));
+    expect(screen.queryByLabelText("알림 상세")).not.toBeInTheDocument();
   });
 
   it("renders canonical known/unknown rows with structural read state and readable timestamps", () => {
     render(<NotificationBell />);
-    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+    fireEvent.click(screen.getByRole("button", { name: "알림, 읽지 않음 7개" }));
 
     expect(screen.getByText("Future title")).toBeInTheDocument();
     expect(screen.getByText("Future body")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Notification" })).toHaveTextContent("!");
-    expect(screen.getByRole("img", { name: "Mail received" })).toHaveTextContent("✉");
+    expect(screen.getByRole("img", { name: "알 수 없는 종류" })).toHaveTextContent("!");
+    expect(screen.getByRole("img", { name: "편지 도착" })).toHaveTextContent("✉");
     expect(screen.getByText("Canonical body").closest("article")).toHaveAttribute("data-read", "false");
     expect(screen.getByText("Older body").closest("article")).toHaveAttribute("data-read", "true");
     expect(screen.getByText("2026-08-18 12:34 UTC").closest("time")).toHaveAttribute("dateTime", "2026-08-18T12:34:56Z");
@@ -95,8 +95,8 @@ describe("NotificationBell canonical surface", () => {
 
   it("shows persisted approval copy and legacy/unknown text without exposing provenance or marking read", () => {
     render(<NotificationBell />);
-    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
-    const dialog = screen.getByRole("dialog", { name: "Notifications" });
+    fireEvent.click(screen.getByRole("button", { name: "알림, 읽지 않음 7개" }));
+    const dialog = screen.getByRole("dialog", { name: "알림" });
     expect(within(dialog).getByText("Saved completion title")).toBeInTheDocument();
     expect(within(dialog).getByText("Saved completion body")).toBeInTheDocument();
     expect(within(dialog).getByText("Saved reward title")).toBeInTheDocument();
@@ -105,11 +105,14 @@ describe("NotificationBell canonical surface", () => {
     expect(within(dialog).getByText("Future body")).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent("notification.ntf_");
     expect(dialog).not.toHaveTextContent("ko-KR");
+    // Stored provenance appears in the selected detail without replacing body copy.
 
     fireEvent.click(screen.getByText("Saved completion body").closest("button")!);
-    const detail = screen.getByLabelText("Notification detail");
+    const detail = screen.getByLabelText("알림 상세");
     expect(within(detail).getByRole("heading", { name: "Saved completion title" })).toBeInTheDocument();
     expect(within(detail).getByText("Saved completion body")).toBeInTheDocument();
+    expect(detail).toHaveTextContent("notification.ntf_quest_completed.title");
+    expect(detail).toHaveTextContent("ko-KR");
     expect(state.markRead).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Saved reward body").closest("button")!);
     expect(within(detail).getByRole("heading", { name: "Saved reward title" })).toBeInTheDocument();
@@ -119,13 +122,13 @@ describe("NotificationBell canonical surface", () => {
 
   it("dismisses on outside interaction without stealing focus from the chosen control", async () => {
     render(<><NotificationBell /><button type="button">Player outside</button></>);
-    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    const trigger = screen.getByRole("button", { name: "알림, 읽지 않음 7개" });
     const outside = screen.getByRole("button", { name: "Player outside" });
     fireEvent.click(trigger, { detail: 1 });
-    expect(screen.getByRole("dialog", { name: "Notifications" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "알림" })).toBeInTheDocument();
     outside.focus();
     fireEvent.mouseDown(outside);
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "알림" })).not.toBeInTheDocument());
     expect(outside).toHaveFocus();
 
     const source = readFileSync("features/notification/NotificationBell.tsx", "utf8");
@@ -141,24 +144,24 @@ describe("NotificationBell canonical surface", () => {
 
   it.each(["Escape", "Close"])("keyboard-opens into the panel and %s restores trigger focus", async (method) => {
     render(<NotificationBell />);
-    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    const trigger = screen.getByRole("button", { name: "알림, 읽지 않음 7개" });
     trigger.focus();
     fireEvent.click(trigger, { detail: 0 });
-    const closeButton = screen.getByRole("button", { name: "Close Notifications" });
+    const closeButton = screen.getByRole("button", { name: "알림 닫기" });
     await waitFor(() => expect(closeButton).toHaveFocus());
 
     if (method === "Escape") fireEvent.keyDown(document, { key: "Escape" });
     else fireEvent.click(closeButton);
 
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "알림" })).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
   });
 
   it("traps forward and reverse Tab at the dialog boundaries", async () => {
     render(<NotificationBell />);
-    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }), { detail: 0 });
-    const dialog = screen.getByRole("dialog", { name: "Notifications" });
-    await waitFor(() => expect(screen.getByRole("button", { name: "Close Notifications" })).toHaveFocus());
+    fireEvent.click(screen.getByRole("button", { name: "알림, 읽지 않음 7개" }), { detail: 0 });
+    const dialog = screen.getByRole("dialog", { name: "알림" });
+    await waitFor(() => expect(screen.getByRole("button", { name: "알림 닫기" })).toHaveFocus());
     const controls = within(dialog).getAllByRole("button").filter((button) => !button.hasAttribute("disabled"));
     const first = controls[0];
     const last = controls[controls.length - 1];
@@ -175,29 +178,29 @@ describe("NotificationBell canonical surface", () => {
   it("isolates the background application surface and restores its prior state", async () => {
     render(<main className="lag-app-surface" aria-hidden="false"><NotificationBell /><button type="button">Background action</button></main>);
     const surface = screen.getByRole("main");
-    fireEvent.click(screen.getByRole("button", { name: "Notifications, 7 unread" }));
+    fireEvent.click(screen.getByRole("button", { name: "알림, 읽지 않음 7개" }));
 
     expect(surface).toHaveAttribute("inert", "");
     expect(surface).toHaveAttribute("aria-hidden", "true");
-    fireEvent.click(screen.getByRole("button", { name: "Close Notifications" }));
+    fireEvent.click(screen.getByRole("button", { name: "알림 닫기" }));
 
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Notifications" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "알림" })).not.toBeInTheDocument());
     expect(surface).not.toHaveAttribute("inert");
     expect(surface).toHaveAttribute("aria-hidden", "false");
   });
 
   it("returns focus from detail to the selected visible inbox row", async () => {
     render(<NotificationBell />);
-    const trigger = screen.getByRole("button", { name: "Notifications, 7 unread" });
+    const trigger = screen.getByRole("button", { name: "알림, 읽지 않음 7개" });
     fireEvent.click(trigger, { detail: 0 });
-    await waitFor(() => expect(screen.getByRole("button", { name: "Close Notifications" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: "알림 닫기" })).toHaveFocus());
 
     const selectedRow = screen.getByText("Canonical body").closest("button")!;
     fireEvent.click(selectedRow);
-    fireEvent.click(within(screen.getByLabelText("Notification detail")).getByRole("button", { name: /Back to inbox/ }));
+    fireEvent.click(within(screen.getByLabelText("알림 상세")).getByRole("button", { name: /목록으로/ }));
 
     await waitFor(() => expect(selectedRow).toHaveFocus());
-    expect(screen.queryByLabelText("Notification detail")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("알림 상세")).not.toBeInTheDocument();
   });
 
   it("renders deterministic initial timestamp text without render-time Date.now", () => {

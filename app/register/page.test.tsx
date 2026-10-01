@@ -9,10 +9,10 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: mocks.replace }
 vi.mock("@/features/auth/AuthContext", () => ({ useAuth: mocks.useAuth }));
 
 function submitRegistration() {
-  fireEvent.change(screen.getByLabelText("Email"), { target: { value: "new@lag.io" } });
-  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password123" } });
-  fireEvent.change(screen.getByLabelText("Nickname"), { target: { value: "Newbie" } });
-  fireEvent.click(screen.getByRole("button", { name: "REGISTER" }));
+  fireEvent.change(screen.getByLabelText("이메일"), { target: { value: "new@lag.io" } });
+  fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "password123" } });
+  fireEvent.change(screen.getByLabelText("닉네임"), { target: { value: "Newbie" } });
+  fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
 }
 
 describe("회원가입을 제출할 때", () => {
