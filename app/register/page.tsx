@@ -32,9 +32,9 @@ export default function RegisterPage() {
       const result = await register(email, password, nickname);
       if (result.requiresVerification) setVerificationPending(true);
       else if (result.tokenPair) router.replace("/linkstart");
-      else throw new Error("Registration completed without a session.");
+      else throw new Error("가입은 완료됐지만 로그인 정보를 받지 못했습니다.");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Registration failed.");
+      setError(caught instanceof Error ? caught.message : "가입하지 못했습니다.");
     } finally {
       setIsPending(false);
     }
@@ -43,39 +43,39 @@ export default function RegisterPage() {
   if (isLoading || currentUser) return null;
   if (verificationPending) {
     return (
-      <EntryPanel title="VERIFY ACCOUNT" subtitle="TRANSMISSION PENDING">
+      <EntryPanel title="이메일 확인" subtitle="가입 확인 대기">
         <p className="text-center text-sm leading-6" style={{ color: SAO.color.text.secondary }}>
           이메일 인증을 완료한 뒤 로그인해 주세요.
         </p>
         <Link href="/login" className="mt-6 block text-center text-xs uppercase" style={{ color: SAO.color.text.gold, letterSpacing: "0.18em" }}>
-          Return to Login
+          로그인으로 돌아가기
         </Link>
       </EntryPanel>
     );
   }
 
   return (
-    <EntryPanel title="CREATE ACCOUNT" subtitle="NEW PLAYER REGISTRATION">
+    <EntryPanel title="계정 만들기" subtitle="새 계정 등록">
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block uppercase" style={labelStyle}>
-          Email
+          이메일
           <input className="mt-1.5" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} style={INPUT_STYLE} />
         </label>
         <label className="block uppercase" style={labelStyle}>
-          Password
+          비밀번호
           <input className="mt-1.5" type="password" required minLength={8} maxLength={72} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} style={INPUT_STYLE} />
         </label>
         <label className="block uppercase" style={labelStyle}>
-          Nickname
+          닉네임
           <input className="mt-1.5" required minLength={2} maxLength={20} autoComplete="nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} style={INPUT_STYLE} />
         </label>
         {error ? <p role="alert" className="text-xs" style={{ color: SAO.color.action.red }}>{error}</p> : null}
         <button type="submit" disabled={isPending} className="w-full py-3 disabled:opacity-60" style={GOLD_BTN_STYLE}>
-          {isPending ? "CREATING..." : "REGISTER"}
+          {isPending ? "가입 중…" : "가입하기"}
         </button>
       </form>
       <Link href="/login" className="mt-6 block text-center text-xs uppercase" style={{ color: SAO.color.text.gold, letterSpacing: "0.18em" }}>
-        Already registered? Login
+        이미 계정이 있나요? 로그인
       </Link>
     </EntryPanel>
   );

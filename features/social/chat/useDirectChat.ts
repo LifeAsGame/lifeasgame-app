@@ -7,10 +7,10 @@ import type { ChatMessage, FriendChatChannel } from "@/shared/api/types";
 import { getFriendChannelsApi, getFriendMessagesApi, openFriendChannelApi, sendFriendMessageApi } from "./api";
 
 const PAGE_SIZE = 50;
-const messageOf = (caught: unknown) => caught instanceof Error ? caught.message : "Direct Chat is unavailable.";
+const messageOf = (caught: unknown) => caught instanceof Error ? caught.message : "직접 채팅을 사용할 수 없습니다.";
 const isBlocked = (caught: unknown) => caught instanceof ApiError && caught.status === 403 && caught.code === "SOC-403-CHAT-DIRECT-BLOCKED";
-const blockedMessage = "Direct Chat is blocked for this conversation. You can still read its messages.";
-const blockedOpenMessage = "Could not open the requested Direct Chat because it is blocked. Existing conversations remain available.";
+const blockedMessage = "이 대화는 차단되어 있습니다. 기존 메시지는 읽을 수 있습니다.";
+const blockedOpenMessage = "차단된 대화를 열 수 없습니다. 기존 대화는 계속 이용할 수 있습니다.";
 const dedupe = (items: ChatMessage[]) => Array.from(new Map(items.map((item) => [item.id, item])).values());
 
 export function useDirectChat() {
@@ -126,7 +126,7 @@ export function useDirectChat() {
     try {
       const opened = await openFriendChannelApi(peerPlayerId);
       const canonical = await reloadChannels();
-      if (!canonical?.some(({ channelId }) => channelId === opened.id)) throw new Error("The canonical friend channel is unavailable.");
+      if (!canonical?.some(({ channelId }) => channelId === opened.id)) throw new Error("친구 대화를 불러올 수 없습니다.");
       if (selectionIntent.current !== intent) return;
       await selectChannel(opened.id);
     } catch (caught) {

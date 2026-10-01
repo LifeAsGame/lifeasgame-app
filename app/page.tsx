@@ -107,6 +107,8 @@ export default function Home() {
   const [roleWorkspace, setRoleWorkspace] = useState<"persons" | "roles" | null>(null);
   const [createRequests, setCreateRequests] = useState<Record<string, number>>({});
   const [sourceJump, setSourceJump] = useState<JournalDetail | null>(null);
+  const [homeJournalId, setHomeJournalId] = useState<number | null>(null);
+  const [homeAchievementId, setHomeAchievementId] = useState<number | null>(null);
   const [personCreateRequest, setPersonCreateRequest] = useState(0);
   const [roleCreateRequest, setRoleCreateRequest] = useState(0);
   const [personReentryRequest, setPersonReentryRequest] = useState(0);
@@ -151,6 +153,8 @@ export default function Home() {
 
   const clearFeatureState = () => {
     setCreateRequests({});
+    setHomeJournalId(null);
+    setHomeAchievementId(null);
     setSubReentry({});
     setSelectedRoleId(null); setRoleDetailsHidden(false);
     setRoleWorkspace(null); setRoleEditRequest(null);
@@ -186,6 +190,8 @@ export default function Home() {
     }
 
     setCreateRequests({});
+    setHomeJournalId(null);
+    setHomeAchievementId(null);
     setSourceJump(null);
     submenuCaller.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (selectedSubByMain[panel.context.main] === itemId) setSubReentry((values) => ({ ...values, [itemId]: (values[itemId] ?? 0) + 1 }));
@@ -219,7 +225,7 @@ export default function Home() {
   const playerSurface = selectedSubByMain.player === "growth"
     ? <GrowthShell key={`growth-${subReentry.growth ?? 0}`} onBack={() => closeFeatureSubmenu("player")} />
     : selectedSubByMain.player === "achievement"
-      ? <AchievementShell key={`achievement-${subReentry.achievement ?? 0}`} onBack={() => closeFeatureSubmenu("player")} />
+      ? <AchievementShell key={`achievement-${subReentry.achievement ?? 0}-${homeAchievementId ?? ""}`} initialAchievementId={homeAchievementId} onBack={() => closeFeatureSubmenu("player")} />
       : selectedSubByMain.player === "credentials"
         ? <CertificationShell key={`credentials-${subReentry.credentials ?? 0}`} createRequest={createRequests.credentials ?? 0} onBack={() => closeFeatureSubmenu("player")} />
         : selectedSubByMain.player === "title"
@@ -235,17 +241,19 @@ export default function Home() {
 
   return (
     <ConsumerShell open={location.open} main={selectedMain} home={<HomeShell active={!location.open}
-              onOpenJournal={() => {
+              onOpenJournal={(lifeLogId) => {
+                setHomeJournalId(lifeLogId ?? null);
                 navigateConsumer("lifelog", "journal");
               }}
-              onOpenAchievements={() => {
+              onOpenAchievements={(achievementId) => {
+                setHomeAchievementId(achievementId ?? null);
                 navigateConsumer("player", "achievement");
               }}
-              onOpenCurrentQuests={() => {
-                navigateConsumer("quests", "current");
+              onOpenCurrentQuests={(acceptanceId) => {
+                navigateConsumer("quests", "current", acceptanceId === undefined ? null : String(acceptanceId));
               }}
-              onOpenRoutes={() => {
-                navigateConsumer("quests", "routes");
+              onOpenRoutes={(routeId) => {
+                navigateConsumer("quests", "routes", routeId === undefined ? null : String(routeId));
               }}
               onOpenRole={handleRoleSelect}
             />}
@@ -369,7 +377,7 @@ export default function Home() {
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
-              <JournalShell key={`journal-${subReentry.journal ?? 0}`} createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} onOpenSource={(detail) => { setSourceJump(detail); navigateConsumer("lifelog", detail.sourceType.toLowerCase()); }} />
+              <JournalShell key={`journal-${subReentry.journal ?? 0}-${homeJournalId ?? ""}`} initialLifeLogId={homeJournalId} createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} onOpenSource={(detail) => { setSourceJump(detail); navigateConsumer("lifelog", detail.sourceType.toLowerCase()); }} />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "collection" ? (
             <div className="flex w-fit items-center gap-3">

@@ -33,15 +33,15 @@ describe("System Options surface save timing", () => {
     api.updateSettingsApi.mockRejectedValueOnce(new Error("save failed")).mockResolvedValueOnce({ ...canonical, volume: 25 });
     render(<ThemeProvider><SettingsShell /></ThemeProvider>);
     expect(await screen.findByText("70%")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Edit Settings" }));
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Master Volume" }), { target: { value: "25" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "설정 수정" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "전체 음량" }), { target: { value: "25" } });
+    fireEvent.click(screen.getByRole("button", { name: "설정 저장" }));
 
     expect(await screen.findByText("save failed")).toBeInTheDocument();
-    expect(screen.getByRole("spinbutton", { name: "Master Volume" })).toHaveValue(25);
+    expect(screen.getByRole("spinbutton", { name: "전체 음량" })).toHaveValue(25);
 
-    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
-    await waitFor(() => expect(screen.queryByRole("spinbutton", { name: "Master Volume" })).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "설정 저장" }));
+    await waitFor(() => expect(screen.queryByRole("spinbutton", { name: "전체 음량" })).not.toBeInTheDocument());
     expect(screen.getByText("25%")).toBeInTheDocument();
     expect(toast.showToast).toHaveBeenCalledTimes(1);
   });
@@ -53,9 +53,9 @@ describe("System Options surface save timing", () => {
     expect(await screen.findByText("70%")).toBeInTheDocument();
     focus.mockClear();
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "설정 수정" }));
 
-    expect(screen.getByRole("button", { name: "Save Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "설정 저장" })).toBeInTheDocument();
     expect(focus).not.toHaveBeenCalled();
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
   });
@@ -65,11 +65,11 @@ describe("System Options surface save timing", () => {
     render(<ThemeProvider><SettingsShell /></ThemeProvider>);
     expect(await screen.findByText("70%")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("radio", { name: /Astral Neutral/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /아스트랄/ }));
     expect(document.documentElement.dataset.theme).toBe("astral");
     expect(localStorage.getItem("lifeasgame.themePreference")).toBe("ASTRAL");
     expect(await screen.findByText("theme save failed")).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: /Astral Neutral/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /아스트랄/ })).toBeChecked();
     expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
 
     const request = api.updateSettingsApi.mock.calls[0][0];
@@ -79,29 +79,29 @@ describe("System Options surface save timing", () => {
 
   it("groups every canonical field without GoldRow and exposes only canonical theme choices", async () => {
     render(<ThemeProvider><SettingsShell /></ThemeProvider>);
-    expect(await screen.findByRole("heading", { name: "Preferences" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "기본 설정" })).toBeInTheDocument();
 
-    for (const heading of ["Appearance", "Audio", "Display & Gameplay", "Controls", "Privacy & Presence", "Notifications", "Language"]) {
+    for (const heading of ["화면", "소리", "그래픽과 플레이", "조작", "공개 범위", "알림", "언어"]) {
       expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
     }
     expect(screen.getAllByRole("radio").map((radio) => radio.getAttribute("value"))).toEqual(["ASTRAL", "WARM_BEIGE", "SYSTEM"]);
-    expect(screen.getByTestId("settings-shell")).toHaveTextContent(/Theme[\s\S]*UI Scale[\s\S]*Master Volume[\s\S]*Voice Chat[\s\S]*Graphics Quality[\s\S]*Damage Numbers[\s\S]*Particle Effects[\s\S]*Input Preset[\s\S]*Show Online Status[\s\S]*In-Game Notifications[\s\S]*Email Alerts[\s\S]*Language/);
+    expect(screen.getByTestId("settings-shell")).toHaveTextContent(/테마[\s\S]*화면 크기[\s\S]*전체 음량[\s\S]*음성 채팅[\s\S]*그래픽 품질[\s\S]*피해량 숫자[\s\S]*파티클 효과[\s\S]*조작 방식[\s\S]*온라인 상태 표시[\s\S]*게임 알림[\s\S]*이메일 알림[\s\S]*언어/);
     expect(screen.getByTestId("settings-shell").querySelector(".lag-row")).toBeNull();
   });
 
   it("restores the canonical draft on Cancel and preserves integer volume validation", async () => {
     render(<ThemeProvider><SettingsShell /></ThemeProvider>);
     expect(await screen.findByText("70%")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Edit Settings" }));
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Master Volume" }), { target: { value: "25" } });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "설정 수정" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "전체 음량" }), { target: { value: "25" } });
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit Settings" }));
-    expect(screen.getByRole("spinbutton", { name: "Master Volume" })).toHaveValue(70);
-    fireEvent.change(screen.getByRole("spinbutton", { name: "Master Volume" }), { target: { value: "25.5" } });
-    fireEvent.submit(screen.getByRole("button", { name: "Save Settings" }).closest("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "설정 수정" }));
+    expect(screen.getByRole("spinbutton", { name: "전체 음량" })).toHaveValue(70);
+    fireEvent.change(screen.getByRole("spinbutton", { name: "전체 음량" }), { target: { value: "25.5" } });
+    fireEvent.submit(screen.getByRole("button", { name: "설정 저장" }).closest("form")!);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("whole number from 0 to 100");
+    expect(await screen.findByRole("alert")).toHaveTextContent("0부터 100까지의 정수");
     expect(api.updateSettingsApi).not.toHaveBeenCalled();
   });
 

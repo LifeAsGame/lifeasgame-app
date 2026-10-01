@@ -6,12 +6,15 @@ import type { ReactNode } from "react";
 import type { HomeJournalEntry } from "./model";
 import { useHomeQuery } from "./useHomeQuery";
 
+const dateTime = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" });
+const showTime = (value: string) => dateTime.format(new Date(value));
+
 type HomeShellProps = {
   active?: boolean;
-  onOpenJournal: () => void;
-  onOpenAchievements: () => void;
-  onOpenCurrentQuests: () => void;
-  onOpenRoutes: () => void;
+  onOpenJournal: (lifeLogId?: number) => void;
+  onOpenAchievements: (achievementId?: number) => void;
+  onOpenCurrentQuests: (acceptanceId?: number) => void;
+  onOpenRoutes: (routeId?: number) => void;
   onOpenRole: (roleId: number) => void;
 };
 
@@ -26,7 +29,7 @@ function WorldSection({ title, actionLabel, onOpen, className = "", children }: 
     <section className={`lag-home-surface lag-home-section ${className}`}>
       <div className="lag-home-section-header">
         <h2>{title}</h2>
-        {onOpen ? <button type="button" className="lag-button-secondary lag-home-action" onClick={onOpen}>{actionLabel}</button> : null}
+        {onOpen ? <button type="button" className="lag-button-secondary lag-home-action" onClick={() => onOpen()}>{actionLabel}</button> : null}
       </div>
       {children}
     </section>
@@ -112,7 +115,7 @@ export default function HomeShell({
           <h1>홈</h1>
           <p className="lag-home-intro">최근 기록과 이어가는 여정, 나의 역할을 살펴보세요.</p>
         </div>
-        <Meta>갱신 시각 <time dateTime={data.generatedAt}>{data.generatedAt}</time>{home.loading ? " · 새로 조회 중" : ""}</Meta>
+        <Meta>갱신 시각 <time dateTime={data.generatedAt}>{showTime(data.generatedAt)}</time>{home.loading ? " · 새로 조회 중" : ""}</Meta>
       </header>
 
       {home.error ? <HomeError message={home.error} retry={() => void home.reload()} /> : null}
@@ -129,11 +132,11 @@ export default function HomeShell({
                   entry.subtype,
                 ].filter((value): value is string => value !== null);
                 return (
-                  <button key={entry.lifeLogId} type="button" className="lag-home-card lag-home-entry" onClick={onOpenJournal}>
+                  <button key={entry.lifeLogId} type="button" className="lag-home-card lag-home-entry" onClick={() => onOpenJournal(entry.lifeLogId)}>
                     <p className="lag-home-entry-title">{preview.title}</p>
                     <Meta>{preview.detail.filter((value): value is string => value !== null).join(" · ")}</Meta>
                     {metadata.length > 0 ? <Meta>{metadata.map(consumerLabel).join(" · ")}</Meta> : null}
-                    <Meta><time dateTime={entry.recordedAt}>{entry.recordedAt}</time></Meta>
+                    <Meta><time dateTime={entry.recordedAt}>{showTime(entry.recordedAt)}</time></Meta>
                   </button>
                 );
               })}
@@ -148,16 +151,16 @@ export default function HomeShell({
           <div className="lag-home-journey-block">
             <div className="lag-home-subsection-header">
               <h3>진행 퀘스트</h3>
-              <button type="button" className="lag-button-secondary lag-home-action" onClick={onOpenCurrentQuests}>퀘스트 보기</button>
+              <button type="button" className="lag-button-secondary lag-home-action" onClick={() => onOpenCurrentQuests()}>퀘스트 보기</button>
             </div>
             {data.journey.currentQuests.length === 0 ? <Empty>진행 중인 퀘스트가 없습니다.</Empty> : (
               <div className="lag-home-list">
                 {data.journey.currentQuests.map((quest) => (
-                  <button key={quest.acceptanceId} type="button" className="lag-home-card lag-home-entry" onClick={onOpenCurrentQuests}>
+                  <button key={quest.acceptanceId} type="button" className="lag-home-card lag-home-entry" onClick={() => onOpenCurrentQuests(quest.acceptanceId)}>
                     <p className="lag-home-entry-title">{quest.title}</p>
                     <Meta>{consumerLabel(quest.status)} · {quest.progressValue} / {quest.targetValue}</Meta>
-                    <Meta>수락 시각 <time dateTime={quest.acceptedAt}>{quest.acceptedAt}</time></Meta>
-                    {quest.goalReachedAt ? <Meta>목표 도달 시각 <time dateTime={quest.goalReachedAt}>{quest.goalReachedAt}</time></Meta> : null}
+                    <Meta>수락 시각 <time dateTime={quest.acceptedAt}>{showTime(quest.acceptedAt)}</time></Meta>
+                    {quest.goalReachedAt ? <Meta>목표 도달 시각 <time dateTime={quest.goalReachedAt}>{showTime(quest.goalReachedAt)}</time></Meta> : null}
                   </button>
                 ))}
               </div>
@@ -166,16 +169,16 @@ export default function HomeShell({
           <div className="lag-home-journey-block">
             <div className="lag-home-subsection-header">
               <h3>선택한 경로</h3>
-              <button type="button" className="lag-button-secondary lag-home-action" onClick={onOpenRoutes}>경로 보기</button>
+              <button type="button" className="lag-button-secondary lag-home-action" onClick={() => onOpenRoutes()}>경로 보기</button>
             </div>
             {data.journey.selectedRoutes.length === 0 ? <Empty>선택한 경로가 없습니다.</Empty> : (
               <div className="lag-home-list">
                 {data.journey.selectedRoutes.map((route) => (
-                  <button key={route.routeId} type="button" className="lag-home-card lag-home-entry" onClick={onOpenRoutes}>
+                  <button key={route.routeId} type="button" className="lag-home-card lag-home-entry" onClick={() => onOpenRoutes(route.routeId)}>
                     <p className="lag-home-entry-title">{route.title}</p>
                     <Meta>{consumerLabel(route.status)}</Meta>
-                    <Meta>선택 시각 <time dateTime={route.selectedAt}>{route.selectedAt}</time></Meta>
-                    {route.completedAt ? <Meta>완료 시각 <time dateTime={route.completedAt}>{route.completedAt}</time></Meta> : null}
+                    <Meta>선택 시각 <time dateTime={route.selectedAt}>{showTime(route.selectedAt)}</time></Meta>
+                    {route.completedAt ? <Meta>완료 시각 <time dateTime={route.completedAt}>{showTime(route.completedAt)}</time></Meta> : null}
                   </button>
                 ))}
               </div>
@@ -187,11 +190,11 @@ export default function HomeShell({
           {data.recentAchievements.length === 0 ? <Empty>최근 획득한 업적이 없습니다.</Empty> : (
             <div className="lag-home-list">
               {data.recentAchievements.map((achievement) => (
-                <button key={achievement.achievementId} type="button" className="lag-home-card lag-home-entry" onClick={onOpenAchievements}>
+                <button key={achievement.achievementId} type="button" className="lag-home-card lag-home-entry" onClick={() => onOpenAchievements(achievement.achievementId)}>
                   <p className="lag-home-entry-title">{achievement.name}</p>
                   <Meta>{achievement.category}</Meta>
                   <p className="lag-home-description">{achievement.descMd}</p>
-                  <Meta><time dateTime={achievement.acquiredAt}>{achievement.acquiredAt}</time></Meta>
+                  <Meta><time dateTime={achievement.acquiredAt}>{showTime(achievement.acquiredAt)}</time></Meta>
                 </button>
               ))}
             </div>
@@ -204,7 +207,7 @@ export default function HomeShell({
           onOpen={data.roleActivity30d.roles[0] ? () => onOpenRole(data.roleActivity30d.roles[0].roleId) : undefined}
           className="lag-home-section-roles"
         >
-          <Meta><time dateTime={data.roleActivity30d.windowStart}>{data.roleActivity30d.windowStart}</time> — <time dateTime={data.roleActivity30d.windowEnd}>{data.roleActivity30d.windowEnd}</time></Meta>
+          <Meta><time dateTime={data.roleActivity30d.windowStart}>{data.roleActivity30d.windowStart.slice(0, 10)}</time> — <time dateTime={data.roleActivity30d.windowEnd}>{data.roleActivity30d.windowEnd.slice(0, 10)}</time></Meta>
           <dl className="lag-home-role-summary">
             <div><dt>역할 지정</dt><dd>{data.roleActivity30d.assignedRecords}</dd></div>
             <div><dt>역할 미지정</dt><dd>{data.roleActivity30d.unassignedRecords}</dd></div>

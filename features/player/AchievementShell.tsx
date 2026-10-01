@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
+import { useEffect, useRef } from "react";
 
 import PanelCard from "@/shared/ui/PanelCard";
 import PanelStage from "@/shared/ui/PanelStage";
@@ -29,8 +30,15 @@ function ErrorState({ message, retry }: { message: string; retry: () => void }) 
   );
 }
 
-export default function AchievementShell({ onBack }: { onBack?: () => void }) {
+export default function AchievementShell({ onBack, initialAchievementId }: { onBack?: () => void; initialAchievementId?: number | null }) {
   const achievements = useAchievementQueries();
+  const initialSelection = useRef(false);
+  useEffect(() => {
+    if (initialAchievementId && !initialSelection.current) {
+      initialSelection.current = true;
+      achievements.select(initialAchievementId);
+    }
+  }, [initialAchievementId, achievements]);
   const detail = achievements.detail.data;
 
   return (

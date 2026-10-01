@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/features/auth/AuthContext";
 import { useDraggableWindow } from "@/shared/hooks/useDraggableWindow";
@@ -18,6 +18,13 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
   const { open, setOpen } = chat;
   const selected = chat.channels.find(({ channelId }) => channelId === chat.selectedChannelId) ?? null;
   const floating = useDraggableWindow(open);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
+
+  useEffect(() => {
+    if (!open && wasOpen.current) triggerRef.current?.focus({ preventScroll: true });
+    wasOpen.current = open;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -28,7 +35,7 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
 
   return (
     <>
-      <button type="button" aria-label="Direct Chat" aria-expanded={chat.open} title="Direct Chat" onClick={() => {
+      <button ref={triggerRef} type="button" aria-label="직접 채팅" aria-expanded={chat.open} title="직접 채팅" onClick={() => {
         if (!chat.open) onOpen?.();
         chat.setOpen(!chat.open);
       }} className="lag-utility-button">
@@ -37,48 +44,48 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
 
       {chat.open ? (
         <UtilityPortal>
-          <aside ref={floating.windowRef} role="dialog" aria-label="Direct Friend Chat" className="lag-utility-drawer lag-social-drawer lag-direct-chat-drawer" style={floating.windowStyle}>
+          <aside ref={floating.windowRef} role="dialog" aria-label="친구와 직접 채팅" className="lag-utility-drawer lag-social-drawer lag-direct-chat-drawer" style={floating.windowStyle}>
             <header className="lag-utility-drag-handle lag-social-header" {...floating.dragHandleProps}>
-              <div><p>Current Player</p><h2>Direct Chat</h2></div>
-              <button type="button" aria-label="Close Direct Chat" onClick={() => chat.setOpen(false)} className="lag-social-button">Close</button>
+              <div><p>내 계정</p><h2>직접 채팅</h2></div>
+              <button type="button" aria-label="채팅 닫기" onClick={() => chat.setOpen(false)} className="lag-social-button">닫기</button>
             </header>
 
-            {chat.openError ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">{chat.openError.message}</p>{chat.openError.blocked ? <button type="button" className="lag-social-button" disabled={chat.openingPeerId !== null} onClick={() => void chat.openFriendChat(chat.openError!.peerPlayerId)}>Retry open</button> : null}</div> : null}
+            {chat.openError ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">{chat.openError.message}</p>{chat.openError.blocked ? <button type="button" className="lag-social-button" disabled={chat.openingPeerId !== null} onClick={() => void chat.openFriendChat(chat.openError!.peerPlayerId)}>다시 열기</button> : null}</div> : null}
             <div className="lag-chat-layout">
-              <section aria-label="Friend channels" className="lag-chat-channels">
-                <header><span>Friend Channels</span><strong>{chat.channels.length}</strong></header>
-                {chat.channelsLoading ? <p role="status" className="lag-social-empty">Loading channels...</p> : null}
-                {chat.channelsError ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">{chat.channelsError}</p><button type="button" className="lag-social-button" onClick={() => void chat.channelsRetry()}>Retry</button></div> : null}
-                {!chat.channelsLoading && !chat.channelsError && chat.channels.length === 0 ? <p className="lag-social-empty">No friend channels.</p> : null}
+              <section aria-label="친구 대화 목록" className="lag-chat-channels">
+                <header><span>친구 대화</span><strong>{chat.channels.length}</strong></header>
+                {chat.channelsLoading ? <p role="status" className="lag-social-empty">대화를 불러오는 중…</p> : null}
+                {chat.channelsError ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">{chat.channelsError}</p><button type="button" className="lag-social-button" onClick={() => void chat.channelsRetry()}>다시 조회</button></div> : null}
+                {!chat.channelsLoading && !chat.channelsError && chat.channels.length === 0 ? <p className="lag-social-empty">친구 대화가 없습니다.</p> : null}
                 <div className="lag-chat-channel-list">
                   {chat.channels.map((channel) => (
                     <button key={channel.channelId} type="button" aria-pressed={channel.channelId === chat.selectedChannelId} data-selected={channel.channelId === chat.selectedChannelId} onClick={() => void chat.selectChannel(channel.channelId)} className="lag-chat-channel">
                       <span className="lag-social-peer-mark" aria-hidden>{channel.peer.name.trim().charAt(0).toUpperCase() || "?"}</span>
-                      <span><strong>{channel.peer.name}</strong><small>{channel.peer.job ? `${channel.peer.job} · ` : ""}Level {channel.peer.level}</small>{channel.readOnly ? <small className="lag-chat-read-only">Read only</small> : null}</span>
+                      <span><strong>{channel.peer.name}</strong><small>{channel.peer.job ? `${channel.peer.job} · ` : ""}레벨 {channel.peer.level}</small>{channel.readOnly ? <small className="lag-chat-read-only">읽기 전용</small> : null}</span>
                       <b aria-hidden>→</b>
                     </button>
                   ))}
                 </div>
               </section>
 
-              <section aria-label="Messages" className="lag-chat-conversation">
-                {!selected ? <p className="lag-social-empty lag-chat-placeholder">Select a friend channel.</p> : playerId === null ? <p role="alert" className="lag-social-feedback" data-state="error">Authenticated player identity is unavailable.</p> : (
+              <section aria-label="메시지" className="lag-chat-conversation">
+                {!selected ? <p className="lag-social-empty lag-chat-placeholder">대화를 선택하세요.</p> : playerId === null ? <p role="alert" className="lag-social-feedback" data-state="error">로그인한 플레이어를 확인할 수 없습니다.</p> : (
                   <>
                     <header className="lag-chat-conversation-header">
-                      <div><span>Direct Chat</span><h3>{selected.peer.name}</h3><p>{selected.peer.job ? `${selected.peer.job} · ` : ""}Level {selected.peer.level}</p></div>
-                      {selected.readOnly ? <strong>Read only</strong> : null}
+                      <div><span>Direct Chat</span><h3>{selected.peer.name}</h3><p>{selected.peer.job ? `${selected.peer.job} · ` : ""}레벨 {selected.peer.level}</p></div>
+                      {selected.readOnly ? <strong>읽기 전용</strong> : null}
                     </header>
 
                     <div className="lag-chat-message-list">
-                      {chat.hasMore ? <button type="button" disabled={chat.olderLoading} onClick={() => void chat.loadOlder()} className="lag-chat-load-older">{chat.olderLoading ? "Loading..." : "Load older"}</button> : null}
-                      {chat.messagesError ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">{chat.messagesError}</p><button type="button" className="lag-social-button" onClick={() => void chat.loadLatest()}>Retry</button></div> : null}
-                      {chat.messagesLoading ? <p role="status" className="lag-social-empty">Loading messages...</p> : null}
-                      {!chat.messagesLoading && !chat.messagesError && chat.messages.length === 0 ? <p className="lag-social-empty">No messages yet.</p> : null}
+                      {chat.hasMore ? <button type="button" disabled={chat.olderLoading} onClick={() => void chat.loadOlder()} className="lag-chat-load-older">{chat.olderLoading ? "불러오는 중…" : "이전 메시지"}</button> : null}
+                      {chat.messagesError ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">{chat.messagesError}</p><button type="button" className="lag-social-button" onClick={() => void chat.loadLatest()}>다시 조회</button></div> : null}
+                      {chat.messagesLoading ? <p role="status" className="lag-social-empty">메시지를 불러오는 중…</p> : null}
+                      {!chat.messagesLoading && !chat.messagesError && chat.messages.length === 0 ? <p className="lag-social-empty">아직 메시지가 없습니다.</p> : null}
                       {!chat.messagesLoading && chat.messages.map((message) => {
                         const mine = message.senderId === playerId;
                         return (
-                          <article key={message.id} className="lag-chat-message" data-owner={mine ? "mine" : "peer"} aria-label={mine ? "Message from you" : `Message from ${selected.peer.name}`}>
-                            <div><strong>{mine ? "You" : selected.peer.name}</strong><MessageTimestamp createdAt={message.createdAt} />{message.edited ? <span>Edited</span> : null}</div>
+                          <article key={message.id} className="lag-chat-message" data-owner={mine ? "mine" : "peer"} aria-label={mine ? "내 메시지" : `${selected.peer.name}의 메시지`}>
+                            <div><strong>{mine ? "나" : selected.peer.name}</strong><MessageTimestamp createdAt={message.createdAt} />{message.edited ? <span>수정됨</span> : null}</div>
                             <p>{message.content}</p>
                           </article>
                         );
@@ -86,11 +93,11 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
                     </div>
 
                     <form className="lag-chat-composer" onSubmit={(event) => { event.preventDefault(); void chat.send(); }}>
-                      {selected.readOnly ? <p role="status">This channel is read-only.</p> : null}
-                      {chat.blocked ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">Direct Chat is blocked for this conversation. You can still read its messages.</p>{!selected.readOnly ? <button type="button" className="lag-social-button" disabled={chat.sending || !chat.draft.trim()} onClick={() => void chat.retryBlockedSend()}>Retry send</button> : null}</div> : chat.sendError ? <p role="alert" className="lag-social-feedback" data-state="error">{chat.sendError}</p> : null}
+                      {selected.readOnly ? <p role="status">이 대화는 읽기 전용입니다.</p> : null}
+                      {chat.blocked ? <div className="lag-social-state"><p role="alert" className="lag-social-feedback" data-state="error">이 대화는 차단되어 있습니다. 기존 메시지는 읽을 수 있습니다.</p>{!selected.readOnly ? <button type="button" className="lag-social-button" disabled={chat.sending || !chat.draft.trim()} onClick={() => void chat.retryBlockedSend()}>전송 재시도</button> : null}</div> : chat.sendError ? <p role="alert" className="lag-social-feedback" data-state="error">{chat.sendError}</p> : null}
                       <div>
-                        <textarea aria-label="Message" rows={2} placeholder={selected.readOnly ? "Read-only channel" : "Write a message"} disabled={selected.readOnly || chat.sending} value={chat.draft} onChange={(event) => chat.setDraft(event.target.value)} />
-                        <button type="submit" aria-label="Send message" disabled={selected.readOnly || chat.blocked || chat.sending || !chat.draft.trim()}>{chat.sending ? "Sending..." : <><span>Send</span><b aria-hidden>↑</b></>}</button>
+                        <textarea aria-label="메시지" rows={2} placeholder={selected.readOnly ? "읽기 전용 대화" : "메시지를 입력하세요"} disabled={selected.readOnly || chat.sending} value={chat.draft} onChange={(event) => chat.setDraft(event.target.value)} />
+                        <button type="submit" aria-label="메시지 보내기" disabled={selected.readOnly || chat.blocked || chat.sending || !chat.draft.trim()}>{chat.sending ? "전송 중…" : <><span>보내기</span><b aria-hidden>↑</b></>}</button>
                       </div>
                     </form>
                   </>

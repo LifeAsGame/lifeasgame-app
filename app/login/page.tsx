@@ -37,7 +37,7 @@ export default function LoginPage() {
         userInfo.user.role === "admin" ? "/admin" : userInfo.player.exists ? "/" : "/linkstart",
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed.");
+      setError(err instanceof Error ? err.message : "로그인하지 못했습니다.");
       setShakeKey((k) => k + 1);
     } finally {
       setIsPending(false);
@@ -72,7 +72,7 @@ export default function LoginPage() {
         className="relative overflow-hidden"
         style={{
           ...PANEL_STYLE,
-          width: 400,
+          width: "min(400px, calc(100vw - 32px))",
           boxShadow: `${SAO.shadow.panelInset}, 0 24px 56px rgba(0,0,0,0.4)`,
         }}
       >
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 color: SAO.color.text.label,
               }}
             >
-              SYSTEM ACCESS
+              계정 로그인
             </p>
           </div>
 
@@ -123,7 +123,7 @@ export default function LoginPage() {
                 className="mb-1.5 block uppercase"
                 style={{ fontSize: "10px", letterSpacing: "0.24em", color: SAO.color.text.label }}
               >
-                Email
+                이메일
               </label>
               <input
                 id="login-email"
@@ -145,7 +145,7 @@ export default function LoginPage() {
                 className="mb-1.5 block uppercase"
                 style={{ fontSize: "10px", letterSpacing: "0.24em", color: SAO.color.text.label }}
               >
-                Password
+                비밀번호
               </label>
               <input
                 id="login-password"
@@ -188,7 +188,7 @@ export default function LoginPage() {
                 boxShadow: `0 4px 14px rgba(248,197,78,0.35)`,
               }}
             >
-              {isPending ? "CONNECTING..." : "LOGIN"}
+              {isPending ? "로그인 중…" : "로그인"}
             </button>
           </form>
 
@@ -197,7 +197,7 @@ export default function LoginPage() {
             className="mt-5 block text-center text-xs uppercase"
             style={{ color: SAO.color.text.gold, letterSpacing: "0.18em" }}
           >
-            Create Account
+            계정 만들기
           </Link>
 
           {/* Hint */}

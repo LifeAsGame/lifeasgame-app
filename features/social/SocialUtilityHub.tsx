@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import ConnectionsDrawer from "./ConnectionsDrawer";
+import GroupDrawer from "./GroupDrawer";
 import DirectChatDrawer from "./chat/DirectChatDrawer";
 import { useDirectChat } from "./chat/useDirectChat";
 
@@ -24,6 +25,8 @@ export default function SocialUtilityHub() {
         }}
       />
       <DirectChatDrawer chat={chat} onOpen={() => setConnectionsOpen(false)} />
+      <GroupDrawer kind="parties" />
+      <GroupDrawer kind="guilds" />
     </>
   );
 }

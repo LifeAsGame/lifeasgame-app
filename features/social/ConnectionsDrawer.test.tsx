@@ -19,23 +19,25 @@ describe("Connections utility drawer surface", () => {
   it("opens outside OrbNav and renders only canonical peer fields and directional actions", async () => {
     const onMessage = vi.fn();
     render(<ConnectionsDrawer onMessage={onMessage} />);
-    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
+    fireEvent.click(screen.getByRole("button", { name: "연결" }));
 
-    expect(screen.getByRole("dialog", { name: "Current Player Connections" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "내 연결" })).toBeInTheDocument();
     expect(await screen.findByText("Asuna")).toBeInTheDocument();
-    expect(screen.getByText("Fencer · Level 76")).toBeInTheDocument();
+    expect(screen.getByText("Fencer · 레벨 76")).toBeInTheDocument();
     expect(screen.queryByText(/online|last seen|presence|unread|group/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /message|gift/i })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Followers" }));
+    fireEvent.click(screen.getByRole("tab", { name: "팔로워" }));
     expect(await screen.findByText("Lisbeth")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Message" })).toHaveLength(1);
-    expect(screen.getByText("Lisbeth").closest("article")).not.toHaveTextContent("Message");
-    fireEvent.click(screen.getByRole("button", { name: "Message" }));
+    expect(screen.queryByRole("button", { name: "메시지" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Asuna 작업" }));
+    expect(screen.getAllByRole("button", { name: "메시지" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "메시지" }));
     expect(onMessage).toHaveBeenCalledWith(7);
     expect(screen.queryByRole("button", { name: /^mute|unmute|block|unblock$/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole("button", { name: "Follow back" })[0]);
-    await waitFor(() => expect(screen.getAllByRole("button", { name: "Unfollow" }).length).toBeGreaterThan(1));
+    fireEvent.click(screen.getByRole("button", { name: "Lisbeth 작업" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "맞팔로우" })[0]);
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "팔로우 취소" }).length).toBeGreaterThan(0));
 
     const source = readFileSync("features/social/ConnectionsDrawer.tsx", "utf8");
     expect(source).not.toMatch(/data-theme|민준|서연|현우|밴드 선배|가족 그룹|Backend Study/);
@@ -48,19 +50,28 @@ describe("Connections utility drawer surface", () => {
     const followings = vi.spyOn(api, "getFollowingsApi").mockRejectedValueOnce(new Error("followings failed")).mockResolvedValueOnce(connectionsMock.listFollowings(0, 20));
     const followers = vi.spyOn(api, "getFollowersApi").mockResolvedValue(connectionsMock.listFollowers(0, 20));
     render(<ConnectionsDrawer />);
-    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
+    fireEvent.click(screen.getByRole("button", { name: "연결" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("followings failed");
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
     await waitFor(() => expect(screen.queryByText("followings failed")).not.toBeInTheDocument());
     expect(followings).toHaveBeenCalledTimes(2);
     expect(followers).toHaveBeenCalledTimes(1);
   });
 
+  it("reveals relationship actions on a left swipe", async () => {
+    render(<ConnectionsDrawer />);
+    fireEvent.click(screen.getByRole("button", { name: "연결" }));
+    const row = (await screen.findByText("Asuna")).closest("article")!;
+    fireEvent.touchStart(row, { touches: [{ clientX: 200 }] });
+    fireEvent.touchEnd(row, { changedTouches: [{ clientX: 120 }] });
+    expect(screen.getByRole("button", { name: "뮤트" })).toBeInTheDocument();
+  });
+
   it("drags by the shared header handle and re-clamps after viewport resize", () => {
     render(<ConnectionsDrawer />);
-    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
-    const dialog = screen.getByRole("dialog", { name: "Current Player Connections" });
+    fireEvent.click(screen.getByRole("button", { name: "연결" }));
+    const dialog = screen.getByRole("dialog", { name: "내 연결" });
     dialog.getBoundingClientRect = () => ({ left: 0, right: 420, top: 0, bottom: 500, width: 420, height: 500, x: 0, y: 0, toJSON: () => ({}) });
     const handle = dialog.querySelector("header")!;
 
@@ -77,9 +88,9 @@ describe("Connections utility drawer surface", () => {
   it("initializes the first desktop portal position after the dialog ref mounts", async () => {
     const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ left: 0, right: 420, top: 0, bottom: 500, width: 420, height: 500, x: 0, y: 0, toJSON: () => ({}) });
     render(<ConnectionsDrawer />);
-    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
+    fireEvent.click(screen.getByRole("button", { name: "연결" }));
 
-    await waitFor(() => expect(screen.getByRole("dialog", { name: "Current Player Connections" })).toHaveStyle({ left: "756px", top: "24px" }));
+    await waitFor(() => expect(screen.getByRole("dialog", { name: "내 연결" })).toHaveStyle({ left: "756px", top: "24px" }));
     rect.mockRestore();
   });
 
@@ -87,8 +98,8 @@ describe("Connections utility drawer surface", () => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
     Object.defineProperty(window, "innerHeight", { configurable: true, value: 520 });
     render(<ConnectionsDrawer />);
-    fireEvent.click(screen.getByRole("button", { name: "Connections" }));
-    const dialog = screen.getByRole("dialog", { name: "Current Player Connections" });
+    fireEvent.click(screen.getByRole("button", { name: "연결" }));
+    const dialog = screen.getByRole("dialog", { name: "내 연결" });
 
     await waitFor(() => expect(dialog.style.bottom).toContain("safe-area-inset-bottom"));
     expect(dialog.style.maxHeight).toContain("100dvh");
