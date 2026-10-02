@@ -4,7 +4,7 @@ import GuildGroupPanels from "./GuildGroupPanels";
 import GuildEventPanels from "./GuildEventPanels";
 
 const groups = vi.hoisted(() => ({ groupCreate: vi.fn(), groupMe: vi.fn(), groupMine: vi.fn() }));
-const guild = vi.hoisted(() => ({ guildLinks: vi.fn(), guildPendingLinks: vi.fn(), proposeGuildLink: vi.fn(), guildEvents: vi.fn(), guildEvent: vi.fn(), guildEventRsvp: vi.fn() }));
+const guild = vi.hoisted(() => ({ guildLinks: vi.fn(), guildPendingLinks: vi.fn(), proposeGuildLink: vi.fn(), decideGuildLink: vi.fn(), guildEvents: vi.fn(), guildEvent: vi.fn(), guildEventRsvp: vi.fn() }));
 const roles = vi.hoisted(() => ({ myRoleParties: vi.fn(), rolePartyDetail: vi.fn() }));
 vi.mock("./groups", () => groups);
 vi.mock("./guildInsideApi", () => guild);
@@ -21,12 +21,50 @@ beforeEach(() => {
   guild.guildEvents.mockResolvedValue(empty);
 });
 
-it("shows the Guild label without querying private RoleParty detail for a nonmember", async () => {
+it("shows the Guild label while a nonmember's RoleParty detail stays private", async () => {
   guild.guildLinks.mockResolvedValue({ ...empty, contents: [{ id: 9, groupType: "ROLE_PARTY", groupId: 42, displayName: "공개 별칭", status: "ACTIVE", entryAction: "INVITE_REQUIRED" }], totalElements: 1, totalPages: 1 });
+  roles.rolePartyDetail.mockRejectedValue(new Error("404"));
   render(<GuildGroupPanels guildId={3} playerId={7} creating={false} onBack={() => {}} />);
   fireEvent.click(await screen.findByRole("button", { name: /공개 별칭/ }));
   expect(await screen.findByText(/멤버 초대가 필요합니다/)).toBeInTheDocument();
-  expect(roles.rolePartyDetail).not.toHaveBeenCalled();
+  expect(roles.rolePartyDetail).toHaveBeenCalledWith(42);
+  expect(screen.queryByText("비공개 이름")).not.toBeInTheDocument();
+});
+
+it("refreshes the pending list after consecutive proposals on the same tab", async () => {
+  const pending: { id: number; groupType: string; groupId: number; displayName: string; status: string }[] = [];
+  groups.groupMine.mockResolvedValue({ ...empty, contents: [{ id: 41, name: "첫 파티", myRole: "LEADER", status: "ACTIVE" }, { id: 42, name: "둘째 파티", myRole: "LEADER", status: "ACTIVE" }] });
+  guild.guildPendingLinks.mockImplementation(async () => ({ ...empty, contents: [...pending], totalElements: pending.length, totalPages: 1 }));
+  guild.proposeGuildLink.mockImplementation(async (_guildId, groupType, groupId, displayName) => {
+    const link = { id: pending.length + 1, groupType, groupId, displayName, status: "PENDING" };
+    pending.unshift(link); return link;
+  });
+  const view = render(<GuildGroupPanels guildId={3} playerId={7} creating onBack={() => {}} />);
+  const submit = async (groupId: string, name: string) => {
+    fireEvent.change(await screen.findByRole("combobox", { name: "내가 리더인 모임" }), { target: { value: groupId } });
+    fireEvent.change(screen.getByRole("textbox", { name: "길드 멤버에게 보일 별도 이름" }), { target: { value: name } });
+    fireEvent.click(screen.getByRole("button", { name: "연결 제안" }));
+    expect(await screen.findByRole("button", { name: new RegExp(name) })).toBeInTheDocument();
+  };
+  await submit("41", "첫 공개 이름");
+  view.rerender(<GuildGroupPanels guildId={3} playerId={7} creating={false} onBack={() => {}} />);
+  view.rerender(<GuildGroupPanels guildId={3} playerId={7} creating onBack={() => {}} />);
+  await submit("42", "둘째 공개 이름");
+  expect(guild.guildPendingLinks).toHaveBeenLastCalledWith(3, 0);
+});
+
+it("approves only the proposed name and stays pending when the server does", async () => {
+  const link = { id: 9, groupType: "PARTY", groupId: 42, displayName: "제안한 이름", status: "PENDING", proposedByPlayerId: 8, guildLeaderApproved: false, groupLeaderApproved: true };
+  guild.guildPendingLinks.mockResolvedValue({ ...empty, contents: [link], totalElements: 1, totalPages: 1 });
+  guild.decideGuildLink.mockResolvedValue({ ...link, guildLeaderApproved: true });
+  render(<GuildGroupPanels guildId={3} playerId={7} creating={false} onBack={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: "대기 연결" }));
+  fireEvent.click(await screen.findByRole("button", { name: /제안한 이름/ }));
+  expect(await screen.findByText(/승인할 길드 공개 이름:/)).toBeInTheDocument();
+  expect(screen.queryByRole("textbox", { name: /승인할 길드 공개 이름/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "연결 승인" }));
+  await waitFor(() => expect(guild.decideGuildLink).toHaveBeenCalledWith(3, 9, "approve", "제안한 이름"));
+  await waitFor(() => expect(screen.getByRole("button", { name: "대기 연결" })).toHaveAttribute("aria-pressed", "true"));
 });
 
 it("retries linking a created Party without creating it again", async () => {
