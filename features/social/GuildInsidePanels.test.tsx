@@ -54,6 +54,26 @@ it("refreshes the pending list after consecutive proposals on the same tab", asy
   expect(guild.guildPendingLinks).toHaveBeenLastCalledWith(3, 0);
 });
 
+it("ignores a late page response after a new proposal returns to page zero", async () => {
+  let finishPageOne!: (value: typeof empty) => void;
+  const oldPage = new Promise<typeof empty>((resolve) => { finishPageOne = resolve; });
+  let proposed = false;
+  groups.groupMine.mockResolvedValue({ ...empty, contents: [{ id: 41, name: "첫 파티", myRole: "LEADER", status: "ACTIVE" }] });
+  guild.guildPendingLinks.mockImplementation(async (_guildId, page) => page === 1 ? oldPage : { ...empty, contents: proposed ? [{ id: 9, groupType: "PARTY", groupId: 41, displayName: "새 공개 이름", status: "PENDING" }] : [], totalPages: 2 });
+  guild.proposeGuildLink.mockImplementation(async () => { proposed = true; return { id: 9, status: "PENDING" }; });
+  const view = render(<GuildGroupPanels guildId={3} playerId={7} creating={false} onBack={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: "대기 연결" }));
+  fireEvent.click(await screen.findByRole("button", { name: "다음" }));
+  await waitFor(() => expect(guild.guildPendingLinks).toHaveBeenCalledWith(3, 1));
+  view.rerender(<GuildGroupPanels guildId={3} playerId={7} creating onBack={() => {}} />);
+  fireEvent.change(await screen.findByRole("combobox", { name: "내가 리더인 모임" }), { target: { value: "41" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "길드 멤버에게 보일 별도 이름" }), { target: { value: "새 공개 이름" } });
+  fireEvent.click(screen.getByRole("button", { name: "연결 제안" }));
+  expect(await screen.findByRole("button", { name: /새 공개 이름/ })).toBeInTheDocument();
+  finishPageOne({ ...empty, contents: [], totalPages: 2 });
+  expect(screen.getByRole("button", { name: /새 공개 이름/ })).toBeInTheDocument();
+});
+
 it("approves only the proposed name and stays pending when the server does", async () => {
   const link = { id: 9, groupType: "PARTY", groupId: 42, displayName: "제안한 이름", status: "PENDING", proposedByPlayerId: 8, guildLeaderApproved: false, groupLeaderApproved: true };
   guild.guildPendingLinks.mockResolvedValue({ ...empty, contents: [link], totalElements: 1, totalPages: 1 });
