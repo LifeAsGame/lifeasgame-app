@@ -102,8 +102,9 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack }
         if (caught instanceof ApiError && caught.status === 409) {
           setDetailLoading(true);
           try {
-            const current = await (item.status === "ACTIVE" ? guildLinks(guildId, page) : guildPendingLinks(guildId, page)).then((result) => result.contents.find((link) => link.id === item.id));
-            if (current) { const rights = await authority(current); if (seq === detailSeq.current) { setSelected(current); setGuildLeader(rights.guild); setGroupLeader(rights.group); } }
+            const listed = await (item.status === "ACTIVE" ? guildLinks(guildId, page) : guildPendingLinks(guildId, page));
+            const current = listed.contents.find((link) => link.id === item.id) ?? (item.status === "PENDING" ? (await guildLinks(guildId, 0)).contents.find((link) => link.id === item.id) : undefined);
+            if (current) { const rights = await authority(current); if (seq === detailSeq.current) { setSelected(current); setSource(null); setGuildLeader(rights.guild); setGroupLeader(rights.group); if (current.status === "ACTIVE") { setTab("active"); setPage(0); } } }
             else if (seq === detailSeq.current) close();
           } catch { if (seq === detailSeq.current) { setGuildLeader(false); setGroupLeader(false); } }
           finally { if (seq === detailSeq.current) setDetailLoading(false); }
