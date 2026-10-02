@@ -44,7 +44,7 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack }
     return { guild: ownGuild.myRole === "LEADER", group: ownGroup };
   };
   const open = async (item: GuildLink) => {
-    const seq = ++detailSeq.current; setSelected(item); setSource(null); setError(null); setDetailLoading(true);
+    const seq = ++detailSeq.current; setSelected(item); setSource(null); setError(null); setGuildLeader(false); setGroupLeader(false); setDetailLoading(true);
     try {
       const rights = await authority(item);
       let nextSource: typeof source = null;
@@ -98,7 +98,7 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack }
       setTab(action === "approve" && result?.status === "ACTIVE" ? "active" : "pending"); setRevision((value) => value + 1);
     } catch (caught) {
       if (seq === detailSeq.current) {
-        setError(errorText(caught));
+        setError(errorText(caught)); setGuildLeader(false); setGroupLeader(false);
         if (caught instanceof ApiError && caught.status === 409) {
           setDetailLoading(true);
           try {

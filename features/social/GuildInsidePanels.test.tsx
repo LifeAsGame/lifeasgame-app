@@ -116,6 +116,19 @@ it("reloads an active link when approval races with another leader", async () =>
   expect(screen.getAllByText("일반 파티 · 연결됨")).toHaveLength(2);
 });
 
+it("hides management actions after the server rejects stale authority", async () => {
+  const pending = { id: 9, groupType: "PARTY", groupId: 42, displayName: "공개 이름", status: "PENDING", proposedByPlayerId: 8, guildLeaderApproved: false, groupLeaderApproved: true };
+  guild.guildPendingLinks.mockResolvedValue({ ...empty, contents: [pending], totalPages: 1 });
+  guild.decideGuildLink.mockRejectedValue(new ApiError(403, "SOC-403-LEADER-ONLY", "권한이 없습니다."));
+  render(<GuildGroupPanels guildId={3} playerId={7} creating={false} onBack={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: "대기 연결" }));
+  fireEvent.click(await screen.findByRole("button", { name: /공개 이름/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "연결 승인" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("현재 리더 권한이 없습니다.");
+  expect(screen.queryByRole("button", { name: "연결 승인" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "제안 거절" })).not.toBeInTheDocument();
+});
+
 it("retries linking a created Party without creating it again", async () => {
   groups.groupCreate.mockResolvedValue({ id: 42 });
   guild.proposeGuildLink.mockRejectedValueOnce(new Error("temporary link failure")).mockResolvedValueOnce({ id: 9 });
