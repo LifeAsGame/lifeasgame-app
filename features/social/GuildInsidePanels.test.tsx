@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
+import { ApiError } from "@/shared/api/client";
 import GuildGroupPanels from "./GuildGroupPanels";
 import GuildEventPanels from "./GuildEventPanels";
 
@@ -65,6 +66,21 @@ it("approves only the proposed name and stays pending when the server does", asy
   fireEvent.click(screen.getByRole("button", { name: "연결 승인" }));
   await waitFor(() => expect(guild.decideGuildLink).toHaveBeenCalledWith(3, 9, "approve", "제안한 이름"));
   await waitFor(() => expect(screen.getByRole("button", { name: "대기 연결" })).toHaveAttribute("aria-pressed", "true"));
+});
+
+it("removes stale RoleParty approval after a conflict and leader transfer", async () => {
+  const link = { id: 9, groupType: "ROLE_PARTY", groupId: 42, displayName: "공개 이름", status: "PENDING", proposedByPlayerId: 8, guildLeaderApproved: true, groupLeaderApproved: false };
+  groups.groupMe.mockResolvedValue({ myRole: "MEMBER" });
+  roles.rolePartyDetail.mockResolvedValueOnce({ leaderPlayerId: 7 }).mockResolvedValueOnce({ leaderPlayerId: 7 }).mockResolvedValue({ leaderPlayerId: 8 });
+  guild.guildPendingLinks.mockResolvedValue({ ...empty, contents: [link], totalElements: 1, totalPages: 1 });
+  guild.decideGuildLink.mockRejectedValue(new ApiError(409, "SOC-409-GUILD-GROUP-CONFLICT", "상태가 바뀌었습니다."));
+  render(<GuildGroupPanels guildId={3} playerId={7} creating={false} onBack={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: "대기 연결" }));
+  fireEvent.click(await screen.findByRole("button", { name: /공개 이름/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "연결 승인" }));
+  await waitFor(() => expect(guild.decideGuildLink).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "연결 승인" })).not.toBeInTheDocument());
+  expect(roles.rolePartyDetail).toHaveBeenCalledTimes(3);
 });
 
 it("retries linking a created Party without creating it again", async () => {
