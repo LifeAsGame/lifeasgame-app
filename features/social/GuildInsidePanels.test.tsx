@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api/client";
 import GuildGroupPanels from "./GuildGroupPanels";
@@ -70,7 +70,7 @@ it("ignores a late page response after a new proposal returns to page zero", asy
   fireEvent.change(screen.getByRole("textbox", { name: "길드 멤버에게 보일 별도 이름" }), { target: { value: "새 공개 이름" } });
   fireEvent.click(screen.getByRole("button", { name: "연결 제안" }));
   expect(await screen.findByRole("button", { name: /새 공개 이름/ })).toBeInTheDocument();
-  finishPageOne({ ...empty, contents: [], totalPages: 2 });
+  await act(async () => finishPageOne({ ...empty, contents: [], totalPages: 2 }));
   expect(screen.getByRole("button", { name: /새 공개 이름/ })).toBeInTheDocument();
 });
 
