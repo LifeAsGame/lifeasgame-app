@@ -34,6 +34,16 @@ it("내 모임에서 멤버와 허용된 관리 화면을 연결한다", async (
   expect(screen.getByRole("combobox", { name: "가입 방식" })).toHaveValue("APPROVAL");
 });
 
+it("lets a Guild member propose a link from a group they lead", async () => {
+  api.groupMine.mockResolvedValue(page([{ id: 3, name: "산책 모임", code: "WALK", status: "ACTIVE", maxMembers: 35, memberCount: 2, myRole: "MEMBER" }]));
+  api.groupMe.mockResolvedValue({ myRole: "MEMBER", pendingJoin: false, pendingInvitation: false, actions: ["leave"] });
+  render(<GroupShell kind="guilds" playerId={6} onBack={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: /산책 모임.*멤버/ }));
+  fireEvent.keyDown(await screen.findByRole("button", { name: "모임" }), { key: "Enter", altKey: true });
+  expect(await screen.findByRole("heading", { name: "모임 연결" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "연결 방식" })).toBeInTheDocument();
+});
+
 it("생성 폼은 서버 계약의 공개 범위·가입 방식·정원을 전송한다", async () => {
   const view = render(<GroupShell kind="parties" playerId={6} onBack={vi.fn()} />);
   await screen.findByRole("button", { name: /산책 모임.*리더/ });
