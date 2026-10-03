@@ -154,7 +154,7 @@ describe("Collection source API를 호출할 때", () => {
       const create: CollectionCreateRequest = { category: "CARD", title: "Rare card", quantity: 1 };
       const update: CollectionUpdateRequest = { quantity: 2, conditionNote: "Sleeved", acquiredFrom: "Trade" };
 
-      expect(COLLECTION_CATEGORIES).toEqual(["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "OTHER"]);
+      expect(COLLECTION_CATEGORIES).toEqual(["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "PROJECT", "OTHER"]);
       expect(create).toEqual({ category: "CARD", title: "Rare card", quantity: 1 });
       expect(update).toEqual({ quantity: 2, conditionNote: "Sleeved", acquiredFrom: "Trade" });
       expect(create).not.toHaveProperty("playerId");

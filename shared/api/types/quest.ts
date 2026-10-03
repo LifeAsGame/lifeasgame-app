@@ -77,6 +77,18 @@ export interface PlayerQuestDetail extends QuestBlueprint {
   acceptance: QuestAcceptance | null;
 }
 
+export type QuestEvidenceInput = { memo: string } | { lifeLogId: number } | { url: string; description: string };
+
+export interface QuestEvidence {
+  acceptanceId: number;
+  kind: "GOAL_MEMO" | "LIFE_LOG" | "PROJECT" | "DEPLOYMENT";
+  lifeLogId: number | null;
+  memo: string | null;
+  url: string | null;
+  description: string | null;
+  linkedAt: string;
+}
+
 export interface QuestCatalogResponse {
   blueprints: QuestBlueprint[];
 }

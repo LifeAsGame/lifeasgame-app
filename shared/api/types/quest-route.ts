@@ -3,6 +3,7 @@ export type QuestRouteStepState = "COMPLETED" | "CURRENT" | "READY_TO_ADVANCE" |
 
 export interface QuestRoutePlayerProgress {
   id: number;
+  roleId?: number | null;
   currentStepId: number;
   status: QuestRouteStatus;
   selectedAt: string;

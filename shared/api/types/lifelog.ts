@@ -96,7 +96,7 @@ export type MediaAdvanceRequest = { step?: number };
 export type MediaMarkStatusRequest = { status: MediaStatus };
 export type MediaCreated = { id: number };
 
-export const COLLECTION_CATEGORIES = ["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "OTHER"] as const;
+export const COLLECTION_CATEGORIES = ["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "PROJECT", "OTHER"] as const;
 export type CollectionCategory = typeof COLLECTION_CATEGORIES[number];
 
 export interface CollectionInfo {

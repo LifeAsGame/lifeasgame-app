@@ -1,4 +1,4 @@
-import { USE_MOCK, apiDelete, apiGet, apiGetRaw, apiPost } from "@/shared/api/client";
+import { USE_MOCK, apiDelete, apiGet, apiGetRaw, apiPost, apiPut } from "@/shared/api/client";
 import type {
   AcceptQuestRequest,
   CancelQuestRequest,
@@ -7,6 +7,8 @@ import type {
   QuestAcceptance,
   QuestAcceptancesResponse,
   QuestBlueprint,
+  QuestEvidence,
+  QuestEvidenceInput,
   QuestCatalogResponse,
   QuestRoute,
   QuestRoutesResponse,
@@ -66,8 +68,25 @@ export function getQuestRouteApi(routeId: number): Promise<QuestRoute> {
   return USE_MOCK ? Promise.resolve(journeyMock.route()) : apiGet<QuestRoute>(`/api/v1/quest-routes/${routeId}`);
 }
 
-export function selectQuestRouteApi(routeId: number): Promise<QuestRoute> {
-  return USE_MOCK ? Promise.resolve(journeyMock.selectRoute()) : apiPost<QuestRoute>(`/api/v1/quest-routes/${routeId}/select`, {});
+export function selectQuestRouteApi(routeId: number, roleId?: number): Promise<QuestRoute> {
+  return USE_MOCK ? Promise.resolve(journeyMock.selectRoute()) : apiPost<QuestRoute>(`/api/v1/quest-routes/${routeId}/select`, roleId === undefined ? {} : { roleId });
+}
+
+export async function getQuestEvidenceApi(questCode: string): Promise<QuestEvidence | null> {
+  return await apiGet<QuestEvidence | undefined>(`${playerQuestPath(questCode)}/evidence`) ?? null;
+}
+
+export function linkQuestEvidenceApi(questCode: string, evidence: QuestEvidenceInput): Promise<QuestAcceptance> {
+  const kind = "memo" in evidence ? "memo" : "lifeLogId" in evidence ? "life-log" : "deployment";
+  return apiPut<QuestAcceptance>(`${playerQuestPath(questCode)}/evidence/${kind}`, evidence);
+}
+
+export function unlinkQuestEvidenceApi(questCode: string): Promise<QuestAcceptance> {
+  return apiDelete<QuestAcceptance>(`${playerQuestPath(questCode)}/evidence`);
+}
+
+export function completeQuestApi(questCode: string): Promise<QuestAcceptance> {
+  return apiPost<QuestAcceptance>(`${playerQuestPath(questCode)}/complete`, {});
 }
 
 export async function listMyQuestRoutesApi(): Promise<QuestRoute[]> {

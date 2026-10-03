@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({
   getMyQuestRouteApi: vi.fn(),
   getMyQuestRouteStepApi: vi.fn(),
   getPlayerQuestApi: vi.fn(),
+  getQuestEvidenceApi: vi.fn(),
   getQuestRewardSettlementApi: vi.fn(),
   getQuestRouteApi: vi.fn(),
   listMyQuestRoutesApi: vi.fn(),
@@ -23,8 +24,10 @@ const api = vi.hoisted(() => ({
   manualCheckQuestApi: vi.fn(),
   selectQuestRouteApi: vi.fn(),
 }));
+const roleApi = vi.hoisted(() => ({ listRolesApi: vi.fn() }));
 
 vi.mock("./api", () => api);
+vi.mock("@/features/role/api", () => roleApi);
 vi.mock("@/shared/ui/PanelCard", () => ({
   default: ({ label, slotLabel, subtitle, onClick }: { label: string; slotLabel: string; subtitle?: string; onClick?: () => void }) => (
     <button type="button" onClick={onClick}>
@@ -103,6 +106,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     api.listQuestRoutesApi.mockResolvedValue([unselectedRoute]);
     api.listMyQuestRoutesApi.mockResolvedValue([]);
     api.getPlayerQuestApi.mockImplementation(async (code: string) => detail(code));
+    api.getQuestEvidenceApi.mockResolvedValue(null);
     api.getQuestRouteApi.mockResolvedValue(unselectedRoute);
     api.getMyQuestRouteApi.mockResolvedValue(selectedRoute);
     api.getMyQuestRouteStepApi.mockResolvedValue(readyStepDetail);
@@ -112,6 +116,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     api.cancelQuestApi.mockResolvedValue({ playerId: 1, questId: 1, questCode: "Q_ONE" });
     api.selectQuestRouteApi.mockResolvedValue(selectedRoute);
     api.advanceQuestRouteApi.mockResolvedValue(advancedRoute);
+    roleApi.listRolesApi.mockResolvedValue([]);
   });
 
   it("record save refreshes the selected quest list and detail once", async () => {
@@ -134,23 +139,32 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       expect(screen.queryByText("선택할 수 있는 경로가 없습니다.")).not.toBeInTheDocument();
     });
 
-    it("opens the existing selected Route as the progression surface", async () => {
+    it("기존 선택 Route도 목록에서 명시적으로 열게 한다", async () => {
       api.listQuestRoutesApi.mockResolvedValue([]);
       api.listMyQuestRoutesApi.mockResolvedValue([selectedRoute]);
       render(<JourneyShell initialSurface="routes" />);
 
+      expect(await screen.findByRole("button", { name: /기록으로 시작하기/ })).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /기록으로 시작하기/ }));
       expect(await screen.findByText("경로 진행")).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="journey-detail"]')).toBeInTheDocument();
-      expect(api.getMyQuestRouteApi).not.toHaveBeenCalled();
+      expect(api.getMyQuestRouteApi).toHaveBeenCalledWith(selectedRoute.id);
     });
 
-    it("previews the first progressed Route in displayed order", async () => {
+    it("복수 Route에서 첫 진행 Route를 자동으로 열지 않는다", async () => {
       const earlierCatalog = routeVariant(31, "Earlier Catalog Progress", "Earlier Step");
       const laterMineOnly = routeVariant(32, "Later Mine-only Progress", "Later Step");
       api.listQuestRoutesApi.mockResolvedValue([{ ...earlierCatalog, playerProgress: null }]);
       api.listMyQuestRoutesApi.mockResolvedValue([laterMineOnly, earlierCatalog]);
+      api.getMyQuestRouteApi.mockResolvedValue(earlierCatalog);
+      api.getMyQuestRouteStepApi.mockResolvedValue(routeStep(earlierCatalog));
       render(<JourneyShell initialSurface="routes" />);
 
+      expect(await screen.findByRole("button", { name: /Earlier Catalog Progress/ })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Later Mine-only Progress/ })).toBeInTheDocument();
+      expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Earlier Catalog Progress/ }));
       expect(await screen.findByText("Earlier Catalog Progress description")).toBeInTheDocument();
       expect(screen.queryByText("Later Mine-only Progress description")).not.toBeInTheDocument();
     });
@@ -418,9 +432,90 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
   });
 
   describe("QuestRoute를 명시적으로 선택하고 진행하면", () => {
+    it("첫 목표 퀘스트는 범용 직접 확인 대신 근거 연결을 표시한다", async () => {
+      const goal: QuestAcceptance = { ...current[0], id: 801, questId: 901, code: "Q_DEV_DEFINE_BACKEND_GOAL", title: "백엔드 개발 목표 정하기", status: "IN_PROGRESS", progressSource: "MANUAL_CHECK" };
+      api.listPlayerQuestsApi.mockResolvedValue([goal]);
+      api.getPlayerQuestApi.mockResolvedValue({ ...catalog[0], code: goal.code, acceptance: goal });
+      renderCurrentJourney();
+      fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발 목표 정하기/ }));
+      expect(await screen.findByRole("textbox", { name: "목표 메모" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "근거 연결" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "직접 확인" })).not.toBeInTheDocument();
+    });
+
+    it("백엔드 경로의 7개 필수 단계만 API 데이터로 표시하고 현재 단계 퀘스트를 연다", async () => {
+      const codes = ["Q_DEV_DEFINE_BACKEND_GOAL", "Q_DEV_RECORD_JAVA_STUDY", "Q_DEV_BUILD_SPRING_CRUD", "Q_DEV_MODEL_DATABASE", "Q_DEV_WRITE_DOMAIN_TEST", "Q_DEV_DEPLOY_SERVICE", "Q_DEV_POLISH_README"];
+      const steps = ["RS_DEV_01_DIRECTION", "RS_DEV_02_JAVA", "RS_DEV_03_SPRING", "RS_DEV_04_DATABASE", "RS_DEV_05_TEST", "RS_DEV_06_DEPLOY", "RS_DEV_07_PORTFOLIO"];
+      const backend: QuestRoute = {
+        ...selectedRoute, id: 91, code: "ROUTE_BACKEND_DEVELOPER_START", title: "백엔드 개발자의 길",
+        playerProgress: { ...selectedRoute.playerProgress!, currentStepId: 501, roleId: 73 },
+        steps: steps.map((stepCode, index) => ({ ...selectedRoute.steps[0], id: 501 + index, stepCode, stepOrder: index + 1, title: `Backend Step ${index + 1}`, state: index === 0 ? "CURRENT" : "LOCKED", questLinks: [{ questId: 601 + index, requirementType: "REQUIRED" }] })),
+      };
+      const blueprints = codes.map((code, index) => ({ ...catalog[0], code, title: `Required Quest ${index + 1}` }));
+      api.listQuestRoutesApi.mockResolvedValue([backend]);
+      api.listMyQuestRoutesApi.mockResolvedValue([backend]);
+      api.getMyQuestRouteApi.mockResolvedValue(backend);
+      api.getMyQuestRouteStepApi.mockResolvedValue(routeStep(backend));
+      api.listQuestCatalogApi.mockResolvedValue([...catalog, ...blueprints]);
+      api.getPlayerQuestApi.mockResolvedValue({ ...blueprints[0], acceptance: null });
+      render(<JourneyShell initialSurface="routes" />);
+      fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발자의 길/ }));
+      const thread = await screen.findByRole("region", { name: "경로의 단계 순서" });
+      expect(thread.querySelectorAll("ol > li")).toHaveLength(7);
+      expect(within(thread).getByRole("button", { name: "Required Quest 1" })).toBeInTheDocument();
+      expect(within(thread).queryByRole("button", { name: "Required Quest 2" })).not.toBeInTheDocument();
+      fireEvent.click(within(thread).getByRole("button", { name: "Required Quest 1" }));
+      expect(await screen.findByRole("button", { name: "퀘스트 수락" })).toBeInTheDocument();
+      expect(api.acceptQuestApi).not.toHaveBeenCalled();
+    });
+
+    it("백엔드 여정은 허용된 활성 Role만 제안하고 선택만으로 퀘스트를 수락하지 않는다", async () => {
+      const backend = { ...unselectedRoute, id: 91, code: "ROUTE_BACKEND_DEVELOPER_START", title: "백엔드 개발자의 길" };
+      api.listQuestRoutesApi.mockResolvedValue([backend]);
+      api.getQuestRouteApi.mockResolvedValue(backend);
+      roleApi.listRolesApi.mockResolvedValue([
+        { id: 71, name: "Backend name only", roleType: "HOBBY", status: "ACTIVE" },
+        { id: 72, name: "Archived", roleType: "ROLE_JOB_SEEKER", status: "ARCHIVED" },
+        { id: 73, name: "Learning", roleType: "ROLE_JOB_SEEKER", status: "ACTIVE" },
+      ]);
+      render(<JourneyShell initialSurface="routes" />);
+      fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발자의 길/ }));
+      const select = await screen.findByRole("combobox", { name: "이 여정의 역할" });
+      await waitFor(() => expect(select).toHaveTextContent("Learning"));
+      expect(select).not.toHaveTextContent("Backend name only");
+      expect(select).not.toHaveTextContent("Archived");
+      expect(select).toHaveTextContent("취업 준비");
+      fireEvent.change(select, { target: { value: "73" } });
+      fireEvent.click(screen.getByRole("button", { name: "경로 선택" }));
+      await answerDialog();
+      await waitFor(() => expect(api.selectQuestRouteApi).toHaveBeenCalledWith(91, 73));
+      expect(api.acceptQuestApi).not.toHaveBeenCalled();
+    });
+
+    it("빈 역할에서 메뉴 진입을 안내하고 실패한 역할 조회만 다시 읽는다", async () => {
+      const backend = { ...unselectedRoute, id: 91, code: "ROUTE_BACKEND_DEVELOPER_START", title: "백엔드 개발자의 길" };
+      api.listQuestRoutesApi.mockResolvedValue([backend]);
+      api.getQuestRouteApi.mockResolvedValue(backend);
+      roleApi.listRolesApi.mockRejectedValueOnce(new Error("조회 실패")).mockResolvedValueOnce([]);
+      const onOpenRoles = vi.fn();
+      render(<JourneyShell initialSurface="routes" onOpenRoles={onOpenRoles} />);
+      fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발자의 길/ }));
+      fireEvent.click(await screen.findByRole("button", { name: "역할 다시 조회" }));
+      expect(await screen.findByRole("button", { name: "역할 메뉴로 이동" })).toBeInTheDocument();
+      expect(screen.queryByText("조회 실패")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "역할 메뉴로 이동" }));
+      expect(onOpenRoles).toHaveBeenCalledOnce();
+      expect(roleApi.listRolesApi).toHaveBeenCalledTimes(2);
+      expect(api.selectQuestRouteApi).not.toHaveBeenCalled();
+    });
+
     it("multiple progress와 실제 stepOrder/currentStepId/criteria/questLinks를 표시한다", async () => {
       const first = routeVariant(41, "First Direction", "Current First Step");
       const second = routeVariant(42, "Second Direction", "Current Second Step");
+      first.steps.push(...Array.from({ length: 4 }, (_, index) => ({
+        ...first.steps[2], id: 14 + index, stepCode: `RS_EXTRA_${index + 4}`,
+        stepOrder: index + 4, title: `Extra Step ${index + 4}`, questLinks: [],
+      })));
       first.steps = first.steps.slice().reverse();
       first.playerProgress = { ...first.playerProgress!, currentStepId: 12 };
       first.steps = first.steps.map((step) => ({
@@ -444,6 +539,10 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
         "1. Current First Step",
         "2. 흔적 연결하기",
         "3. 돌아보기",
+        "4. Extra Step 4",
+        "5. Extra Step 5",
+        "6. Extra Step 6",
+        "7. Extra Step 7",
       ]);
       expect(steps[1]).toHaveAttribute("data-current", "true");
       expect(within(thread).getByText("조건: 충족")).toBeInTheDocument();
