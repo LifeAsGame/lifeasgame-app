@@ -18,6 +18,7 @@ import type {
   RoleDetail,
 } from "@/shared/api/types";
 import { requestStageFocus } from "@/shared/hooks/useStageCamera";
+import { consumerLabel } from "@/shared/lib/consumerLabels";
 import CreateSlot, { useCreateMode } from "@/shared/ui/CreateSlot";
 import PanelStage, { StageContentTransition } from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
@@ -49,7 +50,7 @@ function optionalNumber(form: FormData, key: string) {
 }
 
 function label(value: string) {
-  return value.replaceAll("_", " ");
+  return consumerLabel(value);
 }
 
 function displayTimestamp(value: string) {
@@ -314,7 +315,7 @@ function entryPresentation(entry: JournalEntry) {
     case "COLLECTION":
       return {
         title: entry.preview.title,
-        summary: [entry.preview.category, entry.preview.quantity !== null ? `수량 ${entry.preview.quantity}` : null].filter(Boolean).join(" · "),
+        summary: [label(entry.preview.category), entry.preview.quantity !== null ? `수량 ${entry.preview.quantity}` : null].filter(Boolean).join(" · "),
       };
     case "EXERCISE":
       return {
@@ -530,7 +531,7 @@ export default function JournalShell({ createRequest = 0, initialLifeLogId, role
               </div>
               <div className="lag-journal-pagination" aria-label="일상 기록 페이지">
                 <button type="button" className="lag-journal-button" disabled={previousDisabled} onClick={() => journal.changePage(journal.params.page - 1)}>이전</button>
-                <span>페이지 {page.totalPages === 0 ? 0 : page.page + 1} / {page.totalPages}</span>
+                <span>페이지 {page.page + 1} / {Math.max(1, page.totalPages)}</span>
                 <button type="button" className="lag-journal-button" disabled={nextDisabled} onClick={() => journal.changePage(journal.params.page + 1)}>다음</button>
               </div>
             </section>

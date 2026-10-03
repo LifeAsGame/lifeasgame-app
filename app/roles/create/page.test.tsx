@@ -10,9 +10,9 @@ vi.mock("@/features/auth/AuthContext", () => ({ useAuth: mocks.useAuth }));
 vi.mock("@/features/role/api", () => ({ createRoleApi: mocks.createRoleApi }));
 
 function fillRoleForm() {
-  fireEvent.change(screen.getByLabelText("Role Type"), { target: { value: "PROFESSIONAL" } });
-  fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Engineer" } });
-  fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Build useful things" } });
+  fireEvent.change(screen.getByLabelText("직접 입력할 유형"), { target: { value: "PROFESSIONAL" } });
+  fireEvent.change(screen.getByLabelText("역할 이름"), { target: { value: "Engineer" } });
+  fireEvent.change(screen.getByLabelText("역할 설명"), { target: { value: "Build useful things" } });
 }
 
 describe("첫 Role을 만들 때", () => {
@@ -33,7 +33,7 @@ describe("첫 Role을 만들 때", () => {
       render(<CreateRolePage />);
       fillRoleForm();
 
-      fireEvent.click(screen.getByRole("button", { name: "CREATE ROLE" }));
+      fireEvent.click(screen.getByRole("button", { name: "역할 저장" }));
 
       await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/"));
       expect(mocks.createRoleApi).toHaveBeenCalledWith({
@@ -48,7 +48,7 @@ describe("첫 Role을 만들 때", () => {
       mocks.createRoleApi.mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
       render(<CreateRolePage />);
       fillRoleForm();
-      const form = screen.getByRole("button", { name: "CREATE ROLE" }).closest("form");
+      const form = screen.getByRole("button", { name: "역할 저장" }).closest("form");
 
       fireEvent.submit(form!);
       fireEvent.submit(form!);

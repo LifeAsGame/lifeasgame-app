@@ -206,9 +206,6 @@ export function PlayerPanel({
             <div className="space-y-3">
               {Object.entries(equipByCode).map(([slotCode, slots]) => (
                 <div key={slotCode}>
-                  <p className="mb-1 uppercase" style={{ fontSize: "9px", letterSpacing: "0.18em", color: "var(--lag-text-2)", opacity: 0.7 }}>
-                    {slotCode}
-                  </p>
                   <div className="space-y-1">
                     {slots.map((slot) => {
                       const equipped = slot.itemInstanceId !== null;

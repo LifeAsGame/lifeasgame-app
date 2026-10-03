@@ -14,8 +14,8 @@ describe("Exchange presentation helpers", () => {
     const bought = tradePresentation({ id: 1, listingId: 2, buyerId: 7, sellerId: 9, price: 30, currency: "GOLD" }, 7);
     const sold = tradePresentation({ id: 2, listingId: 3, buyerId: 11, sellerId: 7, price: 4, currency: "GEM" }, 7);
 
-    expect(bought).toEqual({ direction: "Bought", counterparty: "Player #9" });
-    expect(sold).toEqual({ direction: "Sold", counterparty: "Player #11" });
+    expect(bought).toEqual({ direction: "구매", counterparty: "플레이어 #9" });
+    expect(sold).toEqual({ direction: "판매", counterparty: "플레이어 #11" });
   });
 
   it("recovers the highest-id REQUESTED or RESERVED purchase for a Shop item", () => {

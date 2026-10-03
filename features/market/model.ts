@@ -28,7 +28,7 @@ export function recoverLatestPendingShopPurchase(purchases: ShopPurchaseSummary[
 export function tradePresentation(trade: TradeSummary, playerId: number) {
   const bought = trade.buyerId === playerId;
   const counterpartyId = bought ? trade.sellerId : trade.buyerId;
-  return { direction: bought ? "Bought" : "Sold", counterparty: `Player #${counterpartyId}` };
+  return { direction: bought ? "구매" : "판매", counterparty: `플레이어 #${counterpartyId}` };
 }
 
 export function listingQuantity(quantity: number | null | undefined) {
