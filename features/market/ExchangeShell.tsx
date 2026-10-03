@@ -151,9 +151,9 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onRefresh
       ) : null}
       <div className="lag-exchange-actions">
         {refreshable ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onRefresh}>{pending ? "Working..." : "Refresh Purchase Status"}</button> : null}
-        <Feedback state="info" role="status">System Shop checkout is unavailable until item fulfillment support is ready.</Feedback>
-        {purchase?.status === "COMPLETED" ? <Feedback state="info" role="status">Transaction status: COMPLETED. Item delivery is not confirmed.</Feedback> : null}
-        {!item.available ? <Feedback state="info" role="status">This item is unavailable.</Feedback> : null}
+        <Feedback state="info" role="status">시스템 상점 결제는 준비 중입니다.</Feedback>
+        {purchase?.status === "COMPLETED" ? <Feedback state="info" role="status">거래 상태는 완료지만 아이템 배송은 확인되지 않았습니다.</Feedback> : null}
+        {!item.available ? <Feedback state="info" role="status">현재 구매할 수 없는 상품입니다.</Feedback> : null}
         <button type="button" className="lag-exchange-button" onClick={onBack}>Back to System Shop</button>
       </div>
     </article>
@@ -363,7 +363,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
       <PanelStage stageKey="market-stage-1" panelRole="list">
         <PanelFrame title="상점 분류" depth={2} backButton={<BackButton label="Back to Exchange" onClick={onBack} />}>
           <section className="lag-exchange-surface">
-            <SurfaceHeader eyebrow="Exchange Shop" title="Shop" description="Browse System Shop items and player listings, or sell an inventory item." accent="cyan" />
+            <SurfaceHeader eyebrow="거래소 상점" title="상점" description="시스템 상점은 준비 중입니다. 사용자 간 거래는 이용할 수 있습니다." accent="cyan" />
             <div className="lag-exchange-tabs" aria-label="Shop surfaces">
               {([
                 ["system-shop", "System Shop"],
@@ -381,7 +381,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
             {mutations.marketplaceRefreshError ? <Feedback>{mutations.marketplaceRefreshError}</Feedback> : null}
             <button type="button" className="lag-exchange-button" disabled={mutations.pendingKey !== null} onClick={() => void mutations.refreshMarketplace()}>{mutations.marketplaceRefreshError ? "Retry Exchange lookup" : "Refresh Exchange"}</button>
             {shopSurface === "system-shop" ? (
-              <QueryState query={queries.shopItems} empty="No System Shop items.">
+              <QueryState query={queries.shopItems} empty="시스템 상점 상품이 없습니다. 결제는 준비 중입니다.">
                 <div className="lag-exchange-list">
                   {queries.shopItems.data.map((item) => <ExchangeRow key={item.id} selected={selectedShopItemId === item.id} title={itemIdentity(item.itemId)} meta={`Shop item #${item.id} · ${item.available ? "Available" : "Unavailable"}`} value={formatCurrency(item.price, item.currency)} status={item.reservationTtlSec ? `Reservation · ${item.reservationTtlSec}s` : "Direct purchase"} onClick={() => { selectionEpoch.current++; setSelectedShopItemId(item.id); setActivePurchaseId(null); setSelectedListingId(null); }} />)}
                 </div>
