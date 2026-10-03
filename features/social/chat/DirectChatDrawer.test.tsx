@@ -128,6 +128,11 @@ it("marks only a visible peer message and never submits during IME composition",
   peer.getBoundingClientRect = () => ({ top: 20, bottom: 60 } as DOMRect);
   fireEvent.scroll(list);
   expect(markVisibleRead).toHaveBeenCalledWith(8);
+  markVisibleRead.mockClear();
+  Object.defineProperty(document, "hidden", { configurable: true, value: true });
+  fireEvent.scroll(list);
+  expect(markVisibleRead).not.toHaveBeenCalled();
+  Object.defineProperty(document, "hidden", { configurable: true, value: false });
 
   const input = screen.getByRole("textbox", { name: "메시지" });
   fireEvent.compositionStart(input);
