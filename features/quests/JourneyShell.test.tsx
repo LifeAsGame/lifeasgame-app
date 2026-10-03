@@ -14,6 +14,7 @@ const api = vi.hoisted(() => ({
   getMyQuestRouteApi: vi.fn(),
   getMyQuestRouteStepApi: vi.fn(),
   getPlayerQuestApi: vi.fn(),
+  getQuestEvidenceApi: vi.fn(),
   getQuestRewardSettlementApi: vi.fn(),
   getQuestRouteApi: vi.fn(),
   listMyQuestRoutesApi: vi.fn(),
@@ -105,6 +106,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
     api.listQuestRoutesApi.mockResolvedValue([unselectedRoute]);
     api.listMyQuestRoutesApi.mockResolvedValue([]);
     api.getPlayerQuestApi.mockImplementation(async (code: string) => detail(code));
+    api.getQuestEvidenceApi.mockResolvedValue(null);
     api.getQuestRouteApi.mockResolvedValue(unselectedRoute);
     api.getMyQuestRouteApi.mockResolvedValue(selectedRoute);
     api.getMyQuestRouteStepApi.mockResolvedValue(readyStepDetail);
@@ -430,6 +432,17 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
   });
 
   describe("QuestRoute를 명시적으로 선택하고 진행하면", () => {
+    it("첫 목표 퀘스트는 범용 직접 확인 대신 근거 연결을 표시한다", async () => {
+      const goal: QuestAcceptance = { ...current[0], id: 801, questId: 901, code: "Q_DEV_DEFINE_BACKEND_GOAL", title: "백엔드 개발 목표 정하기", status: "IN_PROGRESS", progressSource: "MANUAL_CHECK" };
+      api.listPlayerQuestsApi.mockResolvedValue([goal]);
+      api.getPlayerQuestApi.mockResolvedValue({ ...catalog[0], code: goal.code, acceptance: goal });
+      renderCurrentJourney();
+      fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발 목표 정하기/ }));
+      expect(await screen.findByRole("textbox", { name: "목표 메모" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "근거 연결" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "직접 확인" })).not.toBeInTheDocument();
+    });
+
     it("백엔드 경로의 7개 필수 단계만 API 데이터로 표시하고 현재 단계 퀘스트를 연다", async () => {
       const codes = ["Q_DEV_DEFINE_BACKEND_GOAL", "Q_DEV_RECORD_JAVA_STUDY", "Q_DEV_BUILD_SPRING_CRUD", "Q_DEV_MODEL_DATABASE", "Q_DEV_WRITE_DOMAIN_TEST", "Q_DEV_DEPLOY_SERVICE", "Q_DEV_POLISH_README"];
       const steps = ["RS_DEV_01_DIRECTION", "RS_DEV_02_JAVA", "RS_DEV_03_SPRING", "RS_DEV_04_DATABASE", "RS_DEV_05_TEST", "RS_DEV_06_DEPLOY", "RS_DEV_07_PORTFOLIO"];

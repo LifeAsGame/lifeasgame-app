@@ -531,6 +531,8 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedAcceptance.code)} />;
     const percent = questProgressPercent(selectedAcceptance);
     const detailEpoch = navigationEpoch.current;
+    const backendQuest = BACKEND_QUEST_CODES.some((code) => code === selectedAcceptance.code);
+    const manualCheck = !backendQuest && canManualCheckQuest(selectedAcceptance);
     return (
       <article className="lag-journey-detail">
         {detail?.error ? <p role="alert" className="lag-journey-feedback" data-state="error">{detail.error}</p> : null}
@@ -552,16 +554,16 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
         {selectedAcceptance.status === "GOAL_REACHED" ? <p className="lag-journey-feedback" data-state="warning">목표에 도달했습니다. 완료 확정과는 다릅니다.</p> : null}
         {selectedAcceptance.code === "Q_ADVENTURE_PREPARATION" ? <p className="lag-journey-feedback">수락 후 직접 작성한 서로 다른 기록 3건을 남기세요. 보상은 GOLD 100과 기록 결정 1개이며 계정당 한 번 지급됩니다.</p> : null}
         {selectedAcceptance.code === "Q_RECORD_WEEKLY_LOOKBACK" ? <p className="lag-journey-feedback">이 퀘스트는 같은 주에 작성한 전체 기록의 주간 회고만 인정합니다. 간편 기록과 일반 기록은 제외됩니다. 생활 기록 → 수집 기록에서 종류를 두 번 누른 뒤 주간 회고를 선택해 작성하세요.</p> : null}
-        {BACKEND_QUEST_CODES.some((code) => code === selectedAcceptance.code) ? <BackendQuestEvidence
+        {backendQuest ? <BackendQuestEvidence
           key={selectedAcceptance.id}
           quest={selectedAcceptance}
           roleId={routes.find((route) => route.code === BACKEND_ROUTE_CODE)?.playerProgress?.roleId ?? null}
           onChanged={() => recoverQuest(selectedAcceptance.code, () => detailEpoch === navigationEpoch.current)}
         /> : null}
         {selectedAcceptance.status === "COMPLETED" && detail?.data?.rewardProfileCode && detail.data.rewardProfileCode !== "RP_NONE" ? <RewardSettlementPanel key={selectedAcceptance.id} acceptanceId={selectedAcceptance.id} /> : detail?.data && (!detail.data.rewardProfileCode || detail.data.rewardProfileCode === "RP_NONE") ? <p className="lag-journey-feedback">이 퀘스트에는 정산 보상이 없습니다.</p> : null}
-        {(canManualCheckQuest(selectedAcceptance) || canCancelQuest(selectedAcceptance)) ? (
+        {(manualCheck || canCancelQuest(selectedAcceptance)) ? (
           <section className="lag-journey-actions" aria-label="퀘스트 동작">
-            {canManualCheckQuest(selectedAcceptance) ? (
+            {manualCheck ? (
               <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void runMutation(`manual-${selectedAcceptance.code}`, () => manualCheckQuestApi(selectedAcceptance.code), (isCurrent) => recoverQuest(selectedAcceptance.code, isCurrent))}>직접 확인</button>
             ) : null}
             {canCancelQuest(selectedAcceptance) ? (
