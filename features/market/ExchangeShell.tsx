@@ -151,7 +151,7 @@ function ShopItemDetail({ item, purchase, purchaseId, pending, onBack, onRefresh
       ) : null}
       <div className="lag-exchange-actions">
         {refreshable ? <button type="button" className="lag-exchange-action" disabled={pending} onClick={onRefresh}>{pending ? "Working..." : "Refresh Purchase Status"}</button> : null}
-        <Feedback state="info" role="status">System Shop checkout is unavailable until item fulfillment support is ready.</Feedback>
+        <Feedback state="info" role="status">시스템 상점 결제는 준비 중입니다.</Feedback>
         {purchase?.status === "COMPLETED" ? <Feedback state="info" role="status">Transaction status: COMPLETED. Item delivery is not confirmed.</Feedback> : null}
         {!item.available ? <Feedback state="info" role="status">This item is unavailable.</Feedback> : null}
         <button type="button" className="lag-exchange-button" onClick={onBack}>Back to System Shop</button>

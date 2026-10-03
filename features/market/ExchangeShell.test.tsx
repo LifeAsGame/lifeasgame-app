@@ -172,7 +172,7 @@ describe("canonical Exchange surfaces", () => {
     expect(detail).toBeInTheDocument();
     expect(screen.getByText("Global stock limit").nextElementSibling).toHaveTextContent("None");
     expect(screen.queryByRole("button", { name: "Reserve / Start purchase" })).not.toBeInTheDocument();
-    expect(screen.getByText(/System Shop checkout is unavailable/)).toBeInTheDocument();
+    expect(screen.getByText("시스템 상점 결제는 준비 중입니다.")).toBeInTheDocument();
 
     focus.mockClear();
     fireEvent.click(screen.getByRole("button", { name: /Item #5010/ }));
@@ -281,7 +281,7 @@ describe("canonical Exchange surfaces", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByText(/System Shop checkout is unavailable/)).toBeInTheDocument();
+    expect(await screen.findByText("시스템 상점 결제는 준비 중입니다.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reserve / Start purchase" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
   });

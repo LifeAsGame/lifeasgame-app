@@ -14,7 +14,7 @@ import { candidatesForGearPart, getEquipCompatibility, slotsForGearPart } from "
 import { CURRENT_CONSUMER_GEAR_CAPABILITY } from "./policy";
 import { useEquipmentQueries } from "./useEquipmentQueries";
 
-const READ_ONLY_MESSAGE = "Equipment Item content is unavailable. Gear is read-only.";
+const READ_ONLY_MESSAGE = "장비 콘텐츠 준비 중 · 슬롯 조회만 가능합니다.";
 
 function ErrorState({ text, retry }: { text: string; retry: () => void }) {
   return (

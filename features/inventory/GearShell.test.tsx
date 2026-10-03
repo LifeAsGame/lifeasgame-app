@@ -120,7 +120,7 @@ describe("Gear surface를 사용할 때", () => {
       render(<GearShell />);
       fireEvent.click(screen.getByRole("button", { name: /Armor/ }));
 
-      expect(screen.getByText("Equipment Item content is unavailable. Gear is read-only.")).toBeInTheDocument();
+      expect(screen.getByText("장비 콘텐츠 준비 중 · 슬롯 조회만 가능합니다.")).toBeInTheDocument();
       expect(screen.queryByText("Frontliner's Helm")).not.toBeInTheDocument();
       expect(screen.queryByText("Black Coat of Midnight")).not.toBeInTheDocument();
       expect(document.querySelectorAll('[data-kind="candidate"]')).toHaveLength(0);
@@ -143,7 +143,7 @@ describe("Gear surface를 사용할 때", () => {
       fireEvent.click(slot);
 
       expectData("Equipped", "Item details unavailable · itemInstanceId 999");
-      expect(screen.getByRole("status")).toHaveTextContent("Equipment Item content is unavailable. Gear is read-only.");
+      expect(screen.getByRole("status")).toHaveTextContent("장비 콘텐츠 준비 중 · 슬롯 조회만 가능합니다.");
       expect(screen.queryByRole("button", { name: "Unequip" })).not.toBeInTheDocument();
       expect(hook.current.unequip).not.toHaveBeenCalled();
     });
@@ -173,7 +173,7 @@ describe("Gear surface를 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /Armor/ }));
       expect(screen.getByText("Loading Equipment...")).toBeInTheDocument();
       expect(screen.queryByText("Loading Inventory candidates...")).not.toBeInTheDocument();
-      expect(screen.getByText("Equipment Item content is unavailable. Gear is read-only.")).toBeInTheDocument();
+      expect(screen.getByText("장비 콘텐츠 준비 중 · 슬롯 조회만 가능합니다.")).toBeInTheDocument();
 
       hook.current = makeState([], []);
       hook.current.equipment.error = "Equipment unavailable";
