@@ -8,10 +8,13 @@ import { useDirectChat } from "./useDirectChat";
 const api = vi.hoisted(() => ({
   getFriendChannelsApi: vi.fn(),
   getFriendMessagesApi: vi.fn(),
+  markFriendReadApi: vi.fn(),
   openFriendChannelApi: vi.fn(),
   sendFriendMessageApi: vi.fn(),
 }));
+const realtime = vi.hoisted(() => ({ connectFriendChat: vi.fn((...args: [number[], (event: unknown) => void, (status: string) => void, () => void]) => { void args; return vi.fn(); }) }));
 vi.mock("./api", () => api);
+vi.mock("./realtime", () => realtime);
 
 const channels: FriendChatChannel[] = [
   { channelId: 10, peer: { playerId: 70, name: "A", job: null, level: 1 }, readOnly: false },
@@ -32,8 +35,10 @@ const blocked = () => new ApiError(403, "SOC-403-CHAT-DIRECT-BLOCKED", "Forbidde
 describe("feature-owned Direct Friend Chat state", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    realtime.connectFriendChat.mockImplementation(() => vi.fn());
     api.getFriendChannelsApi.mockResolvedValue(channels);
     api.getFriendMessagesApi.mockResolvedValue(page([]));
+    api.markFriendReadApi.mockResolvedValue(undefined);
   });
 
   it("ignores stale channel results when selection changes", async () => {
@@ -50,6 +55,55 @@ describe("feature-owned Direct Friend Chat state", () => {
 
     expect(result.current.selectedChannelId).toBe(20);
     expect(result.current.messages.map(({ id }) => id)).toEqual([2]);
+  });
+
+  it("keeps a newer saved message when a stale latest snapshot finishes", async () => {
+    const latest = deferred<ChatMessagePage>();
+    api.getFriendMessagesApi.mockResolvedValueOnce(page([message(1)])).mockReturnValueOnce(latest.promise);
+    api.sendFriendMessageApi.mockResolvedValue(message(3));
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+
+    act(() => { void result.current.loadLatest(); });
+    act(() => result.current.setDraft("new"));
+    await act(async () => { await result.current.send(); });
+    await act(async () => { latest.resolve(page([message(2), message(1)])); await latest.promise; });
+
+    expect(result.current.messages.map(({ id }) => id)).toEqual([1, 2, 3]);
+  });
+
+  it("follows recovery cursors across more than one page after reconnect", async () => {
+    api.getFriendMessagesApi
+      .mockResolvedValueOnce(page([message(50)]))
+      .mockResolvedValueOnce(page([message(100), message(99)], true, 99))
+      .mockResolvedValueOnce(page([message(98), message(50)], true, 50))
+      .mockResolvedValueOnce(page([message(49)], false))
+      .mockResolvedValueOnce(page([message(101), message(100)]));
+    const { result } = renderHook(() => useDirectChat(1, 6));
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setOpen(true));
+    await waitFor(() => expect(realtime.connectFriendChat).toHaveBeenCalled());
+    const onConnected = realtime.connectFriendChat.mock.calls.at(-1)![3];
+    await act(async () => { onConnected(); });
+    await waitFor(() => expect(result.current.messages.map(({ id }) => id)).toEqual([49, 50, 98, 99, 100, 101]));
+    expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(2, 10, null, 50);
+    expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(3, 10, 99, 50);
+    expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(4, 10, 50, 50);
+    expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(5, 10, null, 50);
+    expect(result.current.hasMore).toBe(false);
+  });
+
+  it("coalesces visible read targets and keeps the read position after refresh", async () => {
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setOpen(true));
+    act(() => { result.current.markVisibleRead(2); result.current.markVisibleRead(3); });
+    await waitFor(() => expect(api.markFriendReadApi).toHaveBeenCalledWith(10, 3));
+    expect(api.markFriendReadApi).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.channels[0].lastReadMessageId).toBe(3));
   });
 
   it("keeps a newer deliberate channel selection when an older friend-open finishes", async () => {
@@ -107,7 +161,7 @@ describe("feature-owned Direct Friend Chat state", () => {
 
     act(() => result.current.setDraft(" hello "));
     await act(async () => { expect(await result.current.send()).toBe(true); });
-    expect(api.sendFriendMessageApi).toHaveBeenCalledWith(10, "hello");
+    expect(api.sendFriendMessageApi).toHaveBeenCalledWith(10, "hello", expect.any(String));
     expect(result.current.messages.map(({ id }) => id)).toEqual([1, 2, 3, 4]);
     expect(result.current.draft).toBe("");
   });
@@ -128,6 +182,21 @@ describe("feature-owned Direct Friend Chat state", () => {
     expect(result.current.messages.map(({ id }) => id)).toEqual([1, 2]);
     expect(result.current.draft).toBe("keep me");
     expect(result.current.sendError).toBe("send failed");
+  });
+
+  it("reuses a message key after lost response and replaces it after an edit", async () => {
+    api.sendFriendMessageApi.mockRejectedValueOnce(new Error("response lost")).mockResolvedValueOnce(message(2)).mockResolvedValueOnce(message(3));
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setDraft("same"));
+    await act(async () => { await result.current.send(); });
+    const firstKey = api.sendFriendMessageApi.mock.calls[0][2];
+    await act(async () => { await result.current.send(); });
+    expect(api.sendFriendMessageApi.mock.calls[1][2]).toBe(firstKey);
+    act(() => result.current.setDraft("changed"));
+    await act(async () => { await result.current.send(); });
+    expect(api.sendFriendMessageApi.mock.calls[2][2]).not.toBe(firstKey);
   });
 
   it("reloads canonical channels before selecting the ID returned by open", async () => {
@@ -296,6 +365,22 @@ describe("feature-owned Direct Friend Chat state", () => {
     expect(result.current.sendError).toBeNull();
     expect(result.current.draft).toBe("B's next draft");
     expect(result.current.messages.map(({ id }) => id)).toEqual([21]);
+  });
+
+  it("drops a late send result when the account changes", async () => {
+    const sending = deferred<ChatMessage>();
+    api.sendFriendMessageApi.mockReturnValue(sending.promise);
+    const { result, rerender } = renderHook(({ accountId }) => useDirectChat(accountId), { initialProps: { accountId: 1 } });
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setDraft("old account"));
+    let pending!: Promise<boolean>;
+    act(() => { pending = result.current.send(); });
+    rerender({ accountId: 2 });
+    await act(async () => { sending.resolve(message(4)); expect(await pending).toBe(false); });
+    expect(result.current.selectedChannelId).toBeNull();
+    expect(result.current.messages).toEqual([]);
+    expect(result.current.draft).toBe("");
   });
 
   it("does not interpret other 403, auth, or general send errors as a block", async () => {

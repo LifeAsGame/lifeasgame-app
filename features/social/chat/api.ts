@@ -19,8 +19,14 @@ export function getFriendMessagesApi(channelId: number, cursor: number | null = 
     : apiGet(`/api/v1/chat/channels/${channelId}/messages?${query}`);
 }
 
-export function sendFriendMessageApi(channelId: number, content: string): Promise<ChatMessage> {
+export function sendFriendMessageApi(channelId: number, content: string, clientMessageId: string): Promise<ChatMessage> {
   return USE_MOCK
     ? Promise.resolve(directChatMock.sendMessage(channelId, content))
-    : apiPost(`/api/v1/chat/channels/${channelId}/messages`, { content }, { retry: false });
+    : apiPost(`/api/v1/chat/channels/${channelId}/messages`, { content, clientMessageId }, { retry: false });
+}
+
+export function markFriendReadApi(channelId: number, lastReadMessageId: number): Promise<unknown> {
+  return USE_MOCK
+    ? Promise.resolve()
+    : apiPost(`/api/v1/chat/channels/${channelId}/read`, { lastReadMessageId });
 }

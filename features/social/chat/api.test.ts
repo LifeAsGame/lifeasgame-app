@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getFriendChannelsApi, getFriendMessagesApi, openFriendChannelApi, sendFriendMessageApi } from "./api";
+import { getFriendChannelsApi, getFriendMessagesApi, markFriendReadApi, openFriendChannelApi, sendFriendMessageApi } from "./api";
 
 const client = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
 vi.mock("@/shared/api/client", () => ({ USE_MOCK: false, ...client }));
@@ -24,12 +24,14 @@ describe("Direct Friend Chat API contract", () => {
     expect(client.apiGet).toHaveBeenNthCalledWith(3, "/api/v1/chat/channels/900/messages?cursor=41&size=20");
   });
 
-  it("sends only content and disables automatic retry for the non-idempotent POST", async () => {
-    await sendFriendMessageApi(900, "hello");
+  it("sends the stable message key once and targets the read command", async () => {
+    await sendFriendMessageApi(900, "hello", "key-1");
+    await markFriendReadApi(900, 123);
     expect(client.apiPost).toHaveBeenCalledWith(
       "/api/v1/chat/channels/900/messages",
-      { content: "hello" },
+      { content: "hello", clientMessageId: "key-1" },
       { retry: false },
     );
+    expect(client.apiPost).toHaveBeenCalledWith("/api/v1/chat/channels/900/read", { lastReadMessageId: 123 });
   });
 });
