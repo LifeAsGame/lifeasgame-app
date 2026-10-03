@@ -354,7 +354,7 @@ export default function Home() {
               />
             </div>
           ) : selectedMain === "quests" ? (
-            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} navigation={{ surface: location.sub as QuestsSubId | null, detail: location.detail }} onNavigate={(sub, detail) => navigateConsumer("quests", sub, detail)} />
+            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} navigation={{ surface: location.sub as QuestsSubId | null, detail: location.detail }} onNavigate={(sub, detail) => navigateConsumer("quests", sub, detail)} onOpenRoles={() => { handleMainSelect("role"); setRoleWorkspace("roles"); }} />
           ) : selectedMain === "social" ? (
             <div className="flex w-fit items-center gap-6">
               <RightPanels selectedMain="social" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />

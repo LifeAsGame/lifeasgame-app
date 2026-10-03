@@ -46,29 +46,31 @@ import BackendQuestEvidence, { BACKEND_QUEST_CODES, backendQuestCode } from "./B
 
 const BACKEND_ROUTE_CODE = "ROUTE_BACKEND_DEVELOPER_START";
 
-function BackendRoleSelect({ disabled, onSelect }: { disabled: boolean; onSelect: (roleId: number) => void }) {
+function BackendRoleSelect({ disabled, onSelect, onOpenRoles }: { disabled: boolean; onSelect: (roleId: number) => void; onOpenRoles?: () => void }) {
   const [roles, setRoles] = useState<RoleDetail[]>([]);
   const [roleId, setRoleId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
-    void listRolesApi().then((result) => { if (active) setRoles(result.filter((role) => role.status === "ACTIVE" && ["ROLE_BACKEND_DEVELOPER", "ROLE_JOB_SEEKER"].includes(role.roleType))); })
-      .catch((caught) => { if (active) setError(message(caught, "Role 조회 실패")); })
+    void listRolesApi().then((result) => { if (active) { const eligible = result.filter((role) => role.status === "ACTIVE" && ["ROLE_BACKEND_DEVELOPER", "ROLE_JOB_SEEKER"].includes(role.roleType)); setRoles(eligible); setRoleId((current) => eligible.some((role) => String(role.id) === current) ? current : ""); setError(null); } })
+      .catch((caught) => { if (active) setError(message(caught, "역할 조회 실패")); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [retry]);
   return <div className="lag-journey-actions">
-    <label>이 여정의 Role
-      <select className="lag-journal-control" value={roleId} onChange={(event) => setRoleId(event.target.value)}>
-        <option value="">활성 Role 선택</option>
-        {roles.map((role) => <option key={role.id} value={role.id}>{role.name} · {role.roleType}</option>)}
+    <label>이 여정의 역할
+      <select className="lag-journal-control" value={roleId} disabled={loading || Boolean(error)} onChange={(event) => setRoleId(event.target.value)}>
+        <option value="">활성 역할 선택</option>
+        {roles.map((role) => <option key={role.id} value={role.id}>{role.name} · {role.roleType === "ROLE_BACKEND_DEVELOPER" ? "백엔드 개발자" : "취업 준비"}</option>)}
       </select>
     </label>
-    {error ? <p role="alert">{error}</p> : null}
-    {loading ? <p>Role을 불러오는 중…</p> : null}
-    {!loading && !error && roles.length === 0 ? <p>역할 메뉴에서 ROLE_BACKEND_DEVELOPER 또는 ROLE_JOB_SEEKER 유형의 활성 Role을 만드세요.</p> : null}
-    <button type="button" className="lag-journey-action" disabled={disabled || !roleId} onClick={() => onSelect(Number(roleId))}>경로 선택</button>
+    {error ? <p role="alert">{error} <button type="button" className="lag-journey-button" disabled={loading} onClick={() => { setLoading(true); setRetry((value) => value + 1); }}>역할 다시 조회</button></p> : null}
+    {loading ? <p>역할을 불러오는 중…</p> : null}
+    {!loading && !error && roles.length === 0 ? <p>역할 메뉴에서 백엔드 개발자 또는 취업 준비 유형의 역할을 만드세요.</p> : null}
+    {!loading && !error && roles.length === 0 && onOpenRoles ? <button type="button" className="lag-journey-button" onClick={onOpenRoles}>역할 메뉴로 이동</button> : null}
+    <button type="button" className="lag-journey-action" disabled={disabled || loading || Boolean(error) || !roleId} onClick={() => onSelect(Number(roleId))}>경로 선택</button>
   </div>;
 }
 
@@ -214,10 +216,11 @@ type RouteDetailState = {
   error: string | null;
 };
 
-export default function JourneyShell({ initialSurface = null, navigation, onNavigate }: {
+export default function JourneyShell({ initialSurface = null, navigation, onNavigate, onOpenRoles }: {
   initialSurface?: QuestsSubId | null;
   navigation?: { surface: QuestsSubId | null; detail: string | null };
   onNavigate?: (surface: QuestsSubId | null, detail: string | null) => void;
+  onOpenRoles?: () => void;
 }) {
   const { confirm, dialog } = useSaoConfirm();
   const compact = useMediaQuery("(max-width: 1199px)");
@@ -643,10 +646,10 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
           </DetailSection>
         ) : null}
         <RouteThread route={route} quests={queries.current.data} catalog={queries.catalog.data} onQuest={openRequiredQuest} />
-        {route.code === BACKEND_ROUTE_CODE && progress ? <p className="lag-journey-feedback">선택한 Role #{progress.roleId ?? "확인 중"} · 여정 선택은 퀘스트를 자동 수락하지 않습니다. 현재 단계의 필수 퀘스트를 직접 수락하고 근거를 연결하세요.</p> : null}
+        {route.code === BACKEND_ROUTE_CODE && progress ? <p className="lag-journey-feedback">선택한 역할 #{progress.roleId ?? "확인 중"} · 여정 선택은 퀘스트를 자동 수락하지 않습니다. 현재 단계의 필수 퀘스트를 직접 수락하고 근거를 연결하세요.</p> : null}
         {detailState?.step ? <InfoCard>현재 단계 상세: {detailState.step.step.title} · {humanize(detailState.step.step.state)}</InfoCard> : null}
         <section className="lag-journey-actions" aria-label="경로 동작">
-          {!progress && route.code === BACKEND_ROUTE_CODE ? <BackendRoleSelect disabled={Boolean(pending)} onSelect={(roleId) => void selectRoute(route, roleId)} /> : null}
+          {!progress && route.code === BACKEND_ROUTE_CODE ? <BackendRoleSelect disabled={Boolean(pending)} onSelect={(roleId) => void selectRoute(route, roleId)} onOpenRoles={onOpenRoles} /> : null}
           {!progress && route.code !== BACKEND_ROUTE_CODE ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void selectRoute(route)}>경로 선택</button> : null}
           {canAdvance ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void advanceRoute(route)}>다음 단계로</button> : null}
         </section>

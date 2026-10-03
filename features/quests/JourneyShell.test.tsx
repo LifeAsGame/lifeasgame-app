@@ -480,15 +480,33 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       ]);
       render(<JourneyShell initialSurface="routes" />);
       fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발자의 길/ }));
-      const select = await screen.findByRole("combobox", { name: "이 여정의 Role" });
+      const select = await screen.findByRole("combobox", { name: "이 여정의 역할" });
       await waitFor(() => expect(select).toHaveTextContent("Learning"));
       expect(select).not.toHaveTextContent("Backend name only");
       expect(select).not.toHaveTextContent("Archived");
+      expect(select).toHaveTextContent("취업 준비");
       fireEvent.change(select, { target: { value: "73" } });
       fireEvent.click(screen.getByRole("button", { name: "경로 선택" }));
       await answerDialog();
       await waitFor(() => expect(api.selectQuestRouteApi).toHaveBeenCalledWith(91, 73));
       expect(api.acceptQuestApi).not.toHaveBeenCalled();
+    });
+
+    it("빈 역할에서 메뉴 진입을 안내하고 실패한 역할 조회만 다시 읽는다", async () => {
+      const backend = { ...unselectedRoute, id: 91, code: "ROUTE_BACKEND_DEVELOPER_START", title: "백엔드 개발자의 길" };
+      api.listQuestRoutesApi.mockResolvedValue([backend]);
+      api.getQuestRouteApi.mockResolvedValue(backend);
+      roleApi.listRolesApi.mockRejectedValueOnce(new Error("조회 실패")).mockResolvedValueOnce([]);
+      const onOpenRoles = vi.fn();
+      render(<JourneyShell initialSurface="routes" onOpenRoles={onOpenRoles} />);
+      fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발자의 길/ }));
+      fireEvent.click(await screen.findByRole("button", { name: "역할 다시 조회" }));
+      expect(await screen.findByRole("button", { name: "역할 메뉴로 이동" })).toBeInTheDocument();
+      expect(screen.queryByText("조회 실패")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "역할 메뉴로 이동" }));
+      expect(onOpenRoles).toHaveBeenCalledOnce();
+      expect(roleApi.listRolesApi).toHaveBeenCalledTimes(2);
+      expect(api.selectQuestRouteApi).not.toHaveBeenCalled();
     });
 
     it("multiple progress와 실제 stepOrder/currentStepId/criteria/questLinks를 표시한다", async () => {

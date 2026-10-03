@@ -71,4 +71,31 @@ describe("backend journey evidence", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Conflict");
     expect(url).toHaveValue("https://example.org/demo");
   });
+
+  it("기록 조회 실패 뒤 같은 페이지를 재시도하고 늦은 응답은 무시한다", async () => {
+    let resolveOld!: (value: { content: JournalEntry[]; page: number; size: number; totalElements: number; totalPages: number }) => void;
+    const old = new Promise<{ content: JournalEntry[]; page: number; size: number; totalElements: number; totalPages: number }>((resolve) => { resolveOld = resolve; });
+    journal.listJournalApi.mockRejectedValueOnce(new Error("일시 장애")).mockReturnValueOnce(old).mockResolvedValueOnce({ content: [entry(31, "PROJECT", null)], page: 0, size: 25, totalElements: 1, totalPages: 1 });
+    const view = render(<BackendQuestEvidence quest={quest("Q_DEV_BUILD_SPRING_CRUD")} roleId={12} onChanged={vi.fn().mockResolvedValue(undefined)} />);
+    fireEvent.click(await screen.findByRole("button", { name: "기록 다시 조회" }));
+    expect(journal.listJournalApi).toHaveBeenCalledTimes(2);
+    view.rerender(<BackendQuestEvidence quest={quest("Q_DEV_BUILD_SPRING_CRUD", "COMPLETED")} roleId={12} onChanged={vi.fn().mockResolvedValue(undefined)} />);
+    view.rerender(<BackendQuestEvidence quest={quest("Q_DEV_BUILD_SPRING_CRUD")} roleId={12} onChanged={vi.fn().mockResolvedValue(undefined)} />);
+    await waitFor(() => expect(journal.listJournalApi).toHaveBeenCalledTimes(3));
+    resolveOld({ content: [entry(99, "PROJECT", null)], page: 0, size: 25, totalElements: 1, totalPages: 1 });
+    const select = screen.getByRole("combobox", { name: "내 기록" });
+    await waitFor(() => expect(select).toHaveTextContent("Record 31"));
+    expect(select).not.toHaveTextContent("Record 99");
+    expect(screen.queryByText("일시 장애")).not.toBeInTheDocument();
+    expect(api.linkQuestEvidenceApi).not.toHaveBeenCalled();
+  });
+
+  it("완료 뒤 원본 확인이 불가능한 기록은 보존된 연결 정보로 표시한다", async () => {
+    api.getQuestEvidenceApi.mockResolvedValue({ acceptanceId: 500, kind: "PROJECT", lifeLogId: 88, memo: null, url: null, description: null, linkedAt: "2026-10-04T00:00:00Z" });
+    render(<BackendQuestEvidence quest={quest("Q_DEV_BUILD_SPRING_CRUD", "COMPLETED")} roleId={12} onChanged={vi.fn().mockResolvedValue(undefined)} />);
+    expect(await screen.findByText(/프로젝트 기록 · 연결 당시 기록 #88/)).toBeInTheDocument();
+    expect(screen.getByText(/원본 기록의 현재 상태와 제목은 확인할 수 없습니다/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /기록/ })).not.toBeInTheDocument();
+    expect(journal.listJournalApi).not.toHaveBeenCalled();
+  });
 });

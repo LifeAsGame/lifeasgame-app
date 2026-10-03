@@ -47,6 +47,7 @@ export default function BackendQuestEvidence({ quest, roleId, onChanged }: {
   const [totalPages, setTotalPages] = useState(0);
   const [recordLoading, setRecordLoading] = useState(false);
   const [recordError, setRecordError] = useState<string | null>(null);
+  const [recordRetry, setRecordRetry] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [memo, setMemo] = useState("");
@@ -85,15 +86,14 @@ export default function BackendQuestEvidence({ quest, roleId, onChanged }: {
     const id = ++recordReadId.current;
     setRecordLoading(true);
     setRecordError(null);
-    setRecords([]);
     void listJournalApi({ page, size: 25 }).then((result) => {
-      if (id === recordReadId.current) { setRecords(result.content); setTotalPages(result.totalPages); }
+      if (id === recordReadId.current) { setRecords(result.content); setTotalPages(result.totalPages); setLifeLogId((current) => current && !result.content.some((entry) => String(entry.lifeLogId) === current) ? "" : current); setRecordError(null); }
     }).catch((caught) => {
       if (id === recordReadId.current) setRecordError(caught instanceof Error ? caught.message : "기록 조회 실패");
     }).finally(() => { if (id === recordReadId.current) setRecordLoading(false); });
     const request = recordReadId;
     return () => { request.current++; };
-  }, [isRecord, page, quest.status]);
+  }, [isRecord, page, quest.status, recordRetry]);
 
   const act = async (request: () => Promise<unknown>) => {
     if (pending.current) return;
@@ -132,6 +132,8 @@ export default function BackendQuestEvidence({ quest, roleId, onChanged }: {
     (quest.code === JAVA || (entry.sourceType === "COLLECTION" && entry.preview.category === "PROJECT")));
   const linked = evidenceKnown && evidence !== null;
   const evidenceUrl = evidence?.url ? safeEvidenceUrl(evidence.url) : null;
+  const linkedRecord = records.find((entry) => entry.lifeLogId === evidence?.lifeLogId);
+  const evidenceKind = evidence?.kind === "GOAL_MEMO" ? "목표 메모" : evidence?.kind === "LIFE_LOG" ? "생활 기록" : evidence?.kind === "PROJECT" ? "프로젝트 기록" : evidence?.kind === "DEPLOYMENT" ? "배포 기록" : null;
 
   return (
     <section className="lag-journey-detail-section" aria-label="퀘스트 근거">
@@ -142,8 +144,9 @@ export default function BackendQuestEvidence({ quest, roleId, onChanged }: {
       {!loading && !evidenceKnown && !USE_MOCK ? <button type="button" className="lag-journey-button" onClick={() => { setError(null); void reloadEvidence(); }}>근거 다시 조회</button> : null}
       {!loading && linked ? (
         <div className="lag-journey-feedback" role="status">
-          <strong>연결된 근거</strong> · {evidence.description ?? evidence.memo ?? evidence.kind}
-          {evidence.lifeLogId ? ` · 기록 #${evidence.lifeLogId}` : null}
+          <strong>연결된 근거</strong> · {evidenceKind}{evidence.description ?? evidence.memo ? ` · ${evidence.description ?? evidence.memo}` : null}
+          {evidence.lifeLogId ? ` · ${linkedRecord ? recordLabel(linkedRecord) : `연결 당시 기록 #${evidence.lifeLogId}`}` : null}
+          {evidence.lifeLogId && !linkedRecord && quest.status === "COMPLETED" ? <p>완료 시 보존된 연결 정보입니다. 원본 기록의 현재 상태와 제목은 확인할 수 없습니다.</p> : null}
           {evidenceUrl ? <a href={evidenceUrl} target="_blank" rel="noopener noreferrer">배포 기록 열기</a> : null}
           {quest.code === DEPLOY ? <p>사용자가 남긴 배포 기록이며 서비스 검증이나 자격 인증은 아닙니다.</p> : null}
         </div>
@@ -158,13 +161,13 @@ export default function BackendQuestEvidence({ quest, roleId, onChanged }: {
           </> : null}
           {isRecord ? <>
             <label className="lag-journal-field">내 기록
-              <select className="lag-journal-control" value={lifeLogId} onChange={(event) => setLifeLogId(event.target.value)}>
+              <select className="lag-journal-control" value={lifeLogId} disabled={recordLoading || Boolean(recordError)} onChange={(event) => setLifeLogId(event.target.value)}>
                 <option value="">기록 선택</option>
                 {eligibleRecords.map((entry) => <option key={entry.lifeLogId} value={entry.lifeLogId}>{recordLabel(entry)} · #{entry.lifeLogId}</option>)}
               </select>
             </label>
             {recordLoading ? <p>기록을 불러오는 중…</p> : null}
-            {recordError ? <p role="alert">{recordError}</p> : null}
+            {recordError ? <p role="alert">{recordError} <button type="button" className="lag-journey-button" disabled={recordLoading} onClick={() => { setRecordLoading(true); setRecordRetry((value) => value + 1); }}>기록 다시 조회</button></p> : null}
             {!recordLoading && !recordError && eligibleRecords.length === 0 ? <p>이 페이지에 연결할 수 있는 기록이 없습니다.</p> : null}
             {totalPages > 1 ? <div className="lag-journey-actions"><button type="button" className="lag-journey-button" disabled={page === 0} onClick={() => { setLifeLogId(""); setPage(page - 1); }}>이전 기록</button><span>{page + 1} / {totalPages}</span><button type="button" className="lag-journey-button" disabled={page + 1 >= totalPages} onClick={() => { setLifeLogId(""); setPage(page + 1); }}>다음 기록</button></div> : null}
           </> : null}

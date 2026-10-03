@@ -8,6 +8,7 @@ const labels: Record<string, string> = {
   WEEKLY_LOOKBACK: "주간 회고", COLLECTION: "수집 기록", EXERCISE: "운동 기록", MEDIA: "감상 기록",
   QUICK: "간편 기록", FULL: "전체 기록", QUEST: "퀘스트", QUEST_COMPLETION: "퀘스트 완료", EXP: "경험치", ITEM: "아이템",
   PERSONAL: "개인", PROFESSIONAL: "직업", FAMILY: "가족", FRIEND: "친구", MENTOR: "멘토", ARCHIVED: "보관됨",
+  ROLE_BACKEND_DEVELOPER: "백엔드 개발자", ROLE_JOB_SEEKER: "취업 준비",
   REQUIRED: "필수", OPTIONAL: "선택", ALL: "모두", ANY: "하나 이상", ACCEPTED: "수락됨", ACTIVE: "활성",
   FIGURE: "피규어", CARD: "카드", BOOK: "도서", GAME: "게임", STAMP: "우표", COIN: "동전", OTHER: "기타", RUNNING: "달리기", WALKING: "걷기", CYCLING: "자전거", SWIMMING: "수영", GYM: "헬스", YOGA: "요가", MOVIE: "영화", DRAMA: "드라마", ANIME: "애니메이션", SERIES: "시리즈", WEBTOON: "웹툰", MUSIC: "음악", WATCHING: "감상 중", ON_HOLD: "보류",
   TODO: "예정", DOING: "진행 중", DONE: "완료", DROPPED: "중단", PAUSED: "잠시 중단",
