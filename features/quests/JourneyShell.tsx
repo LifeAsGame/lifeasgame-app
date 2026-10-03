@@ -177,7 +177,7 @@ function RouteThread({ route, quests, catalog, onQuest }: { route: QuestRoute; q
                 <article>
                   <div>
                     <strong>{step.stepOrder}. {step.title}</strong>
-                    <StatusBadge state={step.state}>{humanize(step.state)}{current ? " · 현재 단계" : ""}</StatusBadge>
+                    <StatusBadge state={step.state}>{humanize(step.state)}{current && step.state !== "CURRENT" ? " · 현재 단계" : ""}</StatusBadge>
                   </div>
                   <p>{step.description ?? "단계 설명이 없습니다."}</p>
                   <p>조건: {step.criteriaSatisfied ? "충족" : "미충족"}</p>
@@ -712,7 +712,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
       <AnimatePresence initial={false} mode="popLayout">
         {detailContentKey ? (
           <PanelStage stageKey="journey-detail" panelRole="detail" side={compact ? "right" : "left"}>
-            <PanelFrame title={detailTitle} depth={0} contentKey={detailContentKey} backButton={<BackButton label={`${listTitle}으로 돌아가기`} onClick={closeDetail} />}>
+            <PanelFrame title={detailTitle} depth={0} contentKey={detailContentKey} backButton={<BackButton label="목록으로 돌아가기" onClick={closeDetail} />}>
               {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
             </PanelFrame>
           </PanelStage>
