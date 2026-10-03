@@ -76,7 +76,8 @@ describe("feature-owned Direct Friend Chat state", () => {
       .mockResolvedValueOnce(page([message(50)]))
       .mockResolvedValueOnce(page([message(100), message(99)], true, 99))
       .mockResolvedValueOnce(page([message(98), message(50)], true, 50))
-      .mockResolvedValueOnce(page([message(49)], false));
+      .mockResolvedValueOnce(page([message(49)], false))
+      .mockResolvedValueOnce(page([message(101), message(100)]));
     const { result } = renderHook(() => useDirectChat(1, 6));
     await waitFor(() => expect(result.current.channels).toEqual(channels));
     await act(async () => { await result.current.selectChannel(10); });
@@ -84,10 +85,12 @@ describe("feature-owned Direct Friend Chat state", () => {
     await waitFor(() => expect(realtime.connectFriendChat).toHaveBeenCalled());
     const onConnected = realtime.connectFriendChat.mock.calls.at(-1)![3];
     await act(async () => { onConnected(); });
-    await waitFor(() => expect(result.current.messages.map(({ id }) => id)).toEqual([49, 50, 98, 99, 100]));
+    await waitFor(() => expect(result.current.messages.map(({ id }) => id)).toEqual([49, 50, 98, 99, 100, 101]));
     expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(2, 10, null, 50);
     expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(3, 10, 99, 50);
     expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(4, 10, 50, 50);
+    expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(5, 10, null, 50);
+    expect(result.current.hasMore).toBe(false);
   });
 
   it("keeps a newer deliberate channel selection when an older friend-open finishes", async () => {

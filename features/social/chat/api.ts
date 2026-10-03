@@ -25,8 +25,8 @@ export function sendFriendMessageApi(channelId: number, content: string, clientM
     : apiPost(`/api/v1/chat/channels/${channelId}/messages`, { content, clientMessageId }, { retry: false });
 }
 
-export function markFriendReadApi(channelId: number, lastReadMessageId: number): Promise<{ lastReadMessageId: number | null; peerLastReadMessageId: number | null; unreadCount: number }> {
+export function markFriendReadApi(channelId: number, lastReadMessageId: number): Promise<unknown> {
   return USE_MOCK
-    ? Promise.resolve({ lastReadMessageId, peerLastReadMessageId: null, unreadCount: 0 })
+    ? Promise.resolve()
     : apiPost(`/api/v1/chat/channels/${channelId}/read`, { lastReadMessageId });
 }

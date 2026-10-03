@@ -245,11 +245,12 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
       if (!target) return;
       readInFlight.current.add(channelId);
       try {
-        const state = await markFriendReadApi(channelId, target);
+        await markFriendReadApi(channelId, target);
         if (generation !== accountGeneration.current) return;
         setChannels((currentChannels) => currentChannels.map((item) => item.channelId === channelId
-          ? { ...item, lastReadMessageId: Math.max(item.lastReadMessageId ?? 0, state.lastReadMessageId ?? target), unreadCount: state.unreadCount }
+          ? { ...item, lastReadMessageId: Math.max(item.lastReadMessageId ?? 0, target) }
           : item));
+        void reloadChannels();
       } catch {
         if (readTargets.current.get(channelId) === target) readTargets.current.delete(channelId);
       } finally {
@@ -257,15 +258,18 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
       }
     };
     readTimer.current = setTimeout(flush, 250);
-  }, [accountId, channels, open]);
+  }, [accountId, channels, open, reloadChannels]);
 
   useEffect(() => {
     const channelId = selectedChannelId;
     if (!open || accountId == null || !channelIds) return;
     const generation = accountGeneration.current;
-    const live = () => generation === accountGeneration.current && selectedRef.current === channelId;
+    let stopped = false;
+    let recoveryId = 0;
     const recover = async () => {
       if (channelId === null) return;
+      const currentRecovery = ++recoveryId;
+      const live = () => !stopped && currentRecovery === recoveryId && generation === accountGeneration.current && selectedRef.current === channelId;
       let cursor: number | null = null;
       for (;;) {
         try {
@@ -283,9 +287,21 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
           return;
         }
       }
-      if (live()) void reloadChannels();
+      try {
+        const fresh = await getFriendMessagesApi(channelId, null, PAGE_SIZE);
+        if (!live()) return;
+        messagesRequest.current += 1;
+        setMessages((current) => dedupe([...fresh.messages, ...current]));
+        setMessagesLoading(false);
+        setOlderLoading(false);
+        setHasMore(false);
+        setNextCursor(null);
+        void reloadChannels();
+      } catch {
+        if (live()) setConnectionStatus("failed");
+      }
     };
-    return connectFriendChat(channelIds.split(",").map(Number), (event) => {
+    const disconnect = connectFriendChat(channelIds.split(",").map(Number), (event) => {
       if (generation !== accountGeneration.current) return;
       if (event.eventType === "MESSAGE_CREATED") {
         if (event.channelId === selectedRef.current) setMessages((current) => dedupe([...current, event]));
@@ -298,6 +314,7 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
       }
       void reloadChannels();
     }, setConnectionStatus, () => { void recover(); });
+    return () => { stopped = true; recoveryId += 1; disconnect(); };
   }, [accountId, channelIds, open, playerId, reloadChannels, selectedChannelId]);
 
   useEffect(() => {
@@ -332,6 +349,8 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
     setConnectionStatus(null);
     if (accountId !== null) void reloadChannels();
   }, [accountId, reloadChannels]);
+
+  useEffect(() => { if (open && openingPeerId === null && accountId != null) void reloadChannels(); }, [accountId, open, openingPeerId, reloadChannels]);
 
   return {
     open,
