@@ -51,7 +51,8 @@ export function connectFriendChat(channelIds: number[], onEvent: (event: ChatEve
       void client.deactivate();
     },
     onWebSocketClose: () => {
-      if (stopped || authFailed || !tokenStorage.read()) return;
+      if (stopped || authFailed) return;
+      if (!tokenStorage.read()) { onStatus("failed"); void client.deactivate(); return; }
       onStatus("reconnecting");
     },
   });

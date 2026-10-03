@@ -49,6 +49,11 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
   const draft = selectedChannelId === null ? "" : drafts[selectedChannelId]?.value ?? "";
   const channelIds = channels.map(({ channelId }) => channelId).join(",");
 
+  useEffect(() => () => {
+    if (readTimer.current) clearTimeout(readTimer.current);
+    readTargets.current.clear();
+  }, []);
+
   const setDraft = useCallback((value: string) => {
     const channelId = selectedRef.current;
     if (channelId === null) return;
