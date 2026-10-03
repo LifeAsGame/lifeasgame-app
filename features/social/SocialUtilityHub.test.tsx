@@ -5,7 +5,7 @@ import { directChatMock } from "./chat/mock";
 import { connectionsMock } from "./mock";
 import SocialUtilityHub from "./SocialUtilityHub";
 
-vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ playerId: 6 }) }));
+vi.mock("@/features/auth/AuthContext", () => ({ useAuth: () => ({ playerId: 6, session: { userId: 1 } }) }));
 vi.mock("@/shared/api/client", async (importOriginal) => ({ ...await importOriginal<typeof import("@/shared/api/client")>(), USE_MOCK: true }));
 
 describe("global Social utility ownership", () => {

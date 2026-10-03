@@ -43,6 +43,9 @@ export interface FriendChatChannel {
   channelId: number;
   peer: FriendChatPeer;
   readOnly: boolean;
+  lastReadMessageId?: number | null;
+  peerLastReadMessageId?: number | null;
+  unreadCount?: number;
 }
 
 export interface ChatChannel {

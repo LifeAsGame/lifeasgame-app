@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 
+import { useAuth } from "@/features/auth/AuthContext";
 import ConnectionsDrawer from "./ConnectionsDrawer";
 import DirectChatDrawer from "./chat/DirectChatDrawer";
 import { useDirectChat } from "./chat/useDirectChat";
 
 export default function SocialUtilityHub() {
   const [connectionsOpen, setConnectionsOpen] = useState(false);
-  const chat = useDirectChat();
+  const { session, playerId } = useAuth();
+  const chat = useDirectChat(session?.userId ?? null, playerId);
 
   return (
     <>

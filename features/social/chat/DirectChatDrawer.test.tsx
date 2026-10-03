@@ -61,7 +61,7 @@ it("renders canonical identity fields and opens an existing read-only channel wi
   expect(openFriendChat).not.toHaveBeenCalled();
 
   const source = readFileSync("features/social/chat/DirectChatDrawer.tsx", "utf8");
-  expect(source).not.toMatch(/group|guild|party|Role Relation|presence|unread|read receipt|data-theme/i);
+  expect(source).not.toMatch(/group|guild|party|Role Relation|presence|data-theme/i);
   const css = readFileSync("app/globals.css", "utf8");
   const socialCss = css.slice(css.indexOf("/* v7 Social utilities"), css.indexOf(".lag-semantic-controls"));
   expect(socialCss).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(/i);
@@ -108,6 +108,34 @@ it("keeps blocked history visible and requires explicit open or send retry", () 
   fireEvent.click(screen.getByRole("button", { name: "전송 재시도" }));
   expect(openFriendChat).toHaveBeenCalledWith(70);
   expect(retryBlockedSend).toHaveBeenCalledTimes(1);
+});
+
+it("marks only a visible peer message and never submits during IME composition", () => {
+  const markVisibleRead = vi.fn();
+  const send = vi.fn();
+  const chat = {
+    open: true, setOpen: vi.fn(),
+    channels: [{ channelId: 10, peer: { playerId: 70, name: "A", job: null, level: 1 }, readOnly: false }],
+    selectedChannelId: 10,
+    messages: [{ id: 8, channelId: 10, senderId: 70, content: "hello", edited: false, createdAt: "2026-08-18T00:00:00Z" }],
+    messagesLoading: false, hasMore: false, olderLoading: false, draft: "reply", sending: false,
+    markVisibleRead, send,
+  } as unknown as DirectChatState;
+  render(<DirectChatDrawer chat={chat} />);
+  const list = document.querySelector(".lag-chat-message-list")!;
+  const peer = document.querySelector("article[data-owner=peer]")!;
+  list.getBoundingClientRect = () => ({ top: 0, bottom: 100 } as DOMRect);
+  peer.getBoundingClientRect = () => ({ top: 20, bottom: 60 } as DOMRect);
+  fireEvent.scroll(list);
+  expect(markVisibleRead).toHaveBeenCalledWith(8);
+
+  const input = screen.getByRole("textbox", { name: "메시지" });
+  fireEvent.compositionStart(input);
+  fireEvent.submit(input.closest("form")!);
+  expect(send).not.toHaveBeenCalled();
+  fireEvent.compositionEnd(input);
+  fireEvent.submit(input.closest("form")!);
+  expect(send).toHaveBeenCalledTimes(1);
 });
 
 it("renders an authoritative deterministic timestamp before client localization", () => {

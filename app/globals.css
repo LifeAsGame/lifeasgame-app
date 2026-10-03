@@ -2155,6 +2155,19 @@ body {
   padding: var(--lag-space-4);
 }
 
+.lag-chat-connection,
+.lag-chat-new-below {
+  align-self: center;
+  padding: var(--lag-space-1) var(--lag-space-3);
+  color: var(--lag-text-2);
+  font-size: 0.7rem;
+}
+
+.lag-chat-unread {
+  color: var(--lag-focus) !important;
+  font-weight: 700;
+}
+
 .lag-chat-load-older {
   align-self: center;
 }

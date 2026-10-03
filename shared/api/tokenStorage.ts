@@ -1,6 +1,7 @@
 import type { TokenPair } from "./types";
 
 export const AUTH_EXPIRED_EVENT = "lag:auth-expired";
+export const TOKEN_CHANGED_EVENT = "lag:token-changed";
 export const TOKEN_STORAGE_KEY = "lag_auth_session";
 
 function isTokenPair(value: unknown): value is TokenPair {
@@ -31,6 +32,7 @@ function read(): TokenPair | null {
 function write(session: TokenPair): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(session));
+  window.dispatchEvent(new Event(TOKEN_CHANGED_EVENT));
 }
 
 function clear(): void {
