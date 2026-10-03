@@ -84,6 +84,14 @@ describe("canonical Exchange surfaces", () => {
     api.purchaseListingApi.mockResolvedValue({ id: 401, listingId: 201, buyerId: 7, sellerId: 24, price: 1_800, currency: "GEM" });
   });
 
+  it("빈 시스템 상점에서도 결제 준비 상태와 사용자 간 거래 가능 상태를 구분한다", async () => {
+    api.getShopItemsApi.mockResolvedValue([]);
+    render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
+
+    expect(await screen.findByText("시스템 상점 상품이 없습니다. 결제는 준비 중입니다.")).toBeInTheDocument();
+    expect(screen.getByText("시스템 상점은 준비 중입니다. 사용자 간 거래는 이용할 수 있습니다.")).toBeInTheDocument();
+  });
+
   it("수량 snapshot과 전체 가격을 표시하고 이름 실패를 목록 실패로 바꾸지 않는다", async () => {
     const listings = [1, 7, null, undefined].map((saleQuantity, index) => ({ ...openListings[1], id: 201 + index, ...(saleQuantity === undefined ? {} : { saleQuantity }) }));
     api.getOpenListingsApi.mockResolvedValue(listings);
@@ -178,7 +186,7 @@ describe("canonical Exchange surfaces", () => {
     fireEvent.click(screen.getByRole("button", { name: /Item #5010/ }));
     expect(document.querySelector('[data-stage-key="market-stage-2"]')).toBe(detail);
     expect(screen.queryByRole("button", { name: "Purchase" })).not.toBeInTheDocument();
-    expect(screen.getByText("This item is unavailable.")).toBeInTheDocument();
+    expect(screen.getByText("현재 구매할 수 없는 상품입니다.")).toBeInTheDocument();
     expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
     expect(focus).not.toHaveBeenCalled();
     window.removeEventListener(STAGE_FOCUS_EVENT, focus);
@@ -234,7 +242,7 @@ describe("canonical Exchange surfaces", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh Purchase Status" }));
 
-    expect(await screen.findByText("Transaction status: COMPLETED. Item delivery is not confirmed.")).toBeInTheDocument();
+    expect(await screen.findByText("거래 상태는 완료지만 아이템 배송은 확인되지 않았습니다.")).toBeInTheDocument();
     expect(screen.getByText("Status").nextElementSibling).toHaveTextContent("COMPLETED");
     expect(screen.queryByText("Purchase completed.")).not.toBeInTheDocument();
     expect(api.confirmShopPurchaseApi).not.toHaveBeenCalled();
