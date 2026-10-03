@@ -195,7 +195,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       await screen.findByText(/퀘스트 진행률/);
       expect(document.querySelector('[data-stage-key="journey-detail"]')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: "진행 퀘스트으로 돌아가기" }));
+      fireEvent.click(screen.getByRole("button", { name: "목록으로 돌아가기" }));
       await waitFor(() => expect(document.querySelector('[data-stage-key="journey-detail"]')).not.toBeInTheDocument());
       expect(document.querySelector('[data-stage-key="journey-list"]')).toBeInTheDocument();
       await waitFor(() => expect(screen.getByRole("button", { name: /흔적 세 개 이어보기/ })).toHaveFocus());
@@ -462,6 +462,8 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발자의 길/ }));
       const thread = await screen.findByRole("region", { name: "경로의 단계 순서" });
       expect(thread.querySelectorAll("ol > li")).toHaveLength(7);
+      expect(within(thread).getByText("현재 단계", { exact: true })).toBeInTheDocument();
+      expect(within(thread).queryByText("현재 단계 · 현재 단계")).not.toBeInTheDocument();
       expect(within(thread).getByRole("button", { name: "Required Quest 1" })).toBeInTheDocument();
       expect(within(thread).queryByRole("button", { name: "Required Quest 2" })).not.toBeInTheDocument();
       fireEvent.click(within(thread).getByRole("button", { name: "Required Quest 1" }));
