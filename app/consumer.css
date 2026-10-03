@@ -419,3 +419,11 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
   .sao-stage .lag-inventory-filters { padding-inline:16px; }
 }
 .sao-stage .lag-collection-categories { padding:0 12px; }
+.lag-first-role { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--lag-paper); color: var(--lag-text); }
+.lag-first-role-panel { width: min(100%, 540px); border: 1px solid var(--lag-divider); border-radius: var(--lag-radius-md); background: var(--lag-panel); box-shadow: 0 16px 48px color-mix(in srgb, var(--lag-shadow) 20%, transparent); padding: 24px; }
+.lag-first-role-panel header { padding: 4px 4px 20px; }
+.lag-first-role-panel header p { color: var(--lag-text-2); font-size: 12px; }
+.lag-first-role-panel header h1 { margin: 8px 0; font-size: 22px; font-weight: 700; }
+.lag-first-role-panel header span { color: var(--lag-text-2); font-size: 13px; }
+.lag-first-role-panel .lag-role-form { display: grid; gap: 16px; }
+.lag-first-role-panel .lag-role-form :is(input,select,textarea) { width: 100%; min-width: 0; font-size: 16px; }

@@ -136,7 +136,7 @@ export default function ConnectionsDrawer({ open: controlledOpen, onOpenChange, 
 
             <footer className="lag-connection-pagination">
               <button type="button" disabled={pageIndex === 0} onClick={() => { setSelectedId(null); setActionRow(null); setPage((current) => current - 1); }} className="lag-social-button">이전</button>
-              <span>{page.totalPages === 0 ? 0 : page.page + 1} / {page.totalPages} 페이지</span>
+              <span>{page.page + 1} / {Math.max(1, page.totalPages)} 페이지</span>
               <button type="button" disabled={pageIndex + 1 >= page.totalPages} onClick={() => { setSelectedId(null); setActionRow(null); setPage((current) => current + 1); }} className="lag-social-button">다음</button>
             </footer>
             {selected ? <section className="lag-connection-detail" aria-label="연결 상세">

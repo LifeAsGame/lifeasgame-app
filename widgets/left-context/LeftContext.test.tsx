@@ -116,7 +116,7 @@ describe("LeftContext에서 Role을 사용할 때", () => {
 
     expect(screen.getByText("장착됨 · 아이템 #999")).toBeInTheDocument();
     expect(screen.queryByText("Elucidator")).not.toBeInTheDocument();
-    expect(screen.getByText("HEAD")).toBeInTheDocument();
+    expect(screen.queryByText("HEAD")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Head/ }));
     expect(screen.getByText("아이템 번호").parentElement).toHaveTextContent("999");
     expect(screen.queryByText("Category")).not.toBeInTheDocument();

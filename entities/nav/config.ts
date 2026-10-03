@@ -73,8 +73,8 @@ export const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string | null> = {
 };
 
 export const INVENTORY_GEAR_PARTS: PanelMenuItem[] = [
-  { id: "weapon",    label: "Weapon",    slotLabel: "WP" },
-  { id: "armor",     label: "Armor",     slotLabel: "AR" },
-  { id: "accessory", label: "Accessory", slotLabel: "AC" },
-  { id: "boots",     label: "Boots",     slotLabel: "BT" },
+  { id: "weapon",    label: "무기",   slotLabel: "무" },
+  { id: "armor",     label: "방어구", slotLabel: "방" },
+  { id: "accessory", label: "장신구", slotLabel: "장" },
+  { id: "boots",     label: "신발",   slotLabel: "신" },
 ];
