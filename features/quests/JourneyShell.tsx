@@ -40,6 +40,37 @@ import {
 import { useJourneyQueries } from "./useJourneyQueries";
 import RewardSettlementPanel from "./RewardSettlementPanel";
 import { RECORD_SAVED_EVENT } from "@/features/lifelog/api";
+import { listRolesApi } from "@/features/role/api";
+import type { RoleDetail } from "@/shared/api/types";
+import BackendQuestEvidence, { BACKEND_QUEST_CODES, backendQuestCode } from "./BackendQuestEvidence";
+
+const BACKEND_ROUTE_CODE = "ROUTE_BACKEND_DEVELOPER_START";
+
+function BackendRoleSelect({ disabled, onSelect }: { disabled: boolean; onSelect: (roleId: number) => void }) {
+  const [roles, setRoles] = useState<RoleDetail[]>([]);
+  const [roleId, setRoleId] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    void listRolesApi().then((result) => { if (active) setRoles(result.filter((role) => role.status === "ACTIVE" && ["ROLE_BACKEND_DEVELOPER", "ROLE_JOB_SEEKER"].includes(role.roleType))); })
+      .catch((caught) => { if (active) setError(message(caught, "Role 조회 실패")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+  return <div className="lag-journey-actions">
+    <label>이 여정의 Role
+      <select className="lag-journal-control" value={roleId} onChange={(event) => setRoleId(event.target.value)}>
+        <option value="">활성 Role 선택</option>
+        {roles.map((role) => <option key={role.id} value={role.id}>{role.name} · {role.roleType}</option>)}
+      </select>
+    </label>
+    {error ? <p role="alert">{error}</p> : null}
+    {loading ? <p>Role을 불러오는 중…</p> : null}
+    {!loading && !error && roles.length === 0 ? <p>역할 메뉴에서 ROLE_BACKEND_DEVELOPER 또는 ROLE_JOB_SEEKER 유형의 활성 Role을 만드세요.</p> : null}
+    <button type="button" className="lag-journey-action" disabled={disabled || !roleId} onClick={() => onSelect(Number(roleId))}>경로 선택</button>
+  </div>;
+}
 
 const SURFACE_COPY: Record<QuestsSubId, string> = {
   current: "수락한 퀘스트의 진행을 확인하세요.",
@@ -130,7 +161,7 @@ function currentStepPosition(route: QuestRoute) {
   return index < 0 ? null : `${steps.length}단계 중 ${index + 1}단계`;
 }
 
-function RouteThread({ route, quests }: { route: QuestRoute; quests: QuestAcceptance[] }) {
+function RouteThread({ route, quests, catalog, onQuest }: { route: QuestRoute; quests: QuestAcceptance[]; catalog: { code: string; title: string }[]; onQuest: (code: string) => void }) {
   const steps = orderedSteps(route);
   return (
     <section className="lag-route-thread" aria-label="경로의 단계 순서">
@@ -152,7 +183,9 @@ function RouteThread({ route, quests }: { route: QuestRoute; quests: QuestAccept
                     <ul aria-label={`${step.title}의 퀘스트 조건`}>
                       {step.questLinks.map((link) => {
                         const quest = quests.find((item) => item.questId === link.questId);
-                        return <li key={link.questId}>필요 조건: {quest?.title ?? `퀘스트 #${link.questId}`} · {humanize(link.requirementType)}</li>;
+                        const code = route.code === BACKEND_ROUTE_CODE && current ? backendQuestCode(step.stepCode) : null;
+                        const title = quest?.title ?? catalog.find((item) => item.code === code)?.title ?? `퀘스트 #${link.questId}`;
+                        return <li key={link.questId}>필요 조건: {code ? <button type="button" className="lag-journey-button" onClick={() => onQuest(code)}>{title}</button> : title} · {humanize(link.requirementType)}</li>;
                       })}
                     </ul>
                   ) : <p>연결된 퀘스트 조건이 없습니다.</p>}
@@ -256,7 +289,6 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   const selectedAcceptance = queries.current.data.find((item) => item.id === selectedAcceptanceId) ?? null;
   const selectedBlueprint = queries.catalog.data.find((item) => item.code === selectedCatalogCode) ?? null;
   const selectedRoute = routes.find((item) => item.id === selectedRouteId) ?? null;
-  const routePreviewOpened = useRef(false);
 
   const loadQuestDetail = async (code: string, preserve = false) => {
     const requestId = ++questDetailRequestId.current;
@@ -304,18 +336,6 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
       }
     }
   };
-
-  useEffect(() => {
-    if (onNavigate || surface !== "routes") {
-      routePreviewOpened.current = false;
-      return;
-    }
-    if (routePreviewOpened.current || selectedRouteId !== null || queries.routes.loading) return;
-    const currentRoute = routes.find((route) => route.playerProgress);
-    if (!currentRoute) return;
-    routePreviewOpened.current = true;
-    setSelectedRouteId(currentRoute.id);
-  }, [onNavigate, routes, queries.routes.loading, selectedRouteId, surface]);
 
   useEffect(() => {
     if (!navigation) return;
@@ -383,18 +403,29 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   };
 
   const recoverQuest = async (code: string, isCurrent: () => boolean) => {
-    const [current, catalog] = await Promise.all([queries.current.reload(), queries.catalog.reload()]);
-    if (!current || !catalog) throw new Error("퀘스트 목록 재조회 실패");
+    const [current, catalog, routes] = await Promise.all([queries.current.reload(), queries.catalog.reload(), BACKEND_QUEST_CODES.some((item) => item === code) ? queries.routes.reload() : Promise.resolve(true)]);
+    if (!current || !catalog || !routes) throw new Error("퀘스트/경로 목록 재조회 실패");
     if (isCurrent()) await loadQuestDetail(code, true);
   };
 
-  const selectRoute = async (route: QuestRoute) => {
+  const selectRoute = async (route: QuestRoute, roleId?: number) => {
     if (!await confirm(`${route.title} 경로를 선택할까요?`)) return;
-    await runMutation(`select-${route.id}`, () => selectQuestRouteApi(route.id), async (isCurrent) => {
+    await runMutation(`select-${route.id}`, () => selectQuestRouteApi(route.id, roleId), async (isCurrent) => {
       const latest = await queries.routes.reload();
       if (!latest) throw new Error("경로 목록 재조회 실패");
       if (isCurrent()) await loadRouteDetail(route.id, latest.mine.some((item) => item.id === route.id), true);
     });
+  };
+
+  const openRequiredQuest = (code: string) => {
+    const accepted = latestAcceptance(queries.current.data, code);
+    const nextSurface: QuestsSubId = accepted && accepted.status !== "CANCELED" ? "current" : "catalog";
+    clearDetail();
+    setSurface(nextSurface);
+    if (nextSurface === "current" && accepted) setSelectedAcceptanceId(accepted.id);
+    else setSelectedCatalogCode(code);
+    writeRoute(nextSurface, nextSurface === "current" ? String(accepted?.id) : code);
+    void loadQuestDetail(code);
   };
 
   const advanceRoute = async (route: QuestRoute) => {
@@ -499,6 +530,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     if (detail?.loading && !detail.data) return <InfoCard>퀘스트 상세를 불러오는 중…</InfoCard>;
     if (detail?.error && !detail.data) return <ErrorState text={detail.error} retry={() => void loadQuestDetail(selectedAcceptance.code)} />;
     const percent = questProgressPercent(selectedAcceptance);
+    const detailEpoch = navigationEpoch.current;
     return (
       <article className="lag-journey-detail">
         {detail?.error ? <p role="alert" className="lag-journey-feedback" data-state="error">{detail.error}</p> : null}
@@ -520,6 +552,12 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
         {selectedAcceptance.status === "GOAL_REACHED" ? <p className="lag-journey-feedback" data-state="warning">목표에 도달했습니다. 완료 확정과는 다릅니다.</p> : null}
         {selectedAcceptance.code === "Q_ADVENTURE_PREPARATION" ? <p className="lag-journey-feedback">수락 후 직접 작성한 서로 다른 기록 3건을 남기세요. 보상은 GOLD 100과 기록 결정 1개이며 계정당 한 번 지급됩니다.</p> : null}
         {selectedAcceptance.code === "Q_RECORD_WEEKLY_LOOKBACK" ? <p className="lag-journey-feedback">이 퀘스트는 같은 주에 작성한 전체 기록의 주간 회고만 인정합니다. 간편 기록과 일반 기록은 제외됩니다. 생활 기록 → 수집 기록에서 종류를 두 번 누른 뒤 주간 회고를 선택해 작성하세요.</p> : null}
+        {BACKEND_QUEST_CODES.some((code) => code === selectedAcceptance.code) ? <BackendQuestEvidence
+          key={selectedAcceptance.id}
+          quest={selectedAcceptance}
+          roleId={routes.find((route) => route.code === BACKEND_ROUTE_CODE)?.playerProgress?.roleId ?? null}
+          onChanged={() => recoverQuest(selectedAcceptance.code, () => detailEpoch === navigationEpoch.current)}
+        /> : null}
         {selectedAcceptance.status === "COMPLETED" && detail?.data?.rewardProfileCode && detail.data.rewardProfileCode !== "RP_NONE" ? <RewardSettlementPanel key={selectedAcceptance.id} acceptanceId={selectedAcceptance.id} /> : detail?.data && (!detail.data.rewardProfileCode || detail.data.rewardProfileCode === "RP_NONE") ? <p className="lag-journey-feedback">이 퀘스트에는 정산 보상이 없습니다.</p> : null}
         {(canManualCheckQuest(selectedAcceptance) || canCancelQuest(selectedAcceptance)) ? (
           <section className="lag-journey-actions" aria-label="퀘스트 동작">
@@ -559,16 +597,17 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
           <DetailRow name="목표" value={`${humanize(selectedBlueprint.targetType)} × ${selectedBlueprint.targetValue}`} />
           <DetailRow name="완료 방식" value={humanize(selectedBlueprint.completionPolicy)} />
           <DetailRow name="반복" value={humanize(selectedBlueprint.repeatPolicy ?? selectedBlueprint.repeatRule)} />
-          <DetailRow name="보상" value={selectedBlueprint.code === "Q_ADVENTURE_PREPARATION" ? "GOLD 100 + 기록 결정 × 1 · 계정당 한 번" : "완료 후 확정된 보상 정산을 확인하세요."} />
+          <DetailRow name="보상" value={selectedBlueprint.code === "Q_ADVENTURE_PREPARATION" ? "GOLD 100 + 기록 결정 × 1 · 계정당 한 번" : selectedBlueprint.rewardProfileCode === "RP_NONE" ? "추가 보상 없음" : selectedBlueprint.rewardProfileCode === "RP_EXP_TINY_10" ? "EXP 10" : selectedBlueprint.rewardProfileCode === "RP_EXP_AND_ITEM_FIRST_STEP_20" ? "EXP 20 + 첫걸음의 조각 1개(우편 배송, 수령 별도)" : "완료 후 확정된 보상 정산을 확인하세요."} />
         </DetailSection>
         {selectedBlueprint.code === "Q_ADVENTURE_PREPARATION" ? <p className="lag-journey-feedback">수락 후 직접 작성한 서로 다른 기록 3건을 남기세요. 기록 결정은 보관하거나 선택적으로 거래할 수 있습니다. 거래는 성장의 필수 단계가 아닙니다.</p> : null}
-        {acceptance ? <RewardSettlementPanel key={acceptance.id} acceptanceId={acceptance.id} /> : null}
+        {acceptance && selectedBlueprint.rewardProfileCode !== "RP_NONE" && (!BACKEND_QUEST_CODES.some((code) => code === selectedBlueprint.code) || acceptance.status === "COMPLETED") ? <RewardSettlementPanel key={acceptance.id} acceptanceId={acceptance.id} /> : null}
         {!acceptanceKnown ? <p className="lag-journey-feedback" data-state="warning">수락 상태를 확인할 수 없습니다. 진행 퀘스트를 다시 조회한 뒤 수락할 수 있습니다.</p> : null}
         {acceptAction ? (
           <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={async () => {
             if (await confirm(`${acceptLabel} ${selectedBlueprint.title}?`)) void runMutation(`accept-${selectedBlueprint.code}`, () => acceptQuestApi(selectedBlueprint.code), (isCurrent) => recoverQuest(selectedBlueprint.code, isCurrent));
           }}>{acceptLabel}</button>
         ) : null}
+        {acceptance && acceptance.status !== "CANCELED" && BACKEND_QUEST_CODES.some((code) => code === selectedBlueprint.code) ? <button type="button" className="lag-journey-button" onClick={() => openRequiredQuest(selectedBlueprint.code)}>{acceptance.status === "COMPLETED" ? "완료 결과 보기" : "근거 연결·진행 확인"}</button> : null}
       </article>
     );
   };
@@ -601,10 +640,12 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
             {percent !== null ? <div className="lag-journey-detail-progress"><ProgressBar label="완료한 경로 단계" percent={percent} valueText={`${completedSteps} / ${steps.length} 완료 (${percent}%)`} /></div> : null}
           </DetailSection>
         ) : null}
-        <RouteThread route={route} quests={queries.current.data} />
+        <RouteThread route={route} quests={queries.current.data} catalog={queries.catalog.data} onQuest={openRequiredQuest} />
+        {route.code === BACKEND_ROUTE_CODE && progress ? <p className="lag-journey-feedback">선택한 Role #{progress.roleId ?? "확인 중"} · 여정 선택은 퀘스트를 자동 수락하지 않습니다. 현재 단계의 필수 퀘스트를 직접 수락하고 근거를 연결하세요.</p> : null}
         {detailState?.step ? <InfoCard>현재 단계 상세: {detailState.step.step.title} · {humanize(detailState.step.step.state)}</InfoCard> : null}
         <section className="lag-journey-actions" aria-label="경로 동작">
-          {!progress ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void selectRoute(route)}>경로 선택</button> : null}
+          {!progress && route.code === BACKEND_ROUTE_CODE ? <BackendRoleSelect disabled={Boolean(pending)} onSelect={(roleId) => void selectRoute(route, roleId)} /> : null}
+          {!progress && route.code !== BACKEND_ROUTE_CODE ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void selectRoute(route)}>경로 선택</button> : null}
           {canAdvance ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void advanceRoute(route)}>다음 단계로</button> : null}
         </section>
         {progress?.status === "COMPLETED" ? <p className="lag-journey-feedback" data-state="success">✓ 마지막 단계 전진을 통해 경로를 완료했습니다.</p> : null}

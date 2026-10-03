@@ -4006,6 +4006,23 @@ textarea.lag-journal-control {
   gap: var(--lag-space-3);
 }
 
+.lag-backend-evidence-form {
+  display: grid;
+  gap: var(--lag-space-3);
+  padding: var(--lag-space-4);
+}
+
+.lag-backend-evidence-form .lag-journal-field,
+.lag-journey-actions > label {
+  min-width: 0;
+  width: 100%;
+}
+
+.lag-backend-evidence-form .lag-journal-control,
+.lag-journey-actions > label .lag-journal-control {
+  width: 100%;
+}
+
 .lag-journey-action,
 .lag-journey-button {
   min-height: 44px;

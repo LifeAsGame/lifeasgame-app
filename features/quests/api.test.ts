@@ -4,6 +4,8 @@ import {
   acceptQuestApi,
   advanceQuestRouteApi,
   cancelQuestApi,
+  completeQuestApi,
+  getQuestEvidenceApi,
   getMyQuestRouteApi,
   getMyQuestRouteStepApi,
   getPlayerQuestApi,
@@ -14,7 +16,9 @@ import {
   listQuestCatalogApi,
   listQuestRoutesApi,
   manualCheckQuestApi,
+  linkQuestEvidenceApi,
   selectQuestRouteApi,
+  unlinkQuestEvidenceApi,
 } from "./api";
 import { journeyMock, resetJourneyMock } from "./mock";
 import type { AcceptQuestRequest, CancelQuestRequest, QuestStatus } from "@/shared/api/types";
@@ -24,6 +28,7 @@ const client = vi.hoisted(() => ({
   apiGet: vi.fn(),
   apiGetRaw: vi.fn(),
   apiPost: vi.fn(),
+  apiPut: vi.fn(),
 }));
 
 vi.mock("@/shared/api/client", () => ({ USE_MOCK: false, ...client }));
@@ -118,6 +123,26 @@ describe("Journey API를 실제 backend에 연결할 때", () => {
       expect(client.apiPost).toHaveBeenNthCalledWith(1, "/api/v1/quest-routes/7/select", {});
       expect(client.apiPost).toHaveBeenNthCalledWith(2, "/api/v1/quest-routes/my/7/advance", { expectedStepId: 9 });
     });
+
+    it("백엔드 여정 선택 시 서버 소유 Role ID를 전달한다", async () => {
+      await selectQuestRouteApi(17, 23);
+      expect(client.apiPost).toHaveBeenCalledWith("/api/v1/quest-routes/17/select", { roleId: 23 });
+    });
+  });
+
+  it("근거 연결과 완료를 별개 명령으로 보내며 조회·해제를 구분한다", async () => {
+    await getQuestEvidenceApi("Q/DEV");
+    await linkQuestEvidenceApi("Q/DEV", { memo: "Goal" });
+    await linkQuestEvidenceApi("Q/DEV", { lifeLogId: 31 });
+    await linkQuestEvidenceApi("Q/DEV", { url: "https://example.org", description: "Demo" });
+    await unlinkQuestEvidenceApi("Q/DEV");
+    await completeQuestApi("Q/DEV");
+    expect(client.apiGet).toHaveBeenCalledWith("/api/v1/players/quests/Q%2FDEV/evidence");
+    expect(client.apiPut).toHaveBeenNthCalledWith(1, "/api/v1/players/quests/Q%2FDEV/evidence/memo", { memo: "Goal" });
+    expect(client.apiPut).toHaveBeenNthCalledWith(2, "/api/v1/players/quests/Q%2FDEV/evidence/life-log", { lifeLogId: 31 });
+    expect(client.apiPut).toHaveBeenNthCalledWith(3, "/api/v1/players/quests/Q%2FDEV/evidence/deployment", { url: "https://example.org", description: "Demo" });
+    expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/quests/Q%2FDEV/evidence");
+    expect(client.apiPost).toHaveBeenCalledWith("/api/v1/players/quests/Q%2FDEV/complete", {});
   });
 
   describe("mock mode 계약을 구성하면", () => {
