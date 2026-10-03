@@ -41,7 +41,6 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
   const sendLocked = useRef(new Set<number>());
   const openLocked = useRef(false);
   const accountGeneration = useRef(0);
-  const messagesRef = useRef<ChatMessage[]>([]);
   const pendingKeys = useRef(new Map<number, { revision: number; content: string; key: string }>());
   const readTargets = useRef(new Map<number, number>());
   const readInFlight = useRef(new Set<number>());
@@ -49,7 +48,6 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
   const selected = channels.find(({ channelId }) => channelId === selectedChannelId);
   const draft = selectedChannelId === null ? "" : drafts[selectedChannelId]?.value ?? "";
   const channelIds = channels.map(({ channelId }) => channelId).join(",");
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const setDraft = useCallback((value: string) => {
     const channelId = selectedRef.current;
@@ -109,7 +107,6 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
     readTargets.current.clear();
     selectionIntent.current += 1;
     selectedRef.current = channelId;
-    messagesRef.current = [];
     setSelectedChannelId(channelId);
     setMessages([]);
     setHasMore(false);
@@ -269,14 +266,17 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
     const live = () => generation === accountGeneration.current && selectedRef.current === channelId;
     const recover = async () => {
       if (channelId === null) return;
-      const known = new Set(messagesRef.current.map(({ id }) => id));
       let cursor: number | null = null;
       for (;;) {
         try {
           const page = await getFriendMessagesApi(channelId, cursor, PAGE_SIZE);
           if (!live()) return;
           setMessages((current) => dedupe([...page.messages, ...current]));
-          if (!known.size || page.messages.some(({ id }) => known.has(id)) || !page.hasMore || page.nextCursor === null || (cursor !== null && page.nextCursor >= cursor)) break;
+          if (!page.hasMore) break;
+          if (page.nextCursor === null || (cursor !== null && page.nextCursor >= cursor)) {
+            setConnectionStatus("failed");
+            return;
+          }
           cursor = page.nextCursor;
         } catch {
           if (live()) setConnectionStatus("failed");
@@ -306,7 +306,6 @@ export function useDirectChat(accountId?: number | null, playerId?: number | nul
     messagesRequest.current += 1;
     selectionIntent.current += 1;
     selectedRef.current = null;
-    messagesRef.current = [];
     sendLocked.current.clear();
     openLocked.current = false;
     pendingKeys.current.clear();
