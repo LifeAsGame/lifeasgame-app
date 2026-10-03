@@ -72,8 +72,8 @@ export function selectQuestRouteApi(routeId: number, roleId?: number): Promise<Q
   return USE_MOCK ? Promise.resolve(journeyMock.selectRoute()) : apiPost<QuestRoute>(`/api/v1/quest-routes/${routeId}/select`, roleId === undefined ? {} : { roleId });
 }
 
-export function getQuestEvidenceApi(questCode: string): Promise<QuestEvidence | null> {
-  return apiGet<QuestEvidence | null>(`${playerQuestPath(questCode)}/evidence`);
+export async function getQuestEvidenceApi(questCode: string): Promise<QuestEvidence | null> {
+  return await apiGet<QuestEvidence | undefined>(`${playerQuestPath(questCode)}/evidence`) ?? null;
 }
 
 export function linkQuestEvidenceApi(questCode: string, evidence: QuestEvidenceInput): Promise<QuestAcceptance> {

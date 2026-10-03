@@ -131,7 +131,8 @@ describe("Journey API를 실제 backend에 연결할 때", () => {
   });
 
   it("근거 연결과 완료를 별개 명령으로 보내며 조회·해제를 구분한다", async () => {
-    await getQuestEvidenceApi("Q/DEV");
+    client.apiGet.mockResolvedValueOnce(undefined);
+    await expect(getQuestEvidenceApi("Q/DEV")).resolves.toBeNull();
     await linkQuestEvidenceApi("Q/DEV", { memo: "Goal" });
     await linkQuestEvidenceApi("Q/DEV", { lifeLogId: 31 });
     await linkQuestEvidenceApi("Q/DEV", { url: "https://example.org", description: "Demo" });
