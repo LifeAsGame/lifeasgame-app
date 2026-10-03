@@ -8,6 +8,7 @@ import { useDirectChat } from "./useDirectChat";
 const api = vi.hoisted(() => ({
   getFriendChannelsApi: vi.fn(),
   getFriendMessagesApi: vi.fn(),
+  markFriendReadApi: vi.fn(),
   openFriendChannelApi: vi.fn(),
   sendFriendMessageApi: vi.fn(),
 }));
@@ -37,6 +38,7 @@ describe("feature-owned Direct Friend Chat state", () => {
     realtime.connectFriendChat.mockImplementation(() => vi.fn());
     api.getFriendChannelsApi.mockResolvedValue(channels);
     api.getFriendMessagesApi.mockResolvedValue(page([]));
+    api.markFriendReadApi.mockResolvedValue(undefined);
   });
 
   it("ignores stale channel results when selection changes", async () => {
@@ -91,6 +93,17 @@ describe("feature-owned Direct Friend Chat state", () => {
     expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(4, 10, 50, 50);
     expect(api.getFriendMessagesApi).toHaveBeenNthCalledWith(5, 10, null, 50);
     expect(result.current.hasMore).toBe(false);
+  });
+
+  it("coalesces visible read targets and keeps the read position after refresh", async () => {
+    const { result } = renderHook(() => useDirectChat());
+    await waitFor(() => expect(result.current.channels).toEqual(channels));
+    await act(async () => { await result.current.selectChannel(10); });
+    act(() => result.current.setOpen(true));
+    act(() => { result.current.markVisibleRead(2); result.current.markVisibleRead(3); });
+    await waitFor(() => expect(api.markFriendReadApi).toHaveBeenCalledWith(10, 3));
+    expect(api.markFriendReadApi).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.channels[0].lastReadMessageId).toBe(3));
   });
 
   it("keeps a newer deliberate channel selection when an older friend-open finishes", async () => {
