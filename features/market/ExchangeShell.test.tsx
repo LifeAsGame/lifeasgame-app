@@ -384,10 +384,13 @@ describe("canonical Exchange surfaces", () => {
     expect(screen.getByLabelText("총 가격")).toHaveAttribute("step", "1");
     fireEvent.change(screen.getByLabelText("총 가격"), { target: { value: "1.5" } });
     const form = screen.getByLabelText("총 가격").closest("form")!;
+    expect(within(form).getByRole("alert")).toHaveTextContent("총 가격은 1 이상인 정수로 입력하세요.");
+    expect(screen.getByLabelText("총 가격")).toHaveValue(1.5);
     expect(within(form).getByRole("button", { name: "매물 등록" })).toBeDisabled();
     fireEvent.submit(form);
     expect(api.createListingApi).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("총 가격"), { target: { value: "12000" } });
+    expect(within(form).queryByRole("alert")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("화폐"), { target: { value: "GEM" } });
     fireEvent.click(within(form).getByRole("button", { name: "매물 등록" }));
 
@@ -404,7 +407,7 @@ describe("canonical Exchange surfaces", () => {
     fireEvent.click(within(screen.getByLabelText("총 가격").closest("form")!).getByRole("button", { name: "매물 등록" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Listing rejected");
-    expect(screen.getByLabelText("총 가격")).toBeInTheDocument();
+    expect(screen.getByLabelText("총 가격")).toHaveValue(1);
   });
 
   it("cancels My Listings only after confirmation and reloads authoritative lists", async () => {

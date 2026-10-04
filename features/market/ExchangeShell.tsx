@@ -254,6 +254,7 @@ function CreateListingForm({ entries, pending, onSubmit }: {
         ))}
       </fieldset>
       <label className="lag-exchange-field">총 가격<input aria-label="총 가격" type="number" min={1} step={1} required value={price} onChange={(event) => setPrice(event.target.value)} /></label>
+      {price !== "" && !priceValid ? <Feedback>총 가격은 1 이상인 정수로 입력하세요.</Feedback> : null}
       <label className="lag-exchange-field">화폐<select aria-label="화폐" value={currency} onChange={(event) => setCurrency(event.target.value as EconomyCurrency)}>{EXCHANGE_CURRENCIES.map((value) => <option key={value}>{value}</option>)}</select></label>
       {selectedEntry ? <Feedback state="info" role="status">선택: {selectedEntry.itemName} · 전체 묶음 x{selectedEntry.quantity}</Feedback> : null}
       <div className="lag-exchange-actions">
