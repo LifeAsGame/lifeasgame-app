@@ -34,6 +34,23 @@ it("역할 생성은 목록 자리의 패널이며 실패 초안과 취소 후 �
   expect(screen.getByRole("button", { name: "역할" })).toBeInTheDocument();
 });
 
+it("역할 목록 재진입은 생성 폼을 닫고 새 생성은 다시 연다", () => {
+  function Harness() {
+    const [request, setRequest] = useState(0);
+    return <><RoleContextPanel workspace="roles" onWorkspaceChange={(_, create) => setRequest((value) => create ? value + 1 : 0)} />
+      <RoleShell roles={[]} selectedRoleId={null} roleCreateRequest={request} onSelectRole={() => {}} onRefresh={async () => {}} /></>;
+  }
+  render(<Harness />);
+  const menu = screen.getByRole("button", { name: "역할" });
+  fireEvent.keyDown(menu, { key: "Enter", altKey: true });
+  fireEvent.change(screen.getByLabelText("역할 이름"), { target: { value: "작성 중" } });
+  fireEvent.click(menu);
+  expect(screen.queryByLabelText("역할 이름")).not.toBeInTheDocument();
+  expect(screen.getByText("등록된 역할이 없습니다.")).toBeInTheDocument();
+  fireEvent.keyDown(menu, { key: "Enter", altKey: true });
+  expect(screen.getByLabelText("역할 이름")).toHaveValue("");
+});
+
 it("한국어 유형 선택은 서버 코드를 보내고 기존 사용자 유형은 유지한다", async () => {
   api.createRoleApi.mockResolvedValue({ id: 3 });
   api.updateRoleApi.mockResolvedValue({ id: 4 });

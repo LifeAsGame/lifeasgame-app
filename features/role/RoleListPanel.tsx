@@ -21,7 +21,7 @@ export default function RoleListPanel({ roles, selectedRoleId, loading, error, c
   const [pending, setPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const generation = useRef(0), lock = useRef(false);
-  useEffect(() => { if (createRequest) { generation.current++; setCreating(true); setActionError(null); } }, [createRequest]);
+  useEffect(() => { generation.current++; setCreating(Boolean(createRequest)); setActionError(null); }, [createRequest]);
   useEffect(() => { const counter = generation; return () => { counter.current++; }; }, []);
   const close = () => { generation.current++; setCreating(false); setActionError(null); };
   const archive = async (role: RoleDetail) => {
