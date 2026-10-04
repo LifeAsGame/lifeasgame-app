@@ -30,9 +30,9 @@ export function RoleForm({ role, onSaved, onCancel }: { role?: RoleDetail; onSav
     <label>역할 유형<select className="lag-role-control" autoFocus value={typeChoice} onChange={(event) => setTypeChoice(event.target.value)}>
       <option value="custom">직접 입력</option><option value="ROLE_BACKEND_DEVELOPER">백엔드 개발자</option><option value="ROLE_JOB_SEEKER">취업 준비</option>
     </select></label>
-    {typeChoice === "custom" ? <label>직접 입력할 유형<input className="lag-role-control" name="roleType" required defaultValue={role?.roleType ?? ""} /></label> : null}
-    <label>역할 이름<input className="lag-role-control" name="name" required defaultValue={role?.name ?? ""} /></label>
-    <label>역할 설명<textarea className="lag-role-control" name="description" required defaultValue={role?.description ?? ""} rows={4} /></label>
+    {typeChoice === "custom" ? <label>직접 입력할 유형<input className="lag-role-control" name="roleType" required maxLength={40} defaultValue={role?.roleType ?? ""} /></label> : null}
+    <label>역할 이름<input className="lag-role-control" name="name" required maxLength={80} defaultValue={role?.name ?? ""} /></label>
+    <label>역할 설명<textarea className="lag-role-control" name="description" required maxLength={500} defaultValue={role?.description ?? ""} rows={4} /></label>
     {error ? <p role="alert" className="lag-role-feedback" data-state="error">{error}</p> : null}
     <div className="lag-role-actions">
       <button type="submit" disabled={pending} className="lag-role-action">{pending ? "저장 중…" : "역할 저장"}</button>

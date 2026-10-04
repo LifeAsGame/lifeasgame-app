@@ -116,7 +116,7 @@ export default function DirectChatDrawer({ chat, onOpen }: { chat: DirectChatSta
                 {!selected ? <p className="lag-social-empty lag-chat-placeholder">대화를 선택하세요.</p> : playerId === null ? <p role="alert" className="lag-social-feedback" data-state="error">로그인한 플레이어를 확인할 수 없습니다.</p> : (
                   <>
                     <header className="lag-chat-conversation-header">
-                      <div><span>Direct Chat</span><h3>{selected.peer.name}</h3><p>{selected.peer.job ? `${selected.peer.job} · ` : ""}레벨 {selected.peer.level}</p></div>
+                      <div><span>직접 채팅</span><h3>{selected.peer.name}</h3><p>{selected.peer.job ? `${selected.peer.job} · ` : ""}레벨 {selected.peer.level}</p></div>
                       {selected.readOnly ? <strong>읽기 전용</strong> : null}
                     </header>
 

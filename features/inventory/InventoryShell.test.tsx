@@ -90,13 +90,13 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
 
       expect(await screen.findAllByTestId("inventory-entry")).toHaveLength(3);
       expect(screen.getByRole("button", { name: "전체 아이템" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByRole("button", { name: "CONSUMABLE" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "WEAPON" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "MEMORY" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "소모품" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "무기" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "추억" })).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: /Server Sword/ }));
       expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "CONSUMABLE" }));
+      fireEvent.click(screen.getByRole("button", { name: "소모품" }));
 
       expect(screen.getAllByTestId("inventory-entry")).toHaveLength(1);
       expect(screen.getByRole("button", { name: /Server Utility/ })).toBeInTheDocument();
@@ -117,7 +117,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       const response = deferred<InventoryEntriesResponse>();
       api.getInventoryApi.mockReturnValue(response.promise);
       render(<InventoryShell surface="items" />);
-      expect(screen.getByText("Loading Items...")).toBeInTheDocument();
+      expect(screen.getByText("아이템을 불러오는 중…")).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="inventory-items-list"]')).toBeInTheDocument();
       expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).not.toBeInTheDocument();
 
@@ -128,8 +128,8 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /Server Sword/ }));
 
       expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBeInTheDocument();
-      expectData("Item instance ID", "501");
-      expectData("Durability", "0");
+      expectData("보유 번호", "501");
+      expectData("내구도", "0");
       expectData("atk", "12");
       expect(screen.queryByRole("button", { name: /sell|remove/i })).not.toBeInTheDocument();
     });
@@ -139,9 +139,9 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       render(<InventoryShell surface="items" />);
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Items unavailable");
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
 
-      expect(await screen.findByText("No Items.")).toBeInTheDocument();
+      expect(await screen.findByText("보유한 아이템이 없습니다.")).toBeInTheDocument();
     });
 
     it("existing Items 재조회 실패 시 이전 값을 명시하고 Retry로 복구한다", async () => {
@@ -149,10 +149,10 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       expect(await screen.findByRole("button", { name: /Server Sword/ })).toBeInTheDocument();
       api.getInventoryApi.mockRejectedValueOnce(new Error("Items GET failed")).mockResolvedValueOnce({ entries: [secondItem] });
 
-      fireEvent.click(screen.getByRole("button", { name: "Refresh Items" }));
-      expect(await screen.findByText(/Previously loaded entries are shown below/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "아이템 다시 조회" }));
+      expect(await screen.findByText(/이전에 조회한 항목입니다/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Server Sword/ })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
       expect(await screen.findByRole("button", { name: /Second Sword/ })).toBeInTheDocument();
     });
 
@@ -170,14 +170,14 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       focus.mockClear();
       fireEvent.click(entries[1]);
       expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBe(detail);
-      expectData("Item instance ID", "502");
+      expectData("보유 번호", "502");
       expect(focus).not.toHaveBeenCalled();
 
-      fireEvent.click(screen.getByRole("button", { name: "Back to Items" }));
+      fireEvent.click(screen.getByRole("button", { name: "아이템 목록으로" }));
       await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).not.toBeInTheDocument());
       expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "inventory-items-list", align: "back" } });
       await waitFor(() => expect(entries[1]).toHaveFocus());
-      fireEvent.click(screen.getByRole("button", { name: "Back to Inventory" }));
+      fireEvent.click(screen.getByRole("button", { name: "인벤토리로" }));
       expect(onBack).toHaveBeenCalledTimes(1);
 
       fireEvent.click(entries[0]);
@@ -200,14 +200,14 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(screen.getByRole("button", { name: /Second Server Mail/ }));
 
       expect(document.querySelector('[data-stage-key="inventory-inbox-detail"]')).toBe(detail);
-      expectData("Mail ID", "702");
+      expectData("수신 번호", "702");
     });
 
     it("loading 후 server list/detail과 nullable durability를 표시한다", async () => {
       const response = deferred<MailboxEntriesResponse>();
       api.getMailboxApi.mockReturnValue(response.promise);
       render(<InventoryShell surface="inbox" />);
-      expect(screen.getByText("Loading Inbox...")).toBeInTheDocument();
+      expect(screen.getByText("수신함을 불러오는 중…")).toBeInTheDocument();
 
       await act(async () => {
         response.resolve(mailbox);
@@ -215,9 +215,9 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       });
       fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
 
-      expectData("Mail ID", "701");
-      expectData("Slot index", "4");
-      expectData("Durability", "Not recorded");
+      expectData("수신 번호", "701");
+      expectData("칸 번호", "4");
+      expectData("내구도", "기록 없음");
     });
 
     it("error의 Retry가 authoritative empty Inbox state를 표시한다", async () => {
@@ -225,9 +225,9 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       render(<InventoryShell surface="inbox" />);
 
       expect(await screen.findByRole("alert")).toHaveTextContent("Inbox unavailable");
-      fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
 
-      expect(await screen.findByText("No mail.")).toBeInTheDocument();
+      expect(await screen.findByText("수신한 아이템이 없습니다.")).toBeInTheDocument();
     });
   });
 
@@ -239,18 +239,18 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
       api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed"));
 
-      fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+      fireEvent.click(screen.getByRole("button", { name: "수령" }));
     await answerDialog();
       expect(await screen.findByText(/Claim succeeded, but Mailbox or Inventory could not be refreshed/)).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: /Second Server Mail/ }));
-      expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "수령" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "삭제" })).not.toBeInTheDocument();
       expect(api.claimMailApi).toHaveBeenCalledTimes(1);
       expect(api.deleteMailApi).not.toHaveBeenCalled();
 
       api.getMailboxApi.mockResolvedValue({ entries: [secondMail] });
-      fireEvent.click(within(document.querySelector('[data-stage-key="inventory-inbox-detail"]') as HTMLElement).getByRole("button", { name: "Retry" }));
-      expect(await screen.findByRole("button", { name: "Claim" })).toBeInTheDocument();
+      fireEvent.click(within(document.querySelector('[data-stage-key="inventory-inbox-detail"]') as HTMLElement).getByRole("button", { name: "다시 조회" }));
+      expect(await screen.findByRole("button", { name: "수령" })).toBeInTheDocument();
     });
 
     it("confirmed Claim 뒤 Mailbox GET 실패를 성공으로 안내하고 stale action을 막는다", async () => {
@@ -259,13 +259,13 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       api.getMailboxApi.mockRejectedValueOnce(new Error("Mailbox GET failed")).mockResolvedValueOnce({ entries: [] });
       api.getInventoryApi.mockResolvedValue({ entries: [{ ...item, quantity: 2 }] });
 
-      fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+      fireEvent.click(screen.getByRole("button", { name: "수령" }));
     await answerDialog();
       expect(await screen.findByText(/Claim succeeded, but Mailbox or Inventory could not be refreshed/)).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
-      fireEvent.click(within(document.querySelector('[data-stage-key="inventory-inbox-detail"]') as HTMLElement).getByRole("button", { name: "Retry" }));
+      expect(screen.queryByRole("button", { name: "수령" })).not.toBeInTheDocument();
+      fireEvent.click(within(document.querySelector('[data-stage-key="inventory-inbox-detail"]') as HTMLElement).getByRole("button", { name: "다시 조회" }));
 
-      expect(await screen.findByText("No mail.")).toBeInTheDocument();
+      expect(await screen.findByText("수신한 아이템이 없습니다.")).toBeInTheDocument();
       expect(api.claimMailApi).toHaveBeenCalledTimes(1);
     });
 
@@ -275,11 +275,11 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       render(<InventoryShell surface="inbox" onBack={() => {}} />);
       fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
 
-      fireEvent.click(screen.getByRole("button", { name: "Claim" }));
+      fireEvent.click(screen.getByRole("button", { name: "수령" }));
     await answerDialog();
       expect(api.claimMailApi).toHaveBeenCalledWith({ slotIndex: 4, quantity: 3 });
-      expect(screen.getByRole("button", { name: "Working..." })).toBeDisabled();
-      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      expect(screen.getByRole("button", { name: "처리 중…" })).toBeDisabled();
+      fireEvent.click(screen.getByRole("button", { name: "삭제" }));
       expect(api.deleteMailApi).not.toHaveBeenCalled();
 
       api.getInventoryApi.mockResolvedValue({ entries: [{ ...item, quantity: 2 }] });
@@ -289,8 +289,8 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
         await request.promise;
       });
 
-      await waitFor(() => expect(screen.getByText("No mail.")).toBeInTheDocument());
-      await waitFor(() => expect(screen.getByRole("button", { name: "Back to Inventory" })).toHaveFocus());
+      await waitFor(() => expect(screen.getByText("수신한 아이템이 없습니다.")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole("button", { name: "인벤토리로" })).toHaveFocus());
       expect(api.getInventoryApi).toHaveBeenCalledTimes(2);
       expect(api.getMailboxApi).toHaveBeenCalledTimes(2);
     });
@@ -300,10 +300,10 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       fireEvent.click(await screen.findByRole("button", { name: /Server Potion/ }));
       api.getMailboxApi.mockResolvedValue({ entries: [] });
 
-      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+      fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     await answerDialog();
       await waitFor(() => expect(api.deleteMailApi).toHaveBeenCalledWith({ slotIndex: 4 }));
-      await waitFor(() => expect(screen.getByText("No mail.")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText("수신한 아이템이 없습니다.")).toBeInTheDocument());
       expect(api.getInventoryApi).toHaveBeenCalledTimes(1);
       expect(api.getMailboxApi).toHaveBeenCalledTimes(2);
     });

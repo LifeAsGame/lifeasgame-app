@@ -155,6 +155,7 @@ export default function Home() {
 
   const clearFeatureState = () => {
     setCreateRequests({});
+    setPersonCreateRequest(0); setRoleCreateRequest(0);
     setHomeJournalId(null);
     setHomeAchievementId(null);
     setSubReentry({});
@@ -304,7 +305,7 @@ export default function Home() {
         <LeftContext
           mode={selectedMain === "role" ? "role" : "hidden"}
           roleWorkspace={roleWorkspace}
-          onRoleWorkspaceChange={(workspace, create) => { if (workspace === "persons" && !create) setPersonReentryRequest((value) => value + 1); if (workspace === "roles") { setSelectedRoleId(null); setRoleDetailsHidden(Boolean(create)); } setRoleWorkspace(workspace); if (create) setRoleEditRequest(null); if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); if (workspace === "roles" && create) setRoleCreateRequest((value) => value + 1); }}
+          onRoleWorkspaceChange={(workspace, create) => { if (workspace === "persons" && !create) { setPersonCreateRequest(0); setPersonReentryRequest((value) => value + 1); } if (workspace === "roles") { setSelectedRoleId(null); setRoleDetailsHidden(Boolean(create)); if (!create) setRoleCreateRequest(0); } setRoleWorkspace(workspace); if (create) setRoleEditRequest(null); if (workspace === "persons" && create) setPersonCreateRequest((value) => value + 1); if (workspace === "roles" && create) setRoleCreateRequest((value) => value + 1); }}
           onRoleEdit={(id) => { handleRoleSelect(id); setRoleEditRequest((value) => ({ id, sequence: (value?.sequence ?? 0) + 1 })); }}
           onRoleRefresh={roleState.refresh}
           onRoleArchived={(id) => setSelectedRoleId((current) => current === id ? null : current)}

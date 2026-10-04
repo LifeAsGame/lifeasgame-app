@@ -97,7 +97,7 @@ describe("canonical Exchange surfaces", () => {
     api.getOpenListingsApi.mockResolvedValue(listings);
     api.getMyListingsApi.mockResolvedValue(listings);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: "Marketplace" }));
+    fireEvent.click(screen.getByRole("button", { name: "마켓플레이스" }));
     await screen.findByRole("button", { name: /수량 7/ });
     expect(screen.getByRole("button", { name: /수량 1/ })).toHaveTextContent("1,800 GEM");
     expect(screen.getByRole("button", { name: /과거 기록 없음/ })).toBeInTheDocument();
@@ -105,11 +105,11 @@ describe("canonical Exchange surfaces", () => {
     await waitFor(() => expect(api.getItemApi).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /수량 7/ }));
-    expect(screen.getByText("Total price").nextElementSibling).toHaveTextContent("1,800 GEM");
+    expect(screen.getByText("총 가격").nextElementSibling).toHaveTextContent("1,800 GEM");
     expect(screen.getByText("수량").nextElementSibling).toHaveTextContent("수량 7");
-    fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
+    fireEvent.click(screen.getByRole("button", { name: "예약" }));
     expect((await screen.findByText("예약 수량")).nextElementSibling).toHaveTextContent("수량 7");
-    fireEvent.click(screen.getByRole("button", { name: "My Listings" }));
+    fireEvent.click(screen.getByRole("button", { name: "내 매물" }));
     fireEvent.click(screen.getByRole("button", { name: /수량 7/ }));
     expect(screen.getByText("수량").nextElementSibling).toHaveTextContent("수량 7");
   });
@@ -119,14 +119,14 @@ describe("canonical Exchange surfaces", () => {
     render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Wallet unavailable");
-    expect(screen.getByRole("alert")).toHaveTextContent("No confirmed balances are available.");
-    expect(screen.queryByRole("button", { name: "GOLD balance" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("확인된 잔액이 없습니다.");
+    expect(screen.queryByRole("button", { name: "GOLD 잔액" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
 
-    const gold = await screen.findByRole("button", { name: "GOLD balance" });
-    const gem = screen.getByRole("button", { name: "GEM balance" });
-    expect(gold).toHaveTextContent("GOLD available80GOLDHeld20 GOLD");
-    expect(gem).toHaveTextContent("GEM available7GEMHeld3 GEM");
+    const gold = await screen.findByRole("button", { name: "GOLD 잔액" });
+    const gem = screen.getByRole("button", { name: "GEM 잔액" });
+    expect(gold).toHaveTextContent("GOLD 사용 가능80GOLD예약 보류20 GOLD");
+    expect(gem).toHaveTextContent("GEM 사용 가능7GEM예약 보류3 GEM");
     fireEvent.click(gold);
     expect(screen.getByText("사용 가능").nextElementSibling).toHaveTextContent("80 GOLD");
     fireEvent.click(screen.getByRole("button", { name: "지갑으로" }));
@@ -139,35 +139,35 @@ describe("canonical Exchange surfaces", () => {
     api.getWalletApi.mockReturnValueOnce(pending.promise);
     render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Loading Wallet...");
-    expect(screen.queryByRole("button", { name: "GOLD balance" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("지갑을 불러오는 중…");
+    expect(screen.queryByRole("button", { name: "GOLD 잔액" })).not.toBeInTheDocument();
     pending.resolve(wallet(0, 0, 0, 0));
 
-    const gold = await screen.findByRole("button", { name: "GOLD balance" });
-    expect(gold).toHaveTextContent("GOLD available0GOLDHeld0 GOLD");
-    expect(screen.getByRole("button", { name: "GEM balance" })).toHaveTextContent("GEM available0GEMHeld0 GEM");
-    expect(screen.queryByText("No confirmed balances are available.")).not.toBeInTheDocument();
+    const gold = await screen.findByRole("button", { name: "GOLD 잔액" });
+    expect(gold).toHaveTextContent("GOLD 사용 가능0GOLD예약 보류0 GOLD");
+    expect(screen.getByRole("button", { name: "GEM 잔액" })).toHaveTextContent("GEM 사용 가능0GEM예약 보류0 GEM");
+    expect(screen.queryByText("확인된 잔액이 없습니다.")).not.toBeInTheDocument();
   });
 
   it("labels the last confirmed balances during refresh and after refresh failure", async () => {
     const pending = deferred<WalletBalance>();
     api.getWalletApi.mockResolvedValueOnce(wallet(80, 20, 7, 3)).mockReturnValueOnce(pending.promise);
     const view = render(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
-    await screen.findByRole("button", { name: "GOLD balance" });
+    await screen.findByRole("button", { name: "GOLD 잔액" });
 
     view.rerender(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
     view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
-    expect(screen.getByRole("status")).toHaveTextContent("Refreshing Wallet. Showing last confirmed balances.");
-    expect(screen.getByRole("button", { name: "GOLD balance" })).toHaveTextContent("80");
+    expect(screen.getByRole("status")).toHaveTextContent("지갑을 갱신 중입니다. 마지막 확인 잔액을 표시합니다.");
+    expect(screen.getByRole("button", { name: "GOLD 잔액" })).toHaveTextContent("80");
     pending.resolve(wallet(0, 0, 0, 0));
-    await waitFor(() => expect(screen.getByRole("button", { name: "GEM balance" })).toHaveTextContent("0"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "GEM 잔액" })).toHaveTextContent("0"));
 
     view.rerender(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
     api.getWalletApi.mockRejectedValueOnce(new Error("Refresh failed"));
     view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Refresh failed Showing last confirmed balances.");
-    expect(screen.getByRole("button", { name: "GOLD balance" })).toHaveTextContent("0");
-    expect(screen.getByRole("button", { name: "GEM balance" })).toHaveTextContent("0");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Refresh failed 마지막 확인 잔액을 표시합니다.");
+    expect(screen.getByRole("button", { name: "GOLD 잔액" })).toHaveTextContent("0");
+    expect(screen.getByRole("button", { name: "GEM 잔액" })).toHaveTextContent("0");
   });
 
   it("keeps System Shop checkout unavailable and one detail frame during replacement", async () => {
@@ -178,7 +178,7 @@ describe("canonical Exchange surfaces", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
     const detail = document.querySelector('[data-stage-key="market-stage-2"]');
     expect(detail).toBeInTheDocument();
-    expect(screen.getByText("Global stock limit").nextElementSibling).toHaveTextContent("None");
+    expect(screen.getByText("전체 재고 한도").nextElementSibling).toHaveTextContent("없음");
     expect(screen.queryByRole("button", { name: "Reserve / Start purchase" })).not.toBeInTheDocument();
     expect(screen.getByText("시스템 상점 결제는 준비 중입니다.")).toBeInTheDocument();
 
@@ -199,15 +199,15 @@ describe("canonical Exchange surfaces", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
     focus.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "Marketplace" }));
+    fireEvent.click(screen.getByRole("button", { name: "마켓플레이스" }));
 
     expect(document.querySelector('[data-stage-key="market-stage-3"]')).toHaveAttribute("aria-hidden", "true");
-    expect(screen.queryByRole("button", { name: "Back to System Shop" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "시스템 상점으로" })).not.toBeInTheDocument();
     expect(focus.mock.calls.at(-1)?.[0]).toMatchObject({ detail: { key: "market-stage-2", align: "forward" } });
 
     fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
     focus.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "Back to Marketplace" }));
+    fireEvent.click(screen.getByRole("button", { name: "마켓플레이스로" }));
 
     expect(focus).toHaveBeenCalledTimes(1);
     expect(focus.mock.calls[0][0]).toMatchObject({ detail: { key: "market-stage-2", align: "back" } });
@@ -220,10 +220,10 @@ describe("canonical Exchange surfaces", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
-    expect(screen.getByText("Purchase ID").nextElementSibling).toHaveTextContent("41");
-    expect(screen.getByText("Status").nextElementSibling).toHaveTextContent("RESERVED");
-    expect(screen.getByText("Reservation expiry").nextElementSibling).not.toHaveTextContent("Not reserved");
+    expect(await screen.findByText("구매 번호")).toBeInTheDocument();
+    expect(screen.getByText("구매 번호").nextElementSibling).toHaveTextContent("41");
+    expect(screen.getByText("상태").nextElementSibling).toHaveTextContent("예약됨");
+    expect(screen.getByText("예약 만료").nextElementSibling).not.toHaveTextContent("예약 없음");
     expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
     expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
     expect(api.confirmShopPurchaseApi).not.toHaveBeenCalled();
@@ -235,15 +235,15 @@ describe("canonical Exchange surfaces", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByRole("button", { name: "Refresh Purchase Status" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "구매 상태 다시 조회" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reserve / Start purchase" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
     expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh Purchase Status" }));
+    fireEvent.click(screen.getByRole("button", { name: "구매 상태 다시 조회" }));
 
     expect(await screen.findByText("거래 상태는 완료지만 아이템 배송은 확인되지 않았습니다.")).toBeInTheDocument();
-    expect(screen.getByText("Status").nextElementSibling).toHaveTextContent("COMPLETED");
+    expect(screen.getByText("상태").nextElementSibling).toHaveTextContent("완료");
     expect(screen.queryByText("Purchase completed.")).not.toBeInTheDocument();
     expect(api.confirmShopPurchaseApi).not.toHaveBeenCalled();
   });
@@ -253,11 +253,11 @@ describe("canonical Exchange surfaces", () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
-    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Back to System Shop" }));
+    expect(await screen.findByText("구매 번호")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "시스템 상점으로" }));
     fireEvent.click(screen.getByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
+    expect(await screen.findByText("구매 번호")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
     expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
   });
@@ -266,7 +266,7 @@ describe("canonical Exchange surfaces", () => {
     api.getShopPurchasesApi.mockResolvedValue([reservedPurchase]);
     const view = render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
-    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
+    expect(await screen.findByText("구매 번호")).toBeInTheDocument();
 
     view.rerender(<ExchangeShell surface="wallet" playerId={7} onBack={vi.fn()} />);
     expect(await screen.findByText("284,500")).toBeInTheDocument();
@@ -274,7 +274,7 @@ describe("canonical Exchange surfaces", () => {
     await waitFor(() => expect(api.getShopPurchasesApi).toHaveBeenCalledTimes(2));
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
 
-    expect(await screen.findByText("Purchase ID")).toBeInTheDocument();
+    expect(await screen.findByText("구매 번호")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
     expect(api.initiateShopPurchaseApi).not.toHaveBeenCalled();
   });
@@ -303,20 +303,20 @@ describe("canonical Exchange surfaces", () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Item #1010/ }));
-    expect(await screen.findByRole("button", { name: "Refresh Purchase Status" })).toBeInTheDocument();
-    expect(screen.getByText("Purchase ID").nextElementSibling).toHaveTextContent("46");
+    expect(await screen.findByRole("button", { name: "구매 상태 다시 조회" })).toBeInTheDocument();
+    expect(screen.getByText("구매 번호").nextElementSibling).toHaveTextContent("46");
     expect(screen.queryByRole("button", { name: "Confirm Purchase" })).not.toBeInTheDocument();
   });
 
   it("guards self purchase and performs explicit Marketplace reserve/purchase", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Marketplace" }));
+    fireEvent.click(await screen.findByRole("button", { name: "마켓플레이스" }));
 
     fireEvent.click(screen.getByRole("button", { name: /Item #1003/ }));
-    expect(screen.getByRole("button", { name: "Your listing" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "내 매물 · 구매 불가" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Purchase reserved listing" }));
+    fireEvent.click(screen.getByRole("button", { name: "예약" }));
+    fireEvent.click(await screen.findByRole("button", { name: "예약한 매물 구매" }));
 
     await waitFor(() => expect(api.purchaseListingApi).toHaveBeenCalledWith(201, "listing-token", expect.any(String)));
     expect(api.reserveListingApi).toHaveBeenCalledWith(201, 300);
@@ -326,35 +326,35 @@ describe("canonical Exchange surfaces", () => {
     const reservation = deferred<{ reservationToken: string; holdId: string; expiresAt: string }>();
     api.reserveListingApi.mockReturnValueOnce(reservation.promise);
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Marketplace" }));
+    fireEvent.click(await screen.findByRole("button", { name: "마켓플레이스" }));
     fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
+    fireEvent.click(screen.getByRole("button", { name: "예약" }));
     fireEvent.click(screen.getByRole("button", { name: /Item #1003/ }));
     await act(async () => reservation.resolve({ reservationToken: "late", holdId: "late", expiresAt: "2026-08-23T01:00:00Z" }));
-    expect(screen.queryByText("Hold ID")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Your listing" })).toBeDisabled();
+    expect(screen.queryByText("보류 번호")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "내 매물 · 구매 불가" })).toBeDisabled();
   });
 
   it("keeps purchase success visible after GET failures and Retry cannot purchase again", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Marketplace" }));
+    fireEvent.click(await screen.findByRole("button", { name: "마켓플레이스" }));
     fireEvent.click(screen.getByRole("button", { name: /Item #3011/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
-    await screen.findByRole("button", { name: "Purchase reserved listing" });
+    fireEvent.click(screen.getByRole("button", { name: "예약" }));
+    await screen.findByRole("button", { name: "예약한 매물 구매" });
     api.getOpenListingsApi.mockRejectedValue(new Error("Listing lookup unavailable"));
     api.getWalletApi.mockRejectedValue(new Error("Wallet lookup unavailable"));
-    fireEvent.click(screen.getByRole("button", { name: "Purchase reserved listing" }));
-    expect(await screen.findByText(/Purchase completed · Trade #401/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Purchase reserved listing" })).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "예약한 매물 구매" }));
+    expect(await screen.findByText(/구매 완료 · 거래 #401/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("button", { name: "예약한 매물 구매" })).not.toBeInTheDocument());
     expect(screen.queryByRole("button", { name: /Item #3011/ })).not.toBeInTheDocument();
     expect(screen.getByText(/Some Exchange data could not be refreshed/)).toBeInTheDocument();
     api.getOpenListingsApi.mockResolvedValue([openListings[0]]);
     api.getItemApi.mockRejectedValue(new Error("상품 이름 조회 실패"));
     api.getWalletApi.mockResolvedValue(wallet());
-    fireEvent.click(screen.getByRole("button", { name: "Retry Exchange lookup" }));
+    fireEvent.click(screen.getByRole("button", { name: "거래소 다시 조회" }));
     await waitFor(() => expect(screen.queryByText(/Some Exchange data could not be refreshed/)).not.toBeInTheDocument());
-    expect(screen.getByText(/Purchase completed · Trade #401/)).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Marketplace" })).toHaveFocus());
+    expect(screen.getByText(/구매 완료 · 거래 #401/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("button", { name: "마켓플레이스" })).toHaveFocus());
     expect(api.purchaseListingApi).toHaveBeenCalledTimes(1);
     expect(api.reserveListingApi).toHaveBeenCalledTimes(1);
     expect(api.createListingApi).not.toHaveBeenCalled();
@@ -362,34 +362,37 @@ describe("canonical Exchange surfaces", () => {
 
   it("returns keyboard focus to the listing when detail closes", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Marketplace" }));
+    fireEvent.click(await screen.findByRole("button", { name: "마켓플레이스" }));
     const listing = screen.getByRole("button", { name: /Item #3011/ });
     fireEvent.click(listing);
-    fireEvent.click(screen.getByRole("button", { name: "Back to Marketplace" }));
+    fireEvent.click(screen.getByRole("button", { name: "마켓플레이스로" }));
     await waitFor(() => expect(listing).toHaveFocus());
   });
 
   it("creates a whole-entry listing from a real InventoryEntry with only total price and GOLD/GEM", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "My Listings" }));
-    fireEvent.keyDown(screen.getByRole("button", { name: "My Listings" }), { key: "Enter", altKey: true });
+    fireEvent.click(await screen.findByRole("button", { name: "내 매물" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "내 매물" }), { key: "Enter", altKey: true });
 
     expect(screen.getByRole("button", { name: /Bound Boots/ })).toBeDisabled();
     const stack = screen.getByRole("button", { name: /Owned Potion Stack/ });
-    expect(stack).toHaveTextContent("Complete item or stack · x42");
+    expect(stack).toHaveTextContent("전체 묶음 · x42");
     expect(screen.queryByLabelText(/quantity|item id|inventory entry id|item name/i)).not.toBeInTheDocument();
-    expect(within(screen.getByLabelText("Currency")).getAllByRole("option").map(({ textContent }) => textContent)).toEqual(["GOLD", "GEM"]);
+    expect(within(screen.getByLabelText("화폐")).getAllByRole("option").map(({ textContent }) => textContent)).toEqual(["GOLD", "GEM"]);
 
     fireEvent.click(stack);
-    expect(screen.getByLabelText("Total Price")).toHaveAttribute("step", "1");
-    fireEvent.change(screen.getByLabelText("Total Price"), { target: { value: "1.5" } });
-    const form = screen.getByLabelText("Total Price").closest("form")!;
-    expect(within(form).getByRole("button", { name: "Create Listing" })).toBeDisabled();
+    expect(screen.getByLabelText("총 가격")).toHaveAttribute("step", "1");
+    fireEvent.change(screen.getByLabelText("총 가격"), { target: { value: "1.5" } });
+    const form = screen.getByLabelText("총 가격").closest("form")!;
+    expect(within(form).getByRole("alert")).toHaveTextContent("총 가격은 1 이상인 정수로 입력하세요.");
+    expect(screen.getByLabelText("총 가격")).toHaveValue(1.5);
+    expect(within(form).getByRole("button", { name: "매물 등록" })).toBeDisabled();
     fireEvent.submit(form);
     expect(api.createListingApi).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("Total Price"), { target: { value: "12000" } });
-    fireEvent.change(screen.getByLabelText("Currency"), { target: { value: "GEM" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Create Listing" }));
+    fireEvent.change(screen.getByLabelText("총 가격"), { target: { value: "12000" } });
+    expect(within(form).queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("화폐"), { target: { value: "GEM" } });
+    fireEvent.click(within(form).getByRole("button", { name: "매물 등록" }));
 
     await waitFor(() => expect(api.createListingApi).toHaveBeenCalledWith({ inventoryEntryId: 5, price: 12_000, currency: "GEM" }));
   });
@@ -397,21 +400,21 @@ describe("canonical Exchange surfaces", () => {
   it("keeps a rejected listing form open with an explicit error", async () => {
     api.createListingApi.mockRejectedValue(new Error("Listing rejected"));
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "My Listings" }));
-    fireEvent.keyDown(screen.getByRole("button", { name: "My Listings" }), { key: "Enter", altKey: true });
+    fireEvent.click(await screen.findByRole("button", { name: "내 매물" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "내 매물" }), { key: "Enter", altKey: true });
     fireEvent.click(screen.getByRole("button", { name: /Owned Potion Stack/ }));
-    fireEvent.change(screen.getByLabelText("Total Price"), { target: { value: "1" } });
-    fireEvent.click(within(screen.getByLabelText("Total Price").closest("form")!).getByRole("button", { name: "Create Listing" }));
+    fireEvent.change(screen.getByLabelText("총 가격"), { target: { value: "1" } });
+    fireEvent.click(within(screen.getByLabelText("총 가격").closest("form")!).getByRole("button", { name: "매물 등록" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Listing rejected");
-    expect(screen.getByLabelText("Total Price")).toBeInTheDocument();
+    expect(screen.getByLabelText("총 가격")).toHaveValue(1);
   });
 
   it("cancels My Listings only after confirmation and reloads authoritative lists", async () => {
     render(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    fireEvent.click(await screen.findByRole("button", { name: "My Listings" }));
+    fireEvent.click(await screen.findByRole("button", { name: "내 매물" }));
     fireEvent.click(screen.getByRole("button", { name: /Item #1003/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Cancel Listing" }));
+    fireEvent.click(screen.getByRole("button", { name: "매물 취소" }));
     await answerDialog();
 
     await waitFor(() => expect(api.cancelListingApi).toHaveBeenCalledWith(101));
@@ -423,12 +426,12 @@ describe("canonical Exchange surfaces", () => {
   it("replaces fake friend barter with canonical Bought/Sold Trade history", async () => {
     render(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
 
-    expect(await screen.findByText("Bought")).toBeInTheDocument();
-    expect(screen.getByText("Sold")).toBeInTheDocument();
-    expect(screen.getByText("Player #24")).toBeInTheDocument();
-    expect(screen.getByText("Player #13")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /BoughtPlayer #24/ }));
-    expect(screen.getByText("구매자").nextElementSibling).toHaveTextContent("Player #7");
+    expect(await screen.findByText("구매")).toBeInTheDocument();
+    expect(screen.getByText("판매")).toBeInTheDocument();
+    expect(screen.getByText("플레이어 #24")).toBeInTheDocument();
+    expect(screen.getByText("플레이어 #13")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /구매플레이어 #24/ }));
+    expect(screen.getByText("구매자").nextElementSibling).toHaveTextContent("플레이어 #7");
     expect(screen.queryByText(/friend|barter|offered|received/i)).not.toBeInTheDocument();
   });
 
@@ -439,14 +442,14 @@ describe("canonical Exchange surfaces", () => {
     renderedCopy.push(document.body.textContent ?? "");
 
     view.rerender(<ExchangeShell surface="shop" playerId={7} onBack={vi.fn()} />);
-    await screen.findByRole("button", { name: "My Listings" });
-    fireEvent.click(screen.getByRole("button", { name: "My Listings" }));
-    fireEvent.keyDown(screen.getByRole("button", { name: "My Listings" }), { key: "Enter", altKey: true });
-    await screen.findByText("Sell Item");
+    await screen.findByRole("button", { name: "내 매물" });
+    fireEvent.click(screen.getByRole("button", { name: "내 매물" }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "내 매물" }), { key: "Enter", altKey: true });
+    await screen.findByText("아이템 판매");
     renderedCopy.push(document.body.textContent ?? "");
 
     view.rerender(<ExchangeShell surface="trade" playerId={7} onBack={vi.fn()} />);
-    await screen.findByText("Bought");
+    await screen.findByText("구매");
     renderedCopy.push(document.body.textContent ?? "");
 
     expect(renderedCopy.join(" ")).not.toMatch(/Canonical|backend-owned|PD-01/i);

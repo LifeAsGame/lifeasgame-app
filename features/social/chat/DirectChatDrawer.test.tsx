@@ -46,6 +46,7 @@ it("renders canonical identity fields and opens an existing read-only channel wi
 
   render(<DirectChatDrawer chat={chat} />);
   expect(screen.getByRole("dialog", { name: "친구와 직접 채팅" })).toBeInTheDocument();
+  expect(screen.getAllByText("직접 채팅")).toHaveLength(2);
   expect(screen.getAllByText("Mage · 레벨 2")).toHaveLength(2);
   expect(screen.getByText("나")).toBeInTheDocument();
   expect(screen.getByLabelText("내 메시지")).toHaveAttribute("data-owner", "mine");
