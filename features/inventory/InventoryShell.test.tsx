@@ -90,13 +90,13 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
 
       expect(await screen.findAllByTestId("inventory-entry")).toHaveLength(3);
       expect(screen.getByRole("button", { name: "전체 아이템" })).toHaveAttribute("aria-pressed", "true");
-      expect(screen.getByRole("button", { name: "CONSUMABLE" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "소모품" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "무기" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "추억" })).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: /Server Sword/ }));
       expect(document.querySelector('[data-stage-key="inventory-items-detail"]')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "CONSUMABLE" }));
+      fireEvent.click(screen.getByRole("button", { name: "소모품" }));
 
       expect(screen.getAllByTestId("inventory-entry")).toHaveLength(1);
       expect(screen.getByRole("button", { name: /Server Utility/ })).toBeInTheDocument();
