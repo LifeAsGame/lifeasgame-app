@@ -2,6 +2,7 @@
 
 import type { HTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 
 type EdgeFadeScrollAreaProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
   children: ReactNode;
@@ -11,6 +12,7 @@ type EdgeFadeScrollAreaProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> 
   centerTargetKey?: string | number | null;
   resetScrollKey?: string | number | null;
   centerBehavior?: ScrollBehavior | "spring";
+  centerSelected?: boolean;
 };
 
 type FadeState = {
@@ -53,9 +55,11 @@ export default function EdgeFadeScrollArea({
   centerTargetKey = null,
   resetScrollKey = null,
   centerBehavior = "smooth",
+  centerSelected = false,
   ...rest
 }: EdgeFadeScrollAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
   const contentRef = useRef<HTMLDivElement>(null);
   const updateFadeStateRef = useRef<(() => void) | null>(null);
   const dragStateRef = useRef<DragState>({
@@ -78,6 +82,14 @@ export default function EdgeFadeScrollArea({
     canScrollUp: false,
     canScrollDown: false,
   });
+  const [viewportHeight, setViewportHeight] = useState(0);
+
+  useEffect(() => {
+    if (!centerSelected || !scrollRef.current) return;
+    const observer = new ResizeObserver(([entry]) => setViewportHeight(entry.contentRect.height));
+    observer.observe(scrollRef.current);
+    return () => observer.disconnect();
+  }, [centerSelected]);
 
   const cancelCenterAnimation = useCallback(() => {
     if (centerFrameRef.current !== null) {
@@ -89,8 +101,8 @@ export default function EdgeFadeScrollArea({
 
   const startSpringCenterScroll = useCallback(
     (el: HTMLDivElement, targetScrollTop: number) => {
-      cancelCenterAnimation();
-      centerVelocityRef.current = 0;
+      if (centerFrameRef.current !== null) window.cancelAnimationFrame(centerFrameRef.current);
+      centerFrameRef.current = null;
 
       const SPRING_STIFFNESS = 190;
       const SPRING_DAMPING = 24;
@@ -140,7 +152,7 @@ export default function EdgeFadeScrollArea({
 
       centerFrameRef.current = window.requestAnimationFrame(step);
     },
-    [cancelCenterAnimation],
+    [],
   );
 
   useEffect(() => {
@@ -457,6 +469,7 @@ export default function EdgeFadeScrollArea({
     updateFadeStateRef.current = updateFadeState;
     updateFadeState();
     el.addEventListener("scroll", updateFadeState, { passive: true });
+    el.addEventListener("wheel", cancelAllMotion, { passive: true });
     el.addEventListener("pointerdown", onPointerDown);
     el.addEventListener("pointermove", onPointerMove);
     el.addEventListener("pointerup", onPointerEnd);
@@ -478,6 +491,7 @@ export default function EdgeFadeScrollArea({
 
     return () => {
       el.removeEventListener("scroll", updateFadeState);
+      el.removeEventListener("wheel", cancelAllMotion);
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointermove", onPointerMove);
       el.removeEventListener("pointerup", onPointerEnd);
@@ -568,11 +582,11 @@ export default function EdgeFadeScrollArea({
         return;
       }
 
-      if (centerBehavior === "spring") {
+      if (centerBehavior === "spring" && !reducedMotion) {
         startSpringCenterScroll(el, nextScrollTop);
       } else {
         cancelCenterAnimation();
-        el.scrollTo({ top: nextScrollTop, behavior: centerBehavior });
+        el.scrollTo({ top: nextScrollTop, behavior: reducedMotion || centerBehavior === "spring" ? "auto" : centerBehavior });
       }
     });
 
@@ -588,6 +602,8 @@ export default function EdgeFadeScrollArea({
     centerTargetKey,
     centerTargetSelector,
     startSpringCenterScroll,
+    viewportHeight,
+    reducedMotion,
   ]);
 
   const mergedClassName = useMemo(
@@ -605,7 +621,7 @@ export default function EdgeFadeScrollArea({
   return (
     <div className="relative min-h-0">
       <div ref={scrollRef} {...rest} className={mergedClassName} style={style}>
-        <div ref={contentRef}>{children}</div>
+        <div ref={contentRef} style={centerSelected && centerTargetKey !== null && centerTargetKey !== "" ? { paddingBlock: Math.max(0, (viewportHeight - 68) / 2) } : undefined}>{children}</div>
       </div>
 
       <div

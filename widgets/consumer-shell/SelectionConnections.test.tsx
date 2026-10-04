@@ -1,43 +1,44 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import SelectionConnections from "./SelectionConnections";
+import SelectionConnections, { visibleConnections } from "./SelectionConnections";
 
 afterEach(() => vi.restoreAllMocks());
 
-it.each([["journey-list", "journey-detail"], ["lifelog-journal", "lifelog-journal-detail"], ["lifelog-journal", "lifelog-quick-record"], ["lifelog-collection-list", "lifelog-collection-detail"], ["lifelog-collection-list", "lifelog-collection-form"]])("tracks %s and %s bounds, clamps scrolling, and removes hidden connections", (listKey, detailKey) => {
+it("connects every selected intermediate stage rather than skipping to the first list", () => {
+  const view = render(<div>
+    <button data-menu-id="player" aria-pressed="true"><span className="lag-orb-icon" /></button>
+    <div className="lag-workspace">
+      <div data-stage-key="player-stage-0"><div className="lag-panel-frame"><button aria-pressed="true">자격증</button></div></div>
+      <div data-stage-key="categories" data-parent-stage-key="player-stage-0"><div className="lag-panel-frame"><button aria-pressed="true">어학</button></div></div>
+      <div data-stage-key="list" data-parent-stage-key="categories"><div className="lag-panel-frame"><button aria-pressed="true">시험</button></div></div>
+      <div data-stage-key="detail" data-parent-stage-key="list"><div className="lag-panel-frame" /></div>
+    </div>
+    <SelectionConnections active />
+  </div>);
+  expect(visibleConnections(view.container).map(({ id }) => id)).toEqual(["main-player-stage-0", "player-stage-0-categories", "categories-list", "list-detail"]);
+  view.container.querySelector('[data-stage-key="categories"]')?.setAttribute("aria-hidden", "true");
+  expect(visibleConnections(view.container).map(({ id }) => id)).not.toContain("categories-list");
+});
+
+it("tracks a visible chain only while active and omits long mobile lines", () => {
   let paint: FrameRequestCallback = () => {};
   vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => { paint = callback; return 1; });
-  vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
-  let rowY = 300, axisX = 500;
+  const cancelFrame = vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
-    const [x, y, width, height] = this.matches("svg") ? [0, 0, 1000, 800]
-      : this.matches(".lag-orb-icon") ? [axisX, 20, 50, 50]
-      : this.matches(".lag-panel-body") ? [600, 100, 300, 400]
-      : this.matches("button") ? [600, rowY, 300, 80]
-      : this.closest(`[data-stage-key="${detailKey}"]`) ? [50, 0, 400, 600]
-      : [600, 0, 300, 600];
-    return { x, y, width, height, top: y, left: x, right: x + width, bottom: y + height, toJSON: () => ({}) };
+    const x = this.matches(".lag-orb-icon") ? 500 : this.matches("svg") ? 0 : 600;
+    const width = this.matches(".lag-orb-icon") ? 50 : 300;
+    return { x, y: 20, width, height: 50, top: 20, left: x, right: x + width, bottom: 70, toJSON: () => ({}) };
   });
-  const content = (active: boolean) => <div>
-    <button data-menu-id="quests" aria-pressed="true"><span className="lag-orb-icon" /></button>
-    <div data-stage-key={listKey} data-panel-role="list"><div className="lag-panel-frame"><div className="lag-panel-body"><button aria-pressed="true" /></div></div></div>
-    <div data-stage-key={detailKey} data-panel-role="detail" data-panel-side="left"><div className="lag-panel-frame" /></div>
-    <SelectionConnections active={active} />
-  </div>;
+  const content = (active: boolean) => <div><button data-menu-id="player" aria-pressed="true"><span className="lag-orb-icon" /></button><div className="lag-workspace"><div data-stage-key="root"><div className="lag-panel-frame" /></div></div><SelectionConnections active={active} /></div>;
   const view = render(content(true));
-  const path = (name: string) => view.container.querySelector(`[data-connection="${name}"]`)!;
-  const tick = () => act(() => paint(0));
-  tick();
-  expect(path("list")).toHaveAttribute("d", "M557,45 H584 V340 H600");
-  expect(path("detail")).toHaveAttribute("d", "M493,45 H468 V45 H450");
-  rowY = -100; axisX = 510; tick();
-  expect(path("list")).toHaveAttribute("d", "M567,45 H584 V109 H600");
-  rowY = 900; tick();
-  expect(path("list")).toHaveAttribute("d", "M567,45 H584 V491 H600");
-  view.container.querySelector(`[data-stage-key="${detailKey}"]`)!.setAttribute("aria-hidden", "true"); tick();
-  expect(path("detail")).toHaveAttribute("d", "");
-  vi.spyOn(window, "innerWidth", "get").mockReturnValue(390); tick();
-  expect(path("list")).toHaveAttribute("d", "");
+  act(() => paint(0));
+  expect(view.container.querySelector('[data-connection="main-root"]')).toHaveAttribute("d", "M550,25 H584 V25 H600");
+  vi.spyOn(window, "innerWidth", "get").mockReturnValue(390);
+  act(() => paint(0));
+  expect(view.container.querySelector("svg path")).toBeNull();
   view.rerender(content(false));
-  for (const p of view.container.querySelectorAll("path")) expect(p).toHaveAttribute("d", "");
+  act(() => paint(0));
+  expect(view.container.querySelector("svg path")).toBeNull();
+  view.unmount();
+  expect(cancelFrame).toHaveBeenCalled();
 });

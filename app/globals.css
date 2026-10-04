@@ -5120,7 +5120,7 @@ select {
 .lag-person-tags span { max-width: 100%; overflow-wrap: anywhere; border-radius: 12px; padding: 4px 8px; background: var(--lag-selected-surface); }
 .lag-person-tags button { margin-left: 6px; min-width: 28px; min-height: 28px; }
 .lag-person-detail dd, .lag-person-form { overflow-wrap: anywhere; }
-.lag-person-form .lag-role-actions { position: sticky; bottom: 0; z-index: 1; background: var(--lag-panel); padding-block: 12px; }
+.lag-person-form .lag-role-actions { position: static; padding-block: 12px; }
 @media (max-width: 899px) { .lag-person-inline { flex-wrap: wrap; } }
 
 /* S5 consumer surfaces share the existing material, row, and typography tokens. */

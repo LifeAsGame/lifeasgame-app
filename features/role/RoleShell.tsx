@@ -60,7 +60,7 @@ export default function RoleShell({
   selectedRoleId,
   reentryRequest = 0,
   onSelectRole,
-  onRefresh, hideRoleDetails = false, workspace = "roles", personCreateRequest = 0, personReentryRequest = 0, roleCreateRequest = 0, onWorkspaceBack = () => {}, editRequest, rolesLoading, rolesError, onRoleArchived, onEditRole,
+  onRefresh, hideRoleDetails = false, workspace = "roles", personCreateRequest = 0, personReentryRequest = 0, roleCreateRequest = 0, roleTemplateType, onWorkspaceBack = () => {}, editRequest, rolesLoading, rolesError, onRoleArchived, onEditRole,
 }: {
   hideRoleDetails?: boolean;
   workspace?: "persons" | "roles" | null;
@@ -74,6 +74,7 @@ export default function RoleShell({
   onWorkspaceBack?: () => void;
   editRequest?: { id: number; sequence: number } | null;
   roles: RoleDetail[];
+  roleTemplateType?: "ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER";
   playerId?: number;
   selectedRoleId: number | null;
   reentryRequest?: number;
@@ -131,10 +132,10 @@ export default function RoleShell({
   return (
     <div className="lag-panel-rail lag-role-shell relative" data-testid="role-shell">
       <PersonPanels active={workspace === "persons"} createRequest={personCreateRequest} reentryRequest={personReentryRequest} onBack={onWorkspaceBack} />
-      {workspace === "roles" ? <RoleListPanel roles={roles} selectedRoleId={selectedRoleId} loading={rolesLoading} error={rolesError} createRequest={roleCreateRequest} inactive={compact && Boolean(selectedRole) && !hideRoleDetails} onSelect={onSelectRole} onEdit={(id) => onEditRole?.(id)} onRetry={() => void onRefresh()} onRefresh={onRefresh} onArchived={(id) => { if (selectedRoleId === id) onSelectRole(null); onRoleArchived?.(id); }} onBack={onWorkspaceBack} /> : null}
+      {workspace === "roles" ? <RoleListPanel roles={roles} templateType={roleTemplateType} selectedRoleId={selectedRoleId} loading={rolesLoading} error={rolesError} createRequest={roleCreateRequest} inactive={compact && Boolean(selectedRole) && !hideRoleDetails} onSelect={onSelectRole} onEdit={(id) => onEditRole?.(id)} onRetry={() => void onRefresh()} onRefresh={onRefresh} onArchived={(id) => { if (selectedRoleId === id) onSelectRole(null); onRoleArchived?.(id); }} onBack={onWorkspaceBack} /> : null}
       <AnimatePresence initial={false}>
         {selectedRole ? (
-          <PanelStage stageKey="role-summary" index={2} inactive={compact && Boolean(editingRole || activeSurface)}>
+          <PanelStage stageKey="role-summary" parentStageKey="role-list" index={2} inactive={compact && Boolean(editingRole || activeSurface)}>
             <PanelFrame title={selectedRole.name} depth={1} contentKey={selectedRole.id} backButton={<BackButton label="역할 목록으로" onClick={closeSummary} />}>
               <article className="lag-role-summary">
                 <header className="lag-role-hero">
@@ -160,10 +161,10 @@ export default function RoleShell({
       </AnimatePresence>
 
         {selectedRole && (editingRole || activeSurface) ? (
-          activeSurface === "relations" && !editingRole ? <RelationPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} createRequest={relationCreateRequest} reentryRequest={relationReentryRequest} onBack={closeDetail} /> : activeSurface === "events" && !editingRole ? <RoleEventPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} createRequest={eventCreateRequest} reentryRequest={eventReentryRequest} onBack={closeDetail} /> : activeSurface === "parties" && !editingRole ? <RolePartyPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} playerId={playerId} createRequest={partyCreateRequest} reentryRequest={partyReentryRequest} onBack={closeDetail} /> : <PanelStage stageKey="role-detail" index={3} instant>
+          activeSurface === "relations" && !editingRole ? <RelationPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} createRequest={relationCreateRequest} reentryRequest={relationReentryRequest} onBack={closeDetail} /> : activeSurface === "events" && !editingRole ? <RoleEventPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} createRequest={eventCreateRequest} reentryRequest={eventReentryRequest} onBack={closeDetail} /> : activeSurface === "parties" && !editingRole ? <RolePartyPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} playerId={playerId} createRequest={partyCreateRequest} reentryRequest={partyReentryRequest} onBack={closeDetail} /> : <PanelStage stageKey="role-detail" parentStageKey="role-summary" index={3} instant>
             <PanelFrame title={editingRole ? "역할 수정" : ROLE_SURFACES.find(({ id }) => id === activeSurface)?.label ?? "역할"} depth={0} contentKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} backButton={<BackButton label={`역할 ${selectedRole.name}로`} onClick={closeDetail} />}>
               {editingRole ? (
-                <RoleForm role={selectedRole} onSaved={async () => { const generation = roleGeneration.current; await onRefresh(); if (generation === roleGeneration.current) closeDetail(); }} onCancel={closeDetail} />
+                <RoleForm role={selectedRole} roles={roles} onSaved={async () => { const generation = roleGeneration.current; await onRefresh(); if (generation === roleGeneration.current) closeDetail(); }} onCancel={closeDetail} />
               ) : <Overview role={selectedRole} />}
             </PanelFrame>
           </PanelStage>

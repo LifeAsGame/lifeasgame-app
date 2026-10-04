@@ -92,14 +92,14 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
 
   return <div className="lag-panel-rail lag-player-shell lag-semantic-controls relative" data-testid="certification-shell">{dialog}
     <PlayerCategories title="자격증" stageKey="player-certification-categories" model={personalCategories} createRequest={createRequest} selectedKey={category} onSelect={(next) => chooseCategory(next)} onCreate={(next) => chooseCategory(next, true)} onDeleted={(id) => { if (category === "personal:" + id) { setCategory(null); backToList(); } }} onBack={onBack} />
-    {category !== null ? <PanelStage stageKey="player-certification-list" index={1} panelRole="list" inactive={compact && selected !== null}>
-      <PanelFrame title={creation.creating ? "자격증 등록" : (selectedCategory?.source === "SYSTEM" ? categoryLabel(selectedCategory.name) : selectedCategory?.name ?? "") + " 자격증"} depth={1} backButton={<BackButton label={creation.creating ? "자격증 목록으로" : "자격증 분류로"} onClick={creation.creating ? closeCreation : () => { setCategory(null); backToList(); }} />}>
+    {category !== null ? <PanelStage stageKey="player-certification-list" parentStageKey="player-certification-categories" index={1} panelRole="list" inactive={compact && selected !== null}>
+      <PanelFrame title={creation.creating ? "자격증 등록" : (selectedCategory?.source === "SYSTEM" ? categoryLabel(selectedCategory.name) : selectedCategory?.name ?? "") + " 자격증"} depth={1} centerSelected={!creation.creating} centerTargetKey={creation.creating ? null : String(selected?.certificationId ?? "")} centerBehavior="spring" backButton={<BackButton label={creation.creating ? "자격증 목록으로" : "자격증 분류로"} onClick={creation.creating ? closeCreation : () => { setCategory(null); backToList(); }} />}>
         <CreateSlot showCancel={false} creating={creation.creating} pending={pending} onClose={closeCreation} list={<div className="lag-player-content">
           {certifications.owned.loading && !certifications.owned.items.length ? <InfoCard>자격증을 불러오는 중…</InfoCard> : null}
           {certifications.owned.error ? <Feedback message={certifications.owned.error} retry={() => void certifications.owned.reload()} /> : null}
           {error && certifications.mutationErrorKey?.startsWith("delete-") ? <Feedback message={error} /> : null}
           {!certifications.owned.loading && !certifications.owned.error && !filteredOwned.length ? <InfoCard>해당 분류의 자격증이 없습니다.</InfoCard> : null}
-          {filteredOwned.map((item, index) => <PanelCard key={item.certificationId} label={item.name} slotLabel={item.name.slice(0, 1)} subtitle={`${item.issuer} · 취득일 ${item.acquiredDate ?? "미등록"}`} selected={selected?.certificationId === item.certificationId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.certificationId, true); else void deleteOwned(item.certificationId, item.name); }} onClick={() => select(item.certificationId)} />)}
+          {filteredOwned.map((item, index) => <PanelCard key={item.certificationId} label={item.name} slotLabel={item.name.slice(0, 1)} subtitle={`${item.issuer} · 취득일 ${item.acquiredDate ?? "미등록"}`} selected={selected?.certificationId === item.certificationId} centerTarget={selected?.certificationId === item.certificationId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.certificationId, true); else void deleteOwned(item.certificationId, item.name); }} onClick={() => select(item.certificationId)} />)}
         </div>}>
           <div className="lag-player-content">
             {certifications.catalog.loading && !certifications.catalog.items.length ? <InfoCard>자격증 카탈로그를 불러오는 중…</InfoCard> : null}
@@ -111,8 +111,8 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
               if (saved) { element.reset(); setCatalogId(""); }
             }}>
               <Field label="자격증" required><select aria-label="자격증" value={catalogId} onChange={(event) => setCatalogId(event.target.value)} required disabled={pending} style={controlStyle}><option value="">선택…</option>{available.map((item) => <option key={item.certificationId} value={item.certificationId}>{item.name} · {item.issuer}</option>)}</select></Field>
-              <Field label="취득일"><input name="acquiredDate" type="date" disabled={pending} style={controlStyle} /></Field>
-              <Field label="만료일"><input name="expiresDate" type="date" disabled={pending} style={controlStyle} /></Field>
+              <Field label="취득일"><input name="acquiredDate" type="date" min="1000-01-01" disabled={pending} style={controlStyle} /></Field>
+              <Field label="만료일"><input name="expiresDate" type="date" min="1000-01-01" disabled={pending} style={controlStyle} /></Field>
               {error && certifications.mutationErrorKey === "register" ? <Feedback message={error} /> : null}
               {assignmentError ? <Feedback message={assignmentError} /> : null}
               <button type="submit" className="lag-player-button" disabled={pending || !available.length}>{pending ? "저장 중…" : "자격증 저장"}</button>
@@ -121,7 +121,7 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
         </CreateSlot>
       </PanelFrame>
     </PanelStage> : null}
-    <AnimatePresence initial={false} mode="popLayout">{selected ? <PanelStage key="player-certification-detail" stageKey="player-certification-detail" index={2} panelRole="detail">
+    <AnimatePresence initial={false} mode="popLayout">{selected ? <PanelStage key="player-certification-detail" stageKey="player-certification-detail" parentStageKey="player-certification-list" index={2} panelRole="detail">
       <PanelFrame title={editingId === selected.certificationId ? "자격증 수정" : "자격증 상세"} depth={0} contentKey={selected.certificationId} backButton={<BackButton label={editingId === selected.certificationId ? "자격증 상세로" : "내 자격증 목록으로"} onClick={() => { if (editingId === selected.certificationId) { setEditingId(null); certifications.clearMutationError(); } else backToList(); }} />}>
         <div className="lag-player-content">
           <h4>{selected.name}</h4>
@@ -132,8 +132,8 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
             const saved = datesSaved && (next === (selected.personalCategoryId ?? null) || await assignOwned(selected.certificationId, next));
             if (saved) setEditingId((id) => id === selected.certificationId ? null : id);
           }}>
-            <Field label="변경할 취득일"><input name="acquiredDate" type="date" disabled={pending} style={controlStyle} /></Field>
-            <Field label="변경할 만료일"><input name="expiresDate" type="date" disabled={pending} style={controlStyle} /></Field>
+            <Field label="변경할 취득일"><input name="acquiredDate" type="date" min="1000-01-01" disabled={pending} style={controlStyle} /></Field>
+            <Field label="변경할 만료일"><input name="expiresDate" type="date" min="1000-01-01" disabled={pending} style={controlStyle} /></Field>
             <p className="text-xs">빈 날짜는 현재 값을 유지합니다. 날짜 지우기는 지원하지 않습니다.</p>
             <Field label="내 분류"><select name="personalCategoryId" aria-label="내 분류" defaultValue={selected.personalCategoryId ?? ""} disabled={pending} style={controlStyle}><option value="">연결 안 함</option>{personalCategories.categories.filter((item) => item.source === "PERSONAL").map((item) => <option key={item.id} value={item.id!}>{item.name}</option>)}</select></Field>
             {error && certifications.mutationErrorKey === `update-${selected.certificationId}` ? <Feedback message={error} /> : null}

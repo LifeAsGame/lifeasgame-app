@@ -149,7 +149,7 @@ describe("Inventory Items와 Inbox surface를 사용할 때", () => {
       expect(await screen.findByRole("button", { name: /Server Sword/ })).toBeInTheDocument();
       api.getInventoryApi.mockRejectedValueOnce(new Error("Items GET failed")).mockResolvedValueOnce({ entries: [secondItem] });
 
-      fireEvent.click(screen.getByRole("button", { name: "아이템 다시 조회" }));
+      fireEvent.click(screen.getByRole("button", { name: "목록 새로고침" }));
       expect(await screen.findByText(/이전에 조회한 항목입니다/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Server Sword/ })).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));

@@ -102,14 +102,14 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
 
   return <div className="lag-panel-rail lag-player-shell lag-semantic-controls relative" data-testid="hobby-shell">{dialog}
     <PlayerCategories title="취미" stageKey="player-hobby-categories" model={personalCategories} createRequest={createRequest} selectedKey={category} onSelect={(next) => chooseCategory(next)} onCreate={(next) => chooseCategory(next, true)} onDeleted={(id) => { if (category === "personal:" + id) { setCategory(null); backToList(); } }} onBack={onBack} />
-    {category !== null ? <PanelStage stageKey="player-hobby-list" index={1} panelRole="list" inactive={compact && selected !== null}>
-      <PanelFrame title={creation.creating ? "취미 등록" : (selectedCategory?.source === "SYSTEM" ? categoryLabel(selectedCategory.name) : selectedCategory?.name ?? "") + " 취미"} depth={1} backButton={<BackButton label={creation.creating ? "취미 목록으로" : "취미 분류로"} onClick={creation.creating ? closeCreation : () => { setCategory(null); backToList(); }} />}>
+    {category !== null ? <PanelStage stageKey="player-hobby-list" parentStageKey="player-hobby-categories" index={1} panelRole="list" inactive={compact && selected !== null}>
+      <PanelFrame title={creation.creating ? "취미 등록" : (selectedCategory?.source === "SYSTEM" ? categoryLabel(selectedCategory.name) : selectedCategory?.name ?? "") + " 취미"} depth={1} centerSelected={!creation.creating} centerTargetKey={creation.creating ? null : String(selected?.hobbyId ?? "")} centerBehavior="spring" backButton={<BackButton label={creation.creating ? "취미 목록으로" : "취미 분류로"} onClick={creation.creating ? closeCreation : () => { setCategory(null); backToList(); }} />}>
         <CreateSlot showCancel={false} creating={creation.creating} pending={pending} onClose={closeCreation} list={<div className="lag-player-content">
           {hobbies.owned.loading && !hobbies.owned.items.length ? <InfoCard>취미를 불러오는 중…</InfoCard> : null}
           {hobbies.owned.error ? <Feedback message={hobbies.owned.error} retry={() => void hobbies.owned.reload()} /> : null}
           {error && hobbies.mutationErrorKey?.startsWith("delete-") ? <Feedback message={error} /> : null}
           {!hobbies.owned.loading && !hobbies.owned.error && !filteredOwned.length ? <InfoCard>해당 분류의 취미가 없습니다.</InfoCard> : null}
-          {filteredOwned.map((item, index) => <PanelCard key={item.hobbyId} label={item.customName} slotLabel={item.customName.slice(0, 1)} subtitle={`${item.name} · ${label(item.status)} · 숙련도 ${item.proficiency}/100`} selected={selected?.hobbyId === item.hobbyId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.hobbyId, true); else void deleteOwned(item.hobbyId, item.customName); }} onClick={() => select(item.hobbyId)} />)}
+          {filteredOwned.map((item, index) => <PanelCard key={item.hobbyId} label={item.customName} slotLabel={item.customName.slice(0, 1)} subtitle={`${item.name} · ${label(item.status)} · 숙련도 ${item.proficiency}/100`} selected={selected?.hobbyId === item.hobbyId} centerTarget={selected?.hobbyId === item.hobbyId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.hobbyId, true); else void deleteOwned(item.hobbyId, item.customName); }} onClick={() => select(item.hobbyId)} />)}
         </div>}>
           <div className="lag-player-content">
             {hobbies.catalog.loading && !hobbies.catalog.items.length ? <InfoCard>취미 카탈로그를 불러오는 중…</InfoCard> : null}
@@ -125,7 +125,7 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
               <Field label="설명"><textarea name="detail" disabled={pending} style={controlStyle} /></Field>
               <Field label="숙련도" required><input name="proficiency" type="number" min="0" max="100" required disabled={pending} style={controlStyle} /></Field>
               <Field label="상태" required><select name="status" required defaultValue="ACTIVE" disabled={pending} style={controlStyle}><StatusOptions /></select></Field>
-              <Field label="시작일"><input name="startedOn" type="date" disabled={pending} style={controlStyle} /></Field>
+              <Field label="시작일"><input name="startedOn" type="date" min="1000-01-01" disabled={pending} style={controlStyle} /></Field>
               {error && hobbies.mutationErrorKey === "register" ? <Feedback message={error} /> : null}
               {assignmentError ? <Feedback message={assignmentError} /> : null}
               <button type="submit" className="lag-player-button" disabled={pending || !available.length}>{pending ? "저장 중…" : "취미 저장"}</button>
@@ -134,7 +134,7 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
         </CreateSlot>
       </PanelFrame>
     </PanelStage> : null}
-    <AnimatePresence initial={false} mode="popLayout">{selected ? <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" index={2} panelRole="detail">
+    <AnimatePresence initial={false} mode="popLayout">{selected ? <PanelStage key="player-hobby-detail" stageKey="player-hobby-detail" parentStageKey="player-hobby-list" index={2} panelRole="detail">
       <PanelFrame title={editingId === selected.hobbyId ? "취미 수정" : "취미 상세"} depth={0} contentKey={selected.hobbyId} backButton={<BackButton label={editingId === selected.hobbyId ? "취미 상세로" : "내 취미 목록으로"} onClick={() => { if (editingId === selected.hobbyId) { setEditingId(null); hobbies.clearMutationError(); } else backToList(); }} />}>
         <div className="lag-player-content">
           <h4>{selected.customName}</h4>
@@ -149,7 +149,7 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
             <Field label="변경할 설명"><textarea name="detail" disabled={pending} style={controlStyle} /></Field>
             <Field label="변경할 숙련도"><input name="proficiency" type="number" min="0" max="100" disabled={pending} style={controlStyle} /></Field>
             <Field label="변경할 상태"><select name="status" defaultValue="" disabled={pending} style={controlStyle}><StatusOptions keep /></select></Field>
-            <Field label="변경할 시작일"><input name="startedOn" type="date" disabled={pending} style={controlStyle} /></Field>
+            <Field label="변경할 시작일"><input name="startedOn" type="date" min="1000-01-01" disabled={pending} style={controlStyle} /></Field>
             <p className="text-xs">빈 항목은 현재 값을 유지합니다. 항목 지우기는 지원하지 않습니다.</p>
             <Field label="내 분류"><select name="personalCategoryId" aria-label="내 분류" defaultValue={selected.personalCategoryId ?? ""} disabled={pending} style={controlStyle}><option value="">연결 안 함</option>{personalCategories.categories.filter((item) => item.source === "PERSONAL").map((item) => <option key={item.id} value={item.id!}>{item.name}</option>)}</select></Field>
             {error && hobbies.mutationErrorKey === `update-${selected.hobbyId}` ? <Feedback message={error} /> : null}

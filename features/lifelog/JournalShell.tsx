@@ -452,7 +452,7 @@ export default function JournalShell({ createRequest = 0, initialLifeLogId, role
   return (
     <div ref={shellRef} className="lag-panel-rail lag-journal-shell relative" data-testid="journal-shell">
       <PanelStage stageKey="lifelog-journal" panelRole="list" inactive={compact && detailVisible && !quickRecordOpen && journal.selectedLifeLogId !== null}>
-        <PanelFrame title="일상 기록" depth={1} resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeQuickRecord} /> : onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
+        <PanelFrame title="일상 기록" depth={1} centerSelected={!quickRecordOpen} centerTargetKey={quickRecordOpen ? null : journal.selectedLifeLogId} centerBehavior="spring" resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeQuickRecord} /> : onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
             <CreateSlot showCancel={false} creating={quickRecordOpen} pending={journal.quickRecord.pending} onClose={closeQuickRecord} list={<div className="lag-journal-surface">
             <details className="lag-journal-filter-disclosure">
               <summary>필터 · 역할 / 기록 분류</summary>
@@ -504,6 +504,7 @@ export default function JournalShell({ createRequest = 0, initialLifeLogId, role
                       className="lag-journal-entry"
                       data-testid="journal-entry"
                       data-selected={journal.selectedLifeLogId === entry.lifeLogId}
+                      data-scroll-center-target={journal.selectedLifeLogId === entry.lifeLogId ? "true" : undefined}
                       aria-pressed={journal.selectedLifeLogId === entry.lifeLogId}
                       onClick={(event) => {
                         caller.current = event.currentTarget;
@@ -563,7 +564,7 @@ export default function JournalShell({ createRequest = 0, initialLifeLogId, role
 
       <AnimatePresence initial={false}>
         {detailVisible && !quickRecordOpen && journal.selectedLifeLogId ? (
-          <PanelStage stageKey="lifelog-journal-detail" panelRole="detail" side="right">
+          <PanelStage stageKey="lifelog-journal-detail" parentStageKey="lifelog-journal" panelRole="detail" side="right">
             <PanelFrame
               title="일상 기록 상세"
               depth={0}
