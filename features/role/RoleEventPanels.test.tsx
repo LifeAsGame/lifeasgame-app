@@ -43,6 +43,17 @@ it("maps the participation and unscheduled controls to valid schedule reads", as
   expect(api.createRoleEventApi).not.toHaveBeenCalled();
 });
 
+it("keeps equal and one-sided personal times visible without inventing a missing timestamp", async () => {
+  schedule.roleSchedule.mockResolvedValue(page([
+    { ...personal, sourceId: 10, title: "한 시각", endsAt: personal.startsAt },
+    { ...personal, sourceId: 11, title: "종료만", startsAt: null },
+  ]));
+  render(<RoleEventPanels {...props} />);
+  expect(await screen.findByRole("button", { name: /한 시각.*시작/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /종료만.*종료/ })).toBeInTheDocument();
+  expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument();
+});
+
 it("ignores an older period response and removes a private Guild row on access loss", async () => {
   let resolveOld!: (value: ReturnType<typeof page>) => void;
   schedule.roleSchedule.mockReturnValueOnce(new Promise((resolve) => { resolveOld = resolve; })).mockResolvedValueOnce(page([guild]));

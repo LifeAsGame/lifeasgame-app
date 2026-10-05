@@ -12,6 +12,10 @@ it("requests the selected local month as an exclusive UTC instant range", () => 
   expect(path).toContain("/api/v1/roles/12/schedule?");
   expect([from.getFullYear(), from.getMonth(), from.getDate(), from.getHours()]).toEqual([2026, 9, 1, 0]);
   expect([to.getFullYear(), to.getMonth(), to.getDate(), to.getHours()]).toEqual([2026, 10, 1, 0]);
+  if (Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Seoul") {
+    expect(query.get("from")).toBe("2026-09-30T15:00:00.000Z");
+    expect(query.get("to")).toBe("2026-10-31T15:00:00.000Z");
+  }
   expect(query.get("page")).toBe("1");
   expect(query.get("size")).toBe("20");
   expect(apiGet).not.toHaveBeenCalled();
