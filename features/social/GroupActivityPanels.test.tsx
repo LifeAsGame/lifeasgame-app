@@ -51,3 +51,13 @@ it("lets a leader grant an editor before the first activity exists", async () =>
   fireEvent.click(await screen.findByRole("button", { name: "편집자로 지정" }));
   await waitFor(() => expect(api.grantActivityEditor).toHaveBeenCalledWith("PARTY", 7, 5));
 });
+
+it("does not restore an old group's activities after switching groups", async () => {
+  let finishOld!: (value: typeof page) => void;
+  api.activities.mockImplementation((_: string, id: number) => id === 7 ? new Promise((resolve) => { finishOld = resolve; }) : Promise.resolve({ ...page, contents: [{ ...record, id: 12, groupId: 8, title: "새 모임 활동" }] }));
+  const { rerender } = render(<GroupActivityPanels groupType="PARTY" groupId={7} parentStageKey="social-detail" onBack={() => {}} />);
+  rerender(<GroupActivityPanels groupType="PARTY" groupId={8} parentStageKey="social-detail" onBack={() => {}} />);
+  expect(await screen.findByRole("button", { name: /새 모임 활동/ })).toBeInTheDocument();
+  finishOld(page);
+  await waitFor(() => expect(screen.queryByRole("button", { name: /산책/ })).not.toBeInTheDocument());
+});
