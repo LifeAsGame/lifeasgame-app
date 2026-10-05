@@ -27,3 +27,14 @@ it("keeps note input on membership loss and disables writing", async () => {
   api.saveGuildNote.mockRejectedValue(new ApiError(404, "GROUP_NOT_FOUND", "접근 불가")); render(<GuildMemberNote {...props} />); await edit(); fireEvent.change(screen.getByLabelText("나만의 메모"), { target: { value: "떠나기 전 초안" } }); fireEvent.click(screen.getByRole("button", { name: "메모 저장" }));
   await waitFor(() => expect(props.onDenied).toHaveBeenCalled()); expect(screen.getByLabelText("나만의 메모")).toHaveValue("떠나기 전 초안"); expect(screen.getByRole("button", { name: "메모 저장" })).toBeDisabled();
 });
+
+it("preserves a note's original Person after the member is explicitly relinked", async () => {
+  api.getGuildNote.mockResolvedValue({ ...note, personId: 99 });
+  render(<GuildMemberNote {...props} />);
+  await screen.findByText("이 메모는 이전에 연결한 내 인물 #99의 기록입니다.");
+  const row = screen.getByRole("button", { name: /나만의 메모/ });
+  fireEvent.keyDown(row, { key: "F10", shiftKey: true });
+  expect(screen.queryByRole("button", { name: "수정" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "메모 삭제" })).toBeInTheDocument();
+  expect(api.saveGuildNote).not.toHaveBeenCalled();
+});
