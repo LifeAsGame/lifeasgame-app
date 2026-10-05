@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
+import { ApiError } from "@/shared/api/client";
 import RolePartyPanels from "./RolePartyPanels";
 
 const api = vi.hoisted(() => ({ rolePartiesForRole: vi.fn(), createRoleParty: vi.fn(), rolePartyDetail: vi.fn(), myRoleParties: vi.fn(), myRolePartyInvitations: vi.fn(), rolePartyMembers: vi.fn(), rolePartyInvitations: vi.fn(), inviteToRoleParty: vi.fn(), cancelRolePartyInvitation: vi.fn(), answerRolePartyInvitation: vi.fn() }));
@@ -105,4 +106,25 @@ it("opens the existing bookmarked RoleParty detail without the creator list and 
   await waitFor(() => expect(denied).toHaveBeenCalledTimes(1));
   expect(api.myRoleParties).not.toHaveBeenCalled(); expect(api.rolePartiesForRole).not.toHaveBeenCalled();
   expect(screen.queryByText("함께 공부")).not.toBeInTheDocument();
+});
+
+
+it("evicts a bookmarked detail when invitation access is revoked", async () => {
+  const denied = vi.fn();
+  api.rolePartyInvitations.mockRejectedValue(new ApiError(404, "NOT_FOUND", "denied"));
+  render(<RolePartyPanels playerId={4} linkedGroup={{ id: 8, onAccessLost: denied }} onBack={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: "초대" }));
+  await waitFor(() => expect(denied).toHaveBeenCalledTimes(1));
+});
+
+it("evicts a bookmarked detail if the read after a successful command loses access", async () => {
+  const denied = vi.fn();
+  api.rolePartyDetail.mockResolvedValueOnce(party).mockRejectedValueOnce(new ApiError(404, "NOT_FOUND", "denied"));
+  api.rolePartyInvitations.mockResolvedValue({ contents: [{ invitationId: 13, inviteePlayerId: 7, expiresAt: "2026-10-09T00:00:00Z" }], page: 0, totalPages: 1 });
+  api.cancelRolePartyInvitation.mockResolvedValue(undefined);
+  render(<RolePartyPanels playerId={4} linkedGroup={{ id: 8, onAccessLost: denied }} onBack={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: "초대" }));
+  fireEvent.click(await screen.findByRole("button", { name: "초대 취소" }));
+  await waitFor(() => expect(denied).toHaveBeenCalledTimes(1));
+  expect(api.cancelRolePartyInvitation).toHaveBeenCalledTimes(1);
 });

@@ -62,7 +62,7 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
       try { await request(); }
       catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); if (linkedGroup && caught instanceof ApiError && [403, 404].includes(caught.status)) linkedGroup.onAccessLost(); return false; }
       try { if (seq === detailSeq.current) await afterCommand(id, close); }
-      catch { if (seq === detailSeq.current) setError("작업은 완료됐지만 최신 정보를 불러오지 못했습니다. 다시 조회해주세요."); }
+      catch (caught) { if (seq === detailSeq.current) { setError("작업은 완료됐지만 최신 정보를 불러오지 못했습니다. 다시 조회해주세요."); if (linkedGroup && caught instanceof ApiError && [403, 404].includes(caught.status)) linkedGroup.onAccessLost(); } }
       return true;
     }
     finally { busy.current = false; setPending(false); }
@@ -79,7 +79,7 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
     finally { busy.current = false; setPending(false); }
   };
   const loadMembers = async (id: number, nextPage = 0) => { const seq = detailSeq.current; setMembers(null); try { const result = await rolePartyMembers(id, nextPage); if (seq === detailSeq.current) setMembers(result); } catch (caught) { setError(errorText(caught)); if (linkedGroup && caught instanceof ApiError && [403, 404].includes(caught.status)) linkedGroup.onAccessLost(); } };
-  const loadInvites = async (id: number, nextPage = 0) => { const seq = ++inviteSeq.current, detail = detailSeq.current; setSentInvites(null); setInvitesError(null); try { const next = await rolePartyInvitations(id, nextPage); if (seq === inviteSeq.current && detail === detailSeq.current) setSentInvites(next); } catch (caught) { if (seq === inviteSeq.current && detail === detailSeq.current) setInvitesError(errorText(caught)); } };
+  const loadInvites = async (id: number, nextPage = 0) => { const seq = ++inviteSeq.current, detail = detailSeq.current; setSentInvites(null); setInvitesError(null); try { const next = await rolePartyInvitations(id, nextPage); if (seq === inviteSeq.current && detail === detailSeq.current) setSentInvites(next); } catch (caught) { if (seq === inviteSeq.current && detail === detailSeq.current) { setInvitesError(errorText(caught)); if (linkedGroup && caught instanceof ApiError && [403, 404].includes(caught.status)) linkedGroup.onAccessLost(); } } };
   const openChild = (next: Child) => { if (selectedId === null) return; setChild(next); setError(null); if (next === "members") { setMemberPage(0); void loadMembers(selectedId); } if (next === "invite" && detail?.status === "ACTIVE" && detail.leaderPlayerId === playerId) { setInvitePage(0); void loadPeers(); void loadInvites(selectedId); } };
   const loadPeers = async () => {
     setPeersError(null);
