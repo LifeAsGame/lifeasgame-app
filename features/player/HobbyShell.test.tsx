@@ -114,15 +114,20 @@ it("개인 취미는 이름으로 보유 행을 만들고 공개 카탈로그에
   expect(await screen.findByRole("button", { name: /Miniature painting/ })).toBeInTheDocument();
 });
 
-it("중복 이름 오류 후 입력과 개인 취미 생성 폼을 유지한다", async () => {
-  privateApi.createPrivateHobbyApi.mockRejectedValue(new Error("중복 개인 취미"));
+it("개인 취미 저장 실패 후 입력을 보존하고 정상 재시도한다", async () => {
+  const privateHobby = { ownedItemId: 90, catalogItemId: null, source: "PRIVATE", name: "Chess at home", detail: null, proficiency: 0, status: "ACTIVE", startedOn: null, personalCategoryId: null };
+  privateApi.createPrivateHobbyApi.mockRejectedValueOnce(new Error("일시적 저장 실패")).mockResolvedValue(privateHobby);
+  privateApi.getPrivateHobbiesApi.mockResolvedValueOnce([]).mockResolvedValue([privateHobby]);
   render(<HobbyShell createRequest={1} />);
   const input = await screen.findByRole("textbox", { name: "취미 이름" });
   fireEvent.change(input, { target: { value: "Chess at home" } });
   fireEvent.click(screen.getByRole("button", { name: "내 취미 저장" }));
-  expect(await screen.findByText("중복 개인 취미")).toBeInTheDocument();
+  expect(await screen.findByText("일시적 저장 실패")).toBeInTheDocument();
   expect(input).toHaveValue("Chess at home");
   expect(privateApi.createPrivateHobbyApi).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole("button", { name: "내 취미 저장" }));
+  expect(await screen.findByRole("button", { name: /Chess at home/ })).toBeInTheDocument();
+  expect(privateApi.createPrivateHobbyApi).toHaveBeenCalledTimes(2);
 });
 
 it("개인 취미 수정과 삭제는 ownedItemId 전용 경로만 사용한다", async () => {
