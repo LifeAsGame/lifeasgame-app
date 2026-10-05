@@ -103,14 +103,18 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
     if (registrationLock.current) return false;
     registrationLock.current = true; setAssignmentPending(true); setAssignmentError(null);
     try {
+      let alreadyOwned = false;
       if (registrationAttemptedIds.current.has(id)) {
         const owned = await hobbies.owned.reload();
         if (!owned) throw new Error("등록 상태를 다시 조회하지 못했습니다. 중복 등록을 막기 위해 재시도하지 않았습니다.");
         const existing = owned.find((item) => item.hobbyId === id);
-        if (!existing) throw new Error("등록 결과를 확인할 수 없습니다. 목록에서 서버 상태를 확인해 주세요.");
-        if ((personalCategoryId ?? (selectedCategory?.source === "PERSONAL" ? selectedCategory.id : null)) === existing.personalCategoryId) { registrationAttemptedIds.current.delete(id); return true; }
-        setRegisteredUnassignedId(id);
-      } else {
+        if (existing) {
+          alreadyOwned = true;
+          if ((personalCategoryId ?? (selectedCategory?.source === "PERSONAL" ? selectedCategory.id : null)) === existing.personalCategoryId) { registrationAttemptedIds.current.delete(id); return true; }
+          setRegisteredUnassignedId(id);
+        }
+      }
+      if (!alreadyOwned) {
         registrationAttemptedIds.current.add(id);
         if (!await hobbies.register(id, body)) return false;
       }
@@ -167,7 +171,7 @@ export default function HobbyShell({ onBack, createRequest = 0 }: { onBack?: () 
 
   return <div className="lag-panel-rail lag-player-shell lag-semantic-controls relative" data-testid="hobby-shell">{dialog}
     <PlayerCategories title="취미" stageKey="player-hobby-categories" model={personalCategories} createRequest={0} selectedKey={catalogOpen ? "catalog" : privateMode === "create" ? "private-create" : category} visibleCategories={selectableCategories} onBrowse={() => { setCatalogOpen(true); setCategory(null); setPrivateMode(null); hobbies.clearSelection(); requestStageFocus("player-hobby-catalog-major", "forward"); }} onCreatePrivate={() => { setCatalogOpen(false); setCategory(null); setPrivateSelectedId(null); setPrivateMode("create"); requestStageFocus("player-hobby-private-form", "forward"); }} onUnassigned={() => { setCatalogOpen(false); setPrivateMode(null); setCategory("unassigned"); requestStageFocus("player-hobby-list", "forward"); }} unassignedCount={privateHobbies.filter((item) => item.personalCategoryId === null).length + hobbies.owned.items.filter((item) => item.personalCategoryId == null).length} onSelect={(next) => chooseCategory(next)} onCreate={(next) => chooseCategory(next, true)} onDeleted={(id) => { if (category === "personal:" + id) { setCategory(null); backToList(); } void refreshPrivate(); }} onBack={onBack} />
-    {catalogOpen ? <CatalogExplorer kind="HOBBY" categories={personalCategories.categories} onClose={() => { setCatalogOpen(false); requestStageFocus("player-hobby-categories", "back"); }} onRegister={(id, form, personalCategoryId) => registerOwned(id, fields(form), personalCategoryId)} onOwned={(item) => { const owned = hobbies.owned.items.find((entry) => entry.hobbyId === item.catalogItemId); if (!owned) return; const next = selectableCategories.find((group) => group.source === "PERSONAL" && group.id === owned.personalCategoryId) ?? selectableCategories.find((group) => group.code === owned.category); if (next) chooseCategory(next); select(item.catalogItemId); }} /> : null}
+    {catalogOpen ? <CatalogExplorer kind="HOBBY" categories={personalCategories.categories} registrationError={assignmentError} onClose={() => { setCatalogOpen(false); requestStageFocus("player-hobby-categories", "back"); }} onRegister={(id, form, personalCategoryId) => registerOwned(id, fields(form), personalCategoryId)} onOwned={(item) => { const owned = hobbies.owned.items.find((entry) => entry.hobbyId === item.catalogItemId); if (!owned) return; const next = selectableCategories.find((group) => group.source === "PERSONAL" && group.id === owned.personalCategoryId) ?? selectableCategories.find((group) => group.code === owned.category); if (next) chooseCategory(next); select(item.catalogItemId); }} /> : null}
     {privateMode === "create" ? <PanelStage stageKey="player-hobby-private-form" parentStageKey="player-hobby-categories" panelRole="detail"><PanelFrame title="이름으로 내 취미 만들기" backButton={<BackButton label="취미 분류로" onClick={() => { setPrivateMode(null); setPrivateError(null); requestStageFocus("player-hobby-categories", "back"); }} />}><form className="lag-player-form lag-player-content" onSubmit={(event) => { event.preventDefault(); void savePrivate(new FormData(event.currentTarget)); }}><PrivateFields categories={personalCategories.categories} />{privateError ? <Feedback message={privateError} /> : null}<button type="submit" className="lag-player-button" disabled={privatePending}>{privatePending ? "저장 중…" : "내 취미 저장"}</button></form></PanelFrame></PanelStage> : null}
     {!catalogOpen && category !== null ? <PanelStage stageKey="player-hobby-list" parentStageKey="player-hobby-categories" index={1} panelRole="list" inactive={compact && (selected !== null || privateSelectedId !== null)}>
       <PanelFrame title={creation.creating ? "취미 등록" : (selectedCategory?.source === "SYSTEM" ? categoryLabel(selectedCategory.name) : selectedCategory?.name ?? "") + " 취미"} depth={1} centerSelected={!creation.creating} centerTargetKey={creation.creating ? null : String(selected?.hobbyId ?? "")} centerBehavior="spring" backButton={<BackButton label={creation.creating ? "취미 목록으로" : "취미 분류로"} onClick={creation.creating ? closeCreation : () => { setCategory(null); backToList(); }} />}>

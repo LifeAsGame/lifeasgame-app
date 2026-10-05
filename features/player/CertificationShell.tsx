@@ -82,14 +82,18 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
     if (registrationLock.current) return false;
     registrationLock.current = true; setAssignmentPending(true); setAssignmentError(null);
     try {
+      let alreadyOwned = false;
       if (registrationAttemptedIds.current.has(id)) {
         const owned = await certifications.owned.reload();
         if (!owned) throw new Error("등록 상태를 다시 조회하지 못했습니다. 중복 등록을 막기 위해 재시도하지 않았습니다.");
         const existing = owned.find((item) => item.certificationId === id);
-        if (!existing) throw new Error("등록 결과를 확인할 수 없습니다. 목록에서 서버 상태를 확인해 주세요.");
-        if ((personalCategoryId ?? (selectedCategory?.source === "PERSONAL" ? selectedCategory.id : null)) === existing.personalCategoryId) { registrationAttemptedIds.current.delete(id); return true; }
-        setRegisteredUnassignedId(id);
-      } else {
+        if (existing) {
+          alreadyOwned = true;
+          if ((personalCategoryId ?? (selectedCategory?.source === "PERSONAL" ? selectedCategory.id : null)) === existing.personalCategoryId) { registrationAttemptedIds.current.delete(id); return true; }
+          setRegisteredUnassignedId(id);
+        }
+      }
+      if (!alreadyOwned) {
         registrationAttemptedIds.current.add(id);
         if (!await certifications.register(id, body)) return false;
       }
@@ -114,7 +118,7 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
 
   return <div className="lag-panel-rail lag-player-shell lag-semantic-controls relative" data-testid="certification-shell">{dialog}
     <PlayerCategories title="자격증" stageKey="player-certification-categories" model={personalCategories} createRequest={createRequest} selectedKey={catalogOpen ? "catalog" : category} visibleCategories={selectableCategories} onBrowse={() => { setCatalogOpen(true); setCategory(null); certifications.clearSelection(); requestStageFocus("player-certification-catalog-major", "forward"); }} onSelect={(next) => chooseCategory(next)} onCreate={(next) => chooseCategory(next, true)} onDeleted={(id) => { if (category === "personal:" + id) { setCategory(null); backToList(); } }} onBack={onBack} />
-    {catalogOpen ? <CatalogExplorer kind="CERTIFICATION" categories={personalCategories.categories} onClose={() => { setCatalogOpen(false); requestStageFocus("player-certification-categories", "back"); }} onRegister={(id, form, personalCategoryId) => registerOwned(id, dates(form), personalCategoryId)} onOwned={(item: CatalogItem) => { const owned = certifications.owned.items.find((entry) => entry.certificationId === item.catalogItemId); if (!owned) return; const code = item.source === "HRDK" ? `HRDK:${item.majorCode}:${item.minorCode}` : owned.category; if (item.source === "HRDK") setOfficialCodes((codes) => ({ ...codes, [item.catalogItemId]: code })); const next = selectableCategories.find((group) => group.source === "PERSONAL" && group.id === owned.personalCategoryId) ?? selectableCategories.find((group) => group.code === code); if (next) chooseCategory(next); select(item.catalogItemId); }} /> : null}
+    {catalogOpen ? <CatalogExplorer kind="CERTIFICATION" categories={personalCategories.categories} registrationError={assignmentError} onClose={() => { setCatalogOpen(false); requestStageFocus("player-certification-categories", "back"); }} onRegister={(id, form, personalCategoryId) => registerOwned(id, dates(form), personalCategoryId)} onOwned={(item: CatalogItem) => { const owned = certifications.owned.items.find((entry) => entry.certificationId === item.catalogItemId); if (!owned) return; const code = item.source === "HRDK" ? `HRDK:${item.majorCode}:${item.minorCode}` : owned.category; if (item.source === "HRDK") setOfficialCodes((codes) => ({ ...codes, [item.catalogItemId]: code })); const next = selectableCategories.find((group) => group.source === "PERSONAL" && group.id === owned.personalCategoryId) ?? selectableCategories.find((group) => group.code === code); if (next) chooseCategory(next); select(item.catalogItemId); }} /> : null}
     {!catalogOpen && category !== null ? <PanelStage stageKey="player-certification-list" parentStageKey="player-certification-categories" index={1} panelRole="list" inactive={compact && selected !== null}>
       <PanelFrame title={creation.creating ? "자격증 등록" : (selectedCategory?.source === "SYSTEM" ? categoryLabel(selectedCategory.name) : selectedCategory?.name ?? "") + " 자격증"} depth={1} centerSelected={!creation.creating} centerTargetKey={creation.creating ? null : String(selected?.certificationId ?? "")} centerBehavior="spring" backButton={<BackButton label={creation.creating ? "자격증 목록으로" : "자격증 분류로"} onClick={creation.creating ? closeCreation : () => { setCategory(null); backToList(); }} />}>
         <CreateSlot showCancel={false} creating={creation.creating} pending={pending} onClose={closeCreation} list={<div className="lag-player-content">

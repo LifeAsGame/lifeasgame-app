@@ -11,6 +11,7 @@ export type CatalogGroup = {
 };
 
 export type CatalogItem = {
+  ownedItemId: number | null;
   catalogItemId: number;
   name: string;
   category: string;

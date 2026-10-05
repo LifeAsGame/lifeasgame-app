@@ -11,12 +11,13 @@ import { categoryLabel, controlStyle, DetailLine, Feedback, Field } from "./Play
 import { getCatalogGroupsApi, getCatalogItemApi, getCatalogItemsApi, type CatalogGroup, type CatalogItem, type CatalogPage } from "./catalog";
 import type { CategoryKind, PersonalCategory } from "./personalCategories";
 
-export default function CatalogExplorer({ kind, categories, onClose, onRegister, onOwned }: {
+export default function CatalogExplorer({ kind, categories, onClose, onRegister, onOwned, registrationError }: {
   kind: CategoryKind;
   categories: PersonalCategory[];
   onClose: () => void;
   onRegister: (itemId: number, form: FormData, personalCategoryId: number | null) => Promise<boolean>;
   onOwned: (item: CatalogItem) => void;
+  registrationError?: string | null;
 }) {
   const name = kind === "CERTIFICATION" ? "자격증" : "취미";
   const prefix = `player-${kind.toLowerCase()}-catalog`;
@@ -37,7 +38,7 @@ export default function CatalogExplorer({ kind, categories, onClose, onRegister,
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
-  const majors = useMemo(() => [...new Map(groups.map((group) => [group.majorCode, group.majorName])).entries()], [groups]);
+  const majors = useMemo(() => [...new Map(groups.map((group) => [group.majorCode, categoryLabel(group.majorName)])).entries()], [groups]);
   const minors = groups.filter((group) => group.majorCode === major && group.minorCode);
   const showMinor = kind === "CERTIFICATION" && minors.length > 0 && query === null;
   const showList = query !== null || (major !== null && (!showMinor || minor !== null));
@@ -91,14 +92,15 @@ export default function CatalogExplorer({ kind, categories, onClose, onRegister,
           {query !== null ? <PanelCard label={`검색 결과 · ${query}`} slotLabel="⌕" selected centerTarget onClick={() => requestStageFocus(`${prefix}-items`, "forward")} /> : null}
           {groupError ? <Feedback message={groupError} retry={() => { setGroupError(null); void getCatalogGroupsApi(kind).then(setGroups, (error) => setGroupError(String(error))); }} /> : null}
           {majors.map(([code, label], index) => <PanelCard key={code} label={label || categoryLabel(code)} slotLabel={(label || code).slice(0, 1)} index={index} selected={major === code} centerTarget={major === code} onClick={() => chooseMajor(code)} />)}
-          {!groupError && !majors.length ? <InfoCard>{kind === "CERTIFICATION" ? "현재 공식 자격증 데이터가 준비되지 않았습니다. 실제 등록 범위는 데이터 제공 상태를 확인해 주세요." : "카탈로그 분류가 없습니다."}</InfoCard> : null}
+          {!groupError && kind === "CERTIFICATION" && !groups.some((group) => group.source === "HRDK") ? <InfoCard>공식 자격증 데이터가 아직 준비되지 않았습니다. 기존 자격증은 별도로 조회할 수 있습니다.</InfoCard> : null}
+          {!groupError && kind === "HOBBY" && !majors.length ? <InfoCard>카탈로그 분류가 없습니다.</InfoCard> : null}
           {kind === "CERTIFICATION" ? <p className="text-xs">공식 범위는 한국산업인력공단 국가자격에 한정됩니다. 보유 등록은 본인 기록이며 취득 검증이 아닙니다.</p> : <p className="text-xs">추천 취미는 서비스가 정리한 목록입니다.</p>}
         </div>
       </PanelFrame>
     </PanelStage>
     {showMinor ? <PanelStage stageKey={`${prefix}-minor`} parentStageKey={`${prefix}-major`} panelRole="list" inactive={compact && showList}>
       <PanelFrame title={`${majors.find(([code]) => code === major)?.[1] ?? "공식"} · 소분류`} centerSelected centerTargetKey={minor} backButton={<BackButton label="대분류로" onClick={() => { setMajor(null); setMinor(null); setSelectedId(null); requestStageFocus(`${prefix}-major`, "back"); }} />}>
-        <div className="lag-player-content">{minors.map((group, index) => <PanelCard key={group.minorCode} label={group.minorName ?? group.minorCode ?? "기타"} slotLabel={(group.minorName ?? "기").slice(0, 1)} index={index} selected={minor === group.minorCode} centerTarget={minor === group.minorCode} onClick={() => chooseMinor(group.minorCode!)} />)}</div>
+        <div className="lag-player-content">{minors.map((group, index) => <PanelCard key={group.minorCode} label={categoryLabel(group.minorName ?? group.minorCode ?? "기타")} slotLabel={(group.minorName ?? "기").slice(0, 1)} index={index} selected={minor === group.minorCode} centerTarget={minor === group.minorCode} onClick={() => chooseMinor(group.minorCode!)} />)}</div>
       </PanelFrame>
     </PanelStage> : null}
     {showList ? <PanelStage stageKey={`${prefix}-items`} parentStageKey={itemParent} panelRole="list" inactive={compact && selectedId !== null}>
@@ -126,16 +128,20 @@ export default function CatalogExplorer({ kind, categories, onClose, onRegister,
               const categoryId = Number(form.get("personalCategoryId")) || null;
               try {
                 if (await onRegister(detail.catalogItemId, form, categoryId)) { setRegistering(false); setRevision((value) => value + 1); }
-                else setSaveError("등록 상태를 확인해 주세요. 입력 내용은 유지됩니다.");
+                else {
+                  setSaveError("등록 상태를 확인해 주세요. 입력 내용은 유지됩니다.");
+                  try { setDetail(await getCatalogItemApi(kind, detail.catalogItemId)); } catch { /* Keep the form and retry the read later. */ }
+                }
               } catch (error) { setSaveError(error instanceof Error ? error.message : "등록하지 못했습니다."); }
               finally { setSaving(false); }
             }}>
               {kind === "CERTIFICATION" ? <><Field label="취득일"><input name="acquiredDate" type="date" min="1000-01-01" style={controlStyle} /></Field><Field label="만료일"><input name="expiresDate" type="date" min="1000-01-01" style={controlStyle} /></Field></> : <><Field label="내 취미 이름" required><input name="customName" required defaultValue={detail.name} style={controlStyle} /></Field><Field label="설명"><textarea name="detail" style={controlStyle} /></Field><Field label="숙련도" required><input name="proficiency" type="number" min="0" max="100" defaultValue="0" required style={controlStyle} /></Field><Field label="상태"><select name="status" defaultValue="ACTIVE" style={controlStyle}><option value="ACTIVE">활동 중</option><option value="PAUSED">일시 중지</option><option value="DROPPED">그만둠</option></select></Field><Field label="시작일"><input name="startedOn" type="date" min="1000-01-01" style={controlStyle} /></Field></>}
               <Field label="내 분류"><select name="personalCategoryId" style={controlStyle}><option value="">연결 안 함</option>{categories.filter((category) => category.source === "PERSONAL").map((category) => <option key={category.id} value={category.id!}>{category.name}</option>)}</select></Field>
-              {saveError ? <Feedback message={saveError} /> : null}
+              {detail.owned && detail.ownedItemId !== null ? <p role="status">등록된 소유 항목 ID: {detail.ownedItemId}. 분류 연결만 다시 시도할 수 있습니다.</p> : null}
+              {registrationError ? <Feedback message={registrationError} /> : saveError ? <Feedback message={saveError} /> : null}
               <button type="submit" className="lag-player-button" disabled={saving}>{saving ? "저장 중…" : `${name} 저장`}</button>
             </form> : <>
-              <DetailLine label="분류">{[detail.majorName, detail.minorName].filter(Boolean).join(" › ") || categoryLabel(detail.category)}</DetailLine>
+              <DetailLine label="분류">{[detail.majorName, detail.minorName].filter((value): value is string => Boolean(value)).map(categoryLabel).join(" › ") || categoryLabel(detail.category)}</DetailLine>
               {detail.issuer ? <DetailLine label="발급기관">{detail.issuer}</DetailLine> : null}
               {detail.administeringAgency ? <DetailLine label="시행처">{detail.administeringAgency}</DetailLine> : null}
               {detail.detail ? <DetailLine label="소개 · 시험 정보">{detail.detail}</DetailLine> : null}
