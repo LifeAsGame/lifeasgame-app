@@ -4,7 +4,7 @@ import type { RoleGroupType } from "@/features/role/contextApi";
 
 export type MemberContext = { groupType: RoleGroupType; groupId: number; memberPlayerId: number };
 export type MemberPersonLink = MemberContext & { personId: number | null; personStatus: string | null };
-export type GuildNote = { id: number; personId: number; guildId: number; targetMemberPlayerId: number; text: string; version: number; availability: "CURRENT" | "HISTORY"; guildName: string | null };
+export type GuildNote = { id: number; personId: number; guildId: number; targetMemberPlayerId: number; text: string | null; version: number; availability: "CURRENT" | "HISTORY"; guildName: string | null };
 const identityPath = "/api/v1/member-person-links";
 export const getMemberPerson = (context: MemberContext) => apiGet<MemberPersonLink>(`${identityPath}?${new URLSearchParams({ groupType: context.groupType, groupId: String(context.groupId), memberPlayerId: String(context.memberPlayerId) })}`);
 export const selectMemberPerson = (context: MemberContext, personId: number) => apiPut<MemberPersonLink>(identityPath, { ...context, personId });

@@ -9,8 +9,10 @@ const props = { context: { groupType: "GUILD" as const, groupId: 22, memberPlaye
 beforeEach(() => { vi.resetAllMocks(); api.getGuildNote.mockResolvedValue(note); api.saveGuildNote.mockImplementation((_g, _p, body) => Promise.resolve({ ...note, ...body, version: 3 })); api.getMemberPerson.mockResolvedValue({ personId: 7 }); });
 async function edit() { const row = await screen.findByRole("button", { name: /나만의 메모/ }); fireEvent.keyDown(row, { key: "F10", shiftKey: true }); fireEvent.click(screen.getByRole("button", { name: "수정" })); }
 it("saves only the selected Guild note with its version and supports empty text", async () => {
+  api.saveGuildNote.mockResolvedValueOnce({ ...note, text: null, version: 3 });
   render(<GuildMemberNote {...props} />); await edit(); fireEvent.change(screen.getByLabelText("나만의 메모"), { target: { value: "   " } }); fireEvent.click(screen.getByRole("button", { name: "메모 저장" }));
   await waitFor(() => expect(api.saveGuildNote).toHaveBeenCalledWith(22, 103, { personId: 7, text: "", version: 2 })); expect(api.deleteGuildNote).not.toHaveBeenCalled();
+  expect(await screen.findByText("저장된 메모가 없습니다.")).toBeInTheDocument();
 });
 it("retains a conflicting draft and requires an explicit version refresh before retry", async () => {
   api.saveGuildNote.mockRejectedValueOnce(new ApiError(409, "CONFLICT", "충돌")); render(<GuildMemberNote {...props} />); await edit();
