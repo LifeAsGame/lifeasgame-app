@@ -10,7 +10,7 @@ vi.mock("@/shared/api/client", () => client);
 beforeEach(() => vi.clearAllMocks());
 
 it("uses owner-scoped category routes and keeps original record IDs distinct", async () => {
-  client.apiGet.mockResolvedValueOnce([{ code: "PROJECT", name: "PROJECT" }]).mockResolvedValueOnce([{ id: 7, source: "PERSONAL", name: "계획", systemCode: null }]);
+  client.apiGet.mockResolvedValueOnce(["PROJECT"]).mockResolvedValueOnce([{ id: 7, source: "PERSONAL", name: "계획", systemCode: null }]);
   await expect(getSystemLifeLogCategories("COLLECTION")).resolves.toEqual([{ code: "PROJECT", name: "PROJECT" }]);
   await expect(getMyLifeLogCategories("COLLECTION")).resolves.toEqual([{ id: 7, kind: "COLLECTION", source: "PERSONAL", name: "계획", systemCode: null }]);
   await addSystemLifeLogCategory("COLLECTION", "PROJECT");

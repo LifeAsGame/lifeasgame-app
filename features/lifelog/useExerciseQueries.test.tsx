@@ -92,7 +92,7 @@ describe("Exercise query/mutation state를 관리할 때", () => {
     await act(async () => { expect(await result.current.remove(first.id)).toBe(true); });
     expect(result.current.selectedId).toBeNull();
     expect(result.current.list.items).toEqual([]);
-    expect(result.current.mutationError).toBe("Exercise changed, but the authoritative list could not be reloaded.");
+    expect(result.current.mutationError).toBe("변경은 저장됐지만 목록을 다시 조회하지 못했습니다. 저장을 반복하지 말고 목록을 다시 조회하세요.");
     expect(api.deleteExerciseApi).toHaveBeenCalledTimes(2);
   });
 });

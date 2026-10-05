@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { RecordRow, SwipeButton } from "@/features/role/RecordRow";
 import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
@@ -24,7 +24,7 @@ export type FolderChoice =
 
 export const folderKey = (choice: FolderChoice | null) => choice?.type === "system" ? `system:${choice.code}` : choice?.type === "personal" ? `personal:${choice.id}` : choice?.type ?? null;
 
-export default function LifeLogFolders({ kind, title, stageKey, selected, onSelect, onCreateRecord, createRequest = 0, onBack }: {
+export default function LifeLogFolders({ kind, title, stageKey, selected, onSelect, onCreateRecord, createRequest = 0, onBack, onCloseChildren }: {
   kind: LifeLogKind;
   title: string;
   stageKey: string;
@@ -33,6 +33,7 @@ export default function LifeLogFolders({ kind, title, stageKey, selected, onSele
   onCreateRecord: (choice: FolderChoice) => void;
   createRequest?: number;
   onBack?: () => void;
+  onCloseChildren?: () => void;
 }) {
   const compact = useMediaQuery("(max-width: 1199px)");
   const { confirm, dialog } = useSaoConfirm();
@@ -46,22 +47,25 @@ export default function LifeLogFolders({ kind, title, stageKey, selected, onSele
   const [name, setName] = useState("");
   const [allOpen, setAllOpen] = useState(false);
   const [publicChoice, setPublicChoice] = useState<SystemLifeLogCategory | null>(null);
+  const loadId = useRef(0);
   const load = useCallback(async () => {
+    const id = ++loadId.current;
     setLoading(true);
     try {
       const [myRows, systemRows] = await Promise.all([getMyLifeLogCategories(kind), getSystemLifeLogCategories(kind)]);
+      if (id !== loadId.current) return false;
       setMine(myRows); setSystem(systemRows); setError(null); return true;
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "분류를 불러오지 못했습니다."); return false; }
-    finally { setLoading(false); }
+    } catch (caught) { if (id === loadId.current) setError(caught instanceof Error ? caught.message : "분류를 불러오지 못했습니다."); return false; }
+    finally { if (id === loadId.current) setLoading(false); }
   }, [kind]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const counter = loadId; void load(); return () => { counter.current++; }; }, [load]);
   useEffect(() => { if (createRequest > 0) { setAllOpen(false); setMode("create"); setName(""); } }, [createRequest]);
   const run = async (operation: () => Promise<unknown>) => {
     if (pending) return false;
     setPending(true); setError(null);
     try {
       await operation();
-      if (!await load()) { setError("분류 변경은 저장됐지만 목록을 다시 불러오지 못했습니다. 다시 조회해 주세요."); return false; }
+      if (!await load()) setError("분류 변경은 저장됐지만 목록을 다시 불러오지 못했습니다. 다시 조회해 주세요.");
       return true;
     }
     catch (caught) { setError(caught instanceof Error ? caught.message : "분류를 변경하지 못했습니다."); return false; }
@@ -104,19 +108,19 @@ export default function LifeLogFolders({ kind, title, stageKey, selected, onSele
           {mine.map((folder) => {
             const choice: FolderChoice = folder.source === "PERSONAL" ? { type: "personal", id: folder.id, name: folder.name } : { type: "system", code: folder.systemCode!, name: folder.name };
             return folder.source === "PERSONAL"
-              ? <RecordRow key={folder.id} title={folder.name} subtitle="개인 분류" selected={selectedKey === folderKey(choice)} disabled={pending} onSelect={() => openFolder(choice)} onCreate={() => openFolder(choice, true)} onEdit={() => { setEditing(folder); setName(folder.name); setMode("rename"); }} onArchive={() => void remove(folder)} archiveLabel="삭제" />
-              : <div key={folder.id} className="lag-role-form"><SwipeButton className="lag-role-node" creation aria-pressed={selectedKey === folderKey(choice)} onClick={() => openFolder(choice)} onDoubleClick={() => openFolder(choice, true)}><strong>{consumerLabel(folder.name)}</strong></SwipeButton><button type="button" className="lag-role-button" disabled={pending} onClick={() => void remove(folder)}>내 분류에서 숨김</button></div>;
+              ? <RecordRow key={folder.id} title={folder.name} subtitle="개인 분류" selected={selectedKey === folderKey(choice)} disabled={pending} onSelect={() => openFolder(choice)} onCreate={() => openFolder(choice, true)} onEdit={() => { onCloseChildren?.(); setAllOpen(false); setPublicChoice(null); setEditing(folder); setName(folder.name); setMode("rename"); }} onArchive={() => void remove(folder)} archiveLabel="삭제" />
+              : <div key={folder.id} className="lag-role-form"><SwipeButton className="lag-role-node" creation aria-pressed={selectedKey === folderKey(choice)} onClick={() => openFolder(choice)} onDoubleClick={() => openFolder(choice, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(folder.name).slice(0, 1)}</span><span><strong>{consumerLabel(folder.name)}</strong></span></SwipeButton><button type="button" className="lag-role-button" disabled={pending} onClick={() => void remove(folder)}>내 분류에서 숨김</button></div>;
           })}
-          <SwipeButton className="lag-role-node" aria-pressed={selectedKey === "all"} onClick={() => openFolder({ type: "all" })}><strong>전체 기록</strong></SwipeButton>
-          <SwipeButton className="lag-role-node" aria-pressed={selectedKey === "unclassified"} onClick={() => openFolder({ type: "unclassified" })}><strong>미분류 기록</strong></SwipeButton>
-          <button type="button" className="lag-role-button" onClick={() => { setName(""); setMode("create"); }}>개인 분류 만들기</button>
-          <SwipeButton className="lag-role-node" aria-pressed={allOpen} onClick={() => { setAllOpen(true); setPublicChoice(null); requestStageFocus(`${stageKey}-all`, "forward"); }}><strong>전체 분류 보기</strong></SwipeButton>
+          <SwipeButton className="lag-role-node" aria-pressed={selectedKey === "all"} onClick={() => openFolder({ type: "all" })}><span className="lag-role-node-mark" aria-hidden>전</span><span><strong>전체 기록</strong></span></SwipeButton>
+          <SwipeButton className="lag-role-node" aria-pressed={selectedKey === "unclassified"} onClick={() => openFolder({ type: "unclassified" })}><span className="lag-role-node-mark" aria-hidden>미</span><span><strong>미분류 기록</strong></span></SwipeButton>
+          <button type="button" className="lag-role-button" onClick={() => { onCloseChildren?.(); setAllOpen(false); setPublicChoice(null); setName(""); setMode("create"); }}>개인 분류 만들기</button>
+          <SwipeButton className="lag-role-node" aria-pressed={allOpen} onClick={() => { onCloseChildren?.(); setAllOpen(true); setPublicChoice(null); requestStageFocus(`${stageKey}-all`, "forward"); }}><span className="lag-role-node-mark" aria-hidden>분</span><span><strong>전체 분류 보기</strong></span></SwipeButton>
         </div>}
       </PanelFrame>
     </PanelStage>
     {allOpen ? <PanelStage stageKey={`${stageKey}-all`} parentStageKey={stageKey} panelRole="list" inactive={compact && publicChoice !== null}>
       <PanelFrame title="전체 분류 보기" depth={1} centerSelected centerTargetKey={publicChoice?.code} backButton={<BackButton label="내 분류로" onClick={() => { setAllOpen(false); setPublicChoice(null); requestStageFocus(stageKey, "back"); }} />}>
-        <div className="lag-role-node-list lag-lifelog-categories">{system.map((row) => <SwipeButton key={row.code} className="lag-role-node" aria-pressed={publicChoice?.code === row.code} onClick={() => { setPublicChoice(row); requestStageFocus(`${stageKey}-all-detail`, "forward"); }}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(row.name).slice(0, 1)}</span><strong>{consumerLabel(row.name)}</strong></SwipeButton>)}</div>
+        <div className="lag-role-node-list lag-lifelog-categories">{system.map((row) => <SwipeButton key={row.code} className="lag-role-node" aria-pressed={publicChoice?.code === row.code} onClick={() => { setPublicChoice(row); requestStageFocus(`${stageKey}-all-detail`, "forward"); }}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(row.name).slice(0, 1)}</span><span><strong>{consumerLabel(row.name)}</strong></span></SwipeButton>)}</div>
       </PanelFrame>
     </PanelStage> : null}
     {allOpen && publicChoice ? <PanelStage stageKey={`${stageKey}-all-detail`} parentStageKey={`${stageKey}-all`} panelRole="detail">

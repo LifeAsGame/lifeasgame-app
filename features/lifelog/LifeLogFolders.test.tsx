@@ -64,3 +64,27 @@ it("does not repeat a saved assignment when refreshing the record fails", async 
   expect(screen.getByRole("button", { name: "내 분류 변경" })).toBeDisabled();
   expect(api.assignLifeLogRecordCategory).toHaveBeenCalledTimes(1);
 });
+
+it("closes a saved category form after failed refresh and retries only GET", async () => {
+  api.getMyLifeLogCategories.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce([]);
+  render(<LifeLogFolders kind="COLLECTION" title="수집 기록" stageKey="lifelog-collection-categories" selected={null} onSelect={vi.fn()} onCreateRecord={vi.fn()} />);
+  await screen.findByText(/내 분류가 없습니다/);
+  fireEvent.click(screen.getByRole("button", { name: "개인 분류 만들기" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "분류 이름" }), { target: { value: "한 번 저장" } });
+  fireEvent.click(screen.getByRole("button", { name: "분류 저장" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("분류 변경은 저장됐지만");
+  expect(screen.queryByRole("button", { name: "분류 저장" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
+  await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  expect(api.createPersonalLifeLogCategory).toHaveBeenCalledTimes(1);
+});
+
+it("only offers personal categories for record assignment", async () => {
+  folders = [
+    { id: 1, kind: "COLLECTION", source: "SYSTEM", systemCode: "PROJECT", name: "PROJECT" },
+    { id: 2, kind: "COLLECTION", source: "PERSONAL", systemCode: null, name: "PROJECT" },
+  ];
+  render(<RecordFolderSelect kind="COLLECTION" recordId={46} categoryId={null} onSaved={vi.fn()} />);
+  expect(await screen.findByRole("option", { name: "PROJECT" })).toHaveValue("2");
+  expect(screen.getAllByRole("option")).toHaveLength(2);
+});

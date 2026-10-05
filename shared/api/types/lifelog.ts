@@ -168,7 +168,6 @@ export type JournalReflectionScope = "WEEKLY_LOOKBACK";
 export type JournalMetadata = {
   lifeLogId: number;
   sourceId: number;
-  personalCategoryId?: number | null;
   subtype: JournalSubtype | null;
   entryMode: JournalEntryMode | null;
   reflectionScope: JournalReflectionScope | null;
@@ -185,15 +184,15 @@ export type JournalEntryBase<T extends JournalSourceType, P> = JournalMetadata &
 
 export type CollectionJournalEntry = JournalEntryBase<
   "COLLECTION",
-  Pick<CollectionInfo, "category" | "title"> & { quantity: number | null }
+  Pick<CollectionInfo, "category" | "title" | "personalCategoryId"> & { quantity: number | null }
 >;
 export type ExerciseJournalEntry = JournalEntryBase<
   "EXERCISE",
-  Pick<ExerciseInfo, "category" | "durationMinutes" | "distanceKm" | "calories" | "exercisedOn" | "memo">
+  Pick<ExerciseInfo, "category" | "durationMinutes" | "distanceKm" | "calories" | "exercisedOn" | "memo" | "personalCategoryId">
 >;
 export type MediaJournalEntry = JournalEntryBase<
   "MEDIA",
-  Pick<MediaInfo, "category" | "title" | "currentEpisode" | "totalEpisode" | "status" | "rating">
+  Pick<MediaInfo, "category" | "title" | "currentEpisode" | "totalEpisode" | "status" | "rating" | "personalCategoryId">
 >;
 export type JournalEntry = CollectionJournalEntry | ExerciseJournalEntry | MediaJournalEntry;
 
