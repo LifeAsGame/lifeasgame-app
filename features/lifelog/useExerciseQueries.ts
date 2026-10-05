@@ -92,11 +92,11 @@ export function useExerciseQueries() {
     void loadDetail(id);
   }, [loadDetail]);
 
-  const search = (category?: ExerciseCategory, from?: string, to?: string) => {
+  const search = (category?: ExerciseCategory, from?: string, to?: string, folder: Pick<ExerciseSearchParams, "personalCategoryId" | "unclassified"> = {}) => {
     clearSelection();
     listRequestId.current += 1;
     setItems([]);
-    paramsRef.current = { page: 0, size: paramsRef.current.size, category, from: from || undefined, to: to || undefined };
+    paramsRef.current = { page: 0, size: paramsRef.current.size, category, from: from || undefined, to: to || undefined, ...folder };
     setParams(paramsRef.current);
   };
 

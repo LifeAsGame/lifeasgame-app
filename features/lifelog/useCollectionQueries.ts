@@ -26,6 +26,7 @@ function message(caught: unknown, fallback: string): string {
 
 export function useCollectionQueries(skipInitial = false) {
   const [params, setParams] = useState<CollectionSearchParams>(INITIAL_PARAMS);
+  const [hasSearched, setHasSearched] = useState(false);
   const paramsRef = useRef(INITIAL_PARAMS);
   const [items, setItems] = useState<CollectionInfo[]>([]);
   const [listLoading, setListLoading] = useState(false);
@@ -87,7 +88,7 @@ export function useCollectionQueries(skipInitial = false) {
     }
   }, [clearSelection]);
 
-  useEffect(() => { if (!skipInitial || params.category) void reload(); }, [params, reload, skipInitial]);
+  useEffect(() => { if (!skipInitial || hasSearched) void reload(); }, [params, reload, skipInitial, hasSearched]);
 
   const loadDetail = useCallback(async (id: number) => {
     const requestId = ++detailRequestId.current;
@@ -114,14 +115,15 @@ export function useCollectionQueries(skipInitial = false) {
     requestStageFocus("lifelog-collection-detail", "forward");
   }, [loadDetail, resetMutation]);
 
-  const search = (category?: CollectionCategory, titleLike?: string) => {
+  const search = (category?: CollectionCategory, titleLike?: string, folder: Pick<CollectionSearchParams, "personalCategoryId" | "unclassified"> = {}) => {
     resetMutation();
     clearSelection();
     listRequestId.current += 1;
     setItems([]);
-    setListLoading(!skipInitial || !!category);
+    setListLoading(true);
     setListError(null);
-    paramsRef.current = { page: 0, size: paramsRef.current.size, category, titleLike: titleLike?.trim() || undefined };
+    paramsRef.current = { page: 0, size: paramsRef.current.size, category, titleLike: titleLike?.trim() || undefined, ...folder };
+    setHasSearched(true);
     setParams(paramsRef.current);
   };
 
@@ -130,7 +132,7 @@ export function useCollectionQueries(skipInitial = false) {
     clearSelection();
     listRequestId.current += 1;
     setItems([]);
-    setListLoading(!skipInitial || !!paramsRef.current.category);
+    setListLoading(true);
     setListError(null);
     paramsRef.current = { ...paramsRef.current, page: Math.max(0, page) };
     setParams(paramsRef.current);

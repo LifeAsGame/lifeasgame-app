@@ -82,11 +82,11 @@ export function useMediaQueries() {
     setDetail(selected);
   };
 
-  const search = (category?: MediaCategory, status?: MediaStatus, titleLike?: string) => {
+  const search = (category?: MediaCategory, status?: MediaStatus, titleLike?: string, folder: Pick<MediaSearchParams, "personalCategoryId" | "unclassified"> = {}) => {
     clearSelection();
     listRequestId.current += 1;
     setItems([]);
-    paramsRef.current = { page: 0, size: paramsRef.current.size, category, status, titleLike: titleLike?.trim() || undefined };
+    paramsRef.current = { page: 0, size: paramsRef.current.size, category, status, titleLike: titleLike?.trim() || undefined, ...folder };
     setParams(paramsRef.current);
   };
 

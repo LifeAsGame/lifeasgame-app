@@ -6,6 +6,21 @@ import ExerciseShell from "./ExerciseShell";
 
 const api = vi.hoisted(() => ({ createExerciseApi: vi.fn(), deleteExerciseApi: vi.fn(), getExerciseApi: vi.fn(), searchExercisesApi: vi.fn(), updateExerciseApi: vi.fn() }));
 vi.mock("./api", () => api);
+vi.mock("./personalCategories", () => {
+  const codes: Record<string, string[]> = {
+    COLLECTION: ["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "PROJECT", "OTHER"],
+    EXERCISE: ["RUNNING", "WALKING", "CYCLING", "SWIMMING", "GYM", "YOGA", "OTHER"],
+    MEDIA: ["ANIME", "MOVIE", "SERIES", "BOOK", "WEBTOON", "GAME", "MUSIC"],
+  };
+  return {
+    getMyLifeLogCategories: vi.fn(async (kind: string) => codes[kind].map((code, index) => ({ id: index + 1, kind, source: "SYSTEM", name: code, systemCode: code }))),
+    getSystemLifeLogCategories: vi.fn(async (kind: string) => codes[kind].map((code) => ({ code, name: code }))),
+    addSystemLifeLogCategory: vi.fn(), hideSystemLifeLogCategory: vi.fn(),
+    createPersonalLifeLogCategory: vi.fn(), renamePersonalLifeLogCategory: vi.fn(), deletePersonalLifeLogCategory: vi.fn(),
+    assignLifeLogRecordCategory: vi.fn(),
+  };
+});
+
 const item: ExerciseInfo = { id: 41, playerId: 7, category: "RUNNING", durationMinutes: 30, distanceKm: 0, calories: null, exercisedOn: "2026-08-14", memo: "Morning run", createdAt: "2026-08-14T00:00:00Z", updatedAt: "2026-08-14T00:00:00Z" };
 beforeEach(() => {
   vi.clearAllMocks();
@@ -19,9 +34,9 @@ beforeEach(() => {
 it("실제 분류가 첫 패널이고 더블클릭은 목록 슬롯에서 생성한다", async () => {
   api.searchExercisesApi.mockResolvedValue([]);
   render(<ExerciseShell />);
-  expect(screen.getByRole("button", { name: "달리기" })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: "달리기" })).toBeInTheDocument();
   expect(screen.queryByText("운동 기록이 없습니다.")).not.toBeInTheDocument();
-  const category = screen.getByRole("button", { name: "달리기" });
+  const category = await screen.findByRole("button", { name: "달리기" });
   fireEvent.click(category, { detail: 0 });
   expect(await screen.findByText("운동 기록이 없습니다.")).toBeInTheDocument();
   fireEvent.keyDown(category, { key: "Enter", altKey: true });
@@ -32,7 +47,7 @@ it("실제 분류가 첫 패널이고 더블클릭은 목록 슬롯에서 생성
 
 it("기본 상세는 읽기 전용이고 0과 미등록을 구별하며 수정은 밀기로 연다", async () => {
   render(<ExerciseShell />);
-  fireEvent.click(screen.getByRole("button", { name: "달리기" }), { detail: 0 });
+  fireEvent.click(await screen.findByRole("button", { name: "달리기" }), { detail: 0 });
   const row = await screen.findByRole("button", { name: /달리기 · 2026-08-14/ });
   fireEvent.click(row);
   const detail = document.querySelector('[data-stage-key="lifelog-exercise-detail"]') as HTMLElement;
@@ -51,7 +66,7 @@ it("기본 상세는 읽기 전용이고 0과 미등록을 구별하며 수정�
 it("삭제 취소와 확정된 204를 구분한다", async () => {
   api.searchExercisesApi.mockResolvedValueOnce([item]).mockResolvedValueOnce([item]).mockResolvedValueOnce([]);
   render(<ExerciseShell />);
-  fireEvent.click(screen.getByRole("button", { name: "달리기" }), { detail: 0 });
+  fireEvent.click(await screen.findByRole("button", { name: "달리기" }), { detail: 0 });
   const row = await screen.findByRole("button", { name: /달리기 · 2026-08-14/ });
   fireEvent.keyDown(row, { key: "F10", shiftKey: true });
   fireEvent.click(screen.getByRole("button", { name: "삭제" }));

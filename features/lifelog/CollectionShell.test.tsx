@@ -10,6 +10,21 @@ const api = vi.hoisted(() => ({
   searchCollectionsApi: vi.fn(), updateCollectionApi: vi.fn(),
 }));
 vi.mock("./api", () => api);
+vi.mock("./personalCategories", () => {
+  const codes: Record<string, string[]> = {
+    COLLECTION: ["FIGURE", "CARD", "BOOK", "GAME", "STAMP", "COIN", "PROJECT", "OTHER"],
+    EXERCISE: ["RUNNING", "WALKING", "CYCLING", "SWIMMING", "GYM", "YOGA", "OTHER"],
+    MEDIA: ["ANIME", "MOVIE", "SERIES", "BOOK", "WEBTOON", "GAME", "MUSIC"],
+  };
+  return {
+    getMyLifeLogCategories: vi.fn(async (kind: string) => codes[kind].map((code, index) => ({ id: index + 1, kind, source: "SYSTEM", name: code, systemCode: code }))),
+    getSystemLifeLogCategories: vi.fn(async (kind: string) => codes[kind].map((code) => ({ code, name: code }))),
+    addSystemLifeLogCategory: vi.fn(), hideSystemLifeLogCategory: vi.fn(),
+    createPersonalLifeLogCategory: vi.fn(), renamePersonalLifeLogCategory: vi.fn(), deletePersonalLifeLogCategory: vi.fn(),
+    assignLifeLogRecordCategory: vi.fn(),
+  };
+});
+
 
 const item: CollectionInfo = {
   id: 31, playerId: 7, category: "BOOK", title: "Architecture Notes", originalTitle: null,
@@ -30,9 +45,9 @@ beforeEach(() => {
 
 it("starts with kinds and loads only the selected server category", async () => {
   render(<CollectionShell />);
-  expect(screen.getByRole("heading", { name: "수집 종류" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "수집 기록 · 내 분류" })).toBeInTheDocument();
   expect(api.searchCollectionsApi).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "도서" }), { detail: 1 });
+  fireEvent.click(await screen.findByRole("button", { name: "도서" }), { detail: 1 });
   await waitFor(() => expect(api.searchCollectionsApi).toHaveBeenCalledWith({ page: 0, size: 20, category: "BOOK", titleLike: undefined }));
   expect(await screen.findByRole("button", { name: /Architecture Notes/ })).toBeInTheDocument();
 });
@@ -44,11 +59,11 @@ it("removes the previous kind's rows while the next kind loads", async () => {
     ? new Promise<CollectionInfo[]>((resolve) => { finishFigure = resolve; })
     : Promise.resolve([item]));
   render(<CollectionShell />);
-  fireEvent.click(screen.getByRole("button", { name: "도서" }));
+  fireEvent.click(await screen.findByRole("button", { name: "도서" }));
   fireEvent.click(await screen.findByRole("button", { name: /Architecture Notes/ }));
   expect(await screen.findByText("수집 기록 #31")).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("button", { name: "피규어" }));
+  fireEvent.click(await screen.findByRole("button", { name: "피규어" }));
   expect(screen.getByRole("heading", { name: "피규어 목록" })).toBeInTheDocument();
   expect(screen.getByText("수집 기록을 불러오는 중…")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Architecture Notes/ })).not.toBeInTheDocument();
@@ -64,9 +79,9 @@ it("shows the new kind's failed lookup and retries into only its rows", async ()
   api.searchCollectionsApi.mockImplementation(({ category }: { category: string }) => category === "FIGURE"
     ? Promise.reject(new Error("피규어 조회 실패")) : Promise.resolve([item]));
   render(<CollectionShell />);
-  fireEvent.click(screen.getByRole("button", { name: "도서" }));
+  fireEvent.click(await screen.findByRole("button", { name: "도서" }));
   expect(await screen.findByRole("button", { name: /Architecture Notes/ })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "피규어" }));
+  fireEvent.click(await screen.findByRole("button", { name: "피규어" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("피규어 조회 실패");
   expect(screen.queryByRole("button", { name: /Architecture Notes/ })).not.toBeInTheDocument();
   api.searchCollectionsApi.mockResolvedValue([figure]);
@@ -84,10 +99,10 @@ it("keeps the last kind when earlier lookups finish out of order", async () => {
     ? new Promise<CollectionInfo[]>((resolve) => { finishFigure = resolve; })
     : category === "CARD" ? new Promise<CollectionInfo[]>((resolve) => { finishCard = resolve; }) : Promise.resolve([item]));
   render(<CollectionShell />);
-  fireEvent.click(screen.getByRole("button", { name: "도서" }));
+  fireEvent.click(await screen.findByRole("button", { name: "도서" }));
   expect(await screen.findByRole("button", { name: /Architecture Notes/ })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "피규어" }));
-  fireEvent.click(screen.getByRole("button", { name: "카드" }));
+  fireEvent.click(await screen.findByRole("button", { name: "피규어" }));
+  fireEvent.click(await screen.findByRole("button", { name: "카드" }));
   await act(async () => { finishCard([card]); finishFigure([figure]); });
   expect(screen.getByRole("button", { name: /Card Album/ })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Figure Shelf|Architecture Notes/ })).not.toBeInTheDocument();
@@ -95,7 +110,7 @@ it("keeps the last kind when earlier lookups finish out of order", async () => {
 
 it("double tap opens the same list slot with a fixed category and cancel restores it", async () => {
   render(<CollectionShell />);
-  const category = screen.getByRole("button", { name: "도서" });
+  const category = await screen.findByRole("button", { name: "도서" });
   fireEvent.click(category, { detail: 1 });
   fireEvent.click(category, { detail: 2 });
   const form = await screen.findByRole("button", { name: "수집 기록 저장" });
@@ -109,7 +124,7 @@ it("double tap opens the same list slot with a fixed category and cancel restore
 it("failed save keeps input, then successful retry returns to the same kind list", async () => {
   api.createCollectionApi.mockRejectedValueOnce(new Error("저장 실패"));
   render(<CollectionShell />);
-  const category = screen.getByRole("button", { name: "도서" });
+  const category = await screen.findByRole("button", { name: "도서" });
   fireEvent.keyDown(category, { key: "Enter", altKey: true });
   fireEvent.change(screen.getByRole("textbox", { name: "제목" }), { target: { value: "내 책" } });
   fireEvent.change(screen.getByRole("spinbutton", { name: "수량" }), { target: { value: "2" } });
@@ -125,7 +140,7 @@ it("failed save keeps input, then successful retry returns to the same kind list
 it("cancels deletion without a command and accepts a bodyless delete response", async () => {
   api.searchCollectionsApi.mockResolvedValueOnce([item]).mockResolvedValueOnce([]);
   render(<CollectionShell />);
-  fireEvent.click(screen.getByRole("button", { name: "도서" }));
+  fireEvent.click(await screen.findByRole("button", { name: "도서" }));
   fireEvent.click(await screen.findByRole("button", { name: /Architecture Notes/ }));
   expect(await screen.findByText("수집 기록 #31")).toBeInTheDocument();
   fireEvent.keyDown(screen.getByRole("button", { name: /Architecture Notes/ }), { key: "F10", shiftKey: true });
@@ -146,7 +161,7 @@ it("does not restore detail or focus after returning during its lookup", async (
   window.addEventListener(STAGE_FOCUS_EVENT, focus);
   try {
     render(<CollectionShell />);
-    fireEvent.click(screen.getByRole("button", { name: "도서" }));
+    fireEvent.click(await screen.findByRole("button", { name: "도서" }));
     fireEvent.click(await screen.findByRole("button", { name: /Architecture Notes/ }));
     expect(screen.getByText("수집 기록을 불러오는 중…")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "수집 기록 목록으로" }));
@@ -164,13 +179,13 @@ it("keeps a new draft open when an old save finishes after returning to kinds", 
   let finishSave: (value: { id: number }) => void = () => {};
   api.createCollectionApi.mockImplementationOnce(() => new Promise((resolve) => { finishSave = resolve; }));
   render(<CollectionShell />);
-  fireEvent.keyDown(screen.getByRole("button", { name: "도서" }), { key: "Enter", altKey: true });
+  fireEvent.keyDown(await screen.findByRole("button", { name: "도서" }), { key: "Enter", altKey: true });
   fireEvent.change(screen.getByRole("textbox", { name: "제목" }), { target: { value: "Old draft" } });
   fireEvent.change(screen.getByRole("spinbutton", { name: "수량" }), { target: { value: "1" } });
   fireEvent.click(screen.getByRole("button", { name: "수집 기록 저장" }));
   fireEvent.click(screen.getByRole("button", { name: "수집 목록으로" }));
-  fireEvent.click(screen.getByRole("button", { name: "수집 종류로" }));
-  fireEvent.keyDown(screen.getByRole("button", { name: "피규어" }), { key: "Enter", altKey: true });
+  fireEvent.click(screen.getByRole("button", { name: "내 분류로" }));
+  fireEvent.keyDown(await screen.findByRole("button", { name: "피규어" }), { key: "Enter", altKey: true });
   fireEvent.change(screen.getByRole("textbox", { name: "제목" }), { target: { value: "New draft" } });
   await act(async () => { finishSave({ id: 99 }); });
   expect(screen.getByRole("textbox", { name: "제목" })).toHaveValue("New draft");
@@ -181,7 +196,7 @@ it("keeps a new draft open when an old save finishes after returning to kinds", 
 
 it("sends the weekly reflection subtype and scope in the create request", async () => {
   render(<CollectionShell />);
-  fireEvent.keyDown(screen.getByRole("button", { name: "도서" }), { key: "Enter", altKey: true });
+  fireEvent.keyDown(await screen.findByRole("button", { name: "도서" }), { key: "Enter", altKey: true });
   fireEvent.change(screen.getByRole("textbox", { name: "제목" }), { target: { value: "Weekly notes" } });
   fireEvent.change(screen.getByRole("spinbutton", { name: "수량" }), { target: { value: "1" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "주간 회고" }));
@@ -194,7 +209,7 @@ it("sends the weekly reflection subtype and scope in the create request", async 
 
 it("record row opens detail and Shift+F10 exposes edit without an always visible menu", async () => {
   render(<CollectionShell />);
-  fireEvent.keyDown(screen.getByRole("button", { name: "도서" }), { key: "Enter", altKey: true });
+  fireEvent.keyDown(await screen.findByRole("button", { name: "도서" }), { key: "Enter", altKey: true });
   fireEvent.click(screen.getByRole("button", { name: "수집 목록으로" }));
   const row = await screen.findByRole("button", { name: /Architecture Notes/ });
   expect(screen.queryByText("⋯")).not.toBeInTheDocument();

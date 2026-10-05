@@ -40,6 +40,8 @@ export function recentMediaApi(limit: number): Promise<MediaInfo[]> {
 export function searchMediaApi(params: MediaSearchParams): Promise<MediaInfo[]> {
   const query = new URLSearchParams();
   if (params.category) query.set("category", params.category);
+  if (params.personalCategoryId !== undefined) query.set("personalCategoryId", String(params.personalCategoryId));
+  if (params.unclassified) query.set("unclassified", "true");
   if (params.status) query.set("status", params.status);
   if (params.titleLike) query.set("titleLike", params.titleLike);
   query.set("page", String(params.page));
@@ -86,6 +88,8 @@ export function recentExercisesApi(limit: number): Promise<ExerciseInfo[]> {
 export function searchExercisesApi(params: ExerciseSearchParams): Promise<ExerciseInfo[]> {
   const query = new URLSearchParams();
   if (params.category) query.set("category", params.category);
+  if (params.personalCategoryId !== undefined) query.set("personalCategoryId", String(params.personalCategoryId));
+  if (params.unclassified) query.set("unclassified", "true");
   if (params.from) query.set("from", params.from);
   if (params.to) query.set("to", params.to);
   query.set("page", String(params.page));
@@ -128,6 +132,8 @@ export function recentCollectionsApi(limit: number): Promise<CollectionInfo[]> {
 export function searchCollectionsApi(params: CollectionSearchParams): Promise<CollectionInfo[]> {
   const query = new URLSearchParams();
   if (params.category) query.set("category", params.category);
+  if (params.personalCategoryId !== undefined) query.set("personalCategoryId", String(params.personalCategoryId));
+  if (params.unclassified) query.set("unclassified", "true");
   if (params.titleLike) query.set("titleLike", params.titleLike);
   query.set("page", String(params.page));
   query.set("size", String(params.size));

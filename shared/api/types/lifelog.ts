@@ -3,6 +3,7 @@ export type ExerciseCategory = typeof EXERCISE_CATEGORIES[number];
 
 export interface ExerciseInfo {
   id: number;
+  personalCategoryId?: number | null;
   playerId: number;
   category: ExerciseCategory;
   durationMinutes: number;
@@ -16,6 +17,8 @@ export interface ExerciseInfo {
 
 export type ExerciseSearchParams = {
   category?: ExerciseCategory;
+  personalCategoryId?: number;
+  unclassified?: boolean;
   from?: string;
   to?: string;
   page: number;
@@ -24,6 +27,7 @@ export type ExerciseSearchParams = {
 
 export type ExerciseCreateRequest = {
   category: ExerciseCategory;
+  personalCategoryId?: number;
   durationMinutes: number;
   distanceKm?: number;
   calories?: number;
@@ -48,6 +52,7 @@ export type MediaStatus = typeof MEDIA_STATUSES[number];
 
 export interface MediaInfo {
   id: number;
+  personalCategoryId?: number | null;
   playerId: number;
   category: MediaCategory;
   title: string;
@@ -66,6 +71,8 @@ export interface MediaInfo {
 
 export type MediaSearchParams = {
   category?: MediaCategory;
+  personalCategoryId?: number;
+  unclassified?: boolean;
   status?: MediaStatus;
   titleLike?: string;
   page: number;
@@ -74,6 +81,7 @@ export type MediaSearchParams = {
 
 export type MediaCreateRequest = {
   category: MediaCategory;
+  personalCategoryId?: number;
   title: string;
   status: MediaStatus;
   originalTitle?: string;
@@ -101,6 +109,7 @@ export type CollectionCategory = typeof COLLECTION_CATEGORIES[number];
 
 export interface CollectionInfo {
   id: number;
+  personalCategoryId?: number | null;
   playerId: number;
   category: CollectionCategory;
   title: string;
@@ -115,6 +124,8 @@ export interface CollectionInfo {
 
 export type CollectionSearchParams = {
   category?: CollectionCategory;
+  personalCategoryId?: number;
+  unclassified?: boolean;
   titleLike?: string;
   page: number;
   size: number;
@@ -122,6 +133,7 @@ export type CollectionSearchParams = {
 
 export type CollectionCreateRequest = {
   category: CollectionCategory;
+  personalCategoryId?: number;
   title: string;
   originalTitle?: string;
   quantity: number;
@@ -156,6 +168,7 @@ export type JournalReflectionScope = "WEEKLY_LOOKBACK";
 export type JournalMetadata = {
   lifeLogId: number;
   sourceId: number;
+  personalCategoryId?: number | null;
   subtype: JournalSubtype | null;
   entryMode: JournalEntryMode | null;
   reflectionScope: JournalReflectionScope | null;

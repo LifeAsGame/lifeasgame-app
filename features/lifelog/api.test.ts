@@ -459,3 +459,14 @@ describe("Journal을 실제 backend에서 읽을 때", () => {
     });
   });
 });
+
+it("personal folder filters stay separate from original enums and journal IDs", async () => {
+  vi.clearAllMocks();
+  client.apiGetRaw.mockResolvedValue([]);
+  await searchCollectionsApi({ personalCategoryId: 7, page: 0, size: 20 });
+  await searchExercisesApi({ unclassified: true, page: 1, size: 20 });
+  await searchMediaApi({ personalCategoryId: 9, page: 2, size: 20 });
+  expect(client.apiGetRaw).toHaveBeenNthCalledWith(1, "/api/v1/players/collections/search?personalCategoryId=7&page=0&size=20");
+  expect(client.apiGetRaw).toHaveBeenNthCalledWith(2, "/api/v1/players/exercises/search?unclassified=true&page=1&size=20");
+  expect(client.apiGetRaw).toHaveBeenNthCalledWith(3, "/api/v1/players/media/search?personalCategoryId=9&page=2&size=20");
+});
