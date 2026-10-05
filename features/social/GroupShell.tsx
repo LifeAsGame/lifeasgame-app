@@ -13,6 +13,7 @@ import { groupCommand, groupCreate, groupInfo, groupMe, groupMembers, groupMine,
 import MemberPersonPanel, { type MemberRoleOrigin } from "./MemberPersonPanel";
 import GuildGroupPanels from "./GuildGroupPanels";
 import GuildEventPanels from "./GuildEventPanels";
+import GroupActivityPanels from "./GroupActivityPanels";
 import type { GroupCreate, GroupInfo, GroupKind, GroupMe, GroupMember, GroupPage, GroupPending, GroupSummary, MyGroup } from "./groups";
 
 type ListMode = "mine" | "search" | "requests" | "invitations";
@@ -33,6 +34,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack, 
   const [info, setInfo] = useState<GroupInfo | null>(null), [me, setMe] = useState<GroupMe | null>(null), [detailError, setDetailError] = useState<string | null>(null), [detailLoading, setDetailLoading] = useState(false);
   const [sub, setSub] = useState<SubMode | null>(null), [subPage, setSubPage] = useState(0), [subList, setSubList] = useState<GroupPage<GroupMember | GroupPending> | null>(null), [subError, setSubError] = useState<string | null>(null);
   const [guildCategory, setGuildCategory] = useState<"members" | "groups" | "events" | null>(null), [guildCategoryKey, setGuildCategoryKey] = useState(0), [guildCreating, setGuildCreating] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false), [activityCreating, setActivityCreating] = useState(false), [activityEntry, setActivityEntry] = useState(0);
   const [pending, setPending] = useState(false), [actionError, setActionError] = useState<string | null>(null);
   const [memberSelection, setMemberSelection] = useState<{ member: GroupMember; registration: boolean; entry: number } | null>(null);
   const memberEntry = useRef(0);
@@ -55,7 +57,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack, 
 
   const select = async (id: number) => {
     const seq = ++detailSeq.current; subSeq.current++;
-    setCreating(false); setSelectedId(id); setSummary(null); setInfo(null); setMe(null); setSub(null); setMemberSelection(null); setGuildCategory(null); setDetailError(null); setDetailLoading(true); setActionError(null);
+    setCreating(false); setSelectedId(id); setSummary(null); setInfo(null); setMe(null); setSub(null); setMemberSelection(null); setGuildCategory(null); setActivityOpen(false); setDetailError(null); setDetailLoading(true); setActionError(null);
     const pendingRecord = mode === "invitations" || mode === "requests" ? list?.contents.find((item) => "type" in item && (kind === "guilds" ? item.guildId : item.partyId) === id) as GroupPending | undefined : undefined;
     const pendingInvitation = mode === "invitations" ? pendingRecord : undefined;
     setInvitation(pendingInvitation ? { name: pendingInvitation.name ?? names[kind], code: pendingInvitation.code ?? "" } : null);
@@ -106,7 +108,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack, 
     try { const result = view === "members" ? await groupMembers(kind, id, nextPage) : await groupWaiters(kind, id, nextPage); if (seq === subSeq.current) setSubList(result); }
     catch (error) { if (seq === subSeq.current) { setSubError(errorText(error)); if (linkedGroup && error instanceof ApiError && [403, 404].includes(error.status)) linkedGroup.onAccessLost(); } }
   }, [kind, linkedGroup]);
-  const openSub = (view: SubMode) => { setMemberSelection(null); if (selectedId === null) return; setGuildCategory(null); setSub(view); setSubPage(0); setSubError(null); setActionError(null); void loadSub(view, selectedId, 0); };
+  const openSub = (view: SubMode) => { setMemberSelection(null); if (selectedId === null) return; setGuildCategory(null); setActivityOpen(false); setSub(view); setSubPage(0); setSubError(null); setActionError(null); void loadSub(view, selectedId, 0); };
   const openGuildCategory = (category: "members" | "groups" | "events", create = false) => { setMemberSelection(null); if (!me?.myRole || selectedId === null) return; setSub(category === "members" ? "members" : null); if (category === "members") { setSubPage(0); void loadSub("members", selectedId, 0); } setGuildCategory(category); setGuildCreating(create && (category === "groups" || me.myRole === "LEADER")); setGuildCategoryKey((value) => value + 1); };
   const changeSubPage = (next: number) => { setMemberSelection(null); if (selectedId === null || !sub) return; setSubPage(next); void loadSub(sub, selectedId, next); };
   const manage = async (event: React.SubmitEvent<HTMLFormElement>) => {
@@ -135,7 +137,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack, 
         </CreateSlot>
       </PanelFrame>
     </PanelStage> : null}
-    {selectedId !== null ? <PanelStage stageKey="social-detail" parentStageKey={linkedGroup ? "role-group-links" : "social-list"} instant inactive={compact && (sub !== null || guildCategory !== null)}><PanelFrame title={`${label} 상세`} backButton={<BackButton label="모임 목록으로" onClick={() => { if (linkedGroup) { onBack(); return; } detailSeq.current++; subSeq.current++; setSelectedId(null); setSub(null); setMemberSelection(null); setGuildCategory(null); requestStageFocus("social-list", "back"); }} />}>
+    {selectedId !== null ? <PanelStage stageKey="social-detail" parentStageKey={linkedGroup ? "role-group-links" : "social-list"} instant inactive={compact && (sub !== null || guildCategory !== null || activityOpen)}><PanelFrame title={`${label} 상세`} backButton={<BackButton label="모임 목록으로" onClick={() => { if (linkedGroup) { onBack(); return; } detailSeq.current++; subSeq.current++; setSelectedId(null); setSub(null); setMemberSelection(null); setGuildCategory(null); setActivityOpen(false); requestStageFocus("social-list", "back"); }} />}>
       <article className="lag-role-detail lag-group-main">
         {detailLoading ? <p role="status">상세를 불러오는 중…</p> : null}
         {detailError ? <p role="alert">{detailError} <button type="button" onClick={() => void select(selectedId)}>다시 조회</button></p> : null}
@@ -145,6 +147,7 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack, 
         {actionError ? <p role="alert">{actionError}</p> : null}
         {me ? <div className="lag-group-actions">{(["request-join", "cancel-join", "accept-invitation", "decline-invitation", "leave", "disband"] as const).filter((action) => actions.has(action)).map((action) => <button key={action} type="button" className="lag-role-button" disabled={pending} onClick={() => void run(action, action === "request-join" ? { message: null } : {}, ["leave", "disband", "decline-invitation"].includes(action), ["leave", "disband"].includes(action) ? `${label}에서 ${action === "leave" ? "탈퇴" : "해산"}할까요?` : undefined)}>{{ "request-join": "가입 신청", "cancel-join": "신청 취소", "accept-invitation": "초대 수락", "decline-invitation": "초대 거절", leave: "탈퇴", disband: "해산" }[action]}</button>)}</div> : null}
         {info && me?.myRole && kind === "guilds" ? <section className="lag-role-surface-grid" aria-label="길드 내부 분류">{(["members", "groups", "events"] as const).map((category) => <SwipeButton key={category} className="lag-role-surface-card" aria-label={{ members: "멤버", groups: "모임", events: "행사" }[category]} creation={category === "groups" || category === "events" && me.myRole === "LEADER"} onClick={() => openGuildCategory(category)} onDoubleClick={category === "groups" || category === "events" && me.myRole === "LEADER" ? () => openGuildCategory(category, true) : undefined} aria-pressed={guildCategory === category} data-selected={guildCategory === category}><span aria-hidden>{ { members: "ME", groups: "GR", events: "EV" }[category]}</span><strong>{ { members: "멤버", groups: "모임", events: "행사" }[category]}</strong><small>{ { members: "길드 구성원", groups: "연결된 모임", events: "공유 행사" }[category]}</small>{!linkedGroup ? <span aria-hidden>→</span> : null}</SwipeButton>)}</section> : null}
+        {info && me?.myRole && kind === "parties" ? <section className="lag-role-surface-grid" aria-label="파티 내부 분류"><SwipeButton className="lag-role-surface-card" aria-label="활동" creation aria-pressed={activityOpen} data-selected={activityOpen} onClick={() => { setSub(null); setActivityCreating(false); setActivityEntry((value) => value + 1); setActivityOpen(true); }} onDoubleClick={() => { setSub(null); setActivityCreating(true); setActivityEntry((value) => value + 1); setActivityOpen(true); }}><span aria-hidden>AC</span><strong>활동</strong><small>함께하는 일정</small></SwipeButton></section> : null}
         {info && me?.myRole ? <div className="lag-group-actions">{(["members", "pending", "invite", "rename", "description", "policy"] as const).filter((view) => (kind !== "guilds" || view !== "members") && (view === "members" || view !== "pending" && actions.has(view) || view === "pending" && actions.has("approve"))).map((view) => <button key={view} type="button" className="lag-role-button" onClick={() => openSub(view)}>{{ members: "멤버", pending: "대기 신청", invite: "초대", rename: "이름 수정", description: "설명 수정", policy: "정책 수정" }[view]}</button>)}</div> : null}
       </article>
     </PanelFrame></PanelStage> : null}
@@ -159,5 +162,6 @@ export default function GroupShell({ kind, createRequest = 0, playerId, onBack, 
     {selectedId !== null && sub === "members" && memberSelection ? <MemberPersonPanel key={`${selectedId}:${memberSelection.member.playerId}:${memberSelection.entry}`} context={{ groupType: kind === "guilds" ? "GUILD" : "PARTY", groupId: selectedId, memberPlayerId: memberSelection.member.playerId }} member={memberSelection.member} originRole={originRole} parentStageKey="social-sub" registration={memberSelection.registration} onBack={() => setMemberSelection(null)} onPrivacyLost={privacyLost} /> : null}
     {kind === "guilds" && selectedId !== null && me?.myRole && guildCategory === "groups" ? <GuildGroupPanels key={`${selectedId}-${guildCategoryKey}`} guildId={selectedId} onAccessLost={linkedGroup?.onAccessLost} playerId={playerId} creating={guildCreating} onBack={() => { setGuildCategory(null); requestStageFocus("social-detail", "back"); }} /> : null}
     {kind === "guilds" && selectedId !== null && me?.myRole && guildCategory === "events" ? <GuildEventPanels key={`${selectedId}-${guildCategoryKey}`} guildId={selectedId} onAccessLost={linkedGroup?.onAccessLost} creating={guildCreating} onBack={() => { setGuildCategory(null); requestStageFocus("social-detail", "back"); }} /> : null}
+    {kind === "parties" && selectedId !== null && me?.myRole && activityOpen ? <GroupActivityPanels key={`${selectedId}:${activityEntry}`} groupType="PARTY" groupId={selectedId} leader={me.myRole === "LEADER"} creating={activityCreating} parentStageKey="social-detail" onBack={() => { setActivityOpen(false); requestStageFocus("social-detail", "back"); }} onAccessLost={() => { setActivityOpen(false); void select(selectedId); }} /> : null}
   </div>;
 }
