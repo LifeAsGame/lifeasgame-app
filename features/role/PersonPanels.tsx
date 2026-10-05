@@ -9,6 +9,7 @@ import CreateSlot from "@/shared/ui/CreateSlot";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { archivePersonApi, createPersonApi, getPersonApi, listPersonsApi, updatePersonApi } from "./api";
+import PersonGuildNotes from "@/features/social/PersonGuildNotes";
 import PersonRoleContexts from "./PersonRoleContexts";
 import { RecordRow, SwipeButton } from "./RecordRow";
 import { PersonProfileDetail, PersonProfileForm, personProfile } from "./PersonProfile";
@@ -22,6 +23,7 @@ export default function PersonPanels({ active, createRequest, reentryRequest = 0
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [contextsOpen, setContextsOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [contextEntry, setContextEntry] = useState(0);
   const [detail, setDetail] = useState<PersonDetail | null>(null);
   const [mode, setMode] = useState<"detail" | "edit" | "create">("detail");
@@ -36,7 +38,7 @@ export default function PersonPanels({ active, createRequest, reentryRequest = 0
     restore.current = { target, scroll, top: scroll?.scrollTop ?? 0 };
   };
   const close = () => {
-    request.current++; setContextsOpen(false); setDetailOpen(false); setSelectedId(null); setDetail(null); setMode("detail"); setError(null); setLoading(false); setUnverifiedCreate(false);
+    request.current++; setContextsOpen(false); setNotesOpen(false); setDetailOpen(false); setSelectedId(null); setDetail(null); setMode("detail"); setError(null); setLoading(false); setUnverifiedCreate(false);
     requestStageFocus("person-list", "back");
     requestAnimationFrame(() => {
       const { target, scroll, top } = restore.current;
@@ -46,15 +48,15 @@ export default function PersonPanels({ active, createRequest, reentryRequest = 0
   };
   const cancelEdit = () => { request.current++; setMode("detail"); setError(null); setLoading(false); };
   useEffect(() => { const counter = request; mounted.current = true; return () => { mounted.current = false; counter.current++; }; }, []);
-  useEffect(() => { if (!active) { request.current++; setContextsOpen(false); setDetailOpen(false); setSelectedId(null); setDetail(null); setMode("detail"); setError(null); setLoading(false); } }, [active]);
-  useEffect(() => { if (reentryRequest) { request.current++; setContextsOpen(false); setDetailOpen(false); setSelectedId(null); setDetail(null); setMode("detail"); setError(null); setLoading(false); } }, [reentryRequest]);
+  useEffect(() => { if (!active) { request.current++; setContextsOpen(false); setNotesOpen(false); setDetailOpen(false); setSelectedId(null); setDetail(null); setMode("detail"); setError(null); setLoading(false); } }, [active]);
+  useEffect(() => { if (reentryRequest) { request.current++; setContextsOpen(false); setNotesOpen(false); setDetailOpen(false); setSelectedId(null); setDetail(null); setMode("detail"); setError(null); setLoading(false); } }, [reentryRequest]);
   useEffect(() => {
     if (!createRequest) return;
-    remember(); request.current++; setContextsOpen(false); setDetailOpen(false); setMode("create"); setError(null); setLoading(false); setUnverifiedCreate(false);
+    remember(); request.current++; setContextsOpen(false); setNotesOpen(false); setDetailOpen(false); setMode("create"); setError(null); setLoading(false); setUnverifiedCreate(false);
   }, [createRequest]);
 
   const select = async (personId: number, editing = false) => {
-    setContextsOpen(false); remember(); const id = ++request.current;
+    setContextsOpen(false); setNotesOpen(false); remember(); const id = ++request.current;
     setDetailOpen(true); setSelectedId(personId); setDetail(null); setMode(editing ? "edit" : "detail"); setError(null); setLoading(true);
     try {
       const next = await getPersonApi(personId);
@@ -102,17 +104,18 @@ export default function PersonPanels({ active, createRequest, reentryRequest = 0
           {list.error ? <p role="alert">{list.error} <button type="button" className="lag-role-button" onClick={() => void list.refresh()}>다시 조회</button></p> : null}
           {error && mode === "detail" ? <p role="alert">{error}</p> : null}
           {!list.loading && !list.error && list.data.length === 0 ? <p>등록된 인물이 없습니다.</p> : null}
-          {list.data.map((person) => <div key={person.id} data-person-id={person.id}><RecordRow title={person.displayName} subtitle={person.status === "ARCHIVED" ? "보관된 인물" : "인물"} selected={selectedId === person.id} disabled={pending} onSelect={() => void select(person.id)} onCreate={() => { remember(); setContextsOpen(false); setDetailOpen(false); setMode("create"); setError(null); }} onEdit={person.status === "ACTIVE" ? () => void select(person.id, true) : undefined} onArchive={() => void archive(person)} /></div>)}
+          {list.data.map((person) => <div key={person.id} data-person-id={person.id}><RecordRow title={person.displayName} subtitle={person.status === "ARCHIVED" ? "보관된 인물" : "인물"} selected={selectedId === person.id} disabled={pending} onSelect={() => void select(person.id)} onCreate={() => { remember(); setContextsOpen(false); setNotesOpen(false); setDetailOpen(false); setMode("create"); setError(null); }} onEdit={person.status === "ACTIVE" ? () => void select(person.id, true) : undefined} onArchive={() => void archive(person)} /></div>)}
         </div>}>{form()}</CreateSlot>
       </PanelFrame>
     </PanelStage>
-    {mode !== "create" && detailOpen && selectedId !== null ? <PanelStage stageKey="person-detail" parentStageKey="person-list" autoFocus={active} inactive={compact && contextsOpen}>
+    {mode !== "create" && detailOpen && selectedId !== null ? <PanelStage stageKey="person-detail" parentStageKey="person-list" autoFocus={active} inactive={compact && (contextsOpen || notesOpen)}>
       <PanelFrame title={mode === "edit" ? "인물 수정" : "인물 상세"} backButton={<BackButton label={mode === "edit" ? "인물 상세로" : "인물 목록으로"} onClick={mode === "edit" ? cancelEdit : close} />}>
         {loading ? <p role="status">인물 상세를 불러오는 중…</p> : null}
         {error && !detail ? <p role="alert">{error} <button type="button" className="lag-role-button" onClick={() => void select(selectedId, mode === "edit")}>다시 조회</button></p> : null}
-        {detail && mode === "edit" ? form(detail) : detail ? <><PersonProfileDetail person={detail} /><div className="lag-role-form"><button className="lag-role-button" onClick={() => { setContextsOpen(false); setMode("edit"); }}>공통 인물 정보 수정</button><SwipeButton className="lag-role-node" aria-pressed={contextsOpen} onClick={() => { setContextEntry((value) => value + 1); setContextsOpen(true); }}><span className="lag-role-node-mark" aria-hidden>관</span><span><strong>역할별 관계</strong><small>역할마다 남긴 관계와 메모</small></span></SwipeButton></div></> : null}
+        {detail && mode === "edit" ? form(detail) : detail ? <><PersonProfileDetail person={detail} /><div className="lag-role-form"><button className="lag-role-button" onClick={() => { setContextsOpen(false); setNotesOpen(false); setMode("edit"); }}>공통 인물 정보 수정</button><SwipeButton className="lag-role-node" aria-pressed={contextsOpen} onClick={() => { setContextEntry((value) => value + 1); setNotesOpen(false); setContextsOpen(true); }}><span className="lag-role-node-mark" aria-hidden>관</span><span><strong>역할별 관계</strong><small>역할마다 남긴 관계와 메모</small></span></SwipeButton><SwipeButton className="lag-role-node" aria-pressed={notesOpen} onClick={() => { setContextsOpen(false); setNotesOpen(true); setContextEntry((value) => value + 1); }}><span className="lag-role-node-mark" aria-hidden>메</span><span><strong>길드별 메모</strong><small>길드마다 남긴 나만의 메모</small></span></SwipeButton></div></> : null}
       </PanelFrame>
     </PanelStage> : null}
+    {active && detail && notesOpen && mode === "detail" ? <PersonGuildNotes key={`${detail.id}:${contextEntry}`} personId={detail.id} onBack={() => setNotesOpen(false)} /> : null}
     {active && detail && contextsOpen && mode === "detail" ? <PersonRoleContexts key={`${detail.id}:${contextEntry}`} person={detail} onBack={() => setContextsOpen(false)} /> : null}
   </div>;
 }

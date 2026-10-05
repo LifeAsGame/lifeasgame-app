@@ -59,7 +59,7 @@ const ACTION_WIDTH = 144;
 
 export function RecordRow({ title, subtitle, selected, disabled, onSelect, onCreate, onEdit, onArchive, archiveLabel = "삭제" }: {
   title: string; subtitle?: string; selected?: boolean; disabled?: boolean; archiveLabel?: string;
-  onSelect: () => void; onCreate?: () => void; onEdit?: () => void; onArchive: () => void;
+  onSelect: () => void; onCreate?: () => void; onEdit?: () => void; onArchive?: () => void;
 }) {
   const [actions, setActions] = useState(false);
   const root = useRef<HTMLDivElement>(null), body = useRef<HTMLButtonElement>(null);
@@ -71,12 +71,12 @@ export function RecordRow({ title, subtitle, selected, disabled, onSelect, onCre
     scope?.addEventListener("sao-row-open", closeOther);
     return () => scope?.removeEventListener("sao-row-open", closeOther);
   }, []);
-  return <div ref={root} className="lag-role-record-row" style={{ "--lag-row-action-width": `${onEdit ? ACTION_WIDTH : ACTION_WIDTH / 2}px` } as React.CSSProperties} data-actions-open={actions} data-scroll-center-target={selected ? "true" : undefined} onKeyDown={(event) => { if (event.key === "Escape" && actions) { event.stopPropagation(); close(); } }}>
+  return <div ref={root} className="lag-role-record-row" style={{ "--lag-row-action-width": `${(Number(Boolean(onEdit)) + Number(Boolean(onArchive))) * ACTION_WIDTH / 2}px` } as React.CSSProperties} data-actions-open={actions} data-scroll-center-target={selected ? "true" : undefined} onKeyDown={(event) => { if (event.key === "Escape" && actions) { event.stopPropagation(); close(); } }}>
     <div className="lag-row-action-area" role="group" aria-label={`${title} 작업 선택`} hidden={!actions} inert={!actions}>
       {onEdit ? <button type="button" disabled={disabled} onClick={onEdit}><span className="lag-row-action-symbol" aria-hidden>✎</span>수정</button> : null}
-      <button type="button" disabled={disabled} onClick={onArchive}><span className="lag-row-action-symbol" aria-hidden>×</span>{archiveLabel}</button>
+      {onArchive ? <button type="button" disabled={disabled} onClick={onArchive}><span className="lag-row-action-symbol" aria-hidden>×</span>{archiveLabel}</button> : null}
     </div>
-    <SwipeButton ref={body} className="lag-role-node lag-record-body" creation={Boolean(onCreate)} aria-pressed={Boolean(selected)} data-selected={Boolean(selected)} disabled={disabled} restingOffset={actions ? -(onEdit ? ACTION_WIDTH : ACTION_WIDTH / 2) : 0} onClick={() => { announce(); setActions(false); onSelect(); }} onDoubleClick={onCreate} onSwipeLeft={() => { announce(); setActions(true); }} onSwipeRight={close} onKeyDown={(event) => { if (event.key === "F10" && event.shiftKey) { event.preventDefault(); announce(); setActions(true); } }}>
+    <SwipeButton ref={body} className="lag-role-node lag-record-body" creation={Boolean(onCreate)} aria-pressed={Boolean(selected)} data-selected={Boolean(selected)} disabled={disabled} restingOffset={actions ? -(Number(Boolean(onEdit)) + Number(Boolean(onArchive))) * ACTION_WIDTH / 2 : 0} onClick={() => { announce(); setActions(false); onSelect(); }} onDoubleClick={onCreate} onSwipeLeft={() => { announce(); setActions(true); }} onSwipeRight={close} onKeyDown={(event) => { if (event.key === "F10" && event.shiftKey) { event.preventDefault(); announce(); setActions(true); } }}>
       <span className="lag-role-node-mark" aria-hidden>{title.charAt(0)}</span>
       <span><strong>{title}</strong>{subtitle ? <small>{subtitle}</small> : null}</span>
     </SwipeButton>
