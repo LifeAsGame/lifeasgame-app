@@ -436,7 +436,7 @@ function LegacyPanelCard({
 }
 
 export default function PanelCard(props: PanelCardProps) {
-  if (!props.actions?.length) return <div data-scroll-center-target={props.centerTarget ? "true" : undefined}><SwipeButton className="lag-role-node" aria-pressed={Boolean(props.selected)} disabled={props.disabled} onClick={props.onClick} onDoubleClick={props.onDoubleClick}><span className="lag-role-node-mark" aria-hidden>{props.slotLabel}</span><span><strong>{props.label}</strong>{props.subtitle ? <small>{props.subtitle}</small> : null}</span></SwipeButton></div>;
+  if (!props.actions?.length) return <div data-scroll-center-target={props.centerTarget ? "true" : undefined}><SwipeButton className="lag-role-node" creation={Boolean(props.onDoubleClick)} aria-pressed={Boolean(props.selected)} disabled={props.disabled} onClick={props.onClick} onDoubleClick={props.onDoubleClick}><span className="lag-role-node-mark" aria-hidden>{props.slotLabel}</span><span><strong>{props.label}</strong>{props.subtitle ? <small>{props.subtitle}</small> : null}</span></SwipeButton></div>;
   if (props.actions?.some((action) => action.type === "edit") && props.actions.some((action) => action.type === "delete") && props.onAction) {
     return <div data-scroll-center-target={props.centerTarget ? "true" : undefined}><RecordRow title={props.label} subtitle={props.subtitle} selected={props.selected} disabled={props.disabled} archiveLabel="삭제" onSelect={() => props.onClick?.()} onEdit={() => props.onAction?.("edit")} onArchive={() => props.onAction?.("delete")} /></div>;
   }

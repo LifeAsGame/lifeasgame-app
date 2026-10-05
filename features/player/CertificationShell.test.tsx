@@ -9,8 +9,10 @@ const api = vi.hoisted(() => ({
   registerPlayerCertificationApi: vi.fn(), updatePlayerCertificationApi: vi.fn(),
 }));
 const personal = vi.hoisted(() => ({ listPersonalCategoriesApi: vi.fn(), createPersonalCategoryApi: vi.fn(), renamePersonalCategoryApi: vi.fn(), deletePersonalCategoryApi: vi.fn(), assignPersonalCategoryApi: vi.fn() }));
+const catalogApi = vi.hoisted(() => ({ getOwnedCategoriesApi: vi.fn(), getCatalogItemApi: vi.fn() }));
 vi.mock("./api", () => api);
 vi.mock("./personalCategories", async (importOriginal) => ({ ...await importOriginal<typeof import("./personalCategories")>(), ...personal }));
+vi.mock("./catalog", async (importOriginal) => ({ ...await importOriginal<typeof import("./catalog")>(), ...catalogApi }));
 const catalog: CertificationCatalogInfo[] = [{ certificationId: 1, name: "AWS", issuer: "Amazon", category: "CLOUD" }, { certificationId: 2, name: "Kubernetes", issuer: "CNCF", category: "PROGRAMMING" }];
 const owned: PlayerCertificationInfo = { ...catalog[0], acquiredDate: null, expiresDate: null, grantedAt: "2026-09-01T00:00:00Z", personalCategoryId: null };
 const systems = ["PROGRAMMING", "CLOUD", "DATABASE", "SECURITY", "DATA", "NETWORK", "LANGUAGE", "MANAGEMENT", "FINANCE", "DESIGN", "OTHER"].map((code) => ({ id: null, code, name: code, source: "SYSTEM", kind: "CERTIFICATION" }));
@@ -21,6 +23,7 @@ beforeEach(() => {
   api.getPlayerCertificationsApi.mockResolvedValue([owned]);
   api.registerPlayerCertificationApi.mockResolvedValue({ certificationId: 2 });
   api.updatePlayerCertificationApi.mockResolvedValue({ certificationId: 1 });
+  catalogApi.getOwnedCategoriesApi.mockResolvedValue([systems.find((item) => item.code === "CLOUD")]);
   personal.listPersonalCategoriesApi.mockResolvedValue([...systems, folder]);
   personal.createPersonalCategoryApi.mockResolvedValue(folder);
   personal.renamePersonalCategoryApi.mockResolvedValue(folder);
@@ -28,16 +31,28 @@ beforeEach(() => {
   personal.assignPersonalCategoryApi.mockResolvedValue({ itemId: 1, personalCategoryId: 123 });
 });
 
-it("기본 11개와 빈 내 분류를 카탈로그 건수와 독립적으로 보여준다", async () => {
+it("보유한 기본 분류만 표시하고 빈 내 분류를 유지한다", async () => {
   api.getCertificationCatalogApi.mockResolvedValue([]);
   api.getPlayerCertificationsApi.mockResolvedValue([]);
+  catalogApi.getOwnedCategoriesApi.mockResolvedValue([]);
   render(<CertificationShell />);
   await screen.findByRole("button", { name: /Cloud notes/ });
   expect(screen.getByText("기본 분류")).toBeInTheDocument();
   expect(screen.getAllByText("내 분류").length).toBeGreaterThan(0);
-  expect(document.querySelectorAll('[data-stage-key="player-certification-categories"] .lag-role-node')).toHaveLength(12);
+  expect(document.querySelectorAll('[data-stage-key="player-certification-categories"] .lag-role-node')).toHaveLength(2);
+  expect(screen.getByRole("button", { name: /전체 자격증 보기/ })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Cloud notes/ }), { detail: 0 });
   expect(screen.getByText("해당 분류의 자격증이 없습니다.")).toBeInTheDocument();
+});
+
+it("보유 공식 분류는 기존 보유 응답의 OTHER 대신 카탈로그 상세 코드로 연결한다", async () => {
+  catalogApi.getOwnedCategoriesApi.mockResolvedValue([{ id: null, code: "HRDK:M1:S1", name: "Craft / Material", source: "OFFICIAL", kind: "CERTIFICATION" }]);
+  api.getPlayerCertificationsApi.mockResolvedValue([{ ...owned, category: "OTHER" }]);
+  catalogApi.getCatalogItemApi.mockResolvedValue({ majorCode: "M1", minorCode: "S1" });
+  render(<CertificationShell />);
+  fireEvent.click(await screen.findByRole("button", { name: "Craft / Material" }), { detail: 0 });
+  expect(await screen.findByRole("button", { name: /AWS/ })).toBeInTheDocument();
+  expect(catalogApi.getCatalogItemApi).toHaveBeenCalledWith("CERTIFICATION", 1);
 });
 
 it("상위 생성은 내 분류, 분류 더블클릭은 항목 등록으로 진입한다", async () => {
