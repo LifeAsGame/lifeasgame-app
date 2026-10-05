@@ -4,13 +4,14 @@ import { beforeEach, expect, it, vi } from "vitest";
 import type { PersonDetail, RoleRelationDetail } from "@/shared/api/types";
 import RelationPanels from "./RelationPanels";
 
-const api = vi.hoisted(() => ({ listPersonsApi: vi.fn(), listRoleRelationsApi: vi.fn(), resolveRelationPersonStatus: vi.fn(), getRoleRelationApi: vi.fn(), createRoleRelationApi: vi.fn(), updateRoleRelationApi: vi.fn(), archiveRoleRelationApi: vi.fn(), archivePersonApi: vi.fn() }));
+const api = vi.hoisted(() => ({ listPersonsApi: vi.fn(), listRoleRelationsApi: vi.fn(), resolveRelationPersonStatus: vi.fn(), getRoleRelationApi: vi.fn(), createRoleRelationApi: vi.fn(), updateRoleRelationApi: vi.fn(), archiveRoleRelationApi: vi.fn(), archivePersonApi: vi.fn(), getPersonApi: vi.fn(), updatePersonApi: vi.fn() }));
 vi.mock("./api", () => api);
 const person = { id: 7, displayName: "Alex", status: "ACTIVE" } as PersonDetail;
 const relation = { id: 9, personId: 7, personDisplayName: "Alex", personStatus: "ACTIVE", relationType: "FRIEND", roleNotes: null, status: "ACTIVE" } as RoleRelationDetail;
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 beforeEach(() => {
   vi.resetAllMocks();
+  api.getPersonApi.mockResolvedValue(person);
   api.listPersonsApi.mockResolvedValue([person]); api.listRoleRelationsApi.mockResolvedValue([relation]);
   api.resolveRelationPersonStatus.mockImplementation((rows: RoleRelationDetail[]) => Promise.resolve(rows));
   api.getRoleRelationApi.mockResolvedValue(relation); api.createRoleRelationApi.mockResolvedValue(relation); api.updateRoleRelationApi.mockResolvedValue(relation); api.archiveRoleRelationApi.mockResolvedValue(undefined);
@@ -54,14 +55,14 @@ it("보관 상태·미확인을 표시하며 취소와 늦은 이전 역할 목�
   expect(screen.getByRole("button", { name: /인물 상태 미확인/ })).toBeInTheDocument();
   await act(async () => first.resolve([{ ...relation, personDisplayName: "Old role" }]));
   expect(screen.queryByText("Old role")).not.toBeInTheDocument();
-  api.getRoleRelationApi.mockResolvedValue({ ...relation, personStatus: "ARCHIVED" });
+  api.getRoleRelationApi.mockResolvedValue({ ...relation, personStatus: "ACTIVE" });
   fireEvent.keyDown(screen.getByRole("button", { name: /Alex.*친구|Alex.*보관된 인물/ }), { key: "F10", shiftKey: true }); fireEvent.click(screen.getByRole("button", { name: "수정" }));
   await screen.findByLabelText("관계 유형");
   expect(screen.queryByLabelText("기존 인물")).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("역할 메모"), { target: { value: "보관 인물 관계 메모" } });
   api.updateRoleRelationApi.mockReturnValueOnce(saving.promise);
   fireEvent.click(screen.getByRole("button", { name: "관계 저장" }));
-  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  fireEvent.click(screen.getByRole("button", { name: "관계 상세로" }));
   view.rerender(<RelationPanels key={3} {...props} roleId={3} roleName="세 번째 역할" />);
   await screen.findByRole("button", { name: /보관된 인물/ });
   await act(async () => saving.resolve(relation));

@@ -99,3 +99,21 @@ it("비공개 모임의 본인 가입 신청은 상세 조회 없이 취소할 �
   expect(api.groupInfo).not.toHaveBeenCalled();
   expect(api.groupPreview).not.toHaveBeenCalled();
 });
+
+it("reuses member-only detail for a role bookmark without falling back to public preview", async () => {
+  const denied = vi.fn();
+  api.groupMe.mockResolvedValue({ myRole: null, pendingJoin: false, pendingInvitation: false, actions: ["request-join"] });
+  render(<GroupShell kind="guilds" playerId={6} linkedGroup={{ id: 3, onAccessLost: denied }} onBack={vi.fn()} />);
+  await waitFor(() => expect(denied).toHaveBeenCalledTimes(1));
+  expect(api.groupMine).not.toHaveBeenCalled(); expect(api.groupInfo).not.toHaveBeenCalled(); expect(api.groupPreview).not.toHaveBeenCalled();
+  expect(screen.queryByText("주말 산책")).not.toBeInTheDocument();
+});
+it("invalidates a role bookmark when an existing member read loses access", async () => {
+  const denied = vi.fn();
+  api.groupMembers.mockRejectedValue(new ApiError(404, "GUILD-404", "no access"));
+  render(<GroupShell kind="guilds" playerId={6} linkedGroup={{ id: 3, onAccessLost: denied }} onBack={vi.fn()} />);
+  await screen.findByText("주말 산책");
+  fireEvent.click(screen.getByRole("button", { name: "멤버" }));
+  await waitFor(() => expect(denied).toHaveBeenCalledTimes(1));
+  expect(document.querySelector('[data-stage-key="social-list"]')).not.toBeInTheDocument();
+});

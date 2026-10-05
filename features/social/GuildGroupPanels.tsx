@@ -17,7 +17,7 @@ import type { GuildLink } from "./guildInsideApi";
 const errorText = (error: unknown) => error instanceof ApiError ? error.status === 404 ? "모임을 찾을 수 없거나 접근 권한이 없습니다." : error.status === 403 ? "현재 리더 권한이 없습니다." : error.status === 409 ? "상태가 바뀌었습니다. 다시 조회해주세요." : error.message : error instanceof Error ? error.message : "요청을 완료하지 못했습니다.";
 const kindName = (type: GuildLink["groupType"]) => type === "PARTY" ? "일반 파티" : "역할 소모임";
 
-export default function GuildGroupPanels({ guildId, playerId, creating, onBack }: { guildId: number; playerId: number; creating: boolean; onBack: () => void }) {
+export default function GuildGroupPanels({ guildId, playerId, creating, onBack, onAccessLost }: { onAccessLost?: () => void; guildId: number; playerId: number; creating: boolean; onBack: () => void }) {
   const compact = useMediaQuery("(max-width: 1199px)");
   const { confirm, dialog } = useSaoConfirm();
   const [tab, setTab] = useState<"active" | "pending">("active"), [page, setPage] = useState(0), [revision, setRevision] = useState(0);
@@ -31,9 +31,9 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack }
   const load = useCallback(async () => {
     const seq = ++listSeq.current; setLoading(true); setListError(null);
     try { const result = tab === "active" ? await guildLinks(guildId, page) : await guildPendingLinks(guildId, page); if (seq === listSeq.current) { setList(result.contents); setTotalPages(result.totalPages); } }
-    catch (caught) { if (seq === listSeq.current) { setList([]); setListError(errorText(caught)); } }
+    catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); if (seq === listSeq.current) { setList([]); setListError(errorText(caught)); } }
     finally { if (seq === listSeq.current) setLoading(false); }
-  }, [guildId, tab, page]);
+  }, [guildId, tab, page, onAccessLost]);
   useEffect(() => { const listCounter = listSeq, detailCounter = detailSeq, ownedCounter = ownedSeq; void load(); return () => { listCounter.current++; detailCounter.current++; ownedCounter.current++; }; }, [load, revision]);
   useEffect(() => { setFormOpen(creating); setSelected(null); }, [creating]);
   const authority = async (item: GuildLink) => {
@@ -51,7 +51,7 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack }
       if (item.status === "ACTIVE" && item.entryAction === "OPEN_DETAIL") nextSource = item.groupType === "PARTY" ? await groupInfo("parties", item.groupId).then((result) => ({ name: result.name, description: result.descriptionMd })) : await rolePartyDetail(item.groupId);
       if (item.status === "ACTIVE" && item.entryAction === "OPEN_PUBLIC_PREVIEW" && item.groupType === "PARTY") nextSource = await groupPreview("parties", item.groupId);
       if (seq === detailSeq.current) { setGuildLeader(rights.guild); setGroupLeader(rights.group); setSource(nextSource); }
-    } catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); }
+    } catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); if (seq === detailSeq.current) setError(errorText(caught)); }
     finally { if (seq === detailSeq.current) setDetailLoading(false); }
   };
   const close = () => { detailSeq.current++; setSelected(null); setSource(null); setError(null); };
@@ -60,8 +60,8 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack }
     try {
       if (sourceType === "PARTY") { const result = await groupMine("parties", ownedPage); if (seq === ownedSeq.current) { setOwnedPages(result.totalPages); setOwned(result.contents.filter((item) => item.myRole === "LEADER" && item.status === "ACTIVE").map((item) => ({ id: item.id, name: item.name }))); } }
       else { const result = await myRoleParties(ownedPage); if (seq === ownedSeq.current) { setOwnedPages(result.totalPages); setOwned(result.contents.filter((item) => item.membershipStatus === "ACTIVE" && item.group.status === "ACTIVE" && item.group.leaderPlayerId === playerId).map((item) => ({ id: item.group.id, name: item.group.name }))); } }
-    } catch (caught) { if (seq === ownedSeq.current) setError(errorText(caught)); }
-  }, [sourceType, ownedPage, playerId]);
+    } catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); if (seq === ownedSeq.current) setError(errorText(caught)); }
+  }, [sourceType, ownedPage, playerId, onAccessLost]);
   useEffect(() => { const counter = ownedSeq; if (formOpen) void ownedGroups(); return () => { counter.current++; }; }, [formOpen, ownedGroups]);
   const propose = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault(); if (lock.current) return;
@@ -79,7 +79,7 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack }
       const link = await proposeGuildLink(guildId, newParty ? "PARTY" : sourceType, id, displayName);
       setCreatedParty(null); setFormOpen(false); listSeq.current++; setPage(0);
       setTab(link.status === "PENDING" ? "pending" : "active"); setRevision((value) => value + 1);
-    } catch (caught) { setError(errorText(caught)); }
+    } catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); setError(errorText(caught)); }
     finally { lock.current = false; setBusy(false); }
   };
   const act = async (item: GuildLink, action: "approve" | "reject" | "cancel" | "unlink", displayName?: string) => {
@@ -96,7 +96,7 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack }
       const result = action === "unlink" ? await unlinkGuildGroup(guildId, item.id) : await decideGuildLink(guildId, item.id, action, displayName);
       close(); listSeq.current++; setPage(0);
       setTab(action === "approve" && result?.status === "ACTIVE" ? "active" : "pending"); setRevision((value) => value + 1);
-    } catch (caught) {
+    } catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.();
       if (seq === detailSeq.current) {
         setError(errorText(caught)); setGuildLeader(false); setGroupLeader(false);
         if (caught instanceof ApiError && caught.status === 409) {

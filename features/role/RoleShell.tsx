@@ -9,6 +9,7 @@ import { requestStageFocus } from "@/shared/hooks/useStageCamera";
 import PanelStage from "@/shared/ui/PanelStage";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import RoleEventPanels from "./RoleEventPanels";
+import RoleGroupLinks from "./RoleGroupLinks";
 import RolePartyPanels from "./RolePartyPanels";
 import PersonPanels from "./PersonPanels";
 import RelationPanels from "./RelationPanels";
@@ -17,12 +18,13 @@ import RoleListPanel from "./RoleListPanel";
 import { SwipeButton } from "./RecordRow";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
 
-type RoleSurface = "overview" | "relations" | "events" | "parties";
+type RoleSurface = "overview" | "relations" | "events" | "parties" | "groups";
 
 const ROLE_SURFACES: Array<{ id: RoleSurface; label: string; slotLabel: string }> = [
   { id: "overview", label: "개요", slotLabel: "OV" },
   { id: "relations", label: "관계", slotLabel: "RE" },
   { id: "events", label: "일정", slotLabel: "EV" },
+  { id: "groups", label: "연결된 모임", slotLabel: "GR" },
   { id: "parties", label: "소모임", slotLabel: "RP" },
 ];
 
@@ -88,6 +90,8 @@ export default function RoleShell({
   const [relationCreateRequest, setRelationCreateRequest] = useState(0);
   const [relationReentryRequest, setRelationReentryRequest] = useState(0);
   const [eventCreateRequest, setEventCreateRequest] = useState(0);
+  const [groupCreateRequest, setGroupCreateRequest] = useState(0);
+  const [groupReentryRequest, setGroupReentryRequest] = useState(0);
   const [partyCreateRequest, setPartyCreateRequest] = useState(0);
   const [eventReentryRequest, setEventReentryRequest] = useState(0);
   const [partyReentryRequest, setPartyReentryRequest] = useState(0);
@@ -101,7 +105,7 @@ export default function RoleShell({
   useEffect(() => {
     const counter = roleGeneration;
     counter.current++;
-    setRelationCreateRequest(0); setEventCreateRequest(0); setPartyCreateRequest(0);
+    setRelationCreateRequest(0); setEventCreateRequest(0); setPartyCreateRequest(0); setGroupCreateRequest(0);
     setSurface(null);
     setSurfaceRoleId(null);
     setEditingRoleId(null);
@@ -146,11 +150,10 @@ export default function RoleShell({
                 </header>
                 <section className="lag-role-surface-grid" aria-label="Role surfaces">
                   {ROLE_SURFACES.map((item) => (
-                    <SwipeButton key={item.id} className="lag-role-surface-card" creation={item.id !== "overview"} onDoubleClick={item.id !== "overview" ? () => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setSurface(item.id); setSurfaceRoleId(selectedRole.id); if (item.id === "relations") setRelationCreateRequest((value) => value + 1); if (item.id === "events") setEventCreateRequest((value) => value + 1); if (item.id === "parties") setPartyCreateRequest((value) => value + 1); setEditingRoleId(null); } : undefined} aria-pressed={activeSurface === item.id} data-selected={activeSurface === item.id} onClick={() => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setRelationCreateRequest(0); setEventCreateRequest(0); setPartyCreateRequest(0); if (item.id === "relations") setRelationReentryRequest((value) => value + 1); if (item.id === "events") setEventReentryRequest((value) => value + 1); if (item.id === "parties") setPartyReentryRequest((value) => value + 1); setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }}>
+                    <SwipeButton key={item.id} className="lag-role-surface-card" creation={item.id !== "overview"} onDoubleClick={item.id !== "overview" ? () => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setSurface(item.id); setSurfaceRoleId(selectedRole.id); if (item.id === "relations") setRelationCreateRequest((value) => value + 1); if (item.id === "events") setEventCreateRequest((value) => value + 1); if (item.id === "parties") setPartyCreateRequest((value) => value + 1); if (item.id === "groups") setGroupCreateRequest((value) => value + 1); setEditingRoleId(null); } : undefined} aria-pressed={activeSurface === item.id} data-selected={activeSurface === item.id} onClick={() => { trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setRelationCreateRequest(0); setEventCreateRequest(0); setPartyCreateRequest(0); setGroupCreateRequest(0); if (item.id === "relations") setRelationReentryRequest((value) => value + 1); if (item.id === "events") setEventReentryRequest((value) => value + 1); if (item.id === "parties") setPartyReentryRequest((value) => value + 1); if (item.id === "groups") setGroupReentryRequest((value) => value + 1); setSurface(item.id); setSurfaceRoleId(selectedRole.id); setEditingRoleId(null); }}>
                       <span aria-hidden>{item.slotLabel}</span>
                       <strong>{item.label}</strong>
-                      <small>{item.id === "overview" ? "역할 정보" : item.id === "relations" ? "연결된 기존 인물" : item.id === "events" ? "역할 일정" : "초대형 역할 소모임"}</small>
-                      <span aria-hidden>→</span>
+                      <small>{item.id === "overview" ? "역할 정보" : item.id === "relations" ? "연결된 기존 인물" : item.id === "events" ? "역할 일정" : item.id === "groups" ? "내 역할에 연결한 모임" : "이 역할에서 만든 소모임"}</small>
                     </SwipeButton>
                   ))}
                 </section>
@@ -161,7 +164,7 @@ export default function RoleShell({
       </AnimatePresence>
 
         {selectedRole && (editingRole || activeSurface) ? (
-          activeSurface === "relations" && !editingRole ? <RelationPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} createRequest={relationCreateRequest} reentryRequest={relationReentryRequest} onBack={closeDetail} /> : activeSurface === "events" && !editingRole ? <RoleEventPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} createRequest={eventCreateRequest} reentryRequest={eventReentryRequest} onBack={closeDetail} /> : activeSurface === "parties" && !editingRole ? <RolePartyPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} playerId={playerId} createRequest={partyCreateRequest} reentryRequest={partyReentryRequest} onBack={closeDetail} /> : <PanelStage stageKey="role-detail" parentStageKey="role-summary" index={3} instant>
+          activeSurface === "groups" && !editingRole ? <RoleGroupLinks key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} playerId={playerId} createRequest={groupCreateRequest} reentryRequest={groupReentryRequest} onBack={closeDetail} /> : activeSurface === "relations" && !editingRole ? <RelationPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} createRequest={relationCreateRequest} reentryRequest={relationReentryRequest} onBack={closeDetail} /> : activeSurface === "events" && !editingRole ? <RoleEventPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} createRequest={eventCreateRequest} reentryRequest={eventReentryRequest} onBack={closeDetail} /> : activeSurface === "parties" && !editingRole ? <RolePartyPanels key={selectedRole.id} roleId={selectedRole.id} roleName={selectedRole.name} roleStatus={selectedRole.status} playerId={playerId} createRequest={partyCreateRequest} reentryRequest={partyReentryRequest} onBack={closeDetail} /> : <PanelStage stageKey="role-detail" parentStageKey="role-summary" index={3} instant>
             <PanelFrame title={editingRole ? "역할 수정" : ROLE_SURFACES.find(({ id }) => id === activeSurface)?.label ?? "역할"} depth={0} contentKey={`${selectedRole.id}-${editingRole ? "edit" : activeSurface}`} backButton={<BackButton label={`역할 ${selectedRole.name}로`} onClick={closeDetail} />}>
               {editingRole ? (
                 <RoleForm role={selectedRole} roles={roles} onSaved={async () => { const generation = roleGeneration.current; await onRefresh(); if (generation === roleGeneration.current) closeDetail(); }} onCancel={closeDetail} />

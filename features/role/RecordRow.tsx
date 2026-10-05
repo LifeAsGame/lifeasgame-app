@@ -10,11 +10,11 @@ export function SwipeButton({ onSwipeLeft, onSwipeRight, onClick, onDoubleClick,
   useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   const [offset, setOffset] = useState<number | null>(null);
   const reset = () => { start.current = null; setOffset(null); };
-  return <>{creation && onDoubleClick ? <span id={hintId} className="sr-only">한 번 누르면 목록, 두 번 누르거나 Alt+Enter로 등록.</span> : null}<button {...props} type="button" draggable={false} data-drag-scroll-allow
+  return <>{creation && onDoubleClick ? <span id={hintId} className="sr-only">한 번 누르면 목록, 두 번 누르거나 Alt+Enter로 등록.</span> : null}<button data-selected={props["aria-pressed"] === true || props["aria-pressed"] === "true"} data-scroll-center-target={props["aria-pressed"] === true || props["aria-pressed"] === "true" ? "true" : undefined} {...props} type="button" draggable={false} data-drag-scroll-allow
     aria-keyshortcuts={creation && onDoubleClick ? "Alt+Enter" : undefined}
     aria-describedby={creation && onDoubleClick ? hintId : undefined}
     style={{ ...style, touchAction: "pan-y", transform: `translateX(${offset ?? restingOffset}px)`, transition: offset === null ? "transform var(--lag-motion-normal) ease-out" : "none" }}
-    onKeyDown={(event) => { if (creation && onDoubleClick && event.altKey && event.key === "Enter") { event.preventDefault(); event.currentTarget.focus({ preventScroll: true }); onDoubleClick(); } else onKeyDown?.(event); }}
+    onKeyDown={(event) => { if (creation && onDoubleClick && event.altKey && event.key === "Enter") { event.preventDefault(); if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; } event.currentTarget.focus({ preventScroll: true }); onDoubleClick(); } else onKeyDown?.(event); }}
     onPointerDown={(event) => {
       if (!event.isPrimary || event.button !== 0 || props.disabled) return;
       suppressClick.current = false;
@@ -59,7 +59,7 @@ const ACTION_WIDTH = 144;
 
 export function RecordRow({ title, subtitle, selected, disabled, onSelect, onCreate, onEdit, onArchive, archiveLabel = "삭제" }: {
   title: string; subtitle?: string; selected?: boolean; disabled?: boolean; archiveLabel?: string;
-  onSelect: () => void; onCreate?: () => void; onEdit: () => void; onArchive: () => void;
+  onSelect: () => void; onCreate?: () => void; onEdit?: () => void; onArchive: () => void;
 }) {
   const [actions, setActions] = useState(false);
   const root = useRef<HTMLDivElement>(null), body = useRef<HTMLButtonElement>(null);
@@ -71,12 +71,12 @@ export function RecordRow({ title, subtitle, selected, disabled, onSelect, onCre
     scope?.addEventListener("sao-row-open", closeOther);
     return () => scope?.removeEventListener("sao-row-open", closeOther);
   }, []);
-  return <div ref={root} className="lag-role-record-row" style={{ "--lag-row-action-width": `${ACTION_WIDTH}px` } as React.CSSProperties} data-actions-open={actions} data-scroll-center-target={selected ? "true" : undefined} onKeyDown={(event) => { if (event.key === "Escape" && actions) { event.stopPropagation(); close(); } }}>
+  return <div ref={root} className="lag-role-record-row" style={{ "--lag-row-action-width": `${onEdit ? ACTION_WIDTH : ACTION_WIDTH / 2}px` } as React.CSSProperties} data-actions-open={actions} data-scroll-center-target={selected ? "true" : undefined} onKeyDown={(event) => { if (event.key === "Escape" && actions) { event.stopPropagation(); close(); } }}>
     <div className="lag-row-action-area" role="group" aria-label={`${title} 작업 선택`} hidden={!actions} inert={!actions}>
-      <button type="button" disabled={disabled} onClick={onEdit}><span className="lag-row-action-symbol" aria-hidden>✎</span>수정</button>
+      {onEdit ? <button type="button" disabled={disabled} onClick={onEdit}><span className="lag-row-action-symbol" aria-hidden>✎</span>수정</button> : null}
       <button type="button" disabled={disabled} onClick={onArchive}><span className="lag-row-action-symbol" aria-hidden>×</span>{archiveLabel}</button>
     </div>
-    <SwipeButton ref={body} className="lag-role-node lag-record-body" creation={Boolean(onCreate)} aria-pressed={Boolean(selected)} data-selected={Boolean(selected)} restingOffset={actions ? -ACTION_WIDTH : 0} onClick={() => { announce(); setActions(false); onSelect(); }} onDoubleClick={onCreate} onSwipeLeft={() => { announce(); setActions(true); }} onSwipeRight={close} onKeyDown={(event) => { if (event.key === "F10" && event.shiftKey) { event.preventDefault(); announce(); setActions(true); } }}>
+    <SwipeButton ref={body} className="lag-role-node lag-record-body" creation={Boolean(onCreate)} aria-pressed={Boolean(selected)} data-selected={Boolean(selected)} disabled={disabled} restingOffset={actions ? -(onEdit ? ACTION_WIDTH : ACTION_WIDTH / 2) : 0} onClick={() => { announce(); setActions(false); onSelect(); }} onDoubleClick={onCreate} onSwipeLeft={() => { announce(); setActions(true); }} onSwipeRight={close} onKeyDown={(event) => { if (event.key === "F10" && event.shiftKey) { event.preventDefault(); announce(); setActions(true); } }}>
       <span className="lag-role-node-mark" aria-hidden>{title.charAt(0)}</span>
       <span><strong>{title}</strong>{subtitle ? <small>{subtitle}</small> : null}</span>
     </SwipeButton>

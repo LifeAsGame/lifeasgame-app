@@ -97,3 +97,12 @@ it("reloads the role list on panel reentry", async () => {
   rerender(<RolePartyPanels roleId={3} playerId={4} reentryRequest={1} onBack={() => {}} />);
   await waitFor(() => expect(api.rolePartiesForRole).toHaveBeenCalledTimes(2));
 });
+
+it("opens the existing bookmarked RoleParty detail without the creator list and invalidates unavailable groups", async () => {
+  const denied = vi.fn();
+  api.rolePartyDetail.mockResolvedValue({ ...party, status: "DISBANDED" });
+  render(<RolePartyPanels playerId={4} linkedGroup={{ id: 8, onAccessLost: denied }} onBack={vi.fn()} />);
+  await waitFor(() => expect(denied).toHaveBeenCalledTimes(1));
+  expect(api.myRoleParties).not.toHaveBeenCalled(); expect(api.rolePartiesForRole).not.toHaveBeenCalled();
+  expect(screen.queryByText("함께 공부")).not.toBeInTheDocument();
+});

@@ -18,7 +18,7 @@ type View = "mine" | "invitations";
 type Child = "members" | "edit" | "invite";
 const errorText = (error: unknown) => error instanceof ApiError ? error.status === 409 ? "상태가 변경되었거나 정원·초대 기한을 확인해주세요. 목록을 다시 조회할 수 있습니다." : error.status === 404 ? "소모임을 찾을 수 없거나 접근할 수 없습니다." : error.status === 403 ? "이 작업을 수행할 권한이 없습니다." : error.message : error instanceof Error ? error.message : "요청을 완료하지 못했습니다.";
 
-export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE", playerId, createRequest = 0, reentryRequest = 0, onBack }: { roleId?: number; roleName?: string; roleStatus?: string; playerId: number; createRequest?: number; reentryRequest?: number; onBack: () => void }) {
+export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE", playerId, createRequest = 0, reentryRequest = 0, onBack, linkedGroup }: { linkedGroup?: { id: number; onAccessLost: () => void }; roleId?: number; roleName?: string; roleStatus?: string; playerId: number; createRequest?: number; reentryRequest?: number; onBack: () => void }) {
   const compact = useMediaQuery("(max-width: 1199px)");
   const { confirm, dialog } = useSaoConfirm();
   const [view, setView] = useState<View>("mine"), [page, setPage] = useState(0);
@@ -30,32 +30,37 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
   const [error, setError] = useState<string | null>(null), [pending, setPending] = useState(false), [detailLoading, setDetailLoading] = useState(false);
   const listSeq = useRef(0), detailSeq = useRef(0), inviteSeq = useRef(0), busy = useRef(false);
   const loadList = useCallback(async (nextView = view, nextPage = page) => {
+    if (linkedGroup) return;
     const seq = ++listSeq.current; setLoadingList(true); setListError(null);
     try { const next = nextView === "invitations" ? await myRolePartyInvitations(nextPage) : roleId ? await rolePartiesForRole(roleId, nextPage) : await myRoleParties(nextPage); if (seq === listSeq.current) setList(next); }
     catch (caught) { if (seq === listSeq.current) { setList(null); setListError(errorText(caught)); } }
     finally { if (seq === listSeq.current) setLoadingList(false); }
-  }, [view, page, roleId]);
+  }, [view, page, roleId, linkedGroup]);
   useEffect(() => { const seq = listSeq; void loadList(); return () => { seq.current++; }; }, [loadList, reentryRequest]);
   useEffect(() => { if (createRequest || reentryRequest) { detailSeq.current++; setSelectedId(null); setDetail(null); setChild(null); setCreating(Boolean(createRequest && roleId && roleStatus === "ACTIVE")); } }, [createRequest, reentryRequest, roleId, roleStatus]);
   useEffect(() => () => { detailSeq.current++; }, []);
-  const closeDetail = () => { detailSeq.current++; setSelectedId(null); setDetail(null); setInvitation(null); setChild(null); setError(null); requestStageFocus("role-party-list", "back"); };
+  const closeDetail = () => { if (linkedGroup) { onBack(); return; } detailSeq.current++; setSelectedId(null); setDetail(null); setInvitation(null); setChild(null); setError(null); requestStageFocus("role-party-list", "back"); };
   const select = async (id: number, invite: RolePartyInvitation | null = null): Promise<RolePartyDetail | null> => {
     const seq = ++detailSeq.current; setSelectedId(id); setInvitation(invite); setDetail(null); setChild(null); setError(null); setDetailLoading(!invite);
     if (invite) return null;
-    try { const next = await rolePartyDetail(id); if (seq === detailSeq.current) { setDetail(next); return next; } }
-    catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); }
+    try { const next = await rolePartyDetail(id); if (seq === detailSeq.current) { if (linkedGroup && next.status !== "ACTIVE") { linkedGroup.onAccessLost(); return null; } setDetail(next); return next; } }
+    catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); if (linkedGroup && caught instanceof ApiError && [403, 404].includes(caught.status)) linkedGroup.onAccessLost(); }
     finally { if (seq === detailSeq.current) setDetailLoading(false); }
     return null;
   };
+  useEffect(() => {
+    if (linkedGroup) void select(linkedGroup.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedGroup?.id]);
   const reloadDetail = async (id: number) => { const seq = detailSeq.current, next = await rolePartyDetail(id); if (seq === detailSeq.current) setDetail(next); return next; };
-  const afterCommand = async (id: number, close = false) => { await loadList(); if (close) closeDetail(); else await reloadDetail(id); };
+  const afterCommand = async (id: number, close = false) => { await loadList(); if (close) { if (linkedGroup) linkedGroup.onAccessLost(); else closeDetail(); } else await reloadDetail(id); };
   const command = async (request: () => Promise<unknown>, close = false, ask?: string) => {
     if (selectedId === null || busy.current || ask && !await confirm(ask)) return false;
     const id = selectedId, seq = detailSeq.current; if (seq !== detailSeq.current || busy.current) return false;
     busy.current = true; setPending(true); setError(null);
     try {
       try { await request(); }
-      catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); return false; }
+      catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); if (linkedGroup && caught instanceof ApiError && [403, 404].includes(caught.status)) linkedGroup.onAccessLost(); return false; }
       try { if (seq === detailSeq.current) await afterCommand(id, close); }
       catch { if (seq === detailSeq.current) setError("작업은 완료됐지만 최신 정보를 불러오지 못했습니다. 다시 조회해주세요."); }
       return true;
@@ -70,10 +75,10 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
     if (child !== "edit" && (!roleId || roleStatus !== "ACTIVE")) { setError("활성 역할에서만 소모임을 만들 수 있습니다."); return; }
     busy.current = true; setPending(true); setError(null);
     try { if (child === "edit" && selectedId !== null) { const saved = await updateRoleParty(selectedId, input); setDetail(saved); setChild(null); await loadList(); } else if (roleId && roleStatus === "ACTIVE") { const saved = await createRoleParty(roleId, input); setCreating(false); await loadList(); await select(saved.id); } }
-    catch (caught) { setError(errorText(caught)); }
+    catch (caught) { setError(errorText(caught)); if (linkedGroup && caught instanceof ApiError && [403, 404].includes(caught.status)) linkedGroup.onAccessLost(); }
     finally { busy.current = false; setPending(false); }
   };
-  const loadMembers = async (id: number, nextPage = 0) => { setMembers(null); try { setMembers(await rolePartyMembers(id, nextPage)); } catch (caught) { setError(errorText(caught)); } };
+  const loadMembers = async (id: number, nextPage = 0) => { const seq = detailSeq.current; setMembers(null); try { const result = await rolePartyMembers(id, nextPage); if (seq === detailSeq.current) setMembers(result); } catch (caught) { setError(errorText(caught)); if (linkedGroup && caught instanceof ApiError && [403, 404].includes(caught.status)) linkedGroup.onAccessLost(); } };
   const loadInvites = async (id: number, nextPage = 0) => { const seq = ++inviteSeq.current, detail = detailSeq.current; setSentInvites(null); setInvitesError(null); try { const next = await rolePartyInvitations(id, nextPage); if (seq === inviteSeq.current && detail === detailSeq.current) setSentInvites(next); } catch (caught) { if (seq === inviteSeq.current && detail === detailSeq.current) setInvitesError(errorText(caught)); } };
   const openChild = (next: Child) => { if (selectedId === null) return; setChild(next); setError(null); if (next === "members") { setMemberPage(0); void loadMembers(selectedId); } if (next === "invite" && detail?.status === "ACTIVE" && detail.leaderPlayerId === playerId) { setInvitePage(0); void loadPeers(); void loadInvites(selectedId); } };
   const loadPeers = async () => {
@@ -86,7 +91,7 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
   const leader = detail?.leaderPlayerId === playerId, active = detail?.status === "ACTIVE";
   const form = (record?: RolePartyDetail) => <form className="lag-role-form" onSubmit={(event) => void save(event)}><label>이름<input className="lag-role-control" name="name" required maxLength={120} autoFocus defaultValue={record?.name ?? ""} /></label><label>설명<textarea className="lag-role-control" name="description" maxLength={1000} rows={3} defaultValue={record?.description ?? ""} /></label><label>정원 (리더 포함)<input className="lag-role-control" name="maxMembers" type="number" min="2" max="50" required defaultValue={record?.maxMembers ?? 10} /></label><p>초대 전용 · 생성자는 리더이자 첫 멤버입니다.</p>{error ? <p role="alert">{error}</p> : null}<button className="lag-role-action" type="submit" disabled={pending}>{pending ? "저장 중…" : record ? "변경 저장" : "소모임 생성"}</button></form>;
   return <div className="lag-panel-rail lag-role-party-shell">{dialog}
-    <PanelStage stageKey="role-party-list" parentStageKey="role-summary" instant inactive={compact && (selectedId !== null || creating)}><PanelFrame title={roleName ? `${roleName} · 소모임` : "내 역할 소모임"} backButton={<BackButton label={creating ? "소모임 목록으로" : roleName ? `역할 ${roleName}로` : "모임 분류로"} onClick={creating ? () => { setCreating(false); setError(null); } : onBack} />}><CreateSlot creating={creating} showCancel={false} pending={pending} onClose={() => setCreating(false)} list={<div className="lag-role-detail">
+    {!linkedGroup ? <PanelStage stageKey="role-party-list" parentStageKey="role-summary" instant inactive={compact && (selectedId !== null || creating)}><PanelFrame title={roleName ? `${roleName} · 소모임` : "내 역할 소모임"} backButton={<BackButton label={creating ? "소모임 목록으로" : roleName ? `역할 ${roleName}로` : "모임 분류로"} onClick={creating ? () => { setCreating(false); setError(null); } : onBack} />}><CreateSlot creating={creating} showCancel={false} pending={pending} onClose={() => setCreating(false)} list={<div className="lag-role-detail">
       {!roleId ? <div className="lag-group-tabs" role="group" aria-label="역할 소모임 목록 종류"><button type="button" className="lag-role-button" aria-pressed={view === "mine"} onClick={() => { setView("mine"); setPage(0); closeDetail(); }}>내 소모임</button><button type="button" className="lag-role-button" aria-pressed={view === "invitations"} onClick={() => { setView("invitations"); setPage(0); closeDetail(); }}>받은 초대</button></div> : null}
       {loadingList ? <p role="status">소모임을 불러오는 중…</p> : null}{listError ? <p role="alert">{listError} <button type="button" onClick={() => void loadList()}>다시 조회</button></p> : null}{!loadingList && !listError && !list?.contents.length ? <p>{view === "invitations" ? "받은 초대가 없습니다." : "역할 소모임이 없습니다."}</p> : null}
       {list?.contents.map((item) => {
@@ -98,8 +103,8 @@ export default function RolePartyPanels({ roleId, roleName, roleStatus = "ACTIVE
         return group.status === "ACTIVE" && group.leaderPlayerId === playerId ? <RecordRow key={group.id} title={group.name} subtitle={subtitle} selected={selectedId === group.id} disabled={pending} onSelect={() => void select(group.id)} onEdit={() => void select(group.id).then((next) => { if (next?.status === "ACTIVE" && next.leaderPlayerId === playerId) setChild("edit"); })} onArchive={() => void disbandFromRow(group.id)} archiveLabel="해산" /> : <SwipeButton key={group.id} className="lag-role-node" aria-pressed={selectedId === group.id} onClick={() => void select(group.id)}><span className="lag-role-node-mark" aria-hidden>소</span><span><strong>{group.name}</strong><small>{subtitle}</small></span><span aria-hidden>→</span></SwipeButton>;
       })}
       <div className="lag-connection-pagination"><button type="button" className="lag-role-button" disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button><span>{list ? `${page + 1} / ${Math.max(1, list.totalPages)}` : ""}</span><button type="button" className="lag-role-button" disabled={!list || page + 1 >= list.totalPages} onClick={() => setPage(page + 1)}>다음</button></div>
-    </div>}>{form()}</CreateSlot></PanelFrame></PanelStage>
-    {selectedId !== null ? <PanelStage stageKey="role-party-detail" parentStageKey="role-party-list" instant inactive={compact && child !== null}><PanelFrame title="역할 소모임 상세" backButton={<BackButton label="소모임 목록으로" onClick={closeDetail} />}><article className="lag-role-detail">
+    </div>}>{form()}</CreateSlot></PanelFrame></PanelStage> : null}
+    {selectedId !== null ? <PanelStage stageKey="role-party-detail" parentStageKey={linkedGroup ? "role-group-links" : "role-party-list"} instant inactive={compact && child !== null}><PanelFrame title="역할 소모임 상세" backButton={<BackButton label="소모임 목록으로" onClick={closeDetail} />}><article className="lag-role-detail">
       {detailLoading ? <p role="status">상세를 불러오는 중…</p> : null}{error && !child ? <p role="alert">{error} <button type="button" onClick={() => invitation ? void loadList() : void select(selectedId)}>다시 조회</button></p> : null}
       {invitation ? <><h4>{invitation.groupName}</h4><p>역할 소모임 초대 · {new Date(invitation.expiresAt).toLocaleString("ko-KR")}까지</p><div className="lag-role-actions"><button type="button" className="lag-role-action" disabled={pending} onClick={() => void command(() => answerRolePartyInvitation(selectedId, invitation.invitationId, "accept"), true).then((ok) => { if (ok) { setView("mine"); setPage(0); } })}>수락</button><button type="button" className="lag-role-button" disabled={pending} onClick={() => void command(() => answerRolePartyInvitation(selectedId, invitation.invitationId, "decline"), true)}>거절</button></div></> : null}
       {detail ? <><h4>{detail.name}</h4><p>{detail.description || "설명 없음"}</p><dl><div className="lag-role-data-row"><dt>상태</dt><dd>{active ? "활동 중" : "해산"}</dd></div><div className="lag-role-data-row"><dt>가입</dt><dd>초대 전용</dd></div><div className="lag-role-data-row"><dt>인원</dt><dd>{detail.memberCount}/{detail.maxMembers}명</dd></div><div className="lag-role-data-row"><dt>내 역할</dt><dd>{leader ? "리더" : "멤버"}</dd></div></dl><div className="lag-role-actions"><button type="button" className="lag-role-button" onClick={() => openChild("members")}>멤버</button>{active && leader ? <button type="button" className="lag-role-button" onClick={() => openChild("invite")}>초대</button> : null}{active && !leader ? <button type="button" className="lag-role-button" disabled={pending} onClick={() => void command(() => leaveRoleParty(selectedId), true, "이 소모임에서 탈퇴할까요?")}>탈퇴</button> : null}</div></> : null}

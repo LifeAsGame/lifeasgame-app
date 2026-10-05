@@ -74,7 +74,7 @@ it("does not claim profile success from an old server and ignores a late detail 
   expect(screen.getByLabelText("인물 이름")).toHaveValue("Alex");
   const gate = deferred<PersonDetail>();
   api.getPersonApi.mockReturnValueOnce(gate.promise);
-  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  fireEvent.click(screen.getByRole("button", { name: "인물 상세로" }));
   fireEvent.click(screen.getByRole("button", { name: /Alex.*인물/ }));
   view.rerender(<PersonPanels {...base} reentryRequest={1} />);
   await act(async () => gate.resolve({ ...alex, notes: "늦은 상세" }));
