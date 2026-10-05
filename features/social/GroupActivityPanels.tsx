@@ -13,32 +13,32 @@ import PanelStage from "@/shared/ui/PanelStage";
 import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { activities, activity, activityEditors, activityParticipants, activityRsvp, cancelActivityRsvp, createActivity, finishActivity, grantActivityEditor, revokeActivityEditor, updateActivity } from "./groupActivitiesApi";
-import type { ActivityEditor, ActivityFields, ActivityGroup, ActivityParticipant, GroupActivity } from "./groupActivitiesApi";
+import type { ActivityEditor, ActivityFields, ActivityGroup, ActivityPage, ActivityParticipant, GroupActivity } from "./groupActivitiesApi";
 
 const errorText = (error: unknown) => error instanceof ApiError ? error.status === 409 ? "다른 변경이 먼저 저장됐습니다. 초안은 유지했습니다. 최신 내용을 확인하고 다시 저장해주세요." : error.status === 403 ? "현재 활동 편집 권한이 없습니다." : error.status === 404 ? "활동 또는 모임 접근 권한이 없습니다." : error.message : error instanceof Error ? error.message : "요청을 완료하지 못했습니다.";
 const localDate = (value?: string) => value ? new Date(value).toLocaleString("sv-SE").replace(" ", "T").slice(0, 16) : "";
 const statusName = { PLANNED: "예정", COMPLETED: "완료", CANCELED: "취소" };
 const label = (type: ActivityGroup) => type === "PARTY" ? "파티" : "역할 소모임";
 
-export default function GroupActivityPanels({ groupType, groupId, leader = false, parentStageKey, selectedActivityId, detailOnly = false, creating = false, onBack, onChanged, onAccessLost }: {
-  groupType: ActivityGroup; groupId: number; leader?: boolean; parentStageKey: string; selectedActivityId?: number; detailOnly?: boolean; creating?: boolean;
+export default function GroupActivityPanels({ groupType, groupId, parentStageKey, selectedActivityId, detailOnly = false, creating = false, onBack, onChanged, onAccessLost }: {
+  groupType: ActivityGroup; groupId: number; parentStageKey: string; selectedActivityId?: number; detailOnly?: boolean; creating?: boolean;
   onBack: () => void; onChanged?: () => void; onAccessLost?: () => void;
 }) {
   const compact = useMediaQuery("(max-width: 1199px)");
   const { confirm, dialog } = useSaoConfirm();
-  const [list, setList] = useState<ConnectionPage<GroupActivity> | null>(null), [page, setPage] = useState(0), [listError, setListError] = useState<string | null>(null), [listLoading, setListLoading] = useState(false);
-  const [createOpen, setCreateOpen] = useState(creating), [createKey, setCreateKey] = useState<string | null>(null);
+  const [list, setList] = useState<ActivityPage | null>(null), [page, setPage] = useState(0), [listError, setListError] = useState<string | null>(null), [listLoading, setListLoading] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false), [createKey, setCreateKey] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null), [detail, setDetail] = useState<GroupActivity | null>(null), [detailLoading, setDetailLoading] = useState(false), [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null), [pending, setPending] = useState(false);
   const [participants, setParticipants] = useState<ConnectionPage<ActivityParticipant> | null>(null), [participantPage, setParticipantPage] = useState(0);
   const [editorsOpen, setEditorsOpen] = useState(false), [editors, setEditors] = useState<ConnectionPage<ActivityEditor> | null>(null), [members, setMembers] = useState<{ playerId: number }[]>([]), [memberPage, setMemberPage] = useState(0), [memberPages, setMemberPages] = useState(0);
-  const listSeq = useRef(0), detailSeq = useRef(0), childSeq = useRef(0), lock = useRef(false), selectedRef = useRef<number | null>(null);
+  const listSeq = useRef(0), detailSeq = useRef(0), childSeq = useRef(0), lock = useRef(false), selectedRef = useRef<number | null>(null), createRequested = useRef(creating);
   selectedRef.current = selectedId;
   const accessLost = useRef(onAccessLost); accessLost.current = onAccessLost;
   const loadList = useCallback(async () => {
     if (detailOnly) return;
     const seq = ++listSeq.current; setListLoading(true); setListError(null); setList(null);
-    try { const next = await activities(groupType, groupId, page); if (seq === listSeq.current) setList(next); }
+    try { const next = await activities(groupType, groupId, page); if (seq === listSeq.current) { setList(next); if (createRequested.current) { createRequested.current = false; setCreateOpen(next.capabilities.canCreate); } else if (!next.capabilities.canCreate) setCreateOpen(false); if (!next.capabilities.canManageEditors) setEditorsOpen(false); } }
     catch (caught) { if (seq === listSeq.current) { setListError(errorText(caught)); if (caught instanceof ApiError && [403, 404].includes(caught.status)) accessLost.current?.(); } }
     finally { if (seq === listSeq.current) setListLoading(false); }
   }, [detailOnly, groupType, groupId, page]);
@@ -101,7 +101,7 @@ export default function GroupActivityPanels({ groupType, groupId, leader = false
       {listLoading ? <p role="status">활동을 불러오는 중…</p> : null}{listError ? <p role="alert">{listError} <button type="button" onClick={() => void loadList()}>다시 조회</button></p> : null}{!listLoading && !listError && !list?.contents.length ? <p>활동이 없습니다.</p> : null}
       {list?.contents.map((item) => item.capabilities.canEdit && item.status === "PLANNED" ? <RecordRow key={item.id} title={item.title} subtitle={`${new Date(item.startsAt).toLocaleString("ko-KR")} · ${statusName[item.status]}`} selected={selectedId === item.id} disabled={pending} onSelect={() => void open(item.id)} onEdit={() => void open(item.id).then((next) => { if (next?.capabilities.canEdit) setEditing(true); })} onArchive={() => void command("cancel", item)} archiveLabel="활동 취소" /> : <SwipeButton key={item.id} className="lag-role-node" aria-pressed={selectedId === item.id} onClick={() => void open(item.id)}><span className="lag-role-node-mark" aria-hidden>활</span><span><strong>{item.title}</strong><small>{new Date(item.startsAt).toLocaleString("ko-KR")} · {statusName[item.status]}</small></span></SwipeButton>)}
       <div className="lag-connection-pagination"><button type="button" disabled={page === 0} onClick={() => { close(); setPage(page - 1); }}>이전</button><span>{page + 1} / {Math.max(1, list?.totalPages ?? 0)}</span><button type="button" disabled={!list || page + 1 >= list.totalPages} onClick={() => { close(); setPage(page + 1); }}>다음</button></div>
-      {leader ? <button type="button" className="lag-role-button" onClick={() => { setEditorsOpen(true); void loadEditors(); }}>편집자</button> : null}
+      {list?.capabilities.canManageEditors ? <button type="button" className="lag-role-button" onClick={() => { setEditorsOpen(true); void loadEditors(); }}>편집자</button> : null}
     </div>}>{form()}</CreateSlot></PanelFrame></PanelStage> : null}
     {selectedId !== null ? <PanelStage stageKey="group-activity-detail" parentStageKey={detailOnly ? parentStageKey : "group-activities-list"} instant inactive={compact && editorsOpen}><PanelFrame title={editing ? "활동 수정" : "활동 상세"} backButton={<BackButton label={editing ? "활동 상세로" : "활동 목록으로"} onClick={editing ? () => { setEditing(false); setError(null); } : detailOnly ? onBack : close} />}>
       {detailLoading ? <p role="status">활동을 불러오는 중…</p> : null}{error && !detail ? <p role="alert">{error} <button type="button" onClick={() => void open(selectedId)}>다시 조회</button></p> : null}
