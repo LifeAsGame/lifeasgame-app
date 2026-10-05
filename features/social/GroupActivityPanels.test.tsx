@@ -61,3 +61,12 @@ it("does not restore an old group's activities after switching groups", async ()
   finishOld(page);
   await waitFor(() => expect(screen.queryByRole("button", { name: /산책/ })).not.toBeInTheDocument());
 });
+
+it("refreshes the owner panel when editor management permission is lost", async () => {
+  api.activityEditors.mockRejectedValue(new ApiError(403, "FORBIDDEN", "leader changed"));
+  groups.groupMembers.mockResolvedValue({ contents: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+  const onAccessLost = vi.fn();
+  render(<GroupActivityPanels groupType="PARTY" groupId={7} leader parentStageKey="social-detail" onBack={() => {}} onAccessLost={onAccessLost} />);
+  fireEvent.click(await screen.findByRole("button", { name: "편집자" }));
+  await waitFor(() => expect(onAccessLost).toHaveBeenCalledTimes(1));
+});
