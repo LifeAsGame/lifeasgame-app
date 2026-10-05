@@ -451,7 +451,7 @@ export default function JournalShell({ createRequest = 0, initialLifeLogId, role
 
   return (
     <div ref={shellRef} className="lag-panel-rail lag-journal-shell relative" data-testid="journal-shell">
-      <PanelStage stageKey="lifelog-journal" panelRole="list" inactive={compact && detailVisible && !quickRecordOpen && journal.selectedLifeLogId !== null}>
+      <PanelStage stageKey="lifelog-journal" parentStageKey="lifelog-stage-0" panelRole="list" inactive={compact && detailVisible && !quickRecordOpen && journal.selectedLifeLogId !== null}>
         <PanelFrame title="일상 기록" depth={1} centerSelected={!quickRecordOpen} centerTargetKey={quickRecordOpen ? null : journal.selectedLifeLogId} centerBehavior="spring" resetScrollKey={`${journal.params.page}:${journal.params.primaryRoleId ?? ""}:${journal.params.subtype ?? ""}`} backButton={creation.creating ? <BackButton label="목록으로" onClick={closeQuickRecord} /> : onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
             <CreateSlot showCancel={false} creating={quickRecordOpen} pending={journal.quickRecord.pending} onClose={closeQuickRecord} list={<div className="lag-journal-surface">
             <details className="lag-journal-filter-disclosure">

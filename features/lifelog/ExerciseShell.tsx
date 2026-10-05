@@ -58,7 +58,7 @@ export default function ExerciseShell({ createRequest = 0, initialRecord }: { cr
   const backToList = () => { exercises.clearSelection(); setDetailVisible(false); setEditing(false); };
   const active = detailVisible && !creation.creating && exercises.selectedId !== null;
   return <div className="lag-panel-rail lag-lifelog-shell" data-testid="exercise-shell">{dialog}
-    <PanelStage stageKey="lifelog-exercise-categories" panelRole="list" inactive={compact && category !== null}>
+    <PanelStage stageKey="lifelog-exercise-categories" parentStageKey="lifelog-stage-0" panelRole="list" inactive={compact && category !== null}>
       <PanelFrame title="운동 분류" depth={1} centerSelected centerTargetKey={category} centerBehavior="spring"><div className="lag-role-node-list lag-lifelog-categories">{EXERCISE_CATEGORIES.map((kind) => <SwipeButton key={kind} creation className="lag-role-node" aria-pressed={category === kind} data-scroll-center-target={category === kind ? "true" : undefined} onClick={() => choose(kind)} onDoubleClick={() => choose(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong></SwipeButton>)}</div></PanelFrame>
     </PanelStage>
     {category !== null ? <PanelStage stageKey="lifelog-exercise-list" parentStageKey="lifelog-exercise-categories" panelRole="list" inactive={compact && active}>

@@ -247,7 +247,7 @@ export default function RightPanels({
                 <PanelStage
                 key={`${selectedMain}-stage-${panelIndex}`}
                   stageKey={`${selectedMain}-stage-${panelIndex}`}
-                  parentStageKey={panelIndex ? `${selectedMain}-stage-${panelIndex - 1}` : undefined}
+                  parentStageKey={panelIndex ? `${selectedMain}-stage-${panelIndex - 1}` : "main"}
                   inactive={inactive}
                   autoFocus={panelIndex > 0}
                   index={panelIndex}

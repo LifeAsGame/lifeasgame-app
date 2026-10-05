@@ -91,7 +91,7 @@ export default function RelationPanels({ roleId, roleName, createRequest, reentr
     <div className="lag-role-actions"><button type="submit" className="lag-role-action" disabled={pending || (!relation && !list.data.persons.some((person) => person.status === "ACTIVE"))}>{pending ? "저장 중…" : "관계 저장"}</button>{relation ? <button type="button" className="lag-role-button" onClick={cancelEdit}>취소</button> : null}</div>
   </form>;
   return <div ref={root} className="lag-panel-rail lag-role-relations">{dialog}
-    <PanelStage stageKey="role-detail" instant inactive={compact && (mode === "detail" || mode === "edit")}>
+    <PanelStage stageKey="role-detail" parentStageKey="role-summary" instant inactive={compact && (mode === "detail" || mode === "edit")}>
       <PanelFrame title={mode === "create" ? "기존 인물 연결" : `${roleName} · 관계`} backButton={<BackButton label={mode === "create" ? "관계 목록으로" : `역할 ${roleName}로`} onClick={mode === "create" ? close : onBack} />}>
         <CreateSlot showCancel={false} creating={mode === "create"} pending={pending} onClose={close} list={<div className="lag-role-detail">
           {list.loading ? <p role="status">관계를 불러오는 중…</p> : null}

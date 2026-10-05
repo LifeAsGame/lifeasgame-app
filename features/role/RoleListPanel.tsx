@@ -32,7 +32,7 @@ export default function RoleListPanel({ roles, templateType, selectedRoleId, loa
     catch (caught) { if (id === generation.current) setActionError(caught instanceof Error ? caught.message : "역할을 삭제하지 못했습니다."); }
     finally { lock.current = false; setPending(false); }
   };
-  return <PanelStage stageKey="role-list" index={1} panelRole="list" inactive={inactive}>{dialog}
+  return <PanelStage stageKey="role-list" parentStageKey="main" index={1} panelRole="list" inactive={inactive}>{dialog}
     <PanelFrame title={creating ? "역할 등록" : "내 역할 목록"} depth={1} backButton={<BackButton label={creating ? "역할 목록으로" : "인물 · 역할로"} onClick={creating ? close : onBack} />}>
       <CreateSlot creating={creating} pending={pending} onClose={close} showCancel={false} list={<div className="lag-role-detail">
         {loading ? <p role="status">역할을 불러오는 중…</p> : null}

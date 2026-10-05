@@ -87,7 +87,7 @@ export default function MediaShell({ createRequest = 0, initialRecord }: { creat
   const search = (nextStatus = status, nextTitle = titleLike) => media.search(category || undefined, nextStatus || undefined, nextTitle);
   const selected = detailVisible && !creation.creating && media.selectedId !== null && media.detail?.id === media.selectedId ? media.detail : null;
   return <div className="lag-panel-rail lag-lifelog-shell" data-testid="media-shell">{dialog}
-    <PanelStage stageKey="lifelog-media-categories" panelRole="list" inactive={compact && category !== null}>
+    <PanelStage stageKey="lifelog-media-categories" parentStageKey="lifelog-stage-0" panelRole="list" inactive={compact && category !== null}>
       <PanelFrame title="감상 분류" depth={1} centerSelected centerTargetKey={category} centerBehavior="spring"><div className="lag-role-node-list lag-lifelog-categories">{MEDIA_CATEGORIES.map((kind) => <SwipeButton key={kind} creation className="lag-role-node" aria-pressed={category === kind} data-scroll-center-target={category === kind ? "true" : undefined} onClick={() => choose(kind)} onDoubleClick={() => choose(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong></SwipeButton>)}</div></PanelFrame>
     </PanelStage>
     {category !== null ? <PanelStage stageKey="lifelog-media-list" parentStageKey="lifelog-media-categories" panelRole="list" inactive={compact && selected !== null}>

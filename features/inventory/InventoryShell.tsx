@@ -207,14 +207,14 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
 
   return (
     <div className="lag-panel-rail lag-inventory-shell relative" data-testid="inventory-shell">{dialog}
-      {items ? <PanelStage stageKey="inventory-items-categories" panelRole="list">
+      {items ? <PanelStage stageKey="inventory-items-categories" parentStageKey="inventory-stage-0" panelRole="list">
         <PanelFrame title="아이템 분류" depth={2} backButton={onBack ? <BackButton label="인벤토리로" onClick={onBack} /> : undefined}>
           <div className="lag-inventory-filters" aria-label="아이템 분류">
             {["ALL", ...categories].map((filter) => <button key={filter} type="button" className="lag-inventory-filter" aria-pressed={category === filter} data-selected={category === filter} onClick={() => selectCategory(filter)}>{filter === "ALL" ? "전체 아이템" : consumerLabel(filter)}</button>)}
           </div>
         </PanelFrame>
       </PanelStage> : null}
-      {!items || category !== null ? <PanelStage stageKey={`inventory-${surface}-list`} parentStageKey={items ? "inventory-items-categories" : undefined} panelRole="list">
+      {!items || category !== null ? <PanelStage stageKey={`inventory-${surface}-list`} parentStageKey={items ? "inventory-items-categories" : "inventory-stage-0"} panelRole="list">
         <PanelFrame title={items ? "아이템" : "수신함"} depth={1} centerSelected centerTargetKey={String(selectedItemInstanceId ?? selectedMailId ?? "")} centerBehavior="spring" backButton={<>{items ? <BackButton label="아이템 분류로" onClick={() => { setCategory(null); setSelectedItemInstanceId(null); requestStageFocus("inventory-items-categories", "back"); }} /> : onBack ? <BackButton label="인벤토리로" onClick={onBack} /> : null}<button type="button" className="lag-inventory-refresh" aria-label="목록 새로고침" title="목록 새로고침" disabled={query.loading} onClick={() => void query.reload()}>↻</button></>}>
           <section className="lag-inventory-surface" aria-label={items ? "보유 아이템" : "수신함"} tabIndex={-1}>
             <header>

@@ -140,7 +140,7 @@ export default function CollectionShell({ onBack, createRequest = 0, initialReco
   const feedback = <Feedback pending={pending} error={collections.mutationError} success={collections.mutationSuccess} refreshError={collections.refreshError} reload={() => void collections.list.reload(true)} />;
   const list = collections.list;
   return <div ref={shell} className="lag-panel-rail lag-collection-shell relative">{dialog}
-    <PanelStage stageKey="lifelog-collection-categories" panelRole="list" inactive={compact && category !== null}>
+    <PanelStage stageKey="lifelog-collection-categories" parentStageKey="lifelog-stage-0" panelRole="list" inactive={compact && category !== null}>
       <PanelFrame title="수집 종류" depth={1} centerSelected centerTargetKey={category} centerBehavior="spring" backButton={onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
         <div className="lag-role-node-list lag-collection-categories">{COLLECTION_CATEGORIES.map((kind) =>
           <SwipeButton key={kind} data-collection-category={kind} data-scroll-center-target={category === kind ? "true" : undefined} creation className="lag-role-node" aria-pressed={category === kind} onClick={() => chooseCategory(kind)} onDoubleClick={() => chooseCategory(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong></SwipeButton>
