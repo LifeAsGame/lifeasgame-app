@@ -26,7 +26,7 @@ export default function GuildMemberNote({ context, personId, editable, onDenied,
       let next: GuildNote | null;
       try { next = await getGuildNote(context.groupId, context.memberPlayerId); }
       catch (caught) {
-        if (!(caught instanceof ApiError) || caught.status !== 404) throw caught;
+        if (!(caught instanceof ApiError) || caught.code !== "SOC-404-GUILD-NOTE-NOT-FOUND") throw caught;
         // An absent note and lost membership both use 404. Verify live access first.
         await getMemberPerson(context); next = null;
       }

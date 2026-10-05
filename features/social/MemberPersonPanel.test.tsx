@@ -18,7 +18,7 @@ beforeEach(() => {
   api.getPersonApi.mockResolvedValue(person); api.listPersonsApi.mockResolvedValue([person]); api.listRolesApi.mockResolvedValue([role]); api.personRoleContexts.mockResolvedValue(page());
   api.createMemberPerson.mockResolvedValue({ ...context, personId: 7, personStatus: "ACTIVE" }); api.selectMemberPerson.mockResolvedValue({ ...context, personId: 7, personStatus: "ACTIVE" });
   api.createRoleRelationApi.mockResolvedValue({ id: 11, status: "ACTIVE", relationType: "MENTOR", roleNotes: "역할 메모", version: 0 });
-  api.getGuildNote.mockRejectedValue(new ApiError(404, "NOTE_NOT_FOUND", "없음"));
+  api.getGuildNote.mockRejectedValue(new ApiError(404, "SOC-404-GUILD-NOTE-NOT-FOUND", "없음"));
 });
 async function create() {
   fireEvent.click(await screen.findByRole("button", { name: "새 인물 등록" }));

@@ -22,7 +22,7 @@ it("retains a conflicting draft and requires an explicit version refresh before 
   expect(screen.getByLabelText("나만의 메모")).toHaveValue("내 초안"); fireEvent.click(screen.getByRole("button", { name: "메모 저장" })); await waitFor(() => expect(api.saveGuildNote).toHaveBeenLastCalledWith(22, 103, { personId: 7, text: "내 초안", version: 3 }));
 });
 it("treats 404 as an empty note only after live membership revalidation", async () => {
-  api.getGuildNote.mockRejectedValue(new ApiError(404, "NOT_FOUND", "없음")); api.getMemberPerson.mockRejectedValue(new ApiError(404, "GROUP_NOT_FOUND", "접근 불가"));
+  api.getGuildNote.mockRejectedValue(new ApiError(404, "SOC-404-GUILD-NOTE-NOT-FOUND", "없음")); api.getMemberPerson.mockRejectedValue(new ApiError(404, "GROUP_NOT_FOUND", "접근 불가"));
   render(<GuildMemberNote {...props} />); await waitFor(() => expect(props.onDenied).toHaveBeenCalled()); expect(screen.queryByRole("button", { name: "나만의 메모 쓰기" })).not.toBeInTheDocument();
 });
 it("keeps note input on membership loss and disables writing", async () => {

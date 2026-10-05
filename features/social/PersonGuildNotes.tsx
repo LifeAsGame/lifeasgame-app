@@ -35,7 +35,7 @@ function Notes({ personId, onBack }: { personId: number; onBack: () => void }) {
     catch (caught) { if (mounted.current) setError(caught instanceof Error ? caught.message : "메모를 삭제하지 못했습니다."); }
     finally { busy.current = false; if (mounted.current) setPending(false); }
   };
-  const label = (note: GuildNote) => note.availability === "CURRENT" && note.guildName ? note.guildName : `이전 길드 #${note.guildId}`;
+  const label = (note: GuildNote) => note.guildName ?? `이전 길드 #${note.guildId}`;
   return <>{dialog}<PanelStage stageKey="person-guild-notes" parentStageKey="person-detail" inactive={compact && selected !== null}><PanelFrame title="길드별 메모" centerSelected centerTargetKey={selected?.id} backButton={<BackButton label="인물 상세로" onClick={onBack} />}><div className="lag-role-detail"><p>나에게만 보임 · 공통 인물 메모와 별도로 저장합니다.</p>
     {loading ? <p role="status">길드별 메모를 불러오는 중…</p> : null}{error ? <p role="alert">{error} <button className="lag-role-button" onClick={() => void load()}>다시 조회</button></p> : null}
     {!loading && !error && !data?.contents.length ? <p>저장된 길드별 메모가 없습니다.</p> : null}
