@@ -72,3 +72,27 @@ it("evicts all private Person and note state when the account changes", async ()
   render(<MemberPersonPanel {...props} />); await screen.findByText("공통 메모");
   act(() => tokenStorage.write({ accessToken: "b", refreshToken: "s", userId: 3, playerId: 4 })); expect(screen.queryByText("공통 메모")).not.toBeInTheDocument();
 });
+it("reloads a changed member link on focus instead of leaving stale Person actions", async () => {
+  api.getMemberPerson.mockResolvedValueOnce({ ...context, personId: 7, personStatus: "ACTIVE" });
+  api.getMemberPerson.mockResolvedValue({ ...context, personId: 99, personStatus: "ACTIVE" });
+  api.getPersonApi.mockImplementation((id: number) => Promise.resolve({ ...person, id, displayName: id === 7 ? "이전 인물" : "새 연결 인물" }));
+  render(<MemberPersonPanel {...props} />);
+  await screen.findByRole("heading", { name: "이전 인물" });
+  fireEvent(window, new Event("focus"));
+  await screen.findByRole("heading", { name: "새 연결 인물" });
+  expect(screen.queryByRole("heading", { name: "이전 인물" })).not.toBeInTheDocument();
+});
+it("keeps an open note draft disabled until the changed identity is explicitly reloaded", async () => {
+  api.getMemberPerson.mockResolvedValueOnce({ ...context, personId: 7, personStatus: "ACTIVE" });
+  api.getMemberPerson.mockResolvedValue({ ...context, personId: 99, personStatus: "ACTIVE" });
+  api.getPersonApi.mockImplementation((id: number) => Promise.resolve({ ...person, id }));
+  render(<MemberPersonPanel {...props} />);
+  fireEvent.click(await screen.findByRole("button", { name: "나만의 메모 쓰기" }));
+  fireEvent.change(screen.getByLabelText("나만의 메모"), { target: { value: "보존할 초안" } });
+  fireEvent(window, new Event("focus"));
+  await screen.findByText(/멤버와 연결한 인물이 변경됐습니다/);
+  expect(screen.getByLabelText("나만의 메모")).toHaveValue("보존할 초안");
+  expect(screen.getByRole("button", { name: "메모 저장" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
+  await waitFor(() => expect(api.getPersonApi).toHaveBeenLastCalledWith(99));
+});

@@ -32,6 +32,7 @@ export function MemberPersonContent({ context, member, originRole, parentStageKe
   const [mode, setMode] = useState<Mode>(registration ? "choose" : "read"), [personId, setPersonId] = useState<number | null>(null), [person, setPerson] = useState<PersonDetail | null>(null);
   const [persons, setPersons] = useState<PersonDetail[]>([]), [roles, setRoles] = useState<RoleDetail[]>([]), [roleId, setRoleId] = useState<number | null>(originRole?.id ?? null), [contexts, setContexts] = useState<PersonRoleContext[]>([]);
   const [loading, setLoading] = useState(true), [pending, setPending] = useState(false), [error, setError] = useState<string | null>(null), [denied, setDenied] = useState(false), [verified, setVerified] = useState(false);
+  const [linkChanged, setLinkChanged] = useState(false);
   const [noteEditing, setNoteEditing] = useState(false), [noteCloseRequest, setNoteCloseRequest] = useState(0);
   const privacyCallback = useRef(onPrivacyLost);
   privacyCallback.current = onPrivacyLost;
@@ -60,7 +61,7 @@ export function MemberPersonContent({ context, member, originRole, parentStageKe
     try {
       const link = await getMemberPerson(context);
       if (!mounted.current) return;
-      setDenied(false);
+      setDenied(false); setLinkChanged(false);
       if (!originRole) { const next = await listRolesApi(); if (!mounted.current) return; setRoles(next.filter((row) => row.status === "ACTIVE")); }
       if (link.personId !== null) {
         // Persist the successful identity before any following read or relation command.
@@ -75,13 +76,24 @@ export function MemberPersonContent({ context, member, originRole, parentStageKe
   }, []);
   useEffect(() => {
     const revalidate = async () => {
-      try { await getMemberPerson(context); }
+      try {
+        const link = await getMemberPerson(context);
+        if (!mounted.current || link.personId === personId) return;
+        if (noteEditing) {
+          setLinkChanged(true);
+          setVerified(false);
+          setError("멤버와 연결한 인물이 변경됐습니다. 작성 중인 메모를 확인한 뒤 다시 조회하세요.");
+        } else {
+          setPerson(null); setContexts([]); setVerified(false);
+          void load();
+        }
+      }
       catch (caught) { if (mounted.current && caught instanceof ApiError && [403, 404].includes(caught.status)) { setDenied(true); privacyCallback.current(); } }
     };
     window.addEventListener("focus", revalidate);
     return () => window.removeEventListener("focus", revalidate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context.groupType, context.groupId, context.memberPlayerId]);
+  }, [context.groupType, context.groupId, context.memberPlayerId, personId, noteEditing]);
   const chooseExisting = async () => {
     setMode("existing"); setLoading(true); setError(null);
     try { const next = await listPersonsApi(); if (mounted.current) setPersons(next.filter((row) => row.status === "ACTIVE")); }
@@ -128,7 +140,7 @@ export function MemberPersonContent({ context, member, originRole, parentStageKe
   return <PanelStage stageKey="member-person-detail" parentStageKey={parentStageKey}><PanelFrame title={noteEditing ? "나만의 메모 수정" : mode === "new" ? "내 인물에 등록" : mode === "choose" || mode === "existing" ? "내 인물 연결" : "멤버와 내 인물"} backButton={<BackButton label={noteEditing ? "메모 읽기로" : mode === "read" ? "멤버 목록으로" : "이전 단계로"} onClick={back} />}>
     <div className="lag-role-detail"><h4>공개 멤버 정보</h4><p>플레이어 #{context.memberPlayerId}</p>{!denied ? <p>{({ LEADER: "리더", OFFICER: "운영진", MEMBER: "멤버" } as Record<string, string>)[member.role] ?? consumerLabel(member.role)} · {new Date(member.joinedAt).toLocaleDateString("ko-KR")} 가입</p> : <p>모임에 접근할 수 없습니다. 작성 중인 입력은 이 화면에 남아 있습니다.</p>}
       {loading ? <p role="status">내 인물 정보를 불러오는 중…</p> : null}
-      {error ? <p role="alert">{error} <button className="lag-role-button" onClick={() => { setError(null); if (personId && !denied) void readPerson(personId); else void load(); }}>다시 조회</button></p> : null}
+      {error ? <p role="alert">{error} <button className="lag-role-button" onClick={() => { setError(null); if (personId && !denied && !linkChanged) void readPerson(personId); else void load(); }}>다시 조회</button></p> : null}
       {!personId && mode === "read" && verified ? <><p>아직 내 인물에 연결하지 않았습니다.</p><button className="lag-role-button" disabled={denied} onClick={() => setMode("choose")}>내 인물에 등록</button></> : null}
       {!personId && mode === "choose" ? <div className="lag-role-form"><p>내 인물을 직접 선택하세요. 공개 멤버 목록에는 이름이 없어 새 인물 이름을 직접 입력합니다.</p><button className="lag-role-button" disabled={loading || denied || !verified} onClick={() => void chooseExisting()}>기존 인물 선택</button><button className="lag-role-button" disabled={loading || denied || !verified} onClick={() => { setError(null); setMode("new"); }}>새 인물 등록</button></div> : null}
       {!personId && mode === "existing" ? <form className="lag-role-form" onSubmit={(event) => { event.preventDefault(); void link(); }}><label>내 기존 인물<select className="lag-role-control" required value={selectedPerson} onChange={(event) => setSelectedPerson(event.target.value)}><option value="">인물 선택</option>{persons.map((item) => <option key={item.id} value={item.id}>{item.displayName}</option>)}</select></label><button className="lag-role-action" disabled={pending || loading || denied || !selectedPerson}>이 인물 연결</button></form> : null}
