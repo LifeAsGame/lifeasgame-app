@@ -23,7 +23,9 @@ it("requests the selected local month as an exclusive UTC instant range", () => 
 
 it("keeps RSVP and unscheduled requests within the BE's valid combinations", () => {
   const rsvp = new URLSearchParams(schedulePath(1, { month: "2026-10", unscheduled: false, source: "PARTICIPATING", status: "ALL", page: 0 }).split("?")[1]);
-  expect(rsvp.get("source")).toBe("SHARED"); expect(rsvp.get("participating")).toBe("true");
+  expect(rsvp.get("source")).toBe("GUILD"); expect(rsvp.get("participating")).toBe("true");
+  const shared = new URLSearchParams(schedulePath(1, { month: "2026-10", unscheduled: false, source: "SHARED_PARTICIPATING", status: "ALL", page: 0 }).split("?")[1]);
+  expect(shared.get("source")).toBe("SHARED"); expect(shared.get("participating")).toBe("true");
   const undated = new URLSearchParams(schedulePath(1, { month: "2026-10", unscheduled: true, source: "PARTICIPATING", status: "ALL", page: 0 }).split("?")[1]);
   expect(undated.get("time")).toBe("UNSCHEDULED"); expect(undated.get("source")).toBe("PERSONAL");
   expect(undated.has("participating")).toBe(false); expect(undated.has("from")).toBe(false); expect(undated.has("to")).toBe(false);

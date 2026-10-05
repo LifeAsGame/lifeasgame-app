@@ -16,7 +16,7 @@ export type ScheduleRow = {
   status: "PLANNED" | "COMPLETED" | "CANCELED";
   myRsvp: boolean | null;
 };
-export type ScheduleSource = "ALL" | "PERSONAL" | "GUILD" | "PARTY" | "ROLE_PARTY" | "SHARED" | "PARTICIPATING";
+export type ScheduleSource = "ALL" | "PERSONAL" | "GUILD" | "PARTY" | "ROLE_PARTY" | "SHARED" | "PARTICIPATING" | "SHARED_PARTICIPATING";
 export type ScheduleStatus = ScheduleRow["status"] | "ALL";
 export const scheduleKey = (row: Pick<ScheduleRow, "sourceType" | "sourceId">) => `${row.sourceType}:${row.sourceId}`;
 
@@ -28,12 +28,12 @@ export function currentMonth() {
 export function schedulePath(roleId: number, options: { month: string; unscheduled: boolean; source: ScheduleSource; status: ScheduleStatus; page: number }) {
   const query = new URLSearchParams({
     time: options.unscheduled ? "UNSCHEDULED" : "DATED",
-    source: options.unscheduled ? "PERSONAL" : options.source === "PARTICIPATING" ? "SHARED" : options.source,
+    source: options.unscheduled ? "PERSONAL" : options.source === "PARTICIPATING" ? "GUILD" : options.source === "SHARED_PARTICIPATING" ? "SHARED" : options.source,
     status: options.status,
     page: String(options.page),
     size: "20",
   });
-  if (!options.unscheduled && options.source === "PARTICIPATING") query.set("participating", "true");
+  if (!options.unscheduled && (options.source === "PARTICIPATING" || options.source === "SHARED_PARTICIPATING")) query.set("participating", "true");
   if (!options.unscheduled) {
     const [year, month] = options.month.split("-").map(Number);
     if (!Number.isInteger(year) || year < 1000 || year > 9999 || !Number.isInteger(month) || month < 1 || month > 12) throw new Error("조회할 월을 확인해주세요.");
