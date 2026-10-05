@@ -90,3 +90,14 @@ it("플레이어 분류는 한 번 누르면 목록, Alt+Enter로 내 분류 생
   fireEvent.keyDown(screen.getByRole("button", { name: "자격증" }), { key: "Enter", altKey: true }); expect(create).toHaveBeenCalledWith(0, "credentials");
   const count = create.mock.calls.length; fireEvent.keyDown(screen.getByRole("button", { name: /칭호/ }), { key: "Enter", altKey: true }); expect(create).toHaveBeenCalledTimes(count);
 });
+
+it("역할 소모임도 모임 메뉴에서 생성 요청을 연다", () => {
+  const create = vi.fn();
+  const panel: Extract<PanelStackItem, { kind: "menu" }> = {
+    id: "social-menu", kind: "menu", title: "모임", items: [{ id: "role-parties", label: "역할 소모임", slotLabel: "RP" }],
+    context: { main: "social", route: "main-submenu" },
+  };
+  render(<RightPanels selectedMain="social" panelStack={[panel]} onPanelItemSelect={vi.fn()} onPanelItemCreate={create} />);
+  fireEvent.keyDown(screen.getByRole("button", { name: "역할 소모임" }), { key: "Enter", altKey: true });
+  expect(create).toHaveBeenCalledExactlyOnceWith(0, "role-parties");
+});
