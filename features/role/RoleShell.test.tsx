@@ -33,6 +33,8 @@ const api = vi.hoisted(() => ({
   updateRoleRelationApi: vi.fn(),
 }));
 vi.mock("./api", () => api);
+const schedule = vi.hoisted(() => ({ roleSchedule: vi.fn() }));
+vi.mock("./scheduleApi", async (original) => ({ ...await original<typeof import("./scheduleApi")>(), ...schedule }));
 
 const roles: RoleDetail[] = [
   { id: 1, roleType: "PROFESSIONAL", name: "Backend Engineer", description: "Build systems", status: "ACTIVE", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 },
@@ -42,6 +44,8 @@ const person: PersonDetail = { id: 7, linkedUserId: 44, displayName: "Alex", not
 const relation: RoleRelationDetail = { id: 9, personId: 7, personDisplayName: "Alex", linkedUserId: 44, relationType: "FRIEND", roleNotes: "Call monthly", status: "ACTIVE", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 };
 const roleEvent: RoleEventDetail = { id: 11, roleId: 1, title: "Architecture review", description: "Review boundaries", startsAt: null, endsAt: null, status: "PLANNED", completedAt: null, participants: [{ participantLinkId: 1, participantType: "SERVICE_USER", participantId: 99 }], createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", version: 0 };
 const otherEvent: RoleEventDetail = { ...roleEvent, id: 12, title: "Design review", description: "Review design" };
+const scheduleRow = (event: RoleEventDetail) => ({ sourceType: "ROLE_EVENT" as const, sourceId: event.id, roleId: event.roleId, guildId: null, guildName: null, title: event.title, startsAt: event.startsAt, endsAt: event.endsAt, status: event.status, myRsvp: null });
+const schedulePage = (events: RoleEventDetail[]) => ({ contents: events.map(scheduleRow), page: 0, size: 20, totalElements: events.length, totalPages: events.length ? 1 : 0 });
 
 function deferred<T>() {
   let reject!: (reason?: unknown) => void;
@@ -76,6 +80,7 @@ describe("실제 Role shell을 사용할 때", () => {
     api.listPersonsApi.mockResolvedValue([person]);
     api.listRoleRelationsApi.mockResolvedValue([relation]);
     api.listRoleEventsApi.mockResolvedValue([roleEvent]);
+    schedule.roleSchedule.mockImplementation((_roleId, options) => Promise.resolve(schedulePage(options.unscheduled ? [roleEvent] : [])));
     api.getRoleEventApi.mockResolvedValue(roleEvent);
     api.createRoleEventApi.mockResolvedValue(roleEvent);
     api.completeRoleEventApi.mockResolvedValue({ ...roleEvent, status: "COMPLETED" });
@@ -213,6 +218,7 @@ describe("실제 Role shell을 사용할 때", () => {
       expect(api.listPersonsApi).not.toHaveBeenCalled();
       expect(api.listRoleRelationsApi).not.toHaveBeenCalled();
       expect(api.listRoleEventsApi).not.toHaveBeenCalled();
+      expect(schedule.roleSchedule).not.toHaveBeenCalled();
     });
 
     it("Role 선택은 surfaces만 열고 surface 선택 후 detail을 열며 Role 교체 시 detail을 닫는다", async () => {
@@ -230,7 +236,7 @@ describe("실제 Role shell을 사용할 때", () => {
       expect(document.querySelector('[data-stage-key="role-detail"]')).toBeInTheDocument();
       focus.mockClear();
       fireEvent.click(screen.getByRole("button", { name: /일정/ }));
-      await waitFor(() => expect(api.listRoleEventsApi).toHaveBeenCalledWith(1));
+      await waitFor(() => expect(schedule.roleSchedule).toHaveBeenCalledWith(1, expect.objectContaining({ unscheduled: false, source: "ALL" })));
       expect(focus).toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole("button", { name: /Family Member.*활성/ }));
@@ -264,6 +270,7 @@ describe("실제 Role shell을 사용할 때", () => {
       expect(api.listPersonsApi).not.toHaveBeenCalled();
       expect(api.listRoleRelationsApi).not.toHaveBeenCalled();
       expect(api.listRoleEventsApi).not.toHaveBeenCalled();
+      expect(schedule.roleSchedule).not.toHaveBeenCalled();
     });
   });
 
@@ -321,6 +328,7 @@ describe("실제 Role shell을 사용할 때", () => {
     it("목록과 읽기 상세를 다른 패널에 두고, 상태 명령을 명시적으로 호출한다", async () => {
       render(<Harness />);
       fireEvent.click(screen.getByRole("button", { name: /일정/ }));
+      fireEvent.click(screen.getByRole("button", { name: "시간 미정 보기" }));
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
       await waitFor(() => expect(document.querySelector('[data-stage-key="role-event-detail"]')).toHaveTextContent("Review boundaries"));
       expect(document.querySelector('[data-stage-key="role-detail"]')).not.toHaveTextContent("Review boundaries");
@@ -347,10 +355,11 @@ describe("실제 Role shell을 사용할 때", () => {
     it("늦은 이전 일정 상세 응답을 선택한 다른 일정에 표시하지 않는다", async () => {
       const first = deferred<RoleEventDetail>();
       const second = deferred<RoleEventDetail>();
-      api.listRoleEventsApi.mockResolvedValue([roleEvent, otherEvent]);
+      schedule.roleSchedule.mockImplementation((_roleId, options) => Promise.resolve(schedulePage(options.unscheduled ? [roleEvent, otherEvent] : [])));
       api.getRoleEventApi.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
       render(<Harness />);
       fireEvent.click(screen.getByRole("button", { name: /일정/ }));
+      fireEvent.click(screen.getByRole("button", { name: "시간 미정 보기" }));
       fireEvent.click(await screen.findByRole("button", { name: /Architecture review/ }));
       fireEvent.click(screen.getByRole("button", { name: /Design review/ }));
       await act(async () => second.resolve(otherEvent));
