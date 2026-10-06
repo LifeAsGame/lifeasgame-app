@@ -20,8 +20,8 @@ export default function RosterInvitationPanels({ onBack }: { onBack: () => void 
   const seq = useRef(0), lock = useRef(false);
   const load = useCallback(async () => {
     const current = ++seq.current; setLoading(true);
-    try { const next = await myRosterInvitations(page); if (current === seq.current) { setList(next); setError(null); } }
-    catch (caught) { if (current === seq.current) { setList(null); setError(errorText(caught)); } }
+    try { const next = await myRosterInvitations(page); if (current === seq.current) { setList(next); setError(null); return next; } return null; }
+    catch (caught) { if (current === seq.current) { setList(null); setError(errorText(caught)); } return null; }
     finally { if (current === seq.current) setLoading(false); }
   }, [page]);
   useEffect(() => { const counter = seq; void load(); return () => { counter.current++; }; }, [load]);
@@ -37,7 +37,19 @@ export default function RosterInvitationPanels({ onBack }: { onBack: () => void 
         await Promise.allSettled([groupMine(kind, 0), groupMembers(kind, item.groupId, 0), rosterRows(item.groupType, item.groupId, 0)]);
       }
       setSelected(null); await load();
-    } catch (caught) { await load().catch(() => {}); if (caught instanceof ApiError && [403, 404].includes(caught.status)) setSelected(null); setError(errorText(caught)); }
+    } catch (caught) {
+      const refreshed = await load();
+      let pending = refreshed?.contents.some((entry) => entry.invitationId === item.invitationId) ?? true;
+      if (refreshed && !pending) {
+        try {
+          for (let index = 0; index < refreshed.totalPages && !pending; index++) {
+            if (index !== page) pending = (await myRosterInvitations(index)).contents.some((entry) => entry.invitationId === item.invitationId);
+          }
+        } catch { pending = true; }
+      }
+      if ((caught instanceof ApiError && [403, 404].includes(caught.status)) || !pending) setSelected(null);
+      setError(errorText(caught));
+    }
     finally { lock.current = false; setBusy(false); }
   };
   return <>{dialog}<PanelStage stageKey="roster-invitation-list" parentStageKey="social-stage-0" instant inactive={selected !== null}><PanelFrame title="받은 명부 연결 초대" backButton={<BackButton label="모임 분류로" onClick={onBack} />}><div className="lag-role-detail lag-group-main">

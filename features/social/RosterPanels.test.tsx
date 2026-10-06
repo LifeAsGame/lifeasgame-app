@@ -102,3 +102,16 @@ it("does not report a capacity conflict as accepted and keeps the invitation ava
   expect(api.answerRosterInvitation).toHaveBeenCalledExactlyOnceWith(4, "accept");
   expect(groups.groupMembers).not.toHaveBeenCalled();
 });
+
+it("closes a canceled invitation detail after a conflict and fresh empty list", async () => {
+  const invitation = { invitationId: 4, groupType: "GUILD", groupId: 3, groupName: "산책 길드", rosterEntryId: 11, rosterDisplayName: "오프라인 멤버", expiresAt: "2099-01-01T00:00:00Z", membershipWillBeCreated: true, status: "PENDING" };
+  api.myRosterInvitations.mockResolvedValueOnce(page([invitation])).mockResolvedValue(page([]));
+  api.answerRosterInvitation.mockRejectedValue(new ApiError(409, "SOC-409-ROSTER-CONFLICT", "canceled"));
+  render(<RosterInvitationPanels onBack={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: /산책 길드/ }));
+  fireEvent.click(screen.getByRole("button", { name: /수락/ }));
+  fireEvent.click(within(await screen.findByRole("dialog", { name: "작업 확인" })).getByRole("button", { name: "확인" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("다시 조회해주세요");
+  expect(screen.getByRole("heading", { name: "받은 명부 연결 초대" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /수락/ })).not.toBeInTheDocument();
+});
