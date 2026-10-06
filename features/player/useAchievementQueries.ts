@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { PlayerAchievementInfo } from "@/shared/api/types";
 import { TOKEN_CHANGED_EVENT, tokenStorage } from "@/shared/api/tokenStorage";
-import { AWARD_SOURCE_EVENT, awardReadChanged } from "./awardEvents";
+import { AWARD_SOURCE_EVENT, awardReadChanged, recentAwardSource } from "./awardEvents";
 import { getActivatedContentApi, getPlayerAchievementApi, getPlayerAchievementsApi } from "./api";
 import type { ActivatedContentEntry } from "./activation";
 
@@ -93,6 +93,7 @@ export function useAchievementQueries() {
       timers.push(setTimeout(() => { if (sessionPlayerId.current === playerId) { void reload(); void reloadActivation(); } }, 900), setTimeout(() => { if (sessionPlayerId.current === playerId) { void reload(); void reloadActivation(); } }, 2200));
     };
     window.addEventListener(AWARD_SOURCE_EVENT, refresh);
+    if (recentAwardSource()) refresh();
     return () => { window.removeEventListener(AWARD_SOURCE_EVENT, refresh); timers.forEach(clearTimeout); };
   }, [reload, reloadActivation]);
 

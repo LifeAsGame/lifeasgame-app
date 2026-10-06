@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { PlayerInfo, PlayerTitleInfo } from "@/shared/api/types";
 import { TOKEN_CHANGED_EVENT, tokenStorage } from "@/shared/api/tokenStorage";
-import { AWARD_SOURCE_EVENT, awardReadChanged } from "./awardEvents";
+import { AWARD_SOURCE_EVENT, awardReadChanged, recentAwardSource } from "./awardEvents";
 import { clearRepresentativeTitleApi, getActivatedContentApi, getCurrentPlayerApi, getPlayerTitlesApi, setRepresentativeTitleApi } from "./api";
 import type { ActivatedContentEntry } from "./activation";
 
@@ -107,6 +107,7 @@ export function useTitleQueries() {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const refresh = () => { const playerId = sessionPlayerId.current; void loadTitles(); void loadPlayer(); void loadActivation(); timers.push(setTimeout(() => { if (sessionPlayerId.current === playerId) { void loadTitles(); void loadActivation(); } }, 900), setTimeout(() => { if (sessionPlayerId.current === playerId) { void loadTitles(); void loadActivation(); } }, 2200)); };
     window.addEventListener(AWARD_SOURCE_EVENT, refresh);
+    if (recentAwardSource()) refresh();
     return () => { window.removeEventListener(AWARD_SOURCE_EVENT, refresh); timers.forEach(clearTimeout); };
   }, [loadTitles, loadPlayer, loadActivation]);
 
