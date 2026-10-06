@@ -5162,12 +5162,16 @@ select {
 .lag-chat-channel,
 .lag-notification-row { min-height: 68px; }
 .lag-group-shell [data-stage-key="social-list"] .lag-panel-frame,
+.lag-group-shell [data-stage-key="roster-list"] .lag-panel-frame,
+.lag-panel-stage[data-stage-key="roster-invitation-list"] .lag-panel-frame,
 .lag-group-shell [data-stage-key="guild-groups-list"] .lag-panel-frame,
 .lag-group-shell [data-stage-key="guild-events-list"] .lag-panel-frame,
 .lag-role-events [data-stage-key="role-detail"] .lag-panel-frame { width: min(344px, calc(100vw - 32px)) !important; }
 .lag-group-shell, .lag-role-events, .lag-role-shell:has(.lag-role-events) { gap: 24px; }
 .lag-group-shell [data-stage-key="social-detail"] .lag-panel-frame,
 .lag-group-shell [data-stage-key="social-sub"] .lag-panel-frame,
+.lag-group-shell [data-stage-key="roster-detail"] .lag-panel-frame,
+.lag-panel-stage[data-stage-key="roster-invitation-detail"] .lag-panel-frame,
 .lag-group-shell [data-stage-key="guild-groups-detail"] .lag-panel-frame,
 .lag-group-shell [data-stage-key="guild-events-detail"] .lag-panel-frame,
 .lag-role-events [data-stage-key="role-event-detail"] .lag-panel-frame { width: min(440px, calc(100vw - 32px)) !important; }

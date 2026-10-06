@@ -5,11 +5,15 @@ import GuildGroupPanels from "./GuildGroupPanels";
 import GuildEventPanels from "./GuildEventPanels";
 
 const groups = vi.hoisted(() => ({ groupCreate: vi.fn(), groupMe: vi.fn(), groupMine: vi.fn() }));
-const guild = vi.hoisted(() => ({ guildLinks: vi.fn(), guildPendingLinks: vi.fn(), proposeGuildLink: vi.fn(), decideGuildLink: vi.fn(), guildEvents: vi.fn(), guildEvent: vi.fn(), guildEventRsvp: vi.fn() }));
+const guild = vi.hoisted(() => ({ guildLinks: vi.fn(), guildPendingLinks: vi.fn(), proposeGuildLink: vi.fn(), createGuildGroup: vi.fn(), decideGuildLink: vi.fn(), guildEvents: vi.fn(), guildEvent: vi.fn(), guildEventRsvp: vi.fn() }));
 const roles = vi.hoisted(() => ({ myRoleParties: vi.fn(), rolePartyDetail: vi.fn() }));
+const roleApi = vi.hoisted(() => ({ listRolesApi: vi.fn() }));
+const contextApi = vi.hoisted(() => ({ linkRoleGroup: vi.fn() }));
 vi.mock("./groups", () => groups);
 vi.mock("./guildInsideApi", () => guild);
 vi.mock("@/features/role/roleParties", () => roles);
+vi.mock("@/features/role/api", () => roleApi);
+vi.mock("@/features/role/contextApi", () => contextApi);
 const empty = { contents: [], page: 0, size: 20, totalElements: 0, totalPages: 0 };
 
 beforeEach(() => {
@@ -17,6 +21,8 @@ beforeEach(() => {
   groups.groupMe.mockResolvedValue({ myRole: "LEADER", actions: [] });
   groups.groupMine.mockResolvedValue(empty);
   roles.myRoleParties.mockResolvedValue(empty);
+  roleApi.listRolesApi.mockResolvedValue([{ id: 5, name: "기록 역할", status: "ACTIVE" }]);
+  contextApi.linkRoleGroup.mockResolvedValue({});
   guild.guildLinks.mockResolvedValue(empty);
   guild.guildPendingLinks.mockResolvedValue(empty);
   guild.guildEvents.mockResolvedValue(empty);
@@ -42,9 +48,10 @@ it("refreshes the pending list after consecutive proposals on the same tab", asy
   });
   const view = render(<GuildGroupPanels guildId={3} playerId={7} creating onBack={() => {}} />);
   const submit = async (groupId: string, name: string) => {
+    fireEvent.change(screen.getByRole("combobox", { name: "모임 방식" }), { target: { value: "EXISTING_PARTY" } });
     fireEvent.change(await screen.findByRole("combobox", { name: "내가 리더인 모임" }), { target: { value: groupId } });
     fireEvent.change(screen.getByRole("textbox", { name: "길드 멤버에게 보일 별도 이름" }), { target: { value: name } });
-    fireEvent.click(screen.getByRole("button", { name: "연결 제안" }));
+    fireEvent.click(screen.getByRole("button", { name: "기존 모임 연결 제안" }));
     expect(await screen.findByRole("button", { name: new RegExp(name) })).toBeInTheDocument();
   };
   await submit("41", "첫 공개 이름");
@@ -66,9 +73,10 @@ it("ignores a late page response after a new proposal returns to page zero", asy
   fireEvent.click(await screen.findByRole("button", { name: "다음" }));
   await waitFor(() => expect(guild.guildPendingLinks).toHaveBeenCalledWith(3, 1));
   view.rerender(<GuildGroupPanels guildId={3} playerId={7} creating onBack={() => {}} />);
+  fireEvent.change(screen.getByRole("combobox", { name: "모임 방식" }), { target: { value: "EXISTING_PARTY" } });
   fireEvent.change(await screen.findByRole("combobox", { name: "내가 리더인 모임" }), { target: { value: "41" } });
   fireEvent.change(screen.getByRole("textbox", { name: "길드 멤버에게 보일 별도 이름" }), { target: { value: "새 공개 이름" } });
-  fireEvent.click(screen.getByRole("button", { name: "연결 제안" }));
+  fireEvent.click(screen.getByRole("button", { name: "기존 모임 연결 제안" }));
   expect(await screen.findByRole("button", { name: /새 공개 이름/ })).toBeInTheDocument();
   await act(async () => finishPageOne({ ...empty, contents: [], totalPages: 2 }));
   expect(screen.getByRole("button", { name: /새 공개 이름/ })).toBeInTheDocument();
@@ -129,20 +137,34 @@ it("hides management actions after the server rejects stale authority", async ()
   expect(screen.queryByRole("button", { name: "제안 거절" })).not.toBeInTheDocument();
 });
 
-it("retries linking a created Party without creating it again", async () => {
-  groups.groupCreate.mockResolvedValue({ id: 42 });
-  guild.proposeGuildLink.mockRejectedValueOnce(new Error("temporary link failure")).mockResolvedValueOnce({ id: 9 });
+it("retries atomic Guild Party creation with the same request key and payload", async () => {
+  guild.createGuildGroup.mockRejectedValueOnce(new Error("temporary network failure")).mockResolvedValueOnce({ groupType: "PARTY", groupId: 42, linkId: 9, linkStatus: "PENDING", capabilities: { canOpenGroup: true, canApproveGuildLink: false, canLinkToPersonalRole: false } });
   render(<GuildGroupPanels guildId={3} playerId={7} creating onBack={() => {}} />);
-  fireEvent.change(screen.getByRole("combobox", { name: "연결 방식" }), { target: { value: "NEW" } });
   fireEvent.change(screen.getByRole("textbox", { name: "파티 이름" }), { target: { value: "비공개 파티" } });
   fireEvent.change(screen.getByRole("textbox", { name: "파티 코드" }), { target: { value: "private-party" } });
   fireEvent.change(screen.getByRole("textbox", { name: "길드 멤버에게 보일 별도 이름" }), { target: { value: "길드 공부 모임" } });
-  fireEvent.click(screen.getByRole("button", { name: "연결 제안" }));
-  expect(await screen.findByText("파티 #42 생성 완료 · 연결만 다시 시도할 수 있습니다.")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "연결 다시 시도" }));
-  await waitFor(() => expect(guild.proposeGuildLink).toHaveBeenCalledTimes(2));
-  expect(groups.groupCreate).toHaveBeenCalledTimes(1);
-  expect(guild.proposeGuildLink).toHaveBeenLastCalledWith(3, "PARTY", 42, "길드 공부 모임");
+  fireEvent.click(screen.getByRole("button", { name: "길드에서 모임 만들기" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("temporary network failure");
+  fireEvent.click(screen.getByRole("button", { name: "길드에서 모임 만들기" }));
+  await waitFor(() => expect(guild.createGuildGroup).toHaveBeenCalledTimes(2));
+  expect(guild.createGuildGroup.mock.calls[0]).toEqual(guild.createGuildGroup.mock.calls[1]);
+  expect(guild.proposeGuildLink).not.toHaveBeenCalled();
+});
+
+it("retries only the personal Role link after a RoleParty was created", async () => {
+  guild.createGuildGroup.mockResolvedValue({ groupType: "ROLE_PARTY", groupId: 42, linkId: 9, linkStatus: "PENDING", capabilities: { canOpenGroup: true, canApproveGuildLink: false, canLinkToPersonalRole: true } });
+  contextApi.linkRoleGroup.mockRejectedValueOnce(new Error("temporary link failure")).mockResolvedValueOnce({});
+  render(<GuildGroupPanels guildId={3} playerId={7} creating onBack={() => {}} />);
+  fireEvent.change(screen.getByRole("combobox", { name: "모임 방식" }), { target: { value: "NEW_ROLE_PARTY" } });
+  fireEvent.change(await screen.findByRole("combobox", { name: "내 활성 역할" }), { target: { value: "5" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "소모임 이름" }), { target: { value: "역할 소모임" } });
+  fireEvent.change(screen.getByRole("textbox", { name: "길드 멤버에게 보일 별도 이름" }), { target: { value: "공유 이름" } });
+  fireEvent.click(screen.getByRole("button", { name: "길드에서 모임 만들기" }));
+  expect(await screen.findByText(/모임 생성은 완료됐습니다/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "내 역할 연결 다시 시도" }));
+  await waitFor(() => expect(contextApi.linkRoleGroup).toHaveBeenCalledTimes(2));
+  expect(contextApi.linkRoleGroup).toHaveBeenLastCalledWith(5, { groupType: "ROLE_PARTY", groupId: 42 });
+  expect(guild.createGuildGroup).toHaveBeenCalledTimes(1);
 });
 
 it("reloads persisted RSVP after joining and remounting", async () => {

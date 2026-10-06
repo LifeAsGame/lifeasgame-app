@@ -29,6 +29,7 @@ import ExchangeShell from "@/features/market/ExchangeShell";
 import SocialUtilityHub from "@/features/social/SocialUtilityHub";
 import GroupShell from "@/features/social/GroupShell";
 import RolePartyPanels from "@/features/role/RolePartyPanels";
+import RosterInvitationPanels from "@/features/social/RosterInvitationPanels";
 import SettingsShell from "@/features/system/settings/SettingsShell";
 import { useRoles } from "@/features/role/useRoles";
 import { usePanScroll } from "@/shared/hooks/usePanScroll";
@@ -364,6 +365,7 @@ export default function Home() {
               <RightPanels selectedMain="social" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
               {selectedSubByMain.social === "guilds" || selectedSubByMain.social === "parties" ? <GroupShell key={`${selectedSubByMain.social}-${subReentry[selectedSubByMain.social] ?? 0}`} kind={selectedSubByMain.social} playerId={playerId} createRequest={createRequests[selectedSubByMain.social] ?? 0} onBack={() => closeFeatureSubmenu("social")} /> : null}
               {selectedSubByMain.social === "role-parties" ? <RolePartyPanels key={`role-parties-${subReentry["role-parties"] ?? 0}`} playerId={playerId} createRequest={createRequests["role-parties"] ?? 0} onBack={() => closeFeatureSubmenu("social")} /> : null}
+              {selectedSubByMain.social === "roster-invitations" ? <RosterInvitationPanels key={`roster-invitations-${subReentry["roster-invitations"] ?? 0}`} onBack={() => closeFeatureSubmenu("social")} /> : null}
             </div>
           ) : selectedMain === "inventory" ? (
             <div className="flex w-fit items-center gap-3">

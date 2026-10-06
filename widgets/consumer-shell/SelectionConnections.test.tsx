@@ -21,6 +21,11 @@ it("connects every selected intermediate stage rather than skipping to the first
   expect(visibleConnections(view.container).map(({ id }) => id)).not.toContain("player-stage-0-list");
 });
 
+it("uses the selected list row instead of a selected filter tab for the next panel", () => {
+  const view = render(<div className="lag-workspace"><div data-stage-key="parent"><div className="lag-panel-frame"><button aria-pressed="true">전체</button><button className="lag-role-node" data-selected="true">명부 항목</button></div></div><div data-stage-key="child" data-parent-stage-key="parent"><div className="lag-panel-frame" /></div></div>);
+  expect(visibleConnections(view.container)[0].source).toHaveTextContent("명부 항목");
+});
+
 it("starts at the parent frame edge at the selected row height and stops at the child frame", () => {
   let paint: FrameRequestCallback = () => {};
   vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => { paint = callback; return 1; });
