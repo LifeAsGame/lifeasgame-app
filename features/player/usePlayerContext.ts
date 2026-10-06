@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getEquippedGearApi } from "@/lib/api/endpoints/equipment.api";
-import type { EquipmentSlotInfo, PlayerInfo } from "@/shared/api/types";
-import { getCurrentPlayerApi } from "./api";
+import type { EquipmentSlotInfo, PlayerInfo, PlayerTitleInfo } from "@/shared/api/types";
+import { getCurrentPlayerApi, getPlayerTitlesApi } from "./api";
+import { AWARD_CHANGED_EVENT } from "./awardEvents";
 
 type PlayerContext = {
   player: PlayerInfo;
   equipments: EquipmentSlotInfo[];
+  representativeTitle: PlayerTitleInfo | null;
 };
 
 const message = (caught: unknown, fallback: string) => caught instanceof Error ? caught.message : fallback;
@@ -23,7 +25,7 @@ export function usePlayerContext(enabled: boolean) {
     const current = ++requestId.current;
     setLoading(true);
     setError(null);
-    const [player, equipment] = await Promise.allSettled([getCurrentPlayerApi(), getEquippedGearApi()]);
+    const [player, equipment, titles] = await Promise.allSettled([getCurrentPlayerApi(), getEquippedGearApi(), getPlayerTitlesApi()]);
     if (current !== requestId.current) return undefined;
 
     if (player.status === "rejected") {
@@ -35,6 +37,7 @@ export function usePlayerContext(enabled: boolean) {
     const next = {
       player: player.value,
       equipments: equipment.status === "fulfilled" ? equipment.value : [],
+      representativeTitle: titles.status === "fulfilled" ? titles.value.find(({ titleId }) => titleId === player.value.representativeTitleId) ?? null : null,
     };
     setData(next);
     if (equipment.status === "rejected") {
@@ -53,6 +56,13 @@ export function usePlayerContext(enabled: boolean) {
       setError(null);
     }
     return () => { requestId.current += 1; };
+  }, [enabled, reload]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const refresh = () => { void reload(); };
+    window.addEventListener(AWARD_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(AWARD_CHANGED_EVENT, refresh);
   }, [enabled, reload]);
 
   return { data, loading, error, reload };

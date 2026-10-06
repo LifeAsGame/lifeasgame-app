@@ -17,6 +17,7 @@ import type {
   RewardSettlement,
 } from "@/shared/api/types";
 import { journeyMock } from "./mock";
+import { awardSourceCommitted } from "@/features/player/awardEvents";
 
 const playerQuestPath = (questCode: string) => `/api/v1/players/quests/${encodeURIComponent(questCode)}`;
 
@@ -39,17 +40,21 @@ export function getPlayerQuestApi(questCode: string): Promise<PlayerQuestDetail>
   return USE_MOCK ? Promise.resolve(journeyMock.quest(questCode)) : apiGetRaw<PlayerQuestDetail>(playerQuestPath(questCode));
 }
 
-export function acceptQuestApi(questCode: string): Promise<QuestAcceptance> {
+export async function acceptQuestApi(questCode: string): Promise<QuestAcceptance> {
   const body: AcceptQuestRequest = { partyId: null, guildId: null };
-  return USE_MOCK
+  const result = await (USE_MOCK
     ? Promise.resolve(journeyMock.accept(questCode))
-    : apiPost<QuestAcceptance>(playerQuestPath(questCode), body);
+    : apiPost<QuestAcceptance>(playerQuestPath(questCode), body));
+  if (result.status === "COMPLETED") awardSourceCommitted();
+  return result;
 }
 
-export function manualCheckQuestApi(questCode: string): Promise<QuestAcceptance> {
-  return USE_MOCK
+export async function manualCheckQuestApi(questCode: string): Promise<QuestAcceptance> {
+  const result = await (USE_MOCK
     ? Promise.resolve(journeyMock.manualCheck(questCode))
-    : apiPost<QuestAcceptance>(`${playerQuestPath(questCode)}/manual-check`, {});
+    : apiPost<QuestAcceptance>(`${playerQuestPath(questCode)}/manual-check`, {}));
+  if (result.status === "COMPLETED") awardSourceCommitted();
+  return result;
 }
 
 export function cancelQuestApi(questCode: string, reason?: string): Promise<CanceledQuest> {
@@ -85,8 +90,10 @@ export function unlinkQuestEvidenceApi(questCode: string): Promise<QuestAcceptan
   return apiDelete<QuestAcceptance>(`${playerQuestPath(questCode)}/evidence`);
 }
 
-export function completeQuestApi(questCode: string): Promise<QuestAcceptance> {
-  return apiPost<QuestAcceptance>(`${playerQuestPath(questCode)}/complete`, {});
+export async function completeQuestApi(questCode: string): Promise<QuestAcceptance> {
+  const result = await apiPost<QuestAcceptance>(`${playerQuestPath(questCode)}/complete`, {});
+  if (result.status === "COMPLETED") awardSourceCommitted();
+  return result;
 }
 
 export async function listMyQuestRoutesApi(): Promise<QuestRoute[]> {
@@ -102,8 +109,10 @@ export function getMyQuestRouteStepApi(routeId: number, stepId: number): Promise
   return USE_MOCK ? Promise.resolve(journeyMock.step(stepId)) : apiGet<QuestRouteStepDetail>(`/api/v1/quest-routes/my/${routeId}/steps/${stepId}`);
 }
 
-export function advanceQuestRouteApi(routeId: number, expectedStepId: number): Promise<QuestRoute> {
-  return USE_MOCK
+export async function advanceQuestRouteApi(routeId: number, expectedStepId: number): Promise<QuestRoute> {
+  const result = await (USE_MOCK
     ? Promise.resolve(journeyMock.advance(expectedStepId))
-    : apiPost<QuestRoute>(`/api/v1/quest-routes/my/${routeId}/advance`, { expectedStepId });
+    : apiPost<QuestRoute>(`/api/v1/quest-routes/my/${routeId}/advance`, { expectedStepId }));
+  if (result.playerProgress?.status === "COMPLETED") awardSourceCommitted();
+  return result;
 }

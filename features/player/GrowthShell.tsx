@@ -101,7 +101,6 @@ export default function GrowthShell({ onBack }: { onBack?: () => void }) {
                     : <dl className="lag-growth-extra-list">{Object.entries(current.extraStats).map(([name, value]) => <DetailRow key={name} label={name}>{value}</DetailRow>)}</dl>}
                 </section>
 
-                {current.representativeTitleId === null ? null : <p className="lag-growth-meta">대표 칭호 번호 · {current.representativeTitleId}</p>}
                 <button type="button" ref={historyButton} className="lag-growth-action" onClick={openHistory}>경험치 이력 보기 <span aria-hidden>→</span></button>
               </>
             ) : null}

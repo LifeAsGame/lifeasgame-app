@@ -47,7 +47,7 @@ describe("v7 Growth surface를 사용할 때", () => {
     for (const value of ["21", "22", "23", "24", "25", "26", "7", "9"]) expect(screen.getByText(value)).toBeInTheDocument();
     expect(screen.getByText("Focus")).toBeInTheDocument();
     expect(screen.getByText("Balance")).toBeInTheDocument();
-    expect(screen.getByText("대표 칭호 번호 · 41")).toBeInTheDocument();
+    expect(screen.queryByText(/대표 칭호 번호/)).not.toBeInTheDocument();
     expect(screen.queryByText(/1,230|1,600|Knowledge|Health|Relation|Creativity|Achievement|progress|%/i)).not.toBeInTheDocument();
 
     const source = readFileSync("features/player/GrowthShell.tsx", "utf8");

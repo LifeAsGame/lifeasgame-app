@@ -9,6 +9,9 @@ const api = vi.hoisted(() => ({
   getCurrentPlayerApi: vi.fn(),
   getPlayerTitlesApi: vi.fn(),
   setRepresentativeTitleApi: vi.fn(),
+  clearRepresentativeTitleApi: vi.fn(),
+  getTitleDefinitionsApi: vi.fn(),
+  getActivatedContentApi: vi.fn(),
 }));
 
 vi.mock("./api", () => api);
@@ -25,6 +28,9 @@ describe("Title query/mutation state를 관리할 때", () => {
     api.getPlayerTitlesApi.mockResolvedValue(titles);
     api.getCurrentPlayerApi.mockResolvedValue(player);
     api.setRepresentativeTitleApi.mockResolvedValue({ titleId: 2 });
+    api.clearRepresentativeTitleApi.mockResolvedValue(undefined);
+    api.getTitleDefinitionsApi.mockResolvedValue([]);
+    api.getActivatedContentApi.mockResolvedValue({ entries: [], page: 0, size: 20, hasNext: false });
   });
 
   it("authority를 함께 로드하고 PATCH 후 Player를 새로 읽으며 no-op과 refresh failure에서 state를 만들지 않는다", async () => {
@@ -47,5 +53,17 @@ describe("Title query/mutation state를 관리할 때", () => {
     await act(async () => { await result.current.setRepresentative(1); });
     expect(result.current.representativeTitleId).toBe(2);
     expect(result.current.mutationError).toMatch(/플레이어를 다시 조회하지 못했습니다/);
+  });
+
+  it("대표 해제 실패는 기존 대표를 유지하고 성공 후 서버 값을 다시 조회한다", async () => {
+    const { result } = renderHook(() => useTitleQueries());
+    await waitFor(() => expect(result.current.representativeTitleId).toBe(1));
+    api.clearRepresentativeTitleApi.mockRejectedValueOnce(new Error("save failed"));
+    await act(async () => { expect(await result.current.clearRepresentative()).toBe(false); });
+    expect(result.current.representativeTitleId).toBe(1);
+    expect(result.current.mutationError).toBe("save failed");
+    api.getCurrentPlayerApi.mockResolvedValueOnce({ ...player, representativeTitleId: null });
+    await act(async () => { expect(await result.current.clearRepresentative()).toBe(true); });
+    expect(result.current.representativeTitleId).toBeNull();
   });
 });

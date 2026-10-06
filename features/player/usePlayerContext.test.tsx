@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EquipmentSlotInfo, PlayerInfo } from "@/shared/api/types";
 import { usePlayerContext } from "./usePlayerContext";
 
-const api = vi.hoisted(() => ({ getCurrentPlayerApi: vi.fn(), getEquippedGearApi: vi.fn() }));
-vi.mock("./api", () => ({ getCurrentPlayerApi: api.getCurrentPlayerApi }));
+const api = vi.hoisted(() => ({ getCurrentPlayerApi: vi.fn(), getPlayerTitlesApi: vi.fn(), getEquippedGearApi: vi.fn() }));
+vi.mock("./api", () => ({ getCurrentPlayerApi: api.getCurrentPlayerApi, getPlayerTitlesApi: api.getPlayerTitlesApi }));
 vi.mock("@/lib/api/endpoints/equipment.api", () => ({ getEquippedGearApi: api.getEquippedGearApi }));
 
 const player = { playerId: 7, name: "Player", level: 8 } as PlayerInfo;
@@ -18,6 +18,7 @@ describe("proven Player context query", () => {
     vi.clearAllMocks();
     api.getCurrentPlayerApi.mockResolvedValue(player);
     api.getEquippedGearApi.mockResolvedValue(equipments);
+    api.getPlayerTitlesApi.mockResolvedValue([]);
   });
 
   it("loads Current Player and Equipment only when enabled and exposes retry", async () => {
@@ -30,7 +31,7 @@ describe("proven Player context query", () => {
     await waitFor(() => expect(view.result.current.error).toBe("Player unavailable"));
     await act(async () => { await view.result.current.reload(); });
 
-    expect(view.result.current.data).toEqual({ player, equipments });
+    expect(view.result.current.data).toEqual({ player, equipments, representativeTitle: null });
     expect(api.getCurrentPlayerApi).toHaveBeenCalledTimes(2);
     expect(api.getEquippedGearApi).toHaveBeenCalledTimes(2);
   });
@@ -40,7 +41,7 @@ describe("proven Player context query", () => {
     const view = renderHook(() => usePlayerContext(true));
 
     await waitFor(() => expect(view.result.current.loading).toBe(false));
-    expect(view.result.current.data).toEqual({ player, equipments: [] });
+    expect(view.result.current.data).toEqual({ player, equipments: [], representativeTitle: null });
     expect(view.result.current.error).toBe("Equipment unavailable");
   });
 

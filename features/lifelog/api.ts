@@ -25,9 +25,10 @@ import type {
   QuickRecordResult,
 } from "@/shared/api/types";
 import { collectionMock, exerciseMock, journalMock, mediaMock } from "./mock";
+import { awardSourceCommitted } from "@/features/player/awardEvents";
 
 export const RECORD_SAVED_EVENT = "lag:record-saved";
-function recordSaved() { if (typeof window !== "undefined") window.dispatchEvent(new Event(RECORD_SAVED_EVENT)); }
+function recordSaved() { if (typeof window !== "undefined") window.dispatchEvent(new Event(RECORD_SAVED_EVENT)); awardSourceCommitted(); }
 
 const COLLECTION_PATH = "/api/v1/players/collections";
 const EXERCISE_PATH = "/api/v1/players/exercises";

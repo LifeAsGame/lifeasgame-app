@@ -266,6 +266,7 @@ export default function Home() {
       summary={selectedMain === "player" ? <LeftContext
           mode="player"
           playerInfo={playerContext.data?.player}
+          representativeTitle={playerContext.data?.representativeTitle}
           equipments={playerContext.data?.equipments}
           playerLoading={playerContext.loading}
           playerError={playerContext.error}
@@ -313,6 +314,7 @@ export default function Home() {
           onRoleRefresh={roleState.refresh}
           onRoleArchived={(id) => setSelectedRoleId((current) => current === id ? null : current)}
           playerInfo={playerContext.data?.player}
+          representativeTitle={playerContext.data?.representativeTitle}
           equipments={playerContext.data?.equipments}
           playerLoading={playerContext.loading}
           playerError={playerContext.error}

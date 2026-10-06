@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getHomeApi } from "./api";
+import { AWARD_CHANGED_EVENT, AWARD_SOURCE_EVENT } from "@/features/player/awardEvents";
 import type { HomeSummary } from "./model";
 
 export function useHomeQuery(active = true) {
@@ -32,6 +33,14 @@ export function useHomeQuery(active = true) {
   useEffect(() => {
     if (active) void reload();
     return () => { requestId.current += 1; };
+  }, [active, reload]);
+
+  useEffect(() => {
+    if (!active) return;
+    const refresh = () => { void reload(); };
+    window.addEventListener(AWARD_SOURCE_EVENT, refresh);
+    window.addEventListener(AWARD_CHANGED_EVENT, refresh);
+    return () => { window.removeEventListener(AWARD_SOURCE_EVENT, refresh); window.removeEventListener(AWARD_CHANGED_EVENT, refresh); };
   }, [active, reload]);
 
   return { data, loading, error, reload };

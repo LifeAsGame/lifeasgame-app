@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { InventoryEntriesResponse, MailboxEntriesResponse, MailEntry } from "@/shared/api/types";
 import { claimMailApi, deleteMailApi, getInventoryApi, getMailboxApi } from "@/lib/api/endpoints/inventory.api";
+import { awardSourceCommitted } from "@/features/player/awardEvents";
 
 export type QueryState<T> = {
   data: T;
@@ -107,6 +108,7 @@ export function useInventoryQueries() {
       `claim-${mail.mailId}`,
       async () => {
         await claimMailApi({ slotIndex: mail.slotIndex, quantity: mail.quantity });
+        awardSourceCommitted();
         confirmedClaims.current.add(mail.mailId);
         setConfirmedClaimMailIds(new Set(confirmedClaims.current));
       },
