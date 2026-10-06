@@ -1,0 +1,43 @@
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
+import PersonRoleContexts from "./PersonRoleContexts";
+import type { PersonDetail } from "@/shared/api/types";
+const api = vi.hoisted(() => ({ personRoleContexts: vi.fn(), updateRoleRelationApi: vi.fn(), updatePersonApi: vi.fn() }));
+vi.mock("./contextApi", () => ({ personRoleContexts: api.personRoleContexts }));
+vi.mock("./api", () => api);
+const person = { id: 7, displayName: "한 인물", status: "ACTIVE", notes: "공통 메모" } as PersonDetail;
+const a = { relationId: 11, roleId: 1, personId: 7, roleName: "학습 역할", roleStatus: "ACTIVE", relationStatus: "ACTIVE", relationType: "MENTOR", roleNotes: "학습 메모", version: 0 };
+const b = { ...a, relationId: 12, roleId: 2, roleName: "운동 역할", relationType: "FRIEND", roleNotes: "운동 메모" };
+const page = (contents = [a, b]) => ({ contents, page: 0, size: 20, totalElements: contents.length, totalPages: 1 });
+beforeEach(() => { vi.resetAllMocks(); api.personRoleContexts.mockResolvedValue(page()); api.updateRoleRelationApi.mockResolvedValue({ relationType: "MENTOR", roleNotes: "수정된 학습 메모", version: 1 }); });
+it("edits only the selected role relation, retaining other roles and common Person fields", async () => {
+  render(<PersonRoleContexts person={person} onBack={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: /학습 역할/ }));
+  expect(screen.getByText("학습 메모")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "이 역할의 관계 수정" }));
+  fireEvent.change(screen.getByLabelText("역할 메모"), { target: { value: "수정된 학습 메모" } });
+  fireEvent.click(screen.getByRole("button", { name: "관계 저장" }));
+  await waitFor(() => expect(api.updateRoleRelationApi).toHaveBeenCalledWith(1, 11, { relationType: "MENTOR", roleNotes: "수정된 학습 메모" }));
+  expect(await screen.findByText("수정된 학습 메모")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /운동 역할/ }));
+  expect(screen.getByText("운동 메모")).toBeInTheDocument();
+  expect(api.updatePersonApi).not.toHaveBeenCalled(); expect(person.notes).toBe("공통 메모");
+});
+it("shows archived history without offering edits and clears child detail on history reentry", async () => {
+  api.personRoleContexts.mockResolvedValue(page([{ ...a, roleStatus: "ARCHIVED" }]));
+  render(<PersonRoleContexts person={person} onBack={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: /학습 역할/ }));
+  expect(screen.queryByRole("button", { name: "이 역할의 관계 수정" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("checkbox"));
+  expect(document.querySelector('[data-stage-key="person-role-context-detail"]')).not.toBeInTheDocument();
+  await waitFor(() => expect(api.personRoleContexts).toHaveBeenLastCalledWith(7, 0, true, ""));
+});
+it("does not let a late previous page replace the current filtered page", async () => {
+  let resolve!: (value: ReturnType<typeof page>) => void;
+  api.personRoleContexts.mockReturnValueOnce(new Promise((done) => { resolve = done; })).mockResolvedValueOnce(page([b]));
+  render(<PersonRoleContexts person={person} onBack={vi.fn()} />);
+  fireEvent.click(screen.getByRole("checkbox"));
+  await screen.findByRole("button", { name: /운동 역할/ });
+  await act(async () => resolve(page([a])));
+  expect(screen.queryByRole("button", { name: /학습 역할/ })).not.toBeInTheDocument();
+});

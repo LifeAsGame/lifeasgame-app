@@ -16,7 +16,7 @@ import type { GuildEvent, GuildEventInput, GuildEventParticipant } from "./guild
 const localDate = (value?: string) => value ? new Date(value).toLocaleString("sv-SE").replace(" ", "T").slice(0, 16) : "";
 const errorText = (error: unknown) => error instanceof ApiError ? error.status === 404 ? "행사를 찾을 수 없거나 길드 접근 권한이 없습니다." : error.status === 403 ? "현재 권한으로 이 작업을 할 수 없습니다." : error.status === 409 ? "행사 상태가 바뀌었습니다. 다시 조회해주세요." : error.message : error instanceof Error ? error.message : "요청을 완료하지 못했습니다.";
 
-export default function GuildEventPanels({ guildId, creating, onBack }: { guildId: number; creating: boolean; onBack: () => void }) {
+export default function GuildEventPanels({ guildId, creating, onBack, onAccessLost }: { onAccessLost?: () => void; guildId: number; creating: boolean; onBack: () => void }) {
   const compact = useMediaQuery("(max-width: 1199px)");
   const { confirm, dialog } = useSaoConfirm();
   const [events, setEvents] = useState<GuildEvent[]>([]), [page, setPage] = useState(0), [totalPages, setTotalPages] = useState(0), [listLoading, setListLoading] = useState(true), [listError, setListError] = useState<string | null>(null);
@@ -27,9 +27,9 @@ export default function GuildEventPanels({ guildId, creating, onBack }: { guildI
   const loadList = useCallback(async () => {
     const seq = ++listSeq.current; setListLoading(true); setListError(null);
     try { const [me, result] = await Promise.all([groupMe("guilds", guildId), guildEvents(guildId, page)]); if (seq === listSeq.current) { setLeader(me.myRole === "LEADER"); setEvents(result.contents); setTotalPages(result.totalPages); } }
-    catch (caught) { if (seq === listSeq.current) { setEvents([]); setListError(errorText(caught)); } }
+    catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); if (seq === listSeq.current) { setEvents([]); setListError(errorText(caught)); } }
     finally { if (seq === listSeq.current) setListLoading(false); }
-  }, [guildId, page]);
+  }, [guildId, page, onAccessLost]);
   useEffect(() => { const listCounter = listSeq, detailCounter = detailSeq, participantCounter = participantSeq; void loadList(); return () => { listCounter.current++; detailCounter.current++; participantCounter.current++; }; }, [loadList]);
   useEffect(() => { setFormOpen(creating); setSelectedId(null); setDetail(null); setEditing(false); }, [creating]);
   const close = () => { detailSeq.current++; participantSeq.current++; setSelectedId(null); setDetail(null); setEditing(false); setError(null); };
@@ -38,13 +38,13 @@ export default function GuildEventPanels({ guildId, creating, onBack }: { guildI
     try {
       const [me, result] = await Promise.all([groupMe("guilds", guildId), guildEvent(guildId, id)]);
       if (seq === detailSeq.current) { setLeader(me.myRole === "LEADER"); setDetail(result); setEditing(edit && me.myRole === "LEADER" && result.status === "PLANNED"); }
-    } catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); }
+    } catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); if (seq === detailSeq.current) setError(errorText(caught)); }
     finally { if (seq === detailSeq.current) setLoading(false); }
   };
   const loadParticipants = async (id: number, index = 0) => {
     const seq = ++participantSeq.current; setParticipants(null); setParticipantsError(null);
     try { const result = await guildEventParticipants(guildId, id, index); if (seq === participantSeq.current) setParticipants(result); }
-    catch (caught) { if (seq === participantSeq.current) setParticipantsError(errorText(caught)); }
+    catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); if (seq === participantSeq.current) setParticipantsError(errorText(caught)); }
   };
   const save = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault(); if (lock.current) return;
@@ -58,7 +58,7 @@ export default function GuildEventPanels({ guildId, creating, onBack }: { guildI
       if ((await groupMe("guilds", guildId)).myRole !== "LEADER") { setLeader(false); setEditing(false); setError("현재 리더 권한이 없습니다."); return; }
       const result = editing && selectedId !== null ? await updateGuildEvent(guildId, selectedId, body) : await createGuildEvent(guildId, body);
       await loadList(); if (seq === detailSeq.current) { setFormOpen(false); await open(result.id); }
-    } catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); }
+    } catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); if (seq === detailSeq.current) setError(errorText(caught)); }
     finally { lock.current = false; setBusy(false); }
   };
   const command = async (id: number, action: "complete" | "cancel" | "join" | "leave") => {
@@ -73,7 +73,7 @@ export default function GuildEventPanels({ guildId, creating, onBack }: { guildI
       else if (action === "leave") await cancelGuildEventRsvp(guildId, id);
       else await finishGuildEvent(guildId, id, action);
       await loadList(); if (seq === detailSeq.current && selectedId === id) await open(id);
-    } catch (caught) { if (seq === detailSeq.current) setError(errorText(caught)); await loadList(); }
+    } catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.(); if (seq === detailSeq.current) setError(errorText(caught)); await loadList(); }
     finally { lock.current = false; setBusy(false); }
   };
   const form = (record?: GuildEvent) => <form className="lag-role-form" onSubmit={(event) => void save(event)}><label>행사 제목<input className="lag-role-control" name="title" required maxLength={120} defaultValue={record?.title ?? ""} /></label><label>공유 설명<textarea className="lag-role-control" name="sharedDescription" rows={3} maxLength={2000} defaultValue={record?.sharedDescription ?? ""} /></label><label>시작<input className="lag-role-control" name="startsAt" type="datetime-local" min="1000-01-01T00:00" required defaultValue={localDate(record?.startsAt)} /></label><label>종료<input className="lag-role-control" name="endsAt" type="datetime-local" min="1000-01-01T00:00" required defaultValue={localDate(record?.endsAt)} /></label><label>장소<input className="lag-role-control" name="location" maxLength={200} defaultValue={record?.location ?? ""} /></label><p>길드 공유 행사이며 개인 역할 일정과 별개입니다.</p>{error ? <p role="alert">{error}</p> : null}<button className="lag-role-action" type="submit" disabled={busy}>{busy ? "저장 중…" : "행사 저장"}</button></form>;
