@@ -26,7 +26,7 @@ export default function RosterPanels({ groupType, groupId, maxMembers, creating,
   const { confirm, dialog } = useSaoConfirm();
   const [page, setPage] = useState(0), [filter, setFilter] = useState<"ALL" | "UNLINKED" | "LINKED">("ALL"), [keyword, setKeyword] = useState(""), [term, setTerm] = useState("");
   const [rows, setRows] = useState<RosterPage | null>(null), [pendingInvites, setPendingInvites] = useState<GroupPage<RosterInvitation> | null>(null);
-  const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [memberCount, setMemberCount] = useState<number | null>(null), [unlinkedCount, setUnlinkedCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null), [busy, setBusy] = useState(false);
   const [createOpen, setCreateOpen] = useState(creating), [selected, setSelected] = useState<RosterRow | null>(null), [editOpen, setEditOpen] = useState(false), [inviteOpen, setInviteOpen] = useState(false);
   const [draft, setDraft] = useState({ displayName: "", groupRoleLabel: "" }), [peers, setPeers] = useState<ConnectionPeer[]>([]), [peerId, setPeerId] = useState(0), [peerError, setPeerError] = useState<string | null>(null);
@@ -38,8 +38,11 @@ export default function RosterPanels({ groupType, groupId, maxMembers, creating,
       const next = await rosterRows(groupType, groupId, page, filter, term);
       if (current !== seq.current) return;
       setRows(next);
-      const actual = await groupMembers(groupType === "GUILD" ? "guilds" : "parties", groupId, 0);
-      if (current === seq.current) setMemberCount(actual.totalElements);
+      const [actual, unlinked] = await Promise.all([
+        groupMembers(groupType === "GUILD" ? "guilds" : "parties", groupId, 0),
+        !term && filter === "UNLINKED" ? Promise.resolve(next) : rosterRows(groupType, groupId, 0, "UNLINKED"),
+      ]);
+      if (current === seq.current) { setMemberCount(actual.totalElements); setUnlinkedCount(unlinked.totalElements); }
       if (next.capabilities.canManageRoster) {
         try {
           const first = await pendingRosterInvitations(groupType, groupId);
@@ -126,7 +129,7 @@ export default function RosterPanels({ groupType, groupId, maxMembers, creating,
     <PanelStage stageKey="roster-list" parentStageKey="social-detail" instant inactive={compact && selected !== null}>
       <PanelFrame title={createOpen && canManage ? "명부 등록" : "공유 명부"} backButton={<BackButton label={createOpen && canManage ? "명부 목록으로" : "모임 상세로"} onClick={createOpen && canManage ? () => { setCreateOpen(false); setError(null); } : onBack} />}>
         <CreateSlot creating={createOpen && canManage} pending={busy} showCancel={false} onClose={() => setCreateOpen(false)} list={<div className="lag-role-detail lag-group-main">
-          <p>실제 가입 {memberCount ?? "…"}/{maxMembers}명 · 공유 명부 {filter === "ALL" && !term ? rows?.totalElements ?? 0 : "검색 중"}건</p>
+          <p>실제 가입 {memberCount ?? "…"}/{maxMembers}명 · 계정 미연결 명부 {unlinkedCount ?? "…"}건 · 현재 목록 {rows?.totalElements ?? "…"}건</p>
           <div className="lag-group-tabs" role="group" aria-label="명부 상태">{(["ALL", "UNLINKED", "LINKED"] as const).map((item) => <button key={item} type="button" className="lag-role-button" aria-pressed={filter === item} onClick={() => { setFilter(item); setPage(0); setSelected(null); }}>{ { ALL: "전체", UNLINKED: "미연결", LINKED: "계정 연결" }[item] }</button>)}</div>
           <form className="lag-group-search" onSubmit={(event) => { event.preventDefault(); setTerm(keyword.trim()); setPage(0); }}><input aria-label="명부 이름 검색" value={keyword} onChange={(event) => setKeyword(event.target.value)} /><button className="lag-role-button">검색</button></form>
           {loading ? <p role="status">명부를 불러오는 중…</p> : null}

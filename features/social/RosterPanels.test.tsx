@@ -36,6 +36,8 @@ it("uses empty-list capabilities to register an offline entry without adding a s
   await waitFor(() => expect(api.createRosterRow).toHaveBeenCalledWith("GUILD", 3, { displayName: "오프라인 멤버", groupRoleLabel: "기록 담당" }));
   expect(groups.groupMembers).toHaveBeenCalledWith("guilds", 3, 0);
   expect(screen.getByText(/실제 가입 1\/10명/)).toBeInTheDocument();
+  expect(screen.getByText(/계정 미연결 명부 0건/)).toBeInTheDocument();
+  expect(api.rosterRows).toHaveBeenCalledWith("GUILD", 3, 0, "UNLINKED");
 });
 
 it("keeps an empty roster read-only when the server withholds management capability", async () => {
