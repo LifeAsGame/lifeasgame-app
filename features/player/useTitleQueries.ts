@@ -128,16 +128,19 @@ export function useTitleQueries() {
     try {
       await setRepresentativeTitleApi(titleId);
       if (accountId !== sessionPlayerId.current) return false;
-      const [refreshed, owned] = await Promise.all([loadPlayer(), loadTitles()]);
+      const [refreshed, owned, activation] = await Promise.all([loadPlayer(), loadTitles(), loadActivation()]);
       if (accountId !== sessionPlayerId.current) return false;
-      if (!refreshed || !owned) {
-        setMutationError("대표 칭호 변경 후 플레이어를 다시 조회하지 못했습니다.");
+      if (!refreshed || !owned || !activation) {
+        setMutationError("대표 칭호 변경 후 최신 상태를 모두 확인하지 못했습니다. 다시 조회해 주세요.");
         return false;
       }
       awardReadChanged();
       return true;
     } catch (caught) {
-      if (accountId === sessionPlayerId.current) setMutationError(message(caught, "대표 칭호를 설정하지 못했습니다."));
+      if (accountId === sessionPlayerId.current) {
+        await Promise.all([loadPlayer(), loadTitles(), loadActivation()]);
+        setMutationError(`대표 칭호 설정 결과를 확인하지 못했습니다. 다시 조회한 상태를 확인해 주세요. ${message(caught, "")}`.trim());
+      }
       return false;
     } finally {
       mutationLocked.current = false;
@@ -154,13 +157,16 @@ export function useTitleQueries() {
     try {
       await clearRepresentativeTitleApi();
       if (accountId !== sessionPlayerId.current) return false;
-      const [refreshed, owned] = await Promise.all([loadPlayer(), loadTitles()]);
+      const [refreshed, owned, activation] = await Promise.all([loadPlayer(), loadTitles(), loadActivation()]);
       if (accountId !== sessionPlayerId.current) return false;
-      if (!refreshed || !owned) { setMutationError("대표 칭호 해제 후 상태를 다시 조회하지 못했습니다."); return false; }
+      if (!refreshed || !owned || !activation) { setMutationError("대표 칭호 해제 후 최신 상태를 모두 확인하지 못했습니다. 다시 조회해 주세요."); return false; }
       awardReadChanged();
       return true;
     } catch (caught) {
-      if (accountId === sessionPlayerId.current) setMutationError(message(caught, "대표 칭호를 해제하지 못했습니다."));
+      if (accountId === sessionPlayerId.current) {
+        await Promise.all([loadPlayer(), loadTitles(), loadActivation()]);
+        setMutationError(`대표 칭호 해제 결과를 확인하지 못했습니다. 다시 조회한 상태를 확인해 주세요. ${message(caught, "")}`.trim());
+      }
       return false;
     } finally { mutationLocked.current = false; if (accountId === sessionPlayerId.current) setPendingMutation(false); }
   };

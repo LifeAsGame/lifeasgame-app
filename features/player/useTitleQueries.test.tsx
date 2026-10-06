@@ -40,6 +40,8 @@ describe("Title query/mutation state를 관리할 때", () => {
 
     await act(async () => { await result.current.setRepresentative(1); });
     expect(api.setRepresentativeTitleApi).not.toHaveBeenCalled();
+    await act(async () => { expect(await result.current.setRepresentative(999)).toBe(false); });
+    expect(api.setRepresentativeTitleApi).not.toHaveBeenCalled();
 
     act(() => result.current.select(2));
     api.getCurrentPlayerApi.mockResolvedValueOnce({ ...player, representativeTitleId: 2 });
@@ -52,7 +54,7 @@ describe("Title query/mutation state를 관리할 때", () => {
     api.setRepresentativeTitleApi.mockResolvedValueOnce({ titleId: 1 });
     await act(async () => { await result.current.setRepresentative(1); });
     expect(result.current.representativeTitleId).toBe(2);
-    expect(result.current.mutationError).toMatch(/플레이어를 다시 조회하지 못했습니다/);
+    expect(result.current.mutationError).toMatch(/최신 상태를 모두 확인하지 못했습니다/);
   });
 
   it("대표 해제 실패는 기존 대표를 유지하고 성공 후 서버 값을 다시 조회한다", async () => {
@@ -61,7 +63,7 @@ describe("Title query/mutation state를 관리할 때", () => {
     api.clearRepresentativeTitleApi.mockRejectedValueOnce(new Error("save failed"));
     await act(async () => { expect(await result.current.clearRepresentative()).toBe(false); });
     expect(result.current.representativeTitleId).toBe(1);
-    expect(result.current.mutationError).toBe("save failed");
+    expect(result.current.mutationError).toMatch(/save failed/);
     api.getCurrentPlayerApi.mockResolvedValueOnce({ ...player, representativeTitleId: null });
     await act(async () => { expect(await result.current.clearRepresentative()).toBe(true); });
     expect(result.current.representativeTitleId).toBeNull();
