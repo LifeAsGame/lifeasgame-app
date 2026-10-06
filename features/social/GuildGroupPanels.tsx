@@ -127,7 +127,7 @@ export default function GuildGroupPanels({ guildId, playerId, creating, onBack, 
       if (action === "approve" && !canApprove || action === "cancel" && item.proposedByPlayerId !== playerId || (action === "reject" || action === "unlink") && !rights.guild && !rights.group) { setError("현재 권한이 바뀌었습니다. 다시 조회해주세요."); return; }
       const result = action === "unlink" ? await unlinkGuildGroup(guildId, item.id) : await decideGuildLink(guildId, item.id, action, displayName);
       close(); listSeq.current++; setPage(0);
-      setTab(action === "approve" && result?.status === "ACTIVE" ? "active" : "pending"); setRevision((value) => value + 1);
+      setTab(action === "unlink" || action === "approve" && result?.status === "ACTIVE" ? "active" : "pending"); setRevision((value) => value + 1);
     } catch (caught) { if (caught instanceof ApiError && [403, 404].includes(caught.status)) onAccessLost?.();
       if (seq === detailSeq.current) {
         setError(errorText(caught)); setGuildLeader(false); setGroupLeader(false);

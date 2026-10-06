@@ -1,11 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api/client";
 import GuildGroupPanels from "./GuildGroupPanels";
 import GuildEventPanels from "./GuildEventPanels";
 
 const groups = vi.hoisted(() => ({ groupCreate: vi.fn(), groupMe: vi.fn(), groupMine: vi.fn() }));
-const guild = vi.hoisted(() => ({ guildLinks: vi.fn(), guildPendingLinks: vi.fn(), proposeGuildLink: vi.fn(), createGuildGroup: vi.fn(), decideGuildLink: vi.fn(), guildEvents: vi.fn(), guildEvent: vi.fn(), guildEventRsvp: vi.fn() }));
+const guild = vi.hoisted(() => ({ guildLinks: vi.fn(), guildPendingLinks: vi.fn(), proposeGuildLink: vi.fn(), createGuildGroup: vi.fn(), decideGuildLink: vi.fn(), unlinkGuildGroup: vi.fn(), guildEvents: vi.fn(), guildEvent: vi.fn(), guildEventRsvp: vi.fn() }));
 const roles = vi.hoisted(() => ({ myRoleParties: vi.fn(), rolePartyDetail: vi.fn() }));
 const roleApi = vi.hoisted(() => ({ listRolesApi: vi.fn() }));
 const contextApi = vi.hoisted(() => ({ linkRoleGroup: vi.fn() }));
@@ -36,6 +36,20 @@ it("shows the Guild label while a nonmember's RoleParty detail stays private", a
   expect(await screen.findByText(/멤버 초대가 필요합니다/)).toBeInTheDocument();
   expect(roles.rolePartyDetail).toHaveBeenCalledWith(42);
   expect(screen.queryByText("비공개 이름")).not.toBeInTheDocument();
+});
+
+it("keeps the active list visible after unlinking a Guild group", async () => {
+  const link = { id: 9, groupType: "PARTY", groupId: 42, displayName: "해제할 연결", status: "ACTIVE", entryAction: "INVITE_REQUIRED" };
+  let linked = true;
+  guild.guildLinks.mockImplementation(async () => ({ ...empty, contents: linked ? [link] : [], totalElements: Number(linked), totalPages: Number(linked) }));
+  guild.unlinkGuildGroup.mockImplementation(async () => { linked = false; });
+  render(<GuildGroupPanels guildId={3} playerId={7} creating={false} onBack={() => {}} />);
+  fireEvent.click(await screen.findByRole("button", { name: /해제할 연결/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "길드 연결 해제" }));
+  fireEvent.click(within(await screen.findByRole("dialog", { name: "작업 확인" })).getByRole("button", { name: "확인" }));
+  await waitFor(() => expect(guild.unlinkGuildGroup).toHaveBeenCalledWith(3, 9));
+  await waitFor(() => expect(screen.queryByRole("button", { name: /해제할 연결/ })).not.toBeInTheDocument());
+  expect(screen.getByRole("button", { name: "연결된 모임" })).toHaveAttribute("aria-pressed", "true");
 });
 
 it("refreshes the pending list after consecutive proposals on the same tab", async () => {
