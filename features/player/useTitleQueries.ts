@@ -105,7 +105,15 @@ export function useTitleQueries() {
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const refresh = () => { const playerId = sessionPlayerId.current; void loadTitles(); void loadPlayer(); void loadActivation(); timers.push(setTimeout(() => { if (sessionPlayerId.current === playerId) { void loadTitles(); void loadActivation(); } }, 900), setTimeout(() => { if (sessionPlayerId.current === playerId) { void loadTitles(); void loadActivation(); } }, 2200)); };
+    const refresh = () => {
+      timers.forEach(clearTimeout);
+      timers.length = 0;
+      const playerId = sessionPlayerId.current;
+      void loadTitles(); void loadPlayer(); void loadActivation();
+      for (const delay of [900, 2200]) timers.push(setTimeout(() => {
+        if (sessionPlayerId.current === playerId) { void loadTitles(); void loadActivation(); }
+      }, delay));
+    };
     window.addEventListener(AWARD_SOURCE_EVENT, refresh);
     if (recentAwardSource()) refresh();
     return () => { window.removeEventListener(AWARD_SOURCE_EVENT, refresh); timers.forEach(clearTimeout); };

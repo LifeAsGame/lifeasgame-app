@@ -87,6 +87,8 @@ export function useAchievementQueries() {
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const refresh = () => {
+      timers.forEach(clearTimeout);
+      timers.length = 0;
       const playerId = sessionPlayerId.current;
       void reload();
       void reloadActivation();
