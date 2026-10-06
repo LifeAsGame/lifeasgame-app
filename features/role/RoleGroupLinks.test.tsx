@@ -5,7 +5,7 @@ import RoleGroupLinks from "./RoleGroupLinks";
 import type { RoleGroupCandidate, RoleGroupLink } from "./contextApi";
 const api = vi.hoisted(() => ({ roleGroupLinks: vi.fn(), roleGroupCandidates: vi.fn(), linkRoleGroup: vi.fn(), unlinkRoleGroup: vi.fn() }));
 vi.mock("./contextApi", async (original) => ({ ...await original<typeof import("./contextApi")>(), ...api }));
-vi.mock("@/features/social/GroupShell", () => ({ default: ({ linkedGroup }: { linkedGroup: { onAccessLost: () => void } }) => <div>비공개 상세<button onClick={linkedGroup.onAccessLost}>권한 상실</button></div> }));
+vi.mock("@/features/social/GroupShell", () => ({ default: ({ linkedGroup }: { linkedGroup: { onAccessLost: () => void; onMemberOpen: (open: boolean) => void; onPrivacyLost: () => void } }) => <div>비공개 상세<button onClick={linkedGroup.onAccessLost}>권한 상실</button><button onClick={() => linkedGroup.onMemberOpen(true)}>멤버 진입</button><button onClick={linkedGroup.onPrivacyLost}>초안 중 권한 상실</button><input aria-label="관계 초안" /></div> }));
 vi.mock("./RolePartyPanels", () => ({ default: () => <div>기존 역할 소모임 상세</div> }));
 const group: RoleGroupCandidate = { groupType: "GUILD", groupId: 7, name: "내 비공개 길드", memberRole: "MEMBER" };
 const link: RoleGroupLink = { linkId: 21, roleId: 1, groupType: "GUILD", groupId: 7, access: "AVAILABLE", group };
@@ -59,4 +59,17 @@ it("ignores late candidate results after a type change", async () => {
   await screen.findByRole("button", { name: /현재 후보/ });
   await act(async () => resolve(page([group])));
   expect(screen.queryByRole("button", { name: /내 비공개 길드/ })).not.toBeInTheDocument();
+});
+
+it("retains an active member draft on focus while dropping the private bookmark title on denial", async () => {
+  render(<RoleGroupLinks {...props} />);
+  fireEvent.click(await screen.findByRole("button", { name: /내 비공개 길드/ }));
+  fireEvent.click(screen.getByRole("button", { name: "멤버 진입" }));
+  fireEvent.change(screen.getByLabelText("관계 초안"), { target: { value: "보존" } });
+  fireEvent(window, new Event("focus"));
+  expect(screen.getByLabelText("관계 초안")).toHaveValue("보존");
+  fireEvent.click(screen.getByRole("button", { name: "초안 중 권한 상실" }));
+  expect(screen.getByLabelText("관계 초안")).toHaveValue("보존");
+  expect(screen.queryByRole("button", { name: /내 비공개 길드/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /접근 불가/ })).toBeInTheDocument();
 });

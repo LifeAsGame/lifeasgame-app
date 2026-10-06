@@ -5206,3 +5206,11 @@ select {
 .lag-connection-row:not([data-actions="true"]) .lag-connection-actions { display:none; }
 .lag-connection-actions[hidden] { display:none; }
 .lag-connection-row[data-actions="true"] { border-color:var(--lag-focus); }
+
+/* Member → owned Person forms share the existing panel and field gutters. */
+[data-stage-key="member-person-detail"] .lag-panel-frame { width: min(440px, calc(100vw - 32px)) !important; }
+[data-stage-key="member-person-detail"] :is(.lag-role-detail, .lag-role-form) { min-width: 0; padding-inline: 24px; }
+[data-stage-key="member-person-detail"] .lag-role-detail .lag-role-form { padding-inline: 0; border: 0; background: transparent; }
+[data-stage-key="member-person-detail"] :is(label, section[aria-label="길드 개인 메모"]) { display: grid; gap: 12px; }
+[data-stage-key="member-person-detail"] :is(input, select, textarea) { min-width: 0; width: 100%; box-sizing: border-box; font-size: 16px; }
+@media (max-width: 899px) { [data-stage-key="member-person-detail"] :is(.lag-role-detail, .lag-role-form) { padding-inline: 16px; } }

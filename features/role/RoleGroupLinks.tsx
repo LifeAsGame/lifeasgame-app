@@ -21,6 +21,7 @@ export default function RoleGroupLinks({ roleId, roleName, roleStatus, playerId,
   const [type, setType] = useState<RoleGroupType>("GUILD"), [keyword, setKeyword] = useState(""), [term, setTerm] = useState("");
   const [links, setLinks] = useState<ConnectionPage<RoleGroupLink> | null>(null), [candidates, setCandidates] = useState<ConnectionPage<RoleGroupCandidate> | null>(null);
   const [selected, setSelected] = useState<RoleGroupLink | null>(null), [loading, setLoading] = useState(false), [error, setError] = useState<string | null>(null), [pending, setPending] = useState(false);
+  const [memberOpen, setMemberOpen] = useState(false);
   const seq = useRef(0), busy = useRef(false);
   const load = useCallback(async () => {
     const id = ++seq.current; setLoading(true); setError(null); setLinks(null); setCandidates(null);
@@ -34,13 +35,18 @@ export default function RoleGroupLinks({ roleId, roleName, roleStatus, playerId,
   useEffect(() => { const counter = seq; void load(); return () => { counter.current++; }; }, [load, reentryRequest]);
   useEffect(() => { setSelected(null); setCreating(Boolean(createRequest && roleStatus === "ACTIVE")); setCandidatePage(0); setKeyword(""); setTerm(""); }, [createRequest, reentryRequest, roleStatus]);
   // Revalidate on returning to the window; the old detail is removed before reads.
-  useEffect(() => { const refresh = () => { setSelected(null); void load(); }; window.addEventListener("focus", refresh); return () => window.removeEventListener("focus", refresh); }, [load]);
+  useEffect(() => { const refresh = () => { if (!memberOpen) { setSelected(null); void load(); } }; window.addEventListener("focus", refresh); return () => window.removeEventListener("focus", refresh); }, [load, memberOpen]);
   const accessLost = useCallback(() => {
     const linkId = selected?.linkId;
     setSelected((current) => current?.linkId === linkId ? null : current);
     setLinks((current) => current ? { ...current, contents: current.contents.map((row) => row.linkId === linkId ? { ...row, access: "UNAVAILABLE", group: null } : row) } : null);
   }, [selected?.linkId]);
-  const linkedGroup = useMemo(() => selected ? { id: selected.groupId, onAccessLost: accessLost } : undefined, [selected, accessLost]);
+  const privacyLost = useCallback(() => {
+    const linkId = selected?.linkId;
+    setSelected((current) => current && current.linkId === linkId ? { ...current, access: "UNAVAILABLE", group: null } : current);
+    setLinks((current) => current ? { ...current, contents: current.contents.map((row) => row.linkId === linkId ? { ...row, access: "UNAVAILABLE", group: null } : row) } : null);
+  }, [selected?.linkId]);
+  const linkedGroup = useMemo(() => selected ? { id: selected.groupId, onAccessLost: accessLost, onPrivacyLost: privacyLost, onMemberOpen: setMemberOpen } : undefined, [selected, accessLost, privacyLost]);
   const add = async (group: RoleGroupCandidate) => {
     if (busy.current || roleStatus !== "ACTIVE") return;
     const version = seq.current; busy.current = true; setPending(true); setError(null);
@@ -80,6 +86,6 @@ export default function RoleGroupLinks({ roleId, roleName, roleStatus, playerId,
       </CreateSlot>
     </PanelFrame>
   </PanelStage>
-  {selected && linkedGroup ? selected.groupType === "ROLE_PARTY" ? <RolePartyPanels key={groupKey(selected)} playerId={playerId} linkedGroup={linkedGroup} onBack={() => setSelected(null)} /> : <GroupShell key={groupKey(selected)} kind={selected.groupType === "GUILD" ? "guilds" : "parties"} playerId={playerId} linkedGroup={linkedGroup} onBack={() => setSelected(null)} /> : null}
+  {selected && linkedGroup ? selected.groupType === "ROLE_PARTY" ? <RolePartyPanels key={groupKey(selected)} roleId={roleId} roleName={roleName} roleStatus={roleStatus} playerId={playerId} linkedGroup={linkedGroup} onBack={() => setSelected(null)} /> : <GroupShell key={groupKey(selected)} originRole={{ id: roleId, name: roleName, status: roleStatus }} kind={selected.groupType === "GUILD" ? "guilds" : "parties"} playerId={playerId} linkedGroup={linkedGroup} onBack={() => setSelected(null)} /> : null}
   </>;
 }
