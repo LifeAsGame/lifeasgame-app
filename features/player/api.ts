@@ -57,8 +57,8 @@ export function getPlayerAchievementApi(achievementId: number): Promise<PlayerAc
 }
 
 export async function getActivatedContentApi(): Promise<ActivatedContentPage> {
-  if (USE_MOCK) return { entries: [], page: 0, size: 20, hasNext: false };
-  return apiGet<ActivatedContentPage>("/api/v1/players/activated-content?page=0&size=20");
+  if (USE_MOCK) return { entries: [], page: 0, size: 7, hasNext: false };
+  return apiGet<ActivatedContentPage>("/api/v1/players/activated-content?page=0&size=7");
 }
 
 export async function getCertificationCatalogApi(): Promise<CertificationCatalogInfo[]> {
