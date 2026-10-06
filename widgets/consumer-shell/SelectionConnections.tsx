@@ -12,7 +12,9 @@ export function visibleConnections(root: Element): Connection[] {
   return stages.flatMap((stage) => {
     const parent = stage.dataset.parentStageKey ? byKey.get(stage.dataset.parentStageKey) : null;
     const sourcePanel = parent?.querySelector(".lag-panel-frame") ?? null;
-    const source = parent?.querySelector('.lag-panel-frame [aria-pressed="true"], .lag-panel-frame [data-selected="true"]') ?? (stage.dataset.parentStageKey === "main" ? main : null);
+    const source = parent?.querySelector('.lag-panel-frame .lag-role-node[data-selected="true"]')
+      ?? parent?.querySelector('.lag-panel-frame [aria-pressed="true"], .lag-panel-frame [data-selected="true"]')
+      ?? (stage.dataset.parentStageKey === "main" ? main : null);
     const target = stage.querySelector(".lag-panel-frame");
     return source && target && (sourcePanel || stage.dataset.parentStageKey === "main") ? [{ source, sourcePanel, target, id: `${parent?.dataset.stageKey ?? "main"}-${stage.dataset.stageKey}` }] : [];
   });

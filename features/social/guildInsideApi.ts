@@ -7,6 +7,15 @@ export type GuildLink = {
   entryAction?: "OPEN_DETAIL" | "OPEN_PUBLIC_PREVIEW" | "INVITE_REQUIRED";
   proposedByPlayerId?: number; guildLeaderApproved?: boolean; groupLeaderApproved?: boolean;
 };
+export type GuildGroupCreateInput = {
+  clientRequestId: string; groupType: GuildLink["groupType"]; displayName: string;
+  party?: { name: string; code: string; descriptionMd: string | null; visibility: "PUBLIC" | "PRIVATE"; joinPolicy: "OPEN" | "APPROVAL" | "INVITE_ONLY"; maxMembers: number };
+  roleParty?: { roleId: number; name: string; description: string | null; maxMembers: number };
+};
+export type GuildGroupCreateResult = {
+  groupType: GuildLink["groupType"]; groupId: number; linkId: number; linkStatus: "ACTIVE" | "PENDING";
+  capabilities: { canOpenGroup: boolean; canApproveGuildLink: boolean; canLinkToPersonalRole: boolean };
+};
 export type GuildEvent = {
   id: number; guildId: number; title: string; sharedDescription: string | null;
   startsAt: string; endsAt: string; location: string | null;
@@ -21,6 +30,7 @@ const page = (index: number) => `?page=${index}&size=20`;
 export const guildLinks = (guildId: number, index = 0) => apiGet<GroupPage<GuildLink>>(`${root(guildId)}/group-links${page(index)}`);
 export const guildPendingLinks = (guildId: number, index = 0) => apiGet<GroupPage<GuildLink>>(`${root(guildId)}/group-links/pending${page(index)}`);
 export const proposeGuildLink = (guildId: number, groupType: GuildLink["groupType"], groupId: number, displayName: string) => apiPost<GuildLink>(`${root(guildId)}/group-links`, { groupType, groupId, displayName });
+export const createGuildGroup = (guildId: number, body: GuildGroupCreateInput) => apiPost<GuildGroupCreateResult>(`${root(guildId)}/groups`, body);
 export const decideGuildLink = (guildId: number, linkId: number, action: "approve" | "reject" | "cancel", displayName?: string) => apiPost<GuildLink>(`${root(guildId)}/group-links/${linkId}/${action}`, action === "approve" ? { displayName } : {});
 export const unlinkGuildGroup = (guildId: number, linkId: number) => apiDelete<void>(`${root(guildId)}/group-links/${linkId}`);
 export const guildEvents = (guildId: number, index = 0) => apiGet<GroupPage<GuildEvent>>(`${root(guildId)}/events${page(index)}`);

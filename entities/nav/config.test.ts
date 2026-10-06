@@ -29,7 +29,7 @@ describe("primary Orb navigation을 구성할 때", () => {
 
       expect(role).toEqual({ id: "role", label: "인물 · 역할", slotLabel: "RL" });
       expect(MAIN_NAV_ITEMS.find(({ id }) => id === "social")).toEqual({ id: "social", label: "모임", slotLabel: "SO" });
-      expect(SUBMENUS_BY_MAIN.social.map(({ id }) => id)).toEqual(["guilds", "parties", "role-parties"]);
+      expect(SUBMENUS_BY_MAIN.social.map(({ id }) => id)).toEqual(["guilds", "parties", "role-parties", "roster-invitations"]);
       expect(SUBMENUS_BY_MAIN.role.map(({ id }) => id)).toEqual(["overview", "relations", "events", "parties"]);
       expect(DEFAULT_SUB_SELECTIONS.role).toBeNull();
     });

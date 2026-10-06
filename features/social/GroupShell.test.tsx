@@ -40,8 +40,8 @@ it("lets a Guild member propose a link from a group they lead", async () => {
   render(<GroupShell kind="guilds" playerId={6} onBack={vi.fn()} />);
   fireEvent.click(await screen.findByRole("button", { name: /산책 모임.*멤버/ }));
   fireEvent.keyDown(await screen.findByRole("button", { name: "모임" }), { key: "Enter", altKey: true });
-  expect(await screen.findByRole("heading", { name: "모임 연결" })).toBeInTheDocument();
-  expect(screen.getByRole("combobox", { name: "연결 방식" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "길드에서 모임 만들기" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "모임 방식" })).toBeInTheDocument();
 });
 
 it("생성 폼은 서버 계약의 공개 범위·가입 방식·정원을 전송한다", async () => {
