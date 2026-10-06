@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
-import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
+import type { EquipmentView, PlayerInfo, PlayerTitleInfo, RoleDetail } from "@/shared/api/types";
 import { MOTION } from "@/shared/lib/motion";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 
@@ -14,6 +14,7 @@ type LeftContextMode = "hidden" | "player" | "role";
 type LeftContextProps = {
   mode: LeftContextMode;
   playerInfo?: PlayerInfo;
+  representativeTitle?: PlayerTitleInfo | null;
   equipments?: EquipmentView[];
   playerLoading?: boolean;
   playerError?: string | null;
@@ -36,6 +37,7 @@ type LeftContextProps = {
 export default function LeftContext({
   mode,
   playerInfo,
+  representativeTitle,
   equipments,
   playerLoading,
   playerError,
@@ -101,7 +103,7 @@ export default function LeftContext({
               transition={reducedMotion ? { duration: 0 } : MOTION.panelContentSwap.transition}
             >
               {mode === "player" ? (
-                <PlayerPanel playerInfo={playerInfo} equipments={equipments} loading={playerLoading} error={playerError} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} onRetry={onPlayerRetry} />
+                <PlayerPanel playerInfo={playerInfo} representativeTitle={representativeTitle} equipments={equipments} loading={playerLoading} error={playerError} roles={roles} selectedRoleId={selectedRoleId} onRoleSelect={onRoleSelect} onRetry={onPlayerRetry} />
               ) : mode === "role" ? (
                 <RoleContextPanel
                   workspace={roleWorkspace}

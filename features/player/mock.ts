@@ -245,6 +245,7 @@ export const titleMock = {
     currentPlayer = { ...currentPlayer, representativeTitleId: titleId };
     return { titleId };
   },
+  clearRepresentative: (): void => { currentPlayer = { ...currentPlayer, representativeTitleId: null }; },
 };
 
 export const MOCK_HOBBY_CATALOG = [

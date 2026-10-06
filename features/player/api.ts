@@ -14,6 +14,7 @@ import type {
   PlayerTitleInfo,
 } from "@/shared/api/types";
 import { achievementMock, certificationMock, growthMock, hobbyMock, titleMock } from "./mock";
+import type { ActivatedContentPage } from "./activation";
 
 export type RegisterPlayerRequest = { name: string; gender: string };
 export type CreatedPlayerWithToken = {
@@ -53,6 +54,11 @@ export function getPlayerAchievementApi(achievementId: number): Promise<PlayerAc
   return USE_MOCK
     ? Promise.resolve().then(() => achievementMock.detail(achievementId))
     : apiGet<PlayerAchievementInfo>(`/api/v1/players/achievements/${achievementId}`);
+}
+
+export async function getActivatedContentApi(): Promise<ActivatedContentPage> {
+  if (USE_MOCK) return { entries: [], page: 0, size: 7, hasNext: false };
+  return apiGet<ActivatedContentPage>("/api/v1/players/activated-content?page=0&size=7");
 }
 
 export async function getCertificationCatalogApi(): Promise<CertificationCatalogInfo[]> {
@@ -99,6 +105,10 @@ export function setRepresentativeTitleApi(titleId: number): Promise<{ titleId: n
   return USE_MOCK
     ? Promise.resolve().then(() => titleMock.setRepresentative(titleId))
     : apiPatch<{ titleId: number }>(`/api/v1/players/titles/${titleId}`, undefined);
+}
+
+export function clearRepresentativeTitleApi(): Promise<unknown> {
+  return USE_MOCK ? Promise.resolve().then(() => titleMock.clearRepresentative()) : apiDelete<unknown>("/api/v1/players/titles/representative");
 }
 
 export async function getHobbyCatalogApi(): Promise<HobbyCatalogInfo[]> {

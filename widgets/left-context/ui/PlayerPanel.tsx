@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
-import type { EquipmentView, PlayerInfo, RoleDetail } from "@/shared/api/types";
+import type { EquipmentView, PlayerInfo, PlayerTitleInfo, RoleDetail } from "@/shared/api/types";
 import { RoleBadges } from "./RoleContextPanel";
 
 function StatBar({
@@ -46,6 +46,7 @@ function StatBar({
 
 export function PlayerPanel({
   playerInfo,
+  representativeTitle,
   equipments,
   loading,
   error,
@@ -55,6 +56,7 @@ export function PlayerPanel({
   onRetry,
 }: {
   playerInfo?: PlayerInfo;
+  representativeTitle?: PlayerTitleInfo | null;
   equipments?: EquipmentView[];
   loading?: boolean;
   error?: string | null;
@@ -129,6 +131,7 @@ export function PlayerPanel({
           <p className="mt-1" style={{ fontSize: "12px", color: "var(--lag-text-2)" }}>
             레벨 {level} · {job}
           </p>
+          {representativeTitle ? <p className="mt-1" style={{ fontSize: "12px", color: "var(--lag-text-2)" }}>대표 칭호 · {representativeTitle.name}</p> : null}
           <div
             className="mx-auto mt-4"
             style={{ width: "88%", height: "1px", background: "linear-gradient(90deg, transparent, var(--lag-divider), transparent)" }}

@@ -13,6 +13,8 @@ import {
   getPlayerGrowthApi,
   getPlayerHobbiesApi,
   getPlayerTitlesApi,
+  getActivatedContentApi,
+  clearRepresentativeTitleApi,
   registerPlayerCertificationApi,
   registerPlayerHobbyApi,
   updatePlayerCertificationApi,
@@ -160,6 +162,16 @@ describe("Current Player Title API를 사용할 때", () => {
     expect(titleMock.setRepresentative(nextId)).toEqual({ titleId: nextId });
     expect(titleMock.player().representativeTitleId).toBe(nextId);
     expect(() => titleMock.setRepresentative(999_999)).toThrow("Acquired Title not found.");
+  });
+
+  it("활성 정의는 Current Player의 조회만 사용하고 대표 해제는 명시된 DELETE 명령을 사용한다", async () => {
+    const page = { entries: [], page: 0, size: 7, hasNext: false };
+    client.apiGet.mockResolvedValue(page);
+    client.apiDelete.mockResolvedValue(undefined);
+    expect(await getActivatedContentApi()).toEqual(page);
+    await clearRepresentativeTitleApi();
+    expect(client.apiGet).toHaveBeenCalledWith("/api/v1/players/activated-content?page=0&size=7");
+    expect(client.apiDelete).toHaveBeenCalledWith("/api/v1/players/titles/representative");
   });
 });
 

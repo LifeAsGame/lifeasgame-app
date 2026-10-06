@@ -82,14 +82,20 @@ export default function EdgeFadeScrollArea({
     canScrollUp: false,
     canScrollDown: false,
   });
-  const [viewportHeight, setViewportHeight] = useState(0);
 
   useEffect(() => {
-    if (!centerSelected || !scrollRef.current) return;
-    const observer = new ResizeObserver(([entry]) => setViewportHeight(entry.contentRect.height));
-    observer.observe(scrollRef.current);
-    return () => observer.disconnect();
-  }, [centerSelected]);
+    const scroll = scrollRef.current;
+    const content = contentRef.current;
+    if (!centerSelected || centerTargetKey == null || centerTargetKey === "" || !scroll || !content) return;
+    const updatePadding = () => {
+      const padding = `${Math.max(0, (scroll.clientHeight - 68) / 2)}px`;
+      if (content.style.paddingBlock !== padding) content.style.paddingBlock = padding;
+    };
+    updatePadding();
+    const observer = new ResizeObserver(updatePadding);
+    observer.observe(scroll);
+    return () => { observer.disconnect(); content.style.paddingBlock = ""; };
+  }, [centerSelected, centerTargetKey]);
 
   const cancelCenterAnimation = useCallback(() => {
     if (centerFrameRef.current !== null) {
@@ -602,7 +608,6 @@ export default function EdgeFadeScrollArea({
     centerTargetKey,
     centerTargetSelector,
     startSpringCenterScroll,
-    viewportHeight,
     reducedMotion,
   ]);
 
@@ -621,7 +626,7 @@ export default function EdgeFadeScrollArea({
   return (
     <div className="relative min-h-0">
       <div ref={scrollRef} {...rest} className={mergedClassName} style={style}>
-        <div ref={contentRef} style={centerSelected && centerTargetKey !== null && centerTargetKey !== "" ? { paddingBlock: Math.max(0, (viewportHeight - 68) / 2) } : undefined}>{children}</div>
+        <div ref={contentRef}>{children}</div>
       </div>
 
       <div

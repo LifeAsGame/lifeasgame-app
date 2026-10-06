@@ -54,8 +54,9 @@ export interface PlayerAchievementInfo {
   name: string;
   category: string;
   descMd: string;
-  acquiredAt: string;
+  acquiredAt: string | null;
 }
+
 
 export interface PlayerCertificationInfo {
   certificationId: number;
@@ -120,8 +121,9 @@ export interface PlayerTitleInfo {
   name: string;
   category: string;
   descMd: string;
-  acquiredAt: string;
+  acquiredAt: string | null;
 }
+
 
 export interface PlayerGrowthOverview {
   current: {
