@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { MEDIA_CATEGORIES, MEDIA_STATUSES, type MediaCategory, type MediaCreateRequest, type MediaInfo, type MediaStatus, type MediaUpdateRequest } from "@/shared/api/types";
 import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery";
-import { RecordRow, SwipeButton } from "@/features/role/RecordRow";
+import { RecordRow } from "@/features/role/RecordRow";
 import CreateSlot, { useCreateMode } from "@/shared/ui/CreateSlot";
 import PanelStage from "@/shared/ui/PanelStage";
 import { useSaoConfirm } from "@/shared/ui/useSaoConfirm";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useMediaQueries } from "./useMediaQueries";
+import LifeLogFolders, { type FolderChoice } from "./LifeLogFolders";
+import RecordFolderSelect from "./RecordFolderSelect";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const number = (form: FormData, key: string) => text(form, key) === "" ? undefined : Number(text(form, key));
@@ -64,9 +66,10 @@ function MediaDetail({ item }: { item: MediaInfo }) {
 }
 
 export default function MediaShell({ createRequest = 0, initialRecord }: { createRequest?: number; initialRecord?: { id: number; category: MediaCategory; title: string } }) {
-  const media = useMediaQueries(), creation = useCreateMode(createRequest), { confirm, dialog } = useSaoConfirm();
+  const media = useMediaQueries(), creation = useCreateMode(), { confirm, dialog } = useSaoConfirm();
   const compact = useMediaQuery("(max-width: 1199px)");
   const [category, setCategory] = useState<MediaCategory | "" | null>(null);
+  const [folder, setFolder] = useState<FolderChoice | null>(null);
   const [status, setStatus] = useState<MediaStatus | "">("");
   const [titleLike, setTitleLike] = useState("");
   const [detailVisible, setDetailVisible] = useState(false), [editing, setEditing] = useState(false);
@@ -74,24 +77,22 @@ export default function MediaShell({ createRequest = 0, initialRecord }: { creat
   const jumped = useRef(false);
   const pending = media.pendingMutation !== null;
   // The request counter is the external creation event; query methods change identity on render.
+  useEffect(() => { if (createRequest) { setCategory(null); setFolder(null); setDetailVisible(false); } }, [createRequest]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (createRequest) { setCategory(""); setDetailVisible(false); media.search(); } }, [createRequest]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!initialRecord) return; setCategory(initialRecord.category); setTitleLike(initialRecord.title); media.search(initialRecord.category, undefined, initialRecord.title); }, [initialRecord?.id]);
+  useEffect(() => { if (!initialRecord) return; setFolder({ type: "system", code: initialRecord.category, name: initialRecord.category }); setCategory(initialRecord.category); setTitleLike(initialRecord.title); media.search(initialRecord.category, undefined, initialRecord.title); }, [initialRecord?.id]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (!initialRecord || jumped.current || media.params.category !== initialRecord.category || media.params.titleLike !== initialRecord.title || media.list.loading || !media.list.items.some((item) => item.id === initialRecord.id)) return; jumped.current = true; media.select(initialRecord.id); setDetailVisible(true); }, [initialRecord?.id, media.params, media.list.loading, media.list.items]);
   useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
-  const choose = (next: MediaCategory, create = false) => { if (searchTimer.current) clearTimeout(searchTimer.current); setCategory(next); setStatus(""); setTitleLike(""); setDetailVisible(false); setEditing(false); media.search(next); if (create) creation.open(); else creation.close(); };
+  const folderFilter = folder?.type === "personal" ? { personalCategoryId: folder.id } : folder?.type === "unclassified" ? { unclassified: true } : {};
+  const choose = (next: FolderChoice, create = false) => { const code = next.type === "system" ? next.code as MediaCategory : ""; if (searchTimer.current) clearTimeout(searchTimer.current); setFolder(next); setCategory(code); setStatus(""); setTitleLike(""); setDetailVisible(false); setEditing(false); media.search(code || undefined, undefined, undefined, next.type === "personal" ? { personalCategoryId: next.id } : next.type === "unclassified" ? { unclassified: true } : {}); if (create) creation.open(); else creation.close(); };
   const select = (id: number, edit = false) => { media.select(id); setDetailVisible(true); setEditing(edit); };
   const backToList = () => { media.clearSelection(); setDetailVisible(false); setEditing(false); };
-  const search = (nextStatus = status, nextTitle = titleLike) => media.search(category || undefined, nextStatus || undefined, nextTitle);
+  const search = (nextStatus = status, nextTitle = titleLike) => media.search(category || undefined, nextStatus || undefined, nextTitle, folderFilter);
   const selected = detailVisible && !creation.creating && media.selectedId !== null && media.detail?.id === media.selectedId ? media.detail : null;
   return <div className="lag-panel-rail lag-lifelog-shell" data-testid="media-shell">{dialog}
-    <PanelStage stageKey="lifelog-media-categories" parentStageKey="lifelog-stage-0" panelRole="list" inactive={compact && category !== null}>
-      <PanelFrame title="감상 분류" depth={1} centerSelected centerTargetKey={category} centerBehavior="spring"><div className="lag-role-node-list lag-lifelog-categories">{MEDIA_CATEGORIES.map((kind) => <SwipeButton key={kind} creation className="lag-role-node" aria-pressed={category === kind} data-scroll-center-target={category === kind ? "true" : undefined} onClick={() => choose(kind)} onDoubleClick={() => choose(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong></SwipeButton>)}</div></PanelFrame>
-    </PanelStage>
-    {category !== null ? <PanelStage stageKey="lifelog-media-list" parentStageKey="lifelog-media-categories" panelRole="list" inactive={compact && selected !== null}>
-      <PanelFrame title={creation.creating ? "감상 기록 등록" : category ? consumerLabel(category) + " 목록" : "감상 기록 목록"} depth={1} centerSelected={!creation.creating} centerTargetKey={creation.creating ? null : media.selectedId} centerBehavior="spring" backButton={<BackButton label={creation.creating ? "감상 목록으로" : "감상 분류로"} onClick={() => { if (creation.creating) creation.close(); else { backToList(); setCategory(null); } }} />}>
+    <LifeLogFolders onCloseChildren={() => { setFolder(null); setCategory(null); media.clearSelection(); creation.close(); setDetailVisible(false); setEditing(false); }} kind="MEDIA" title="감상 기록" stageKey="lifelog-media-categories" selected={folder} createRequest={createRequest} onSelect={(next) => choose(next)} onCreateRecord={(next) => choose(next, true)} />
+    {folder ? <PanelStage stageKey="lifelog-media-list" parentStageKey="lifelog-media-categories" panelRole="list" inactive={compact && selected !== null}>
+      <PanelFrame title={creation.creating ? "감상 기록 등록" : `${folder.type === "system" ? consumerLabel(folder.name) : folder.type === "personal" ? folder.name : folder.type === "all" ? "전체" : "미분류"} 목록`} depth={1} centerSelected={!creation.creating} centerTargetKey={creation.creating ? null : media.selectedId} centerBehavior="spring" backButton={<BackButton label={creation.creating ? "감상 목록으로" : "내 분류로"} onClick={() => { if (creation.creating) creation.close(); else { backToList(); setFolder(null); setCategory(null); } }} />}>
         <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} showCancel={false} list={<div className="lag-role-detail">
           <details><summary>검색 조건</summary><div className="lag-lifelog-search"><Select name="status-filter" label="상태 필터" values={MEDIA_STATUSES} defaultValue={status} onChange={(value) => { const next = value as MediaStatus | ""; setStatus(next); search(next); }} /><label>제목 검색<input className="lag-role-control" aria-label="제목 검색" value={titleLike} onChange={(event) => { const next = event.target.value; setTitleLike(next); if (searchTimer.current) clearTimeout(searchTimer.current); searchTimer.current = setTimeout(() => search(status, next), 200); }} /></label></div></details>
           {media.list.loading && !media.list.items.length ? <InfoCard>감상 기록을 불러오는 중…</InfoCard> : null}
@@ -100,11 +101,11 @@ export default function MediaShell({ createRequest = 0, initialRecord }: { creat
           {!media.list.loading && !media.list.error && !media.list.items.length ? <InfoCard>감상 기록이 없습니다.</InfoCard> : null}
           <div className="lag-role-node-list">{media.list.items.map((item) => <RecordRow key={item.id} title={item.title} subtitle={consumerLabel(item.category) + " · " + consumerLabel(item.status) + " · " + item.currentEpisode + "/" + item.totalEpisode} selected={media.selectedId === item.id} disabled={pending} onSelect={() => select(item.id)} onEdit={() => select(item.id, true)} onArchive={async () => { if (await confirm("“" + item.title + "” 감상 기록을 삭제할까요?")) { await media.remove(item.id); backToList(); } }} />)}</div>
           <div className="lag-journal-pagination"><button type="button" disabled={media.list.loading || media.params.page === 0} onClick={() => { backToList(); media.changePage(media.params.page - 1); }}>이전</button><span>페이지 {media.params.page + 1}</span><button type="button" disabled={media.list.loading || media.list.items.length < media.params.size} onClick={() => { backToList(); media.changePage(media.params.page + 1); }}>다음</button></div>
-        </div>}><MediaForm category={category} pending={pending} save={(body) => creation.save(() => media.create(body as MediaCreateRequest))} />{media.mutationError ? <p role="alert">{media.mutationError}</p> : null}</CreateSlot>
+        </div>}><MediaForm category={category ?? ""} pending={pending} save={(body) => creation.save(() => media.create({ ...body as MediaCreateRequest, ...(folder.type === "personal" ? { personalCategoryId: folder.id } : {}) }))} />{media.mutationError ? <p role="alert">{media.mutationError}</p> : null}</CreateSlot>
       </PanelFrame>
     </PanelStage> : null}
     {selected ? <PanelStage stageKey="lifelog-media-detail" parentStageKey="lifelog-media-list" panelRole="detail"><PanelFrame title={editing ? "감상 기록 수정" : "감상 기록 상세"} depth={0} backButton={<BackButton label={editing ? "감상 기록 상세로" : "감상 목록으로"} onClick={editing ? () => setEditing(false) : backToList} />}>
-      {editing ? <MediaForm item={selected} category={selected.category} pending={pending} save={async (body) => { const saved = await media.update(selected.id, body); if (saved) setEditing(false); return saved; }} rate={(score) => media.rate(selected.id, score)} advance={() => media.advance(selected.id)} markStatus={(next) => media.markStatus(selected.id, next)} rewatch={() => media.rewatch(selected.id)} /> : <MediaDetail item={selected} />}
+      {editing ? <MediaForm item={selected} category={selected.category} pending={pending} save={async (body) => { const saved = await media.update(selected.id, body); if (saved) setEditing(false); return saved; }} rate={(score) => media.rate(selected.id, score)} advance={() => media.advance(selected.id)} markStatus={(next) => media.markStatus(selected.id, next)} rewatch={() => media.rewatch(selected.id)} /> : <><MediaDetail item={selected} /><RecordFolderSelect kind="MEDIA" recordId={selected.id} categoryId={selected.personalCategoryId} onSaved={async () => !!await media.list.reload()} /></>}
     </PanelFrame></PanelStage> : null}
   </div>;
 }

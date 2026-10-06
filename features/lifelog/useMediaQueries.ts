@@ -41,10 +41,12 @@ export function useMediaQueries() {
   const [detail, setDetail] = useState<MediaInfo | null>(null);
   const listRequestId = useRef(0);
   const mutationLocked = useRef(false);
+  const selectionVersion = useRef(0);
   const [pendingMutation, setPendingMutation] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
   const clearSelection = useCallback(() => {
+    selectionVersion.current++;
     selectedIdRef.current = null;
     setSelectedId(null);
     setDetail(null);
@@ -75,6 +77,7 @@ export function useMediaQueries() {
   useEffect(() => { void reload(); }, [params, reload]);
 
   const select = (id: number) => {
+    selectionVersion.current++;
     const selected = items.find((item) => item.id === id);
     if (!selected) return;
     selectedIdRef.current = id;
@@ -82,11 +85,11 @@ export function useMediaQueries() {
     setDetail(selected);
   };
 
-  const search = (category?: MediaCategory, status?: MediaStatus, titleLike?: string) => {
+  const search = (category?: MediaCategory, status?: MediaStatus, titleLike?: string, folder: Pick<MediaSearchParams, "personalCategoryId" | "unclassified"> = {}) => {
     clearSelection();
     listRequestId.current += 1;
     setItems([]);
-    paramsRef.current = { page: 0, size: paramsRef.current.size, category, status, titleLike: titleLike?.trim() || undefined };
+    paramsRef.current = { page: 0, size: paramsRef.current.size, category, status, titleLike: titleLike?.trim() || undefined, ...folder };
     setParams(paramsRef.current);
   };
 
@@ -101,6 +104,7 @@ export function useMediaQueries() {
   const mutate = async <T,>(key: string, request: () => Promise<T>, onResponse?: (result: T) => void, onReload?: (result: T, next: MediaInfo[]) => void): Promise<boolean> => {
     if (mutationLocked.current) return false;
     mutationLocked.current = true;
+    const selection = selectionVersion.current;
     setPendingMutation(key);
     setMutationError(null);
     try {
@@ -108,10 +112,10 @@ export function useMediaQueries() {
       onResponse?.(result);
       const next = await reload();
       if (!next) {
-        setMutationError("Media changed, but the authoritative list could not be refreshed.");
+        setMutationError("변경은 저장됐지만 목록을 다시 조회하지 못했습니다. 저장을 반복하지 말고 목록을 다시 조회하세요.");
         return true;
       }
-      onReload?.(result, next);
+      if (selection === selectionVersion.current) onReload?.(result, next);
       return true;
     } catch (caught) {
       await reload();

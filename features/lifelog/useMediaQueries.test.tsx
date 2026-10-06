@@ -93,7 +93,7 @@ describe("Media query/mutation state를 관리할 때", () => {
     await act(async () => { expect(await result.current.remove(first.id)).toBe(true); });
     expect(result.current.selectedId).toBeNull();
     expect(result.current.list.items).toEqual([]);
-    expect(result.current.mutationError).toBe("Media changed, but the authoritative list could not be refreshed.");
+    expect(result.current.mutationError).toBe("변경은 저장됐지만 목록을 다시 조회하지 못했습니다. 저장을 반복하지 말고 목록을 다시 조회하세요.");
     expect(api.deleteMediaApi).toHaveBeenCalledTimes(2);
   });
 });
@@ -123,7 +123,7 @@ describe("Media selected command state를 관리할 때", () => {
     expect(api.advanceMediaApi).toHaveBeenCalledTimes(1);
     expect(api.advanceMediaApi).toHaveBeenCalledWith(first.id, { step: 1 });
     expect(result.current.detail).toEqual(advanced);
-    expect(result.current.mutationError).toBe("Media changed, but the authoritative list could not be refreshed.");
+    expect(result.current.mutationError).toBe("변경은 저장됐지만 목록을 다시 조회하지 못했습니다. 저장을 반복하지 말고 목록을 다시 조회하세요.");
     expect(api.searchMediaApi).toHaveBeenCalledTimes(2);
   });
 });

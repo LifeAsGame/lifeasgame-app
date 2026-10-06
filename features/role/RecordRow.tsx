@@ -10,11 +10,11 @@ export function SwipeButton({ onSwipeLeft, onSwipeRight, onClick, onDoubleClick,
   useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   const [offset, setOffset] = useState<number | null>(null);
   const reset = () => { start.current = null; setOffset(null); };
-  return <>{creation && onDoubleClick ? <span id={hintId} className="sr-only">한 번 누르면 목록, 두 번 누르거나 Alt+Enter로 등록.</span> : null}<button {...props} type="button" draggable={false} data-drag-scroll-allow
+  return <>{creation && onDoubleClick ? <span id={hintId} className="sr-only">한 번 누르면 목록, 두 번 누르거나 Alt+Enter로 등록.</span> : null}<button data-selected={props["aria-pressed"] === true || props["aria-pressed"] === "true"} data-scroll-center-target={props["aria-pressed"] === true || props["aria-pressed"] === "true" ? "true" : undefined} {...props} type="button" draggable={false} data-drag-scroll-allow
     aria-keyshortcuts={creation && onDoubleClick ? "Alt+Enter" : undefined}
     aria-describedby={creation && onDoubleClick ? hintId : undefined}
     style={{ ...style, touchAction: "pan-y", transform: `translateX(${offset ?? restingOffset}px)`, transition: offset === null ? "transform var(--lag-motion-normal) ease-out" : "none" }}
-    onKeyDown={(event) => { if (creation && onDoubleClick && event.altKey && event.key === "Enter") { event.preventDefault(); event.currentTarget.focus({ preventScroll: true }); onDoubleClick(); } else onKeyDown?.(event); }}
+    onKeyDown={(event) => { if (creation && onDoubleClick && event.altKey && event.key === "Enter") { event.preventDefault(); if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; } event.currentTarget.focus({ preventScroll: true }); onDoubleClick(); } else onKeyDown?.(event); }}
     onPointerDown={(event) => {
       if (!event.isPrimary || event.button !== 0 || props.disabled) return;
       suppressClick.current = false;

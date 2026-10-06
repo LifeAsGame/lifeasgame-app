@@ -37,10 +37,12 @@ export function useExerciseQueries() {
   const listRequestId = useRef(0);
   const detailRequestId = useRef(0);
   const mutationLocked = useRef(false);
+  const selectionVersion = useRef(0);
   const [pendingMutation, setPendingMutation] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
   const clearSelection = useCallback(() => {
+    selectionVersion.current++;
     selectedIdRef.current = null;
     detailRequestId.current += 1;
     setSelectedId(null);
@@ -86,17 +88,18 @@ export function useExerciseQueries() {
   }, []);
 
   const select = useCallback((id: number) => {
+    selectionVersion.current++;
     selectedIdRef.current = id;
     setSelectedId(id);
     setDetail(null);
     void loadDetail(id);
   }, [loadDetail]);
 
-  const search = (category?: ExerciseCategory, from?: string, to?: string) => {
+  const search = (category?: ExerciseCategory, from?: string, to?: string, folder: Pick<ExerciseSearchParams, "personalCategoryId" | "unclassified"> = {}) => {
     clearSelection();
     listRequestId.current += 1;
     setItems([]);
-    paramsRef.current = { page: 0, size: paramsRef.current.size, category, from: from || undefined, to: to || undefined };
+    paramsRef.current = { page: 0, size: paramsRef.current.size, category, from: from || undefined, to: to || undefined, ...folder };
     setParams(paramsRef.current);
   };
 
@@ -116,14 +119,15 @@ export function useExerciseQueries() {
   ): Promise<boolean> => {
     if (mutationLocked.current) return false;
     mutationLocked.current = true;
+    const selection = selectionVersion.current;
     setPendingMutation(key);
     setMutationError(null);
     try {
       const result = await request();
       onResponse?.(result);
       const next = await reload();
-      if (next) onReload?.(result, next);
-      else setMutationError("Exercise changed, but the authoritative list could not be reloaded.");
+      if (next) { if (selection === selectionVersion.current) onReload?.(result, next); }
+      else setMutationError("변경은 저장됐지만 목록을 다시 조회하지 못했습니다. 저장을 반복하지 말고 목록을 다시 조회하세요.");
       return true;
     } catch (caught) {
       await reload();
