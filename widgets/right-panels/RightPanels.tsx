@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { MainNavId, PanelStackItem } from "@/entities/nav";
 import { reorderToCenter } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
@@ -58,6 +58,7 @@ function PanelContent({
   onPanelBack?: (panelIndex: number) => void;
   onPanelActionClick?: (panelIndex: number) => void;
 }) {
+  const reducedMotion = useReducedMotion();
   if (panel.kind === "form") {
     return (
       <FormPanel
@@ -88,14 +89,14 @@ function PanelContent({
   const isCategoryPanelRoute =
     "context" in panel &&
     (panel.context.route === "player-category" || panel.context.route === "lifelog-category");
-  const menuItemsForRender =
-    panel.kind === "menu"
-      ? reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id)
-      : null;
+  const isPrimaryMenu = panel.kind === "menu" && panel.context.route === "main-submenu";
+  const menuItemsForRender = panel.kind === "menu"
+    ? isPrimaryMenu ? reorderToCenter(panel.items, panel.selectedId ?? null, (item) => item.id) : panel.items
+    : null;
   const centerTargetKey =
-    panel.kind === "menu" || panel.kind === "list" ? (panel.selectedId ?? null) : null;
+    !isPrimaryMenu && (panel.kind === "menu" || panel.kind === "list") ? (panel.selectedId ?? null) : null;
   const centerBehavior: ScrollBehavior | "spring" =
-    panel.kind === "list" || isCategoryPanelRoute ? "spring" : "smooth";
+    !isPrimaryMenu ? "spring" : "auto";
   const isCompactList =
     panel.kind === "list" && (panel.items.length >= 40 || panel.context.route === "market-wallet-summary");
 
@@ -116,6 +117,7 @@ function PanelContent({
       centerBehavior={centerBehavior}
       depth={depth}
       fixedScrollHeight={categoryScrollHeight}
+      centerSelected={!isPrimaryMenu && (panel.kind === "menu" || panel.kind === "list")}
       contentKey={panel.id}
     >
       {panel.kind === "menu" ? (
@@ -125,12 +127,12 @@ function PanelContent({
               panel.context.route === "player-category" ||
               panel.context.route === "lifelog-category";
             const canCreate = panel.context.route === "main-submenu" && ((panel.context.main === "player" && ["credentials", "interests"].includes(item.id)) || (panel.context.main === "lifelog" && ["journal", "exercise", "media"].includes(item.id)) || (panel.context.main === "social" && item.id !== "role-parties"));
-            if (canCreate && onPanelItemCreate) return <div key={item.id}>
-              <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onDoubleClick={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong><span aria-hidden>→</span></SwipeButton>
-            </div>;
+            if (canCreate && onPanelItemCreate) return <motion.div key={item.id} layout="position" transition={reducedMotion ? { duration: 0 } : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }}>
+              <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onDoubleClick={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong></SwipeButton>
+            </motion.div>;
             return (
+              <motion.div key={item.id} layout={isPrimaryMenu ? "position" : false} transition={reducedMotion ? { duration: 0 } : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }}>
               <PanelCard
-                key={item.id}
                 label={item.label}
                 slotLabel={item.slotLabel}
                 selected={panel.selectedId === item.id}
@@ -143,6 +145,7 @@ function PanelContent({
                     : undefined
                 }
               />
+              </motion.div>
             );
           })}
         </div>
@@ -242,8 +245,9 @@ export default function RightPanels({
               const depth = panelStack.length - 1 - panelIndex;
               return (
                 <PanelStage
-                  key={`${selectedMain}-stage-${panelIndex}`}
+                key={`${selectedMain}-stage-${panelIndex}`}
                   stageKey={`${selectedMain}-stage-${panelIndex}`}
+                  parentStageKey={panelIndex ? `${selectedMain}-stage-${panelIndex - 1}` : "main"}
                   inactive={inactive}
                   autoFocus={panelIndex > 0}
                   index={panelIndex}

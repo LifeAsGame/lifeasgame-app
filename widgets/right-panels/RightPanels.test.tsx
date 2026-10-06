@@ -57,6 +57,19 @@ describe("RightPanels stable stage frames", () => {
 
 });
 
+it("keeps secondary category order while the primary menu reorders around its selection", () => {
+  const items = ["first", "middle", "last"].map((id) => ({ id, label: id, slotLabel: id[0] }));
+  const props = { selectedMain: "player" as const, onPanelItemSelect: vi.fn() };
+  const menu: Extract<PanelStackItem, { kind: "menu" }> = { ...root("last"), items };
+  const category: Extract<PanelStackItem, { kind: "menu" }> = { ...menu, id: "categories", context: { main: "player", route: "player-category" } };
+  const view = render(<RightPanels {...props} panelStack={[menu, category]} />);
+  const labels = (index: number) => [...view.container.querySelectorAll(`[data-stage-key="player-stage-${index}"] .lag-role-node strong`)].map((node) => node.textContent);
+  expect(labels(0)).toEqual(["first", "last", "middle"]);
+  expect(labels(1)).toEqual(["first", "middle", "last"]);
+  view.rerender(<RightPanels {...props} panelStack={[menu, { ...category, selectedId: "first" }]} />);
+  expect(labels(1)).toEqual(["first", "middle", "last"]);
+});
+
 
 it("focuses an activated submenu before navigation even when pointer panning prevents native focus", () => {
   let caller: Element | null = null;

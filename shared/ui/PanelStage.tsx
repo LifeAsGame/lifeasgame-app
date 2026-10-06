@@ -16,6 +16,7 @@ export default function PanelStage({
   instant = false,
   side = "right",
   panelRole,
+  parentStageKey,
 }: {
   stageKey: string;
   autoFocus?: boolean;
@@ -27,6 +28,7 @@ export default function PanelStage({
   instant?: boolean;
   side?: "left" | "right";
   panelRole?: "list" | "detail";
+  parentStageKey?: string;
 }) {
   const reducedMotion = useReducedMotion();
   const isPresent = useIsPresent();
@@ -41,6 +43,7 @@ export default function PanelStage({
       layout={false}
       className="lag-panel-stage relative"
       data-stage-key={stageKey}
+      data-parent-stage-key={parentStageKey}
       data-panel-role={panelRole}
       data-panel-side={side}
       data-stage-auto-focus={autoFocus ? undefined : "false"}
@@ -48,11 +51,11 @@ export default function PanelStage({
       inert={inactive || !isPresent}
       aria-hidden={isPresent && !inactive ? undefined : true}
       onPointerDownCapture={onPointerDownCapture}
-      initial={reducedMotion || instant ? false : { opacity: 0 }}
-      animate={{ opacity: inactive ? 0 : 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: reducedMotion || instant ? 0 : 0.16 }}
-      style={{ willChange: "opacity", pointerEvents: isPresent && !inactive ? undefined : "none", zIndex }}
+      initial={reducedMotion || instant ? false : { opacity: 0, x: -10, scale: 0.985 }}
+      animate={{ opacity: inactive ? 0 : 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -6 }}
+      transition={{ duration: reducedMotion || instant ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
+      style={{ willChange: "opacity, transform", pointerEvents: isPresent && !inactive ? undefined : "none", zIndex }}
     >
       {children}
     </motion.div>

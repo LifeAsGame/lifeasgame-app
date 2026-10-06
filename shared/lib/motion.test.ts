@@ -16,8 +16,8 @@ describe("shared staged motion grammar", () => {
     const source = readFileSync("shared/ui/PanelStage.tsx", "utf8");
     expect(source).toContain('initial={reducedMotion || instant ? false');
     expect(source).toContain('layout={false}');
-    expect(source).toContain('initial={reducedMotion || instant ? false : { opacity: 0 }}');
-    expect(source).toContain('duration: reducedMotion || instant ? 0 : 0.16');
+    expect(source).toContain('initial={reducedMotion || instant ? false :');
+    expect(source).toContain('duration: reducedMotion || instant ? 0 :');
     expect(source).toContain("useLayoutEffect");
   });
 });

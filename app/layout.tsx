@@ -6,6 +6,7 @@ import { AuthenticatedThemeBootstrap } from "@/features/theme/AuthenticatedTheme
 import { ThemeProvider } from "@/features/theme/ThemeProvider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/features/theme/theme";
 import { ToastProvider } from "@/context/ToastContext";
+import DateInputGuard from "@/shared/ui/DateInputGuard";
 
 import "./globals.css";
 import "./consumer.css";
@@ -31,6 +32,7 @@ export default function RootLayout({
     <html lang="ko" data-theme="warm-beige" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} /></head>
       <body className={`${consumerFont.variable} antialiased`}>
+        <DateInputGuard />
         <AuthProvider>
           <ThemeProvider>
             <AuthenticatedThemeBootstrap />

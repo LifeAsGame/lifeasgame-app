@@ -77,6 +77,14 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
 .sao-stage .lag-panel-header { padding:20px 24px !important; border-bottom:1px solid var(--lag-divider); }
 .sao-stage .lag-panel-header [aria-hidden] { display:none; }
 .sao-stage .lag-panel-body { max-height:calc(100dvh - 270px) !important; padding-bottom:24px !important; }
+.sao-stage :is(.lag-role-form,.lag-player-form,.lag-collection-form-surface) { box-sizing:border-box; padding-inline:24px; min-width:0; }
+.sao-stage .lag-player-shell .lag-player-content { padding-inline:24px; }
+.sao-stage :is(.lag-role-detail,.lag-group-main,.lag-player-content) > :is(.lag-role-form,.lag-player-form) { padding-inline:0; }
+.sao-stage :is(.lag-person-form,.lag-group-shell .lag-role-form,.lag-role-events .lag-role-form) .lag-role-actions { position:static; }
+.sao-stage :is(.lag-role-form,.lag-player-form) :is(input,select,textarea) { max-width:100%; }
+.sao-stage .lag-inventory-refresh { flex:0 0 32px; width:32px; height:32px; border:1px solid var(--lag-control-border); border-radius:50%; background:var(--lag-control-bg); color:var(--lag-control-text); }
+.sao-stage .lag-inventory-refresh:focus-visible { outline:2px solid var(--lag-focus); outline-offset:2px; }
+.sao-stage .lag-inventory-refresh:disabled { opacity:.45; cursor:not-allowed; }
 .sao-stage .lag-panel-header button { width:44px; height:44px; }
 .sao-stage .lag-panel-stage[data-inactive=true] { display:none; }
 .sao-menu-layer[data-main=quests] .lag-workspace { display:flex; align-items:flex-start; gap:12px; }
@@ -359,6 +367,8 @@ body { font-family: var(--font-consumer), Arial, "Apple SD Gothic Neo", "Malgun 
   .sao-stage .lag-role-selector { padding:16px; }
   .sao-stage .lag-lifelog-shell .lag-role-form { padding-inline:16px; }
   .sao-stage .lag-collection-form-surface { padding-inline:16px; }
+  .sao-stage :is(.lag-role-form,.lag-player-form,.lag-collection-form-surface) { padding-inline:16px; }
+  .sao-stage .lag-player-shell .lag-player-content { padding-inline:16px; }
   .sao-stage .lag-personal-category-form { padding-inline:16px; }
   .sao-stage :is(.lag-role-summary,.lag-role-detail,.lag-growth-profile,.lag-growth-history,.lag-growth-detail,.lag-journey-detail) { padding-inline:16px; }
   .sao-stage .lag-journey-shell [data-stage-key="journey-detail"] { flex-basis:calc(100vw - 32px); width:calc(100vw - 32px); }

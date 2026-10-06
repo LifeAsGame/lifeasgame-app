@@ -27,7 +27,7 @@ function ExerciseForm({ item, category, pending, save }: { item?: ExerciseInfo; 
     <label>운동 시간 (분)<input className="lag-role-control" name="durationMinutes" type="number" min={1} required defaultValue={item?.durationMinutes ?? ""} /></label>
     <label>거리 (km)<input className="lag-role-control" name="distanceKm" type="number" min={0} step="any" defaultValue={item?.distanceKm ?? ""} /></label>
     <label>칼로리<input className="lag-role-control" name="calories" type="number" min={0} defaultValue={item?.calories ?? ""} /></label>
-    <label>운동 날짜<input className="lag-role-control" name="exercisedOn" type="date" required defaultValue={item?.exercisedOn ?? ""} /></label>
+    <label>운동 날짜<input className="lag-role-control" name="exercisedOn" type="date" min="1000-01-01" required defaultValue={item?.exercisedOn ?? ""} /></label>
     <label>메모<textarea className="lag-role-control" name="memo" defaultValue={item?.memo ?? ""} /></label>
     {item ? <p>빈 수치 항목은 현재 값을 유지합니다. 수치 지우기는 지원하지 않습니다.</p> : null}
     <button type="submit" disabled={pending} className="lag-role-action">{pending ? "저장 중…" : "운동 기록 저장"}</button>
@@ -58,15 +58,15 @@ export default function ExerciseShell({ createRequest = 0, initialRecord }: { cr
   const backToList = () => { exercises.clearSelection(); setDetailVisible(false); setEditing(false); };
   const active = detailVisible && !creation.creating && exercises.selectedId !== null;
   return <div className="lag-panel-rail lag-lifelog-shell" data-testid="exercise-shell">{dialog}
-    <PanelStage stageKey="lifelog-exercise-categories" panelRole="list" inactive={compact && category !== null}>
-      <PanelFrame title="운동 분류" depth={1}><div className="lag-role-node-list lag-lifelog-categories">{EXERCISE_CATEGORIES.map((kind) => <SwipeButton key={kind} creation className="lag-role-node" aria-pressed={category === kind} onClick={() => choose(kind)} onDoubleClick={() => choose(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong><span aria-hidden>→</span></SwipeButton>)}</div></PanelFrame>
+    <PanelStage stageKey="lifelog-exercise-categories" parentStageKey="lifelog-stage-0" panelRole="list" inactive={compact && category !== null}>
+      <PanelFrame title="운동 분류" depth={1} centerSelected centerTargetKey={category} centerBehavior="spring"><div className="lag-role-node-list lag-lifelog-categories">{EXERCISE_CATEGORIES.map((kind) => <SwipeButton key={kind} creation className="lag-role-node" aria-pressed={category === kind} data-scroll-center-target={category === kind ? "true" : undefined} onClick={() => choose(kind)} onDoubleClick={() => choose(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong></SwipeButton>)}</div></PanelFrame>
     </PanelStage>
-    {category !== null ? <PanelStage stageKey="lifelog-exercise-list" panelRole="list" inactive={compact && active}>
-      <PanelFrame title={creation.creating ? "운동 기록 등록" : category ? consumerLabel(category) + " 목록" : "운동 기록 목록"} depth={1} backButton={<BackButton label={creation.creating ? "운동 목록으로" : "운동 분류로"} onClick={() => { if (creation.creating) creation.close(); else { backToList(); setCategory(null); } }} />}>
+    {category !== null ? <PanelStage stageKey="lifelog-exercise-list" parentStageKey="lifelog-exercise-categories" panelRole="list" inactive={compact && active}>
+      <PanelFrame title={creation.creating ? "운동 기록 등록" : category ? consumerLabel(category) + " 목록" : "운동 기록 목록"} depth={1} centerSelected={!creation.creating} centerTargetKey={creation.creating ? null : exercises.selectedId} centerBehavior="spring" backButton={<BackButton label={creation.creating ? "운동 목록으로" : "운동 분류로"} onClick={() => { if (creation.creating) creation.close(); else { backToList(); setCategory(null); } }} />}>
         <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} showCancel={false} list={<div className="lag-role-detail">
           <details><summary>기간 검색</summary><form className="lag-lifelog-search" onSubmit={(event) => { event.preventDefault(); exercises.search(category || undefined, from, to); setDetailVisible(false); }}>
-            <label>시작 날짜<input className="lag-role-control" aria-label="시작 날짜" type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-            <label>종료 날짜<input className="lag-role-control" aria-label="종료 날짜" type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
+            <label>시작 날짜<input className="lag-role-control" aria-label="시작 날짜" type="date" min="1000-01-01" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
+            <label>종료 날짜<input className="lag-role-control" aria-label="종료 날짜" type="date" min="1000-01-01" value={to} onChange={(event) => setTo(event.target.value)} /></label>
             <button type="submit" className="lag-role-button">검색</button>
           </form></details>
           {exercises.list.loading && !exercises.list.items.length ? <InfoCard>운동 기록을 불러오는 중…</InfoCard> : null}
@@ -78,7 +78,7 @@ export default function ExerciseShell({ createRequest = 0, initialRecord }: { cr
         </div>}><ExerciseForm category={category} pending={pending} save={(body) => creation.save(() => exercises.create(body as ExerciseCreateRequest))} />{exercises.mutationError ? <p role="alert">{exercises.mutationError}</p> : null}</CreateSlot>
       </PanelFrame>
     </PanelStage> : null}
-    {active ? <PanelStage stageKey="lifelog-exercise-detail" panelRole="detail"><PanelFrame title={editing ? "운동 기록 수정" : "운동 기록 상세"} depth={0} backButton={<BackButton label={editing ? "운동 기록 상세로" : "운동 목록으로"} onClick={editing ? () => setEditing(false) : backToList} />}>
+    {active ? <PanelStage stageKey="lifelog-exercise-detail" parentStageKey="lifelog-exercise-list" panelRole="detail"><PanelFrame title={editing ? "운동 기록 수정" : "운동 기록 상세"} depth={0} backButton={<BackButton label={editing ? "운동 기록 상세로" : "운동 목록으로"} onClick={editing ? () => setEditing(false) : backToList} />}>
       {exercises.detail.loading && !exercises.detail.data ? <InfoCard>운동 기록을 불러오는 중…</InfoCard> : null}
       {exercises.detail.error ? <p role="alert">{exercises.detail.error} <button type="button" className="lag-role-button" onClick={() => void exercises.detail.retry()}>다시 조회</button></p> : null}
       {exercises.detail.data ? editing ? <ExerciseForm key={exercises.detail.data.id} item={exercises.detail.data} category={exercises.detail.data.category} pending={pending} save={async (body) => { const saved = await exercises.update(exercises.detail.data!.id, body); if (saved) setEditing(false); return saved; }} /> : <ExerciseDetail item={exercises.detail.data} /> : null}

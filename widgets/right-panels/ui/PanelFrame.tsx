@@ -29,16 +29,18 @@ export function PanelFrame({
   backButton,
   depth = 0,
   fixedScrollHeight,
+  centerSelected = false,
   contentKey,
 }: {
   title: string;
   children: React.ReactNode;
-  centerTargetKey?: string | null;
+  centerTargetKey?: string | number | null;
   resetScrollKey?: string | number | null;
   centerBehavior?: ScrollBehavior | "spring";
   backButton?: React.ReactNode;
   depth?: number;
   fixedScrollHeight?: number;
+  centerSelected?: boolean;
   contentKey?: React.Key;
 }) {
   return (
@@ -71,6 +73,7 @@ export function PanelFrame({
         centerTargetKey={centerTargetKey ?? null}
         resetScrollKey={resetScrollKey ?? null}
         centerBehavior={centerBehavior}
+        centerSelected={centerSelected}
         fadeColor={getFrameBackground(depth)}
         style={
           fixedScrollHeight
@@ -80,6 +83,7 @@ export function PanelFrame({
                 paddingBottom: UI_CONSTS.rightPanels.panelContentPaddingY,
               }
             : {
+                height: centerSelected ? "min(62vh, 500px)" : undefined,
                 maxHeight: "min(62vh, 560px)",
                 paddingTop: UI_CONSTS.rightPanels.panelContentPaddingY,
                 paddingBottom:

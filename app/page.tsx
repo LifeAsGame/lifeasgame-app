@@ -113,6 +113,7 @@ export default function Home() {
   const [homeAchievementId, setHomeAchievementId] = useState<number | null>(null);
   const [personCreateRequest, setPersonCreateRequest] = useState(0);
   const [roleCreateRequest, setRoleCreateRequest] = useState(0);
+  const [roleTemplateType, setRoleTemplateType] = useState<"ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER" | undefined>();
   const [personReentryRequest, setPersonReentryRequest] = useState(0);
   const [roleReentryRequest, setRoleReentryRequest] = useState(0);
   const [subReentry, setSubReentry] = useState<Record<string, number>>({});
@@ -165,6 +166,7 @@ export default function Home() {
 
   const handleMainSelect = (nextMain: MainNavId) => {
     setSourceJump(null);
+    setRoleTemplateType(undefined);
     if (nextMain === selectedMain) {
       navigateConsumer(null);
       clearFeatureState();
@@ -339,6 +341,7 @@ export default function Home() {
                 hideRoleDetails={roleDetailsHidden}
                 personCreateRequest={personCreateRequest}
                 roleCreateRequest={roleCreateRequest}
+                roleTemplateType={roleTemplateType}
                 personReentryRequest={personReentryRequest}
                 rolesLoading={roleState.isLoading}
                 rolesError={roleState.error}
@@ -355,7 +358,7 @@ export default function Home() {
               />
             </div>
           ) : selectedMain === "quests" ? (
-            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} navigation={{ surface: location.sub as QuestsSubId | null, detail: location.detail }} onNavigate={(sub, detail) => navigateConsumer("quests", sub, detail)} onOpenRoles={() => { handleMainSelect("role"); setRoleWorkspace("roles"); }} />
+            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} navigation={{ surface: location.sub as QuestsSubId | null, detail: location.detail }} onNavigate={(sub, detail) => navigateConsumer("quests", sub, detail)} onOpenRoles={(templateType) => { handleMainSelect("role"); setRoleWorkspace("roles"); if (templateType) { setRoleTemplateType(templateType); setRoleDetailsHidden(true); setRoleCreateRequest((value) => value + 1); } }} />
           ) : selectedMain === "social" ? (
             <div className="flex w-fit items-center gap-6">
               <RightPanels selectedMain="social" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />

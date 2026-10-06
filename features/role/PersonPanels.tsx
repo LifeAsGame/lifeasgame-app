@@ -103,7 +103,7 @@ export default function PersonPanels({ active, createRequest, reentryRequest = 0
         </div>}>{form()}</CreateSlot>
       </PanelFrame>
     </PanelStage>
-    {mode !== "create" && detailOpen && selectedId !== null ? <PanelStage stageKey="person-detail" autoFocus={active}>
+    {mode !== "create" && detailOpen && selectedId !== null ? <PanelStage stageKey="person-detail" parentStageKey="person-list" autoFocus={active}>
       <PanelFrame title={mode === "edit" ? "인물 수정" : "인물 상세"} backButton={<BackButton label={mode === "edit" ? "인물 상세로" : "인물 목록으로"} onClick={mode === "edit" ? cancelEdit : close} />}>
         {loading ? <p role="status">인물 상세를 불러오는 중…</p> : null}
         {error && !detail ? <p role="alert">{error} <button type="button" className="lag-role-button" onClick={() => void select(selectedId, mode === "edit")}>다시 조회</button></p> : null}

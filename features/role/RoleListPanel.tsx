@@ -11,8 +11,9 @@ import { archiveRoleApi } from "./api";
 import { RecordRow } from "./RecordRow";
 import { RoleForm } from "./RoleForm";
 
-export default function RoleListPanel({ roles, selectedRoleId, loading, error, createRequest, inactive, onSelect, onEdit, onRetry, onRefresh, onArchived, onBack }: {
+export default function RoleListPanel({ roles, templateType, selectedRoleId, loading, error, createRequest, inactive, onSelect, onEdit, onRetry, onRefresh, onArchived, onBack }: {
   roles: RoleDetail[]; selectedRoleId: number | null; loading?: boolean; error?: string | null; createRequest: number;
+  templateType?: "ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER";
   inactive?: boolean;
   onSelect: (id: number) => void; onEdit: (id: number) => void; onRetry: () => void; onRefresh: () => Promise<void>; onArchived: (id: number) => void; onBack: () => void;
 }) {
@@ -31,7 +32,7 @@ export default function RoleListPanel({ roles, selectedRoleId, loading, error, c
     catch (caught) { if (id === generation.current) setActionError(caught instanceof Error ? caught.message : "역할을 삭제하지 못했습니다."); }
     finally { lock.current = false; setPending(false); }
   };
-  return <PanelStage stageKey="role-list" index={1} panelRole="list" inactive={inactive}>{dialog}
+  return <PanelStage stageKey="role-list" parentStageKey="main" index={1} panelRole="list" inactive={inactive}>{dialog}
     <PanelFrame title={creating ? "역할 등록" : "내 역할 목록"} depth={1} backButton={<BackButton label={creating ? "역할 목록으로" : "인물 · 역할로"} onClick={creating ? close : onBack} />}>
       <CreateSlot creating={creating} pending={pending} onClose={close} showCancel={false} list={<div className="lag-role-detail">
         {loading ? <p role="status">역할을 불러오는 중…</p> : null}
@@ -39,7 +40,7 @@ export default function RoleListPanel({ roles, selectedRoleId, loading, error, c
         {actionError ? <p role="alert">{actionError}</p> : null}
         {!loading && !error && !roles.length ? <p>등록된 역할이 없습니다.</p> : null}
         <div className="lag-role-node-list" aria-label="내 역할 목록">{roles.map((role) => <div key={role.id} data-role-id={role.id}><RecordRow title={role.name} subtitle={`${consumerLabel(role.roleType)} · ${consumerLabel(role.status)}`} selected={selectedRoleId === role.id} disabled={pending} onSelect={() => onSelect(role.id)} onEdit={() => onEdit(role.id)} onArchive={() => void archive(role)} /></div>)}</div>
-      </div>}><RoleForm onCancel={close} onSaved={async () => { const id = generation.current; await onRefresh(); if (id === generation.current) close(); }} /></CreateSlot>
+      </div>}><RoleForm roles={roles} templateType={templateType} onCancel={close} onSaved={async () => { const id = generation.current; await onRefresh(); if (id === generation.current) close(); }} /></CreateSlot>
     </PanelFrame>
   </PanelStage>;
 }

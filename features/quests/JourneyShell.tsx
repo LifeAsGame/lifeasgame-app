@@ -46,7 +46,7 @@ import BackendQuestEvidence, { BACKEND_QUEST_CODES, backendQuestCode } from "./B
 
 const BACKEND_ROUTE_CODE = "ROUTE_BACKEND_DEVELOPER_START";
 
-function BackendRoleSelect({ disabled, onSelect, onOpenRoles }: { disabled: boolean; onSelect: (roleId: number) => void; onOpenRoles?: () => void }) {
+function BackendRoleSelect({ disabled, onSelect, onOpenRoles }: { disabled: boolean; onSelect: (roleId: number) => void; onOpenRoles?: (templateType?: "ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER") => void }) {
   const [roles, setRoles] = useState<RoleDetail[]>([]);
   const [roleId, setRoleId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,8 @@ function BackendRoleSelect({ disabled, onSelect, onOpenRoles }: { disabled: bool
     {error ? <p role="alert">{error} <button type="button" className="lag-journey-button" disabled={loading} onClick={() => { setLoading(true); setRetry((value) => value + 1); }}>역할 다시 조회</button></p> : null}
     {loading ? <p>역할을 불러오는 중…</p> : null}
     {!loading && !error && roles.length === 0 ? <p>역할 메뉴에서 백엔드 개발자 또는 취업 준비 유형의 역할을 만드세요.</p> : null}
-    {!loading && !error && roles.length === 0 && onOpenRoles ? <button type="button" className="lag-journey-button" onClick={onOpenRoles}>역할 메뉴로 이동</button> : null}
+    {!loading && !error && roles.length === 0 && onOpenRoles ? <button type="button" className="lag-journey-button" onClick={() => onOpenRoles()}>역할 메뉴로 이동</button> : null}
+    {!loading && !error && roles.length === 0 && onOpenRoles ? <><button type="button" className="lag-journey-button" onClick={() => onOpenRoles("ROLE_BACKEND_DEVELOPER")}>백엔드 개발자 역할 만들기</button><button type="button" className="lag-journey-button" onClick={() => onOpenRoles("ROLE_JOB_SEEKER")}>취업 준비 역할 만들기</button></> : null}
     <button type="button" className="lag-journey-action" disabled={disabled || loading || Boolean(error) || !roleId} onClick={() => onSelect(Number(roleId))}>경로 선택</button>
   </div>;
 }
@@ -220,7 +221,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   initialSurface?: QuestsSubId | null;
   navigation?: { surface: QuestsSubId | null; detail: string | null };
   onNavigate?: (surface: QuestsSubId | null, detail: string | null) => void;
-  onOpenRoles?: () => void;
+  onOpenRoles?: (templateType?: "ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER") => void;
 }) {
   const { confirm, dialog } = useSaoConfirm();
   const compact = useMediaQuery("(max-width: 1199px)");
@@ -697,7 +698,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
       <AnimatePresence initial={false}>
         {surface ? (
-          <PanelStage stageKey="journey-list" panelRole="list" inactive={compact && Boolean(detailContentKey)}>
+          <PanelStage stageKey="journey-list" parentStageKey="journey-root" panelRole="list" inactive={compact && Boolean(detailContentKey)}>
             <PanelFrame title={listTitle} depth={1} contentKey={surface} backButton={<BackButton label="여정으로" onClick={closeList} />}>
               <section className="lag-journey-list-surface" aria-label={`${listTitle} 목록`}>
                 <p className="lag-journey-list-intro">{SURFACE_COPY[surface]}</p>
@@ -711,7 +712,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
 
       <AnimatePresence initial={false} mode="popLayout">
         {detailContentKey ? (
-          <PanelStage stageKey="journey-detail" panelRole="detail" side={compact ? "right" : "left"}>
+          <PanelStage stageKey="journey-detail" parentStageKey="journey-list" panelRole="detail" side={compact ? "right" : "left"}>
             <PanelFrame title={detailTitle} depth={0} contentKey={detailContentKey} backButton={<BackButton label="목록으로 돌아가기" onClick={closeDetail} />}>
               {surface === "current" ? renderCurrentDetail() : surface === "catalog" ? renderCatalogDetail() : renderRouteDetail()}
             </PanelFrame>

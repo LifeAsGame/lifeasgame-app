@@ -140,15 +140,15 @@ export default function CollectionShell({ onBack, createRequest = 0, initialReco
   const feedback = <Feedback pending={pending} error={collections.mutationError} success={collections.mutationSuccess} refreshError={collections.refreshError} reload={() => void collections.list.reload(true)} />;
   const list = collections.list;
   return <div ref={shell} className="lag-panel-rail lag-collection-shell relative">{dialog}
-    <PanelStage stageKey="lifelog-collection-categories" panelRole="list" inactive={compact && category !== null}>
-      <PanelFrame title="수집 종류" depth={1} backButton={onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
+    <PanelStage stageKey="lifelog-collection-categories" parentStageKey="lifelog-stage-0" panelRole="list" inactive={compact && category !== null}>
+      <PanelFrame title="수집 종류" depth={1} centerSelected centerTargetKey={category} centerBehavior="spring" backButton={onBack ? <BackButton label="생활 기록 목록으로" onClick={onBack} /> : undefined}>
         <div className="lag-role-node-list lag-collection-categories">{COLLECTION_CATEGORIES.map((kind) =>
-          <SwipeButton key={kind} data-collection-category={kind} creation className="lag-role-node" aria-pressed={category === kind} onClick={() => chooseCategory(kind)} onDoubleClick={() => chooseCategory(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong><span aria-hidden>→</span></SwipeButton>
+          <SwipeButton key={kind} data-collection-category={kind} data-scroll-center-target={category === kind ? "true" : undefined} creation className="lag-role-node" aria-pressed={category === kind} onClick={() => chooseCategory(kind)} onDoubleClick={() => chooseCategory(kind, true)}><span className="lag-role-node-mark" aria-hidden>{consumerLabel(kind).slice(0, 1)}</span><strong>{consumerLabel(kind)}</strong></SwipeButton>
         )}</div>
       </PanelFrame>
     </PanelStage>
-    {category ? <PanelStage stageKey="lifelog-collection-list" panelRole="list" inactive={compact && activeKey !== null}>
-      <PanelFrame title={`${consumerLabel(category)} 목록`} depth={1} resetScrollKey={`${collections.params.page}:${collections.params.category ?? ""}:${collections.params.titleLike ?? ""}`} backButton={<BackButton label={creation.creating ? "수집 목록으로" : "수집 종류로"} onClick={() => { if (creation.creating) { creation.close(); return; } collections.clearSelection(); setCategory(null); setDetailVisible(false); setMode(null); }} />}>
+    {category ? <PanelStage stageKey="lifelog-collection-list" parentStageKey="lifelog-collection-categories" panelRole="list" inactive={compact && activeKey !== null}>
+      <PanelFrame title={`${consumerLabel(category)} 목록`} depth={1} centerSelected={!creation.creating} centerTargetKey={creation.creating ? null : collections.selectedId} centerBehavior="spring" resetScrollKey={`${collections.params.page}:${collections.params.category ?? ""}:${collections.params.titleLike ?? ""}`} backButton={<BackButton label={creation.creating ? "수집 목록으로" : "수집 종류로"} onClick={() => { if (creation.creating) { creation.close(); return; } collections.clearSelection(); setCategory(null); setDetailVisible(false); setMode(null); }} />}>
         <CreateSlot creating={creation.creating} pending={pending} onClose={creation.close} list={<div className="lag-journal-surface">
           <details className="lag-journal-filter-disclosure"><summary>제목 검색</summary><form className="lag-journal-filters" onSubmit={(event) => { event.preventDefault(); setMode(null); collections.search(category, titleLike); }}>
             <Field title="제목 검색"><input aria-label="제목 검색" value={titleLike} onChange={(event) => setTitleLike(event.target.value)} className="lag-journal-control" /></Field><button type="submit" className="lag-journal-button">검색</button>
@@ -163,7 +163,7 @@ export default function CollectionShell({ onBack, createRequest = 0, initialReco
       </PanelFrame>
     </PanelStage> : null}
     <AnimatePresence initial={false}>
-      {activeKey ? <PanelStage key={activeKey} stageKey={activeKey} panelRole="detail" side="right">
+      {activeKey ? <PanelStage key={activeKey} stageKey={activeKey} parentStageKey="lifelog-collection-list" panelRole="detail" side="right">
         <PanelFrame title={mode === "edit" ? "수집 기록 수정" : "수집 기록 상세"} depth={0} contentKey={`${mode ?? "detail"}:${collections.selectedId ?? "new"}`} backButton={<BackButton label={mode === "edit" ? "수집 기록 상세로" : "수집 기록 목록으로"} onClick={mode ? cancelForm : () => returnToList()} />}>
           {mode && !item ? <InfoCard>수집 기록을 불러오는 중…</InfoCard> : mode ? <div className="lag-collection-form-surface"><CollectionForm item={mode === "edit" && item ? item : undefined} category={category!} pending={pending} cancel={cancelForm} create={async (body) => { const saved = await collections.create(body); if (saved) setMode(null); return saved; }} update={async (body) => { const saved = item ? await collections.update(item.id, body) : false; if (saved) { setMode(null); requestStageFocus("lifelog-collection-detail", "back"); } return saved; }}>{feedback}</CollectionForm></div> : <>
             {collections.detail.loading && !item ? <InfoCard>수집 기록을 불러오는 중…</InfoCard> : null}

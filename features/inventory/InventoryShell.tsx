@@ -58,7 +58,7 @@ function Attributes({ attrs }: { attrs: Record<string, unknown> }) {
 
 function InventoryTile({ entry, selected, kind, onSelect }: { entry: InventoryEntry | MailEntry; selected: boolean; kind: "item" | "mail"; onSelect: (button: HTMLButtonElement) => void }) {
   return (
-    <button type="button" className="lag-inventory-tile" data-testid="inventory-entry" data-selected={selected} aria-pressed={selected} onClick={(event) => onSelect(event.currentTarget)}>
+    <button type="button" className="lag-inventory-tile" data-testid="inventory-entry" data-selected={selected} data-scroll-center-target={selected ? "true" : undefined} aria-pressed={selected} onClick={(event) => onSelect(event.currentTarget)}>
       <span className="lag-inventory-tile-mark" aria-hidden>x{entry.quantity}</span>
       <span className="lag-inventory-tile-copy">
         <strong>{itemName(entry)}</strong>
@@ -207,19 +207,18 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
 
   return (
     <div className="lag-panel-rail lag-inventory-shell relative" data-testid="inventory-shell">{dialog}
-      {items ? <PanelStage stageKey="inventory-items-categories" panelRole="list">
+      {items ? <PanelStage stageKey="inventory-items-categories" parentStageKey="inventory-stage-0" panelRole="list">
         <PanelFrame title="아이템 분류" depth={2} backButton={onBack ? <BackButton label="인벤토리로" onClick={onBack} /> : undefined}>
           <div className="lag-inventory-filters" aria-label="아이템 분류">
             {["ALL", ...categories].map((filter) => <button key={filter} type="button" className="lag-inventory-filter" aria-pressed={category === filter} data-selected={category === filter} onClick={() => selectCategory(filter)}>{filter === "ALL" ? "전체 아이템" : consumerLabel(filter)}</button>)}
           </div>
         </PanelFrame>
       </PanelStage> : null}
-      {!items || category !== null ? <PanelStage stageKey={`inventory-${surface}-list`} panelRole="list">
-        <PanelFrame title={items ? "아이템" : "수신함"} depth={1} backButton={items ? <BackButton label="아이템 분류로" onClick={() => { setCategory(null); setSelectedItemInstanceId(null); requestStageFocus("inventory-items-categories", "back"); }} /> : onBack ? <BackButton label="인벤토리로" onClick={onBack} /> : undefined}>
+      {!items || category !== null ? <PanelStage stageKey={`inventory-${surface}-list`} parentStageKey={items ? "inventory-items-categories" : "inventory-stage-0"} panelRole="list">
+        <PanelFrame title={items ? "아이템" : "수신함"} depth={1} centerSelected centerTargetKey={String(selectedItemInstanceId ?? selectedMailId ?? "")} centerBehavior="spring" backButton={<>{items ? <BackButton label="아이템 분류로" onClick={() => { setCategory(null); setSelectedItemInstanceId(null); requestStageFocus("inventory-items-categories", "back"); }} /> : onBack ? <BackButton label="인벤토리로" onClick={onBack} /> : null}<button type="button" className="lag-inventory-refresh" aria-label="목록 새로고침" title="목록 새로고침" disabled={query.loading} onClick={() => void query.reload()}>↻</button></>}>
           <section className="lag-inventory-surface" aria-label={items ? "보유 아이템" : "수신함"} tabIndex={-1}>
             <header>
               <p>{items ? "현재 보유한 아이템" : "수령 전 아이템 · 수령하거나 삭제할 수 있습니다"}</p>
-              {!query.loading && !query.error ? <button type="button" className="lag-inventory-button" onClick={() => void query.reload()}>{items ? "아이템" : "수신함"} 다시 조회</button> : null}
             </header>
             {query.loading && query.data.entries.length === 0 ? <InfoCard>{items ? "아이템" : "수신함"}을 불러오는 중…</InfoCard> : null}
             {query.error ? <ErrorState text={query.error} retry={() => void (queries.claimRecoveryNeeded ? queries.retryClaimRecovery() : query.reload())} /> : null}
@@ -243,7 +242,7 @@ export default function InventoryShell({ surface, onBack }: { surface: Inventory
 
       <AnimatePresence initial={false}>
         {selectedItem || selectedMail ? (
-          <PanelStage stageKey={`inventory-${surface}-detail`} index={1}>
+          <PanelStage stageKey={`inventory-${surface}-detail`} parentStageKey={`inventory-${surface}-list`} index={1}>
             <PanelFrame title={items ? "아이템 상세" : "수신 상세"} depth={0} contentKey={selectedItemInstanceId ?? selectedMailId ?? undefined} backButton={<BackButton label={items ? "아이템 목록으로" : "수신함으로"} onClick={closeDetail} />}>
               {items && selectedItem ? <ItemDetail item={selectedItem} /> : null}
               {!items && selectedMail ? (
