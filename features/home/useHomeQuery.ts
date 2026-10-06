@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getHomeApi } from "./api";
 import { AWARD_CHANGED_EVENT, AWARD_SOURCE_EVENT } from "@/features/player/awardEvents";
+import { ACHIEVEMENT_CONDITIONS } from "@/features/player/activation";
+import { getActivatedContentApi } from "@/features/player/api";
 import type { HomeSummary } from "./model";
 
 export function useHomeQuery(active = true) {
@@ -18,8 +20,19 @@ export function useHomeQuery(active = true) {
     setError(null);
     try {
       const next = await getHomeApi();
-      if (currentRequestId === requestId.current) setData(next);
-      return next;
+      let confirmed = next;
+      if (next.recentAchievements.some(({ code }) => code in ACHIEVEMENT_CONDITIONS)) {
+        const activation = await getActivatedContentApi().catch(() => null);
+        if (activation) confirmed = {
+          ...next,
+          recentAchievements: next.recentAchievements.map((achievement) => {
+            const entry = activation.entries.find(({ code, status }) => code === achievement.code && status === "ACQUIRED");
+            return entry?.acquiredAt ? { ...achievement, acquiredAt: entry.acquiredAt } : achievement;
+          }),
+        };
+      }
+      if (currentRequestId === requestId.current) setData(confirmed);
+      return confirmed;
     } catch (caught) {
       if (currentRequestId === requestId.current) {
         setError(caught instanceof Error ? caught.message : "홈 요약을 불러오지 못했습니다.");

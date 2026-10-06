@@ -1,6 +1,7 @@
 "use client";
 
 import { consumerLabel } from "@/shared/lib/consumerLabels";
+import { ACHIEVEMENT_CONDITIONS } from "@/features/player/activation";
 import type { ReactNode } from "react";
 
 import type { HomeJournalEntry } from "./model";
@@ -8,6 +9,7 @@ import { useHomeQuery } from "./useHomeQuery";
 
 const dateTime = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" });
 const showTime = (value: string) => dateTime.format(new Date(value));
+const achievementCategories: Record<string, string> = { STORY: "이야기", COMBAT: "전투", EXPLORATION: "탐험", COLLECTION: "수집", SOCIAL: "교류", ECONOMY: "경제", SKILL: "성장", DAILY: "일일" };
 
 type HomeShellProps = {
   active?: boolean;
@@ -192,8 +194,8 @@ export default function HomeShell({
               {data.recentAchievements.map((achievement) => (
                 <button key={achievement.achievementId} type="button" className="lag-home-card lag-home-entry" onClick={() => onOpenAchievements(achievement.achievementId)}>
                   <p className="lag-home-entry-title">{achievement.name}</p>
-                  <Meta>{achievement.category}</Meta>
-                  <p className="lag-home-description">{achievement.descMd}</p>
+                  <Meta>{achievementCategories[achievement.category] ?? "업적"}</Meta>
+                  <p className="lag-home-description">{ACHIEVEMENT_CONDITIONS[achievement.code]?.description ?? achievement.descMd}</p>
                   <Meta><time dateTime={achievement.acquiredAt}>{showTime(achievement.acquiredAt)}</time></Meta>
                 </button>
               ))}

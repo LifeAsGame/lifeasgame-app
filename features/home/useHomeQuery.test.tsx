@@ -6,8 +6,10 @@ import { MOCK_HOME_SUMMARY } from "./mock";
 import { useHomeQuery } from "./useHomeQuery";
 
 const api = vi.hoisted(() => ({ getHomeApi: vi.fn() }));
+const activation = vi.hoisted(() => ({ getActivatedContentApi: vi.fn() }));
 
 vi.mock("./api", () => api);
+vi.mock("@/features/player/api", () => activation);
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -23,6 +25,15 @@ describe("Home server query state를 관리할 때", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.getHomeApi.mockResolvedValue(structuredClone(MOCK_HOME_SUMMARY));
+    activation.getActivatedContentApi.mockResolvedValue({ entries: [] });
+  });
+
+  it("uses the activation grant time for an activated recent achievement", async () => {
+    const recent = { ...MOCK_HOME_SUMMARY.recentAchievements[0], code: "ACH_FIRST_LIFELOG", acquiredAt: "2026-10-06T12:52:08Z" };
+    api.getHomeApi.mockResolvedValue({ ...MOCK_HOME_SUMMARY, recentAchievements: [recent] });
+    activation.getActivatedContentApi.mockResolvedValue({ entries: [{ code: recent.code, status: "ACQUIRED", acquiredAt: "2026-10-06T03:52:08Z" }] });
+    const { result } = renderHook(() => useHomeQuery());
+    await waitFor(() => expect(result.current.data?.recentAchievements[0].acquiredAt).toBe("2026-10-06T03:52:08Z"));
   });
 
   describe("처음 mount하면", () => {

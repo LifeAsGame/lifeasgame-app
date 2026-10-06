@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PlayerTitleInfo } from "@/shared/api/types";
@@ -76,5 +76,15 @@ describe("Title surface와 routing을 사용할 때", () => {
     expect(screen.getByText(/마지막 단계까지 진행해/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "대표 칭호로 설정" })).not.toBeInTheDocument();
     expect(api.setRepresentativeTitleApi).not.toHaveBeenCalled();
+  });
+
+  it("활성 칭호는 보유 API보다 활성화의 실제 획득 시각을 우선한다", async () => {
+    api.getPlayerTitlesApi.mockResolvedValue([{ ...title, code: "TITLE_CANDIDATE_RECORD_BEGINNER", acquiredAt: "2026-10-06T12:52:08Z" }]);
+    api.getActivatedContentApi.mockResolvedValue({ entries: [{ kind: "TITLE", code: "TITLE_CANDIDATE_RECORD_BEGINNER", definitionId: 1, name: "기록의 시작", definitionVersion: 1, condition: "첫 기록", status: "ACQUIRED", evidenceStatus: "CONFIRMED", acquiredAt: "2026-10-06T03:52:08Z", sourceOccurredAt: "2026-10-06T03:52:08Z" }], page: 0, size: 7, hasNext: false });
+    render(<TitleShell />);
+    const entry = await screen.findByTestId("title-entry");
+    await waitFor(() => expect(entry).toHaveTextContent("오후 12:52"));
+    fireEvent.click(entry);
+    await waitFor(() => expect(screen.getByText("2026. 10. 6. 오후 12:52")).toBeInTheDocument());
   });
 });

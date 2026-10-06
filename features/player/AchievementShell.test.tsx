@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { PlayerAchievementInfo } from "@/shared/api/types";
@@ -76,6 +76,17 @@ describe("Current Player Achievement surface를 사용할 때", () => {
     expect(screen.getByText(/우편 도착만으로는 획득하지 않습니다/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "수신함 보기" })).toBeInTheDocument();
     expect(screen.queryByText("ACH_FIRST_ITEM_CLAIM")).not.toBeInTheDocument();
+  });
+
+  it("활성 업적은 보유 API와 시각이 다를 때 활성화의 획득 시각을 보여준다", async () => {
+    api.getPlayerAchievementsApi.mockResolvedValue([{ ...listItem, code: "ACH_FIRST_LIFELOG", acquiredAt: "2026-10-06T12:52:08Z" }]);
+    api.getPlayerAchievementApi.mockResolvedValue({ ...detail, code: "ACH_FIRST_LIFELOG", acquiredAt: "2026-10-06T12:52:08Z" });
+    api.getActivatedContentApi.mockResolvedValue({ entries: [{ kind: "ACHIEVEMENT", code: "ACH_FIRST_LIFELOG", definitionId: 31, name: "첫 기록", definitionVersion: 1, condition: "첫 기록", status: "ACQUIRED", evidenceStatus: "CONFIRMED", acquiredAt: "2026-10-06T03:52:08Z", sourceOccurredAt: "2026-10-06T03:52:08Z" }], page: 0, size: 7, hasNext: false });
+    render(<AchievementShell />);
+    const entry = await screen.findByTestId("achievement-entry");
+    await waitFor(() => expect(entry).toHaveTextContent("오후 12:52"));
+    fireEvent.click(entry);
+    await waitFor(() => expect(screen.getByText("2026. 10. 6. 오후 12:52")).toBeInTheDocument());
   });
 
   it("활성 조회 실패를 미획득으로 표시하지 않는다", async () => {

@@ -40,3 +40,8 @@ export function readableDate(value: string | null | undefined): string {
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? "제공되지 않음" : new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(date);
 }
+
+export function acquiredAtFromActivation(code: string, fallback: string | null | undefined, entries: ActivatedContentEntry[]): string | null | undefined {
+  const confirmed = entries.find((entry) => entry.code === code && entry.status === "ACQUIRED");
+  return confirmed?.acquiredAt ?? fallback;
+}
