@@ -126,7 +126,7 @@ function PanelContent({
             const isCategoryPanel =
               panel.context.route === "player-category" ||
               panel.context.route === "lifelog-category";
-            const canCreate = panel.context.route === "main-submenu" && ((panel.context.main === "player" && ["credentials", "interests"].includes(item.id)) || (panel.context.main === "lifelog" && ["journal", "exercise", "media"].includes(item.id)) || (panel.context.main === "social" && item.id !== "role-parties"));
+            const canCreate = panel.context.route === "main-submenu" && ((panel.context.main === "player" && ["credentials", "interests"].includes(item.id)) || (panel.context.main === "lifelog" && ["journal", "exercise", "media"].includes(item.id)) || panel.context.main === "social");
             if (canCreate && onPanelItemCreate) return <motion.div key={item.id} layout="position" transition={reducedMotion ? { duration: 0 } : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }}>
               <SwipeButton creation className="lag-role-node" aria-pressed={panel.selectedId === item.id} data-selected={panel.selectedId === item.id} onClick={() => onPanelItemSelect(panelIndex, item.id)} onDoubleClick={() => onPanelItemCreate(panelIndex, item.id)}><span className="lag-role-node-mark" aria-hidden>{item.slotLabel}</span><strong>{item.label}</strong></SwipeButton>
             </motion.div>;

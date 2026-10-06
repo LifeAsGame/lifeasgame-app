@@ -363,7 +363,7 @@ export default function Home() {
             <div className="flex w-fit items-center gap-6">
               <RightPanels selectedMain="social" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
               {selectedSubByMain.social === "guilds" || selectedSubByMain.social === "parties" ? <GroupShell key={`${selectedSubByMain.social}-${subReentry[selectedSubByMain.social] ?? 0}`} kind={selectedSubByMain.social} playerId={playerId} createRequest={createRequests[selectedSubByMain.social] ?? 0} onBack={() => closeFeatureSubmenu("social")} /> : null}
-              {selectedSubByMain.social === "role-parties" ? <RolePartyPanels key={`role-parties-${subReentry["role-parties"] ?? 0}`} playerId={playerId} onBack={() => closeFeatureSubmenu("social")} /> : null}
+              {selectedSubByMain.social === "role-parties" ? <RolePartyPanels key={`role-parties-${subReentry["role-parties"] ?? 0}`} playerId={playerId} createRequest={createRequests["role-parties"] ?? 0} onBack={() => closeFeatureSubmenu("social")} /> : null}
             </div>
           ) : selectedMain === "inventory" ? (
             <div className="flex w-fit items-center gap-3">

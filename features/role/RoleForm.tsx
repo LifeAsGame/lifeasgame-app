@@ -8,7 +8,7 @@ import { createRoleApi, updateRoleApi } from "./api";
 export function formValue(form: FormData, key: string) { return String(form.get(key) ?? "").trim(); }
 export function formNullable(form: FormData, key: string) { return formValue(form, key) || null; }
 
-export function RoleForm({ role, roles = [], templateType, onSaved, onCancel }: { role?: RoleDetail; roles?: RoleDetail[]; templateType?: "ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER"; onSaved: () => Promise<void>; onCancel: () => void }) {
+export function RoleForm({ role, roles = [], templateType, onSaved, onCancel }: { role?: RoleDetail; roles?: RoleDetail[]; templateType?: "ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER"; onSaved: (saved: RoleDetail) => Promise<void>; onCancel: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const knownTypes = [...new Set(roles.filter((item) => item.status === "ACTIVE").map((item) => item.roleType))];
@@ -23,8 +23,8 @@ export function RoleForm({ role, roles = [], templateType, onSaved, onCancel }: 
     if (!body.roleType || !body.name || !body.description) { setError("역할 유형·이름·설명을 입력해주세요."); return; }
     locked.current = true; setPending(true); setError(null);
     try {
-      if (role) await updateRoleApi(role.id, body); else await createRoleApi(body);
-      if (active.current) await onSaved();
+      const saved = role ? await updateRoleApi(role.id, body) : await createRoleApi(body);
+      if (active.current) await onSaved(saved);
     } catch (caught) { if (active.current) setError(caught instanceof Error ? caught.message : "역할을 저장하지 못했습니다."); }
     finally { locked.current = false; if (active.current) setPending(false); }
   }}>

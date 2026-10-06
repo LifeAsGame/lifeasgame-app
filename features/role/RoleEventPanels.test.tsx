@@ -8,6 +8,7 @@ const api = vi.hoisted(() => ({ listPersonsApi: vi.fn(), getRoleEventApi: vi.fn(
 vi.mock("./scheduleApi", async (original) => ({ ...await original<typeof import("./scheduleApi")>(), ...schedule }));
 vi.mock("./api", () => api);
 vi.mock("@/features/social/GuildEventPanels", () => ({ default: ({ guildId, selectedEventId, onAccessLost }: { guildId: number; selectedEventId: number; onAccessLost: () => void }) => <div>길드 원본 상세 #{guildId}/{selectedEventId}<button onClick={onAccessLost}>접근 상실</button></div> }));
+vi.mock("@/features/social/GroupActivityPanels", () => ({ default: ({ groupType, groupId, selectedActivityId }: { groupType: string; groupId: number; selectedActivityId: number }) => <div>활동 원본 상세 {groupType} #{groupId}/{selectedActivityId}</div> }));
 
 const personal: ScheduleRow = { sourceType: "ROLE_EVENT", sourceId: 9, roleId: 1, guildId: null, guildName: null, title: "개인 점검", startsAt: "2026-10-10T00:00:00Z", endsAt: "2026-10-10T01:00:00Z", status: "PLANNED", myRsvp: null };
 const guild: ScheduleRow = { sourceType: "GUILD_EVENT", sourceId: 9, roleId: null, guildId: 7, guildName: "비공개 길드", title: "길드 모임", startsAt: "2026-10-11T00:00:00Z", endsAt: "2026-10-11T01:00:00Z", status: "PLANNED", myRsvp: false };
@@ -31,6 +32,20 @@ it("keeps colliding source IDs distinct and opens each original detail", async (
   expect(screen.queryByText("길드 원본 상세 #7/9")).not.toBeInTheDocument();
   expect(document.querySelectorAll('[data-event-key="ROLE_EVENT:9"]')).toHaveLength(1);
   expect(document.querySelectorAll('[data-event-key="GUILD_EVENT:9"]')).toHaveLength(1);
+});
+
+it("opens Party and RoleParty activity sources by type and ID", async () => {
+  schedule.roleSchedule.mockResolvedValue(page([
+    { ...guild, sourceType: "PARTY_ACTIVITY", groupType: "PARTY", groupId: 3, groupName: "파티", guildId: null, guildName: null, title: "파티 산책" },
+    { ...guild, sourceType: "ROLE_PARTY_ACTIVITY", groupType: "ROLE_PARTY", groupId: 5, groupName: "소모임", guildId: null, guildName: null, title: "소모임 산책" },
+  ]));
+  render(<RoleEventPanels {...props} />);
+  fireEvent.click(await screen.findByRole("button", { name: /파티 산책/ }));
+  expect(screen.getByText("활동 원본 상세 PARTY #3/9")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /소모임 산책/ }));
+  expect(screen.getByText("활동 원본 상세 ROLE_PARTY #5/9")).toBeInTheDocument();
+  expect(document.querySelectorAll('[data-event-key="PARTY_ACTIVITY:9"]')).toHaveLength(1);
+  expect(document.querySelectorAll('[data-event-key="ROLE_PARTY_ACTIVITY:9"]')).toHaveLength(1);
 });
 
 it("maps the participation and unscheduled controls to valid schedule reads", async () => {
