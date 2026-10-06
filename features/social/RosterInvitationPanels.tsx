@@ -42,7 +42,7 @@ export default function RosterInvitationPanels({ onBack }: { onBack: () => void 
   };
   return <>{dialog}<PanelStage stageKey="roster-invitation-list" parentStageKey="social-stage-0" instant inactive={selected !== null}><PanelFrame title="받은 명부 연결 초대" backButton={<BackButton label="모임 분류로" onClick={onBack} />}><div className="lag-role-detail lag-group-main">
     {loading ? <p role="status">초대를 불러오는 중…</p> : null}
-    {error ? <p role="alert">{error} <button onClick={() => void load()}>다시 조회</button></p> : null}
+    {error && !selected ? <p role="alert">{error} <button onClick={() => void load()}>다시 조회</button></p> : null}
     {!loading && !error && !list?.contents.length ? <p>받은 명부 연결 초대가 없습니다.</p> : null}
     {list?.contents.map((item) => <SwipeButton key={item.invitationId} className="lag-role-node" aria-pressed={selected?.invitationId === item.invitationId} onClick={() => setSelected(item)}><span className="lag-role-node-mark" aria-hidden>초</span><span><strong>{item.groupName}</strong><small>{item.rosterDisplayName} 명부 · 연결 대기</small></span><span aria-hidden>→</span></SwipeButton>)}
     <div className="lag-connection-pagination"><button disabled={page === 0} onClick={() => setPage(page - 1)}>이전</button><span>{page + 1} / {Math.max(1, list?.totalPages ?? 0)}</span><button disabled={!list || page + 1 >= list.totalPages} onClick={() => setPage(page + 1)}>다음</button></div>

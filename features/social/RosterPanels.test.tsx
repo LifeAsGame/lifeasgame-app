@@ -28,12 +28,22 @@ it("uses empty-list capabilities to register an offline entry without adding a s
   api.rosterRows.mockResolvedValue({ ...page([]), capabilities: writable.capabilities });
   api.createRosterRow.mockResolvedValue(row);
   render(<RosterPanels groupType="GUILD" groupId={3} maxMembers={10} creating onBack={vi.fn()} />);
-  fireEvent.change(await screen.findByRole("textbox", { name: "공유 이름" }), { target: { value: "오프라인 멤버" } });
+  await screen.findByText(/실제 가입 1\/10명/);
+  fireEvent.change(screen.getByRole("textbox", { name: "공유 이름" }), { target: { value: "오프라인 멤버" } });
   fireEvent.change(screen.getByRole("textbox", { name: "모임 내 역할·소개" }), { target: { value: "기록 담당" } });
+  expect(screen.getByRole("textbox", { name: "공유 이름" })).toHaveValue("오프라인 멤버");
   fireEvent.click(screen.getByRole("button", { name: "명부 등록" }));
   await waitFor(() => expect(api.createRosterRow).toHaveBeenCalledWith("GUILD", 3, { displayName: "오프라인 멤버", groupRoleLabel: "기록 담당" }));
   expect(groups.groupMembers).toHaveBeenCalledWith("guilds", 3, 0);
   expect(screen.getByText(/실제 가입 1\/10명/)).toBeInTheDocument();
+});
+
+it("keeps an empty roster read-only when the server withholds management capability", async () => {
+  api.rosterRows.mockResolvedValue({ ...page([]), capabilities: { canManageRoster: false, canInvite: false } });
+  render(<RosterPanels groupType="PARTY" groupId={3} maxMembers={10} creating onBack={vi.fn()} />);
+  expect(await screen.findByText("명부 항목이 없습니다.")).toBeInTheDocument();
+  expect(screen.queryByRole("textbox", { name: "공유 이름" })).not.toBeInTheDocument();
+  expect(api.pendingRosterInvitations).not.toHaveBeenCalled();
 });
 
 it("keeps a stale edit draft and offers the latest version", async () => {
@@ -75,4 +85,18 @@ it("accepts by the single atomic roster endpoint after showing the membership ef
   await waitFor(() => expect(api.answerRosterInvitation).toHaveBeenCalledExactlyOnceWith(4, "accept"));
   expect(groups.groupMembers).toHaveBeenCalledWith("guilds", 3, 0);
   expect(api.rosterRows).toHaveBeenCalledWith("GUILD", 3, 0);
+});
+
+it("does not report a capacity conflict as accepted and keeps the invitation available for a retry", async () => {
+  const invitation = { invitationId: 4, groupType: "PARTY", groupId: 3, groupName: "주말 파티", rosterEntryId: 11, rosterDisplayName: "오프라인 멤버", expiresAt: "2099-01-01T00:00:00Z", membershipWillBeCreated: true, status: "PENDING" };
+  api.myRosterInvitations.mockResolvedValue(page([invitation]));
+  api.answerRosterInvitation.mockRejectedValue(new ApiError(409, "SOC-409-ROSTER-CONFLICT", "full"));
+  render(<RosterInvitationPanels onBack={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: /주말 파티/ }));
+  fireEvent.click(screen.getByRole("button", { name: /수락/ }));
+  fireEvent.click(within(await screen.findByRole("dialog", { name: "작업 확인" })).getByRole("button", { name: "확인" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("정원이 바뀌었습니다");
+  expect(screen.getByRole("button", { name: /수락/ })).toBeInTheDocument();
+  expect(api.answerRosterInvitation).toHaveBeenCalledExactlyOnceWith(4, "accept");
+  expect(groups.groupMembers).not.toHaveBeenCalled();
 });
