@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth/AuthContext";
 import { ApiError } from "@/shared/api/client";
 import { bootstrapDemo, closeDemo, createPeerLink, currentDemo, retryDemo, startDemo, type DemoActor, type DemoRun } from "@/features/demo/api";
@@ -25,7 +24,6 @@ const flows: { key: Flow; title: string; action: string; result: string; destina
 ];
 
 export default function DemoPage() {
-  const router = useRouter();
   const { preference, setPreference } = useTheme();
   const { isLoading, isAuthenticated, demoRun, demoActor, activateDemoActor, logout } = useAuth();
   const [run, setRun] = useState<DemoRun | null>(null);
@@ -115,7 +113,7 @@ export default function DemoPage() {
     try {
       if (!isAuthenticated || demoActor !== target) await activateDemoActor(run, target);
       window.sessionStorage.setItem("lag_demo_flow", flow);
-      router.push(flows.find(({ key }) => key === flow)!.destination);
+      window.location.assign(flows.find(({ key }) => key === flow)!.destination);
     } catch (caught) { setError(message(caught)); }
     finally { setPending(false); }
   };
