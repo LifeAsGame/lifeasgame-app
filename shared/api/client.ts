@@ -51,10 +51,11 @@ async function parseResponse<T>(response: Response, method: string, path: string
     : null;
 
   if (!response.ok || envelope?.isSuccess === false) {
+    const problem = body as { code?: string; detail?: string; message?: string } | null;
     throw new ApiError(
       response.status,
-      envelope?.code ?? `HTTP_${response.status}`,
-      envelope?.message ?? (body as { detail?: string } | null)?.detail ?? `${method} ${path} failed: ${response.status} ${response.statusText}`,
+      problem?.code ?? `HTTP_${response.status}`,
+      problem?.detail ?? problem?.message ?? `${method} ${path} failed: ${response.status} ${response.statusText}`,
     );
   }
 
@@ -69,6 +70,7 @@ async function parseResponse<T>(response: Response, method: string, path: string
 async function refreshSession(): Promise<TokenPair> {
   if (!refreshPromise) {
     const refreshToken = tokenStorage.read()?.refreshToken;
+    const owner = tokenStorage.generation();
     if (!refreshToken) throw new ApiError(401, "AUTH_EXPIRED", "Authentication has expired.");
 
     refreshPromise = apiRequest<TokenPair>(
@@ -78,11 +80,12 @@ async function refreshSession(): Promise<TokenPair> {
       { auth: false, retry: false },
     )
       .then((session) => {
-        tokenStorage.write(session);
+        if (owner !== tokenStorage.generation()) throw new ApiError(409, "SESSION_CHANGED", "The active account changed.");
+        tokenStorage.replace(session);
         return session;
       })
       .catch((error) => {
-        authExpired();
+        if (owner === tokenStorage.generation()) authExpired();
         throw error;
       })
       .finally(() => {
@@ -99,6 +102,7 @@ async function apiRequest<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const auth = options.auth !== false;
+  const owner = tokenStorage.generation();
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
   headers.delete("Authorization");
@@ -111,6 +115,8 @@ async function apiRequest<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "include",
   });
+
+  if (auth && owner !== tokenStorage.generation()) throw new ApiError(409, "SESSION_CHANGED", "The active account changed.");
 
   if (response.status === 401 && auth && options.retry !== false && tokenStorage.read()?.refreshToken) {
     await refreshSession();
