@@ -299,11 +299,11 @@ function TradePanel({ query, playerId, onBack }: { query: ExchangeQuery<TradeSum
   );
 }
 
-export default function ExchangeShell({ surface, playerId, onBack }: { surface: MarketSubId | null; playerId: number; onBack: () => void }) {
+export default function ExchangeShell({ surface, playerId, onBack, initialShopSurface = "system-shop" }: { surface: MarketSubId | null; playerId: number; onBack: () => void; initialShopSurface?: ExchangeShopSurface }) {
   const { confirm, dialog } = useSaoConfirm();
   const queries = useExchangeQueries(surface);
   const mutations = useExchangeMutations(queries);
-  const [shopSurface, setShopSurface] = useState<ExchangeShopSurface>("system-shop");
+  const [shopSurface, setShopSurface] = useState<ExchangeShopSurface>(initialShopSurface);
   const [selectedShopItemId, setSelectedShopItemId] = useState<number | null>(null);
   const [activePurchaseId, setActivePurchaseId] = useState<number | null>(null);
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
@@ -313,7 +313,7 @@ export default function ExchangeShell({ surface, playerId, onBack }: { surface: 
 
   useEffect(() => {
     selectionEpoch.current += 1;
-    setShopSurface("system-shop");
+    setShopSurface(initialShopSurface);
     setSelectedShopItemId(null);
     setActivePurchaseId(null);
     setSelectedListingId(null);

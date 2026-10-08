@@ -41,6 +41,7 @@ import { useJourneyQueries } from "./useJourneyQueries";
 import RewardSettlementPanel from "./RewardSettlementPanel";
 import { RECORD_SAVED_EVENT } from "@/features/lifelog/api";
 import { listRolesApi } from "@/features/role/api";
+import type { DemoRun } from "@/features/demo/api";
 import type { RoleDetail } from "@/shared/api/types";
 import BackendQuestEvidence, { BACKEND_QUEST_CODES, backendQuestCode } from "./BackendQuestEvidence";
 
@@ -217,11 +218,12 @@ type RouteDetailState = {
   error: string | null;
 };
 
-export default function JourneyShell({ initialSurface = null, navigation, onNavigate, onOpenRoles }: {
+export default function JourneyShell({ initialSurface = null, navigation, onNavigate, onOpenRoles, demoRun = null }: {
   initialSurface?: QuestsSubId | null;
   navigation?: { surface: QuestsSubId | null; detail: string | null };
   onNavigate?: (surface: QuestsSubId | null, detail: string | null) => void;
   onOpenRoles?: (templateType?: "ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER") => void;
+  demoRun?: DemoRun | null;
 }) {
   const { confirm, dialog } = useSaoConfirm();
   const compact = useMediaQuery("(max-width: 1199px)");
@@ -407,7 +409,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
   };
 
   const recoverQuest = async (code: string, isCurrent: () => boolean) => {
-    const [current, catalog, routes] = await Promise.all([queries.current.reload(), queries.catalog.reload(), BACKEND_QUEST_CODES.some((item) => item === code) ? queries.routes.reload() : Promise.resolve(true)]);
+    const [current, catalog, routes] = await Promise.all([queries.current.reload(), demoRun ? Promise.resolve(true) : queries.catalog.reload(), BACKEND_QUEST_CODES.some((item) => item === code) ? queries.routes.reload() : Promise.resolve(true)]);
     if (!current || !catalog || !routes) throw new Error("퀘스트/경로 목록 재조회 실패");
     if (isCurrent()) await loadQuestDetail(code, true);
   };
@@ -430,6 +432,29 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     else setSelectedCatalogCode(code);
     writeRoute(nextSurface, nextSurface === "current" ? String(accepted?.id) : code);
     void loadQuestDetail(code);
+  };
+
+  const acceptFirstDemoQuest = async () => {
+    const code = demoRun?.scenarios.journey.firstQuestCode;
+    if (!code || mutationLocked.current || !await confirm("첫 퀘스트를 수락할까요?")) return;
+    mutationLocked.current = true;
+    setPending(`accept-${code}`);
+    setMutationError(null);
+    let accepted: QuestAcceptance | null = null;
+    try { accepted = await acceptQuestApi(code); }
+    catch (caught) { setMutationError(`수락 결과를 확인하지 못했습니다. 진행 퀘스트를 다시 조회하세요. ${message(caught, "")}`); }
+    try {
+      const current = await queries.current.reload();
+      if (!current) throw new Error("진행 퀘스트 재조회 실패");
+      if (accepted) {
+        clearDetail();
+        setSurface("current");
+        setSelectedAcceptanceId(accepted.id);
+        writeRoute("current", String(accepted.id));
+        void loadQuestDetail(code);
+      }
+    } catch (caught) { setMutationError(message(caught, "진행 퀘스트를 다시 조회하세요.")); }
+    finally { mutationLocked.current = false; setPending(null); }
   };
 
   const advanceRoute = async (route: QuestRoute) => {
@@ -646,12 +671,16 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
             {percent !== null ? <div className="lag-journey-detail-progress"><ProgressBar label="완료한 경로 단계" percent={percent} valueText={`${completedSteps} / ${steps.length} 완료 (${percent}%)`} /></div> : null}
           </DetailSection>
         ) : null}
-        <RouteThread route={route} quests={queries.current.data} catalog={queries.catalog.data} onQuest={openRequiredQuest} />
+        <RouteThread route={route} quests={queries.current.data} catalog={queries.catalog.data} onQuest={(code) => {
+          if (demoRun && code === demoRun.scenarios.journey.firstQuestCode && !latestAcceptance(queries.current.data, code)) void acceptFirstDemoQuest();
+          else openRequiredQuest(code);
+        }} />
         {route.code === BACKEND_ROUTE_CODE && progress ? <p className="lag-journey-feedback">선택한 역할 #{progress.roleId ?? "확인 중"} · 여정 선택은 퀘스트를 자동 수락하지 않습니다. 현재 단계의 필수 퀘스트를 직접 수락하고 근거를 연결하세요.</p> : null}
         {detailState?.step ? <InfoCard>현재 단계 상세: {detailState.step.step.title} · {humanize(detailState.step.step.state)}</InfoCard> : null}
         <section className="lag-journey-actions" aria-label="경로 동작">
           {!progress && route.code === BACKEND_ROUTE_CODE ? <BackendRoleSelect disabled={Boolean(pending)} onSelect={(roleId) => void selectRoute(route, roleId)} onOpenRoles={onOpenRoles} /> : null}
           {!progress && route.code !== BACKEND_ROUTE_CODE ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void selectRoute(route)}>경로 선택</button> : null}
+          {demoRun && progress && route.code === demoRun.scenarios.journey.routeCode && !latestAcceptance(queries.current.data, demoRun.scenarios.journey.firstQuestCode) ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void acceptFirstDemoQuest()}>첫 퀘스트 수락</button> : null}
           {canAdvance ? <button type="button" className="lag-journey-action" disabled={Boolean(pending)} onClick={() => void advanceRoute(route)}>다음 단계로</button> : null}
         </section>
         {progress?.status === "COMPLETED" ? <p className="lag-journey-feedback" data-state="success">✓ 마지막 단계 전진을 통해 경로를 완료했습니다.</p> : null}
