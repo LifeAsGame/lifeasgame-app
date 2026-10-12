@@ -66,7 +66,6 @@ export function PersonProfileForm({ person, pending, error, onSave, onCancel }: 
     const displayName = nullable(form, "displayName");
     if (!displayName) { setValidation("인물 이름을 입력해주세요."); return; }
     const birthday = nullable(form, "birthday");
-    if (birthday && birthday > today()) { setValidation("생일은 미래 날짜일 수 없습니다."); return; }
     setValidation(null);
     onSave({ displayName, birthday, contact: nullable(form, "contact"), notes: nullable(form, "notes"), profile: next });
   };
@@ -78,7 +77,7 @@ export function PersonProfileForm({ person, pending, error, onSave, onCancel }: 
   return <form className="lag-role-form lag-person-form" onSubmit={submit}>
     <label>인물 이름<input className="lag-role-control" name="displayName" autoFocus required maxLength={80} defaultValue={person?.displayName ?? ""} /></label>
     {textFields.slice(0, 2).map(([key, label, max]) => field(key, label, max))}
-    <label>생일<input className="lag-role-control" name="birthday" type="date" min="1000-01-01" max={today()} defaultValue={person?.birthday ?? ""} /></label>
+    <label>생일<input className="lag-role-control" name="birthday" type="date" min="1000-01-01" max="9999-12-31" defaultValue={person?.birthday ?? ""} /></label>
     <label>대표 연락처<input className="lag-role-control" name="contact" maxLength={120} defaultValue={person?.contact ?? ""} /></label>
     <label>인물 메모<textarea className="lag-role-control" name="notes" rows={3} defaultValue={person?.notes ?? ""} /></label>
     <div className="lag-person-inline"><label>기록 당시 만 나이<input className="lag-role-control" type="number" min={0} max={150} value={age} onChange={(event) => { const value = event.target.value; setAge(value); if (value && !ageDate) setAgeDate(today()); }} /></label><label>나이 기준일<input className="lag-role-control" type="date" value={ageDate} onChange={(event) => setAgeDate(event.target.value)} /></label></div>

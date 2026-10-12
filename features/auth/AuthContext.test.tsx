@@ -38,6 +38,7 @@ function Probe() {
 describe("인증 session을 관리할 때", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
     apiMocks.getMeApi.mockReset();
     apiMocks.loginApi.mockReset();
     apiMocks.registerApi.mockReset();
@@ -53,6 +54,20 @@ describe("인증 session을 관리할 때", () => {
       await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("player@lag.io"));
       expect(screen.getByTestId("player")).toHaveTextContent("6");
       expect(apiMocks.getMeApi).toHaveBeenCalledOnce();
+    });
+
+    it("removes a stale demo session without discarding an ordinary account", async () => {
+      tokenStorage.write(session);
+      window.sessionStorage.setItem("lag_demo_actor_session", JSON.stringify({ ...session, accessToken: "old-demo" }));
+      window.sessionStorage.setItem("lag_demo_state", JSON.stringify({ actor: "explorer" }));
+      apiMocks.getMeApi.mockResolvedValue(playerInfo);
+
+      render(<AuthProvider><Probe /></AuthProvider>);
+
+      await waitFor(() => expect(screen.getByTestId("state")).toHaveTextContent("player@lag.io"));
+      expect(tokenStorage.read()).toEqual(session);
+      expect(window.sessionStorage.getItem("lag_demo_actor_session")).toBeNull();
+      expect(window.sessionStorage.getItem("lag_demo_state")).toBeNull();
     });
   });
 

@@ -88,6 +88,7 @@ function SelectField({
 }
 
 function QuickRecordForm({
+  defaultSubtype = "",
   roles,
   rolesLoading,
   rolesError,
@@ -101,6 +102,7 @@ function QuickRecordForm({
   onEdit,
   onRefresh,
 }: {
+  defaultSubtype?: JournalSubtype | "";
   roles: RoleDetail[];
   rolesLoading: boolean;
   rolesError: string | null;
@@ -234,7 +236,7 @@ function QuickRecordForm({
 
       <div className="lag-journal-form-grid">
         <Field title="간편 기록 분류">
-          <select className="lag-journal-control" name="lifeLogSubtype" aria-label="간편 기록 분류" defaultValue="" disabled={pending}>
+          <select className="lag-journal-control" name="lifeLogSubtype" aria-label="간편 기록 분류" defaultValue={defaultSubtype} disabled={pending}>
             <option value="">없음</option>
             {JOURNAL_SUBTYPES.map((subtype) => <option key={subtype} value={subtype}>{label(subtype)}</option>)}
           </select>
@@ -409,7 +411,7 @@ function subscribeCompact(notify: () => void) {
   return () => media.removeEventListener("change", notify);
 }
 
-export default function JournalShell({ createRequest = 0, initialLifeLogId, roles, rolesLoading = false, rolesError = null, onBack, onOpenSource }: { createRequest?: number; initialLifeLogId?: number | null; roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void; onOpenSource?: (detail: JournalDetail) => void }) {
+export default function JournalShell({ createRequest = 0, initialLifeLogId, roles, rolesLoading = false, rolesError = null, onBack, onOpenSource, defaultQuickSubtype = "" }: { createRequest?: number; initialLifeLogId?: number | null; roles: RoleDetail[]; rolesLoading?: boolean; rolesError?: string | null; onBack?: () => void; onOpenSource?: (detail: JournalDetail) => void; defaultQuickSubtype?: JournalSubtype | "" }) {
   const compact = useSyncExternalStore(subscribeCompact, () => window.matchMedia("(max-width: 899px)").matches, () => false);
   const caller = useRef<HTMLButtonElement | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -544,6 +546,7 @@ export default function JournalShell({ createRequest = 0, initialLifeLogId, role
                   <p>수집·운동·감상을 일상 기록에 저장합니다.</p>
                 </div>
                 <QuickRecordForm
+                  defaultSubtype={defaultQuickSubtype}
                   roles={roles}
                   rolesLoading={rolesLoading}
                   rolesError={rolesError}

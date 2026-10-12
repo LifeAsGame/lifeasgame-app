@@ -45,6 +45,7 @@ import { bringToFrontStable } from "@/shared/lib/reorder";
 import { UI_CONSTS } from "@/shared/lib/uiConsts";
 import { NotificationBell } from "@/features/notification/NotificationBell";
 import type { JournalDetail } from "@/shared/api/types";
+import DemoGuide from "@/features/demo/DemoGuide";
 
 type SurfaceFocusState = {
   counter: number;
@@ -88,10 +89,10 @@ function buildPanels(
   return panelStack;
 }
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const location = useConsumerLocation();
-  const { isAuthenticated, playerId, isLoading, logout } = useAuth();
+  const { isAuthenticated, playerId, isLoading, logout, demoRun, demoActor } = useAuth();
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -104,6 +105,10 @@ export default function Home() {
     if (!isAuthenticated) router.replace("/login");
     else if (!playerId) router.replace("/linkstart");
   }, [isAuthenticated, isLoading, playerId, router]);
+
+  useEffect(() => {
+    if (!isLoading && demoActor && !location.open) router.replace("/demo");
+  }, [demoActor, isLoading, location.open, router]);
 
   const selectedMain = location.main;
   const roleState = useRoles(Boolean(playerId && (selectedMain === "player" || selectedMain === "role" || selectedMain === "lifelog")));
@@ -246,7 +251,7 @@ export default function Home() {
       : null;
 
   return (
-    <ConsumerShell open={location.open} main={selectedMain} home={<HomeShell active={!location.open}
+    <ConsumerShell open={location.open} main={selectedMain} home={<HomeShell active={!location.open && !demoActor}
               onOpenJournal={(lifeLogId) => {
                 setHomeJournalId(lifeLogId ?? null);
                 navigateConsumer("lifelog", "journal");
@@ -280,7 +285,7 @@ export default function Home() {
           onFocus={() => bringSurfaceToFront("left-context")}
           zIndex={getSurfaceZIndex("left-context", SURFACE_GROUP_BASE_Z.left)}
         /> : undefined}
-      utilities={<><SocialUtilityHub /><NotificationBell /></>}
+      utilities={<><DemoGuide /><SocialUtilityHub /><NotificationBell /></>}
       onOpen={() => navigateConsumer(null)} onClose={() => navigateConsumer(null, null, null, false)} onMenu={() => navigateConsumer(null)}>
     <div
       ref={viewportRef}
@@ -361,7 +366,7 @@ export default function Home() {
               />
             </div>
           ) : selectedMain === "quests" ? (
-            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} navigation={{ surface: location.sub as QuestsSubId | null, detail: location.detail }} onNavigate={(sub, detail) => navigateConsumer("quests", sub, detail)} onOpenRoles={(templateType) => { handleMainSelect("role"); setRoleWorkspace("roles"); if (templateType) { setRoleTemplateType(templateType); setRoleDetailsHidden(true); setRoleCreateRequest((value) => value + 1); } }} />
+            <JourneyShell initialSurface={selectedSubByMain.quests as QuestsSubId | null} navigation={{ surface: location.sub as QuestsSubId | null, detail: location.detail }} onNavigate={(sub, detail) => navigateConsumer("quests", sub, detail)} demoRun={demoRun} onOpenRoles={(templateType) => { handleMainSelect("role"); setRoleWorkspace("roles"); if (templateType) { setRoleTemplateType(templateType); setRoleDetailsHidden(true); setRoleCreateRequest((value) => value + 1); } }} />
           ) : selectedMain === "social" ? (
             <div className="flex w-fit items-center gap-6">
               <RightPanels selectedMain="social" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
@@ -388,13 +393,14 @@ export default function Home() {
               <ExchangeShell key={`market-${selectedSubByMain.market}-${subReentry[selectedSubByMain.market ?? ""] ?? 0}`}
                 surface={selectedSubByMain.market as MarketSubId | null}
                 playerId={playerId}
+                initialShopSurface={demoRun ? "marketplace" : undefined}
                 onBack={() => closeFeatureSubmenu("market")}
               />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "journal" ? (
             <div className="flex w-fit items-center gap-3">
               <RightPanels selectedMain="lifelog" panelStack={panelStack.slice(0, 1)} onPanelItemSelect={handlePanelItemSelect} onPanelItemCreate={handlePanelItemCreate} />
-              <JournalShell key={`journal-${subReentry.journal ?? 0}-${homeJournalId ?? ""}`} initialLifeLogId={homeJournalId} createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} onBack={() => closeFeatureSubmenu("lifelog")} onOpenSource={(detail) => { setSourceJump(detail); navigateConsumer("lifelog", detail.sourceType.toLowerCase()); }} />
+              <JournalShell key={`journal-${subReentry.journal ?? 0}-${homeJournalId ?? ""}`} initialLifeLogId={homeJournalId} createRequest={createRequests.journal ?? 0} roles={roleState.roles} rolesLoading={roleState.isLoading} rolesError={roleState.error} defaultQuickSubtype={demoRun ? "QUICK_NOTE" : ""} onBack={() => closeFeatureSubmenu("lifelog")} onOpenSource={(detail) => { setSourceJump(detail); navigateConsumer("lifelog", detail.sourceType.toLowerCase()); }} />
             </div>
           ) : selectedMain === "lifelog" && selectedSubByMain.lifelog === "collection" ? (
             <div className="flex w-fit items-center gap-3">
@@ -449,4 +455,9 @@ export default function Home() {
     </div>
     </ConsumerShell>
   );
+}
+
+export default function Home() {
+  const { session } = useAuth();
+  return <HomeContent key={`${session?.userId ?? "guest"}:${session?.playerId ?? "none"}`} />;
 }

@@ -10,6 +10,10 @@ export type ChatEvent =
   | { eventType: "READ_UPDATED"; channelId: number; playerId: number; lastReadMessageId: number };
 
 export function connectFriendChat(channelIds: number[], onEvent: (event: ChatEvent) => void, onStatus: (status: "connecting" | "connected" | "reconnecting" | "failed") => void, onConnected: () => void): () => void {
+  if (!BASE_URL || (window.location.protocol === "https:" && !BASE_URL.startsWith("https://"))) {
+    onStatus("failed");
+    return () => {};
+  }
   let stopped = false;
   let authFailed = false;
   const client = new Client({
