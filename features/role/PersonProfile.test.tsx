@@ -18,3 +18,12 @@ it("keeps age tied to a visible date and preserves optional repeated values on s
   fireEvent.click(screen.getByRole("button", { name: "인물 저장" }));
   expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ profile: expect.objectContaining({ ageAtReference: 0, ageReferenceDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), contactChannels: [{ kind: "OTHER", label: null, value: "alex-id" }], customNotes: [{ label: "색", value: "파랑" }] }) }));
 });
+
+it("accepts a future birthday within the backend date range", () => {
+  const onSave = vi.fn();
+  render(<PersonProfileForm pending={false} error={null} onSave={onSave} />);
+  fireEvent.change(screen.getByLabelText("인물 이름"), { target: { value: "Alex" } });
+  fireEvent.change(screen.getByLabelText("생일"), { target: { value: "2099-01-02" } });
+  fireEvent.click(screen.getByRole("button", { name: "인물 저장" }));
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ birthday: "2099-01-02" }));
+});

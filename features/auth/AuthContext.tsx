@@ -36,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearSession = useCallback(() => {
     demoStorage.clear();
+    tokenStorage.clear();
     setSession(null);
     setUserInfo(null);
     setDemo(null);

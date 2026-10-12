@@ -1,5 +1,6 @@
 import { ApiError, USE_MOCK, apiGet, apiPost } from "@/shared/api/client";
 import type { TokenPair } from "@/shared/api/types";
+import { DEMO_ENABLED } from "./config";
 
 export type DemoActor = "explorer" | "seller" | "journey";
 export type DemoRun = {
@@ -21,6 +22,7 @@ export type DemoRun = {
 export type DemoActivation = TokenPair & { runId: string; actor: DemoActor };
 const path = "/api/v1/demo";
 const enabled = () => {
+  if (!DEMO_ENABLED) throw new ApiError(503, "DEMO-DISABLED", "체험 기능이 비활성화되었습니다.");
   if (USE_MOCK) throw new ApiError(503, "DEMO-DISABLED", "실제 서버에 연결한 미리보기에서 체험을 시작하세요.");
 };
 

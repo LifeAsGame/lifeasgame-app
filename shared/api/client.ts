@@ -6,7 +6,7 @@ export function resolveConsumerMockMode(value: unknown): boolean {
 }
 
 export const USE_MOCK = resolveConsumerMockMode(process.env.NEXT_PUBLIC_USE_MOCK);
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:8080");
 
 export class ApiError extends Error {
   constructor(
@@ -101,6 +101,9 @@ async function apiRequest<T>(
   body?: unknown,
   options: RequestOptions = {},
 ): Promise<T> {
+  if (!BASE_URL || (typeof window !== "undefined" && window.location.protocol === "https:" && !BASE_URL.startsWith("https://"))) {
+    throw new ApiError(503, "API_NOT_CONFIGURED", "HTTPS API 주소가 설정되지 않았습니다.");
+  }
   const auth = options.auth !== false;
   const owner = tokenStorage.generation();
   const headers = new Headers(options.headers);

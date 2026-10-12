@@ -1,4 +1,5 @@
 import type { TokenPair } from "./types";
+import { DEMO_ENABLED } from "@/features/demo/config";
 
 export const AUTH_EXPIRED_EVENT = "lag:auth-expired";
 export const TOKEN_CHANGED_EVENT = "lag:token-changed";
@@ -20,7 +21,8 @@ function isTokenPair(value: unknown): value is TokenPair {
 function read(): TokenPair | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.sessionStorage.getItem(DEMO_TOKEN_STORAGE_KEY) ?? window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!DEMO_ENABLED && window.sessionStorage.getItem(DEMO_TOKEN_STORAGE_KEY)) clearDemo();
+    const raw = (DEMO_ENABLED ? window.sessionStorage.getItem(DEMO_TOKEN_STORAGE_KEY) : null) ?? window.localStorage.getItem(TOKEN_STORAGE_KEY);
     if (!raw) return null;
     const session: unknown = JSON.parse(raw);
     if (isTokenPair(session)) return session;
@@ -62,4 +64,11 @@ function clear(): void {
   window.dispatchEvent(new Event(TOKEN_CHANGED_EVENT));
 }
 
-export const tokenStorage = { read, write, writeDemo, replace, clear, generation: () => generation };
+function clearDemo(): void {
+  if (typeof window === "undefined" || !window.sessionStorage.getItem(DEMO_TOKEN_STORAGE_KEY)) return;
+  generation += 1;
+  window.sessionStorage.removeItem(DEMO_TOKEN_STORAGE_KEY);
+  window.dispatchEvent(new Event(TOKEN_CHANGED_EVENT));
+}
+
+export const tokenStorage = { read, write, writeDemo, replace, clear, clearDemo, generation: () => generation };

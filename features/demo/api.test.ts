@@ -3,6 +3,8 @@ import { tokenStorage } from "@/shared/api/tokenStorage";
 import { apiGet } from "@/shared/api/client";
 import { bootstrapDemo, startDemo } from "./api";
 
+vi.mock("./config", () => ({ DEMO_ENABLED: true }));
+
 const envelope = (result: unknown) => new Response(JSON.stringify({ isSuccess: true, code: "COMMON-200", message: "ok", result }), { status: 200, headers: { "Content-Type": "application/json" } });
 
 describe("체험 인증 경계", () => {

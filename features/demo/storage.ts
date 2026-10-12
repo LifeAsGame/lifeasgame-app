@@ -1,5 +1,6 @@
 import { tokenStorage } from "@/shared/api/tokenStorage";
 import type { DemoActivation, DemoActor, DemoRun } from "./api";
+import { DEMO_ENABLED } from "./config";
 
 const STATE_KEY = "lag_demo_state";
 const ATTEMPT_KEY = "lag_demo_attempt";
@@ -11,6 +12,7 @@ export type DemoAttempt = { key: string; proof: string; expiresAt: string };
 export const demoStorage = {
   read(): DemoState | null {
     if (typeof window === "undefined") return null;
+    if (!DEMO_ENABLED) { this.clear(); return null; }
     try {
       const raw = window.sessionStorage.getItem(STATE_KEY);
       return raw ? JSON.parse(raw) as DemoState : null;
@@ -21,7 +23,8 @@ export const demoStorage = {
     window.sessionStorage.removeItem(STATE_KEY);
     window.sessionStorage.removeItem(ATTEMPT_KEY);
     window.sessionStorage.removeItem(INTENT_KEY);
-    tokenStorage.clear();
+    window.sessionStorage.removeItem("lag_demo_flow");
+    tokenStorage.clearDemo();
   },
   attempt(): DemoAttempt | null {
     try { const raw = window.sessionStorage.getItem(ATTEMPT_KEY); return raw ? JSON.parse(raw) as DemoAttempt : null; }

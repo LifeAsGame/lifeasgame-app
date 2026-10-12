@@ -10,6 +10,7 @@ import { USE_MOCK } from "@/shared/api/client";
 import { MOTION } from "@/shared/lib/motion";
 import { SAO, PANEL_STYLE, GRID_OVERLAY_STYLE, INPUT_STYLE, GOLD_BTN_STYLE } from "@/shared/design/tokens";
 import { demoStorage } from "@/features/demo/storage";
+import { DEMO_ENABLED } from "@/features/demo/config";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -193,7 +194,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {!USE_MOCK ? <div className="mt-5 border-t pt-5 text-center" style={{ borderColor: SAO.color.border.gold }}>
+          {DEMO_ENABLED && !USE_MOCK ? <div className="mt-5 border-t pt-5 text-center" style={{ borderColor: SAO.color.border.gold }}>
             <button type="button" disabled={isPending} className="w-full py-3 disabled:opacity-60" style={GOLD_BTN_STYLE} onClick={() => { demoStorage.requestStart(); router.push("/demo"); }}>포트폴리오 체험 시작</button>
             <p className="mt-2 text-xs" style={{ color: SAO.color.text.label }}>새로 로그인하면 체험 데이터가 처음 상태로 시작합니다.</p>
           </div> : null}
