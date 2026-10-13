@@ -32,6 +32,7 @@ it("공식 대·소분류, 상세, 저장 시에만 보유 등록을 연결한�
   fireEvent.click(screen.getByRole("button", { name: "상세로" }));
   expect(await screen.findByText("Plain information")).toBeInTheDocument();
   expect(screen.getAllByText("Verified agency")).toHaveLength(2);
+  expect(screen.getByText("기본 정보만 제공")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "내 자격증 등록" }));
   fireEvent.change(screen.getByRole("combobox", { name: "내 분류" }), { target: { value: "7" } });
   fireEvent.click(screen.getByRole("button", { name: "자격증 저장" }));
