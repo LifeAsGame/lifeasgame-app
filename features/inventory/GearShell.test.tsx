@@ -1,42 +1,26 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MOCK_INVENTORY_ITEMS } from "@/lib/api/mock/inventory.mock";
 import type { EquipmentSlotInfo, InventoryEntry } from "@/shared/api/types";
 import { composeEquipmentSlots } from "./model";
 import GearShell from "./GearShell";
 
 const hook = vi.hoisted(() => ({ current: {} as ReturnType<typeof makeState> }));
-
 vi.mock("./useEquipmentQueries", () => ({ useEquipmentQueries: () => hook.current }));
+vi.mock("./EquipmentArtwork", () => ({ default: () => <span>artwork</span> }));
+vi.mock("@/shared/ui/useSaoConfirm", () => ({ useSaoConfirm: () => ({ confirm: async () => true, dialog: null }) }));
 
-const currentHelmet: InventoryEntry = {
-  itemInstanceId: 501,
-  slotIndex: 1,
-  itemId: 101,
-  itemName: "Current Helmet",
-  category: "ARMOR",
-  type: "HELMET",
-  rarity: "RARE",
-  stackable: false,
-  maxStack: 1,
-  quantity: 1,
-  bound: true,
-  durability: 80,
-  instanceAttrs: { atk: 10 },
+const head: EquipmentSlotInfo = { slotId: 21, slotCode: "HEAD", slotName: "Head", slotCategory: "HEAD", slotRole: "SINGLE", itemInstanceId: null };
+const body: EquipmentSlotInfo = { slotId: 22, slotCode: "BODY", slotName: "Body", slotCategory: null, slotRole: null, itemInstanceId: null };
+const item: InventoryEntry = {
+  itemInstanceId: 501, slotIndex: 3, itemId: 101, itemName: "기록자의 모자", category: "ARMOR", type: "HELMET",
+  rarity: "RARE", stackable: false, maxStack: 1, quantity: 1, bound: true, durability: null, instanceAttrs: {},
 };
-const armor: InventoryEntry = { ...currentHelmet, itemInstanceId: 601, slotIndex: 3, itemId: 201, itemName: "Chest Armor", type: "CHEST" };
-const equipment: EquipmentSlotInfo[] = [
-  { slotId: 21, slotCode: "HEAD", slotName: "Head", slotCategory: null, slotRole: null, itemInstanceId: null },
-  { slotId: 22, slotCode: "BODY", slotName: "Body", slotCategory: null, slotRole: null, itemInstanceId: 601 },
-  { slotId: 31, slotCode: "WRIST", slotName: "Wrist", slotCategory: null, slotRole: null, itemInstanceId: 999 },
-  { slotId: 41, slotCode: "FEET", slotName: "Feet", slotCategory: null, slotRole: null, itemInstanceId: 602 },
-];
 
-function makeState(slotData = equipment, entries = [currentHelmet, armor]) {
+function makeState(slotData = [head, body], entries = [item]) {
   return {
-    equipment: { data: slotData, loading: false, error: null as string | null, reload: vi.fn() },
-    inventory: { data: { entries }, loading: false, error: null as string | null, reload: vi.fn() },
+    equipment: { data: slotData, loading: false, error: null as string | null, reload: vi.fn(), getRequestId: vi.fn() },
+    inventory: { data: { entries }, loading: false, error: null as string | null, reload: vi.fn(), getRequestId: vi.fn() },
     slots: composeEquipmentSlots(slotData, entries),
     pendingKey: null as string | null,
     mutationError: null as string | null,
@@ -45,161 +29,47 @@ function makeState(slotData = equipment, entries = [currentHelmet, armor]) {
   };
 }
 
-function expectData(label: string, value: string) {
-  expect(screen.getByText(label).nextElementSibling).toHaveTextContent(value);
-}
+describe("Gear server slot panels", () => {
+  beforeEach(() => { vi.clearAllMocks(); hook.current = makeState(); });
 
-describe("Gear surface를 사용할 때", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    hook.current = makeState();
-  });
-
-  it("renders all nine eager semantic slots with nullable metadata and keeps TITLE outside Gear", () => {
-    const semanticEquipment = [
-      ...equipment,
-      { slotId: 42, slotCode: "NECK", slotName: "Neck", slotCategory: null, slotRole: null, itemInstanceId: null },
-      { slotId: 43, slotCode: "RING_LEFT", slotName: "Ring", slotCategory: null, slotRole: null, itemInstanceId: null },
-      { slotId: 44, slotCode: "AURA", slotName: "Aura", slotCategory: null, slotRole: null, itemInstanceId: null },
-      { slotId: 45, slotCode: "PROFILE_FRAME", slotName: "Profile Frame", slotCategory: null, slotRole: null, itemInstanceId: null },
-      { slotId: 46, slotCode: "BADGE", slotName: "Badge", slotCategory: null, slotRole: null, itemInstanceId: null },
-      { slotId: 47, slotCode: "TITLE", slotName: "Title", slotCategory: null, slotRole: null, itemInstanceId: null },
-    ];
-    hook.current = makeState(semanticEquipment.map((slot) => ({ ...slot, itemInstanceId: null })), []);
+  it("renders actual slot rows, supports only mapped slot actions, and keeps three panel stages", async () => {
     render(<GearShell />);
-
-    fireEvent.click(screen.getByRole("button", { name: /방어구/ }));
-    for (const name of ["Head", "Body", "Wrist"]) {
-      expect(screen.getByRole("button", { name: new RegExp(`${name}.*비어 있음`) })).toBeInTheDocument();
-    }
-
-    fireEvent.click(screen.getByRole("button", { name: /장신구/ }));
-    for (const name of ["Neck", "Ring", "Aura", "Profile Frame", "Badge"]) {
-      expect(screen.getByRole("button", { name: new RegExp(`${name}.*비어 있음`) })).toBeInTheDocument();
-    }
-
-    fireEvent.click(screen.getByRole("button", { name: /신발/ }));
-    expect(screen.getByRole("button", { name: /Feet.*비어 있음/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Title.*비어 있음/ })).not.toBeInTheDocument();
-  });
-
-  it("keeps Parts -> combined workspace -> Action within three stable stages and honors Back/reset", async () => {
-    render(<GearShell />);
+    expect(screen.getByRole("button", { name: /Head.*비어 있음/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Body.*비어 있음/ })).toBeInTheDocument();
     expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(1);
 
-    fireEvent.click(screen.getByRole("button", { name: /방어구/ }));
-    const workspace = document.querySelector('[data-stage-key="inventory-gear-workspace"]');
-    expect(workspace).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Body.*비어 있음/ }));
     expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(2);
-    const headButton = screen.getByRole("button", { name: /Head/ });
-    fireEvent.click(headButton);
-    expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(3);
-
-    const action = document.querySelector('[data-stage-key="inventory-gear-action"]');
-    const bodyButton = screen.getByRole("button", { name: /Body.*Chest Armor/ });
-    fireEvent.click(bodyButton);
-    expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).toBe(action);
-
-    fireEvent.click(screen.getByRole("button", { name: "장비 슬롯으로" }));
+    expect(screen.getAllByText("이 슬롯은 현재 장착 명령을 지원하지 않습니다.")).toHaveLength(2);
+    fireEvent.click(document.querySelector('[data-kind="slot"]') as HTMLButtonElement);
+    expect(screen.queryByRole("button", { name: "장착" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "선택한 슬롯으로" }));
     await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).not.toBeInTheDocument());
-    expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).toBe(workspace);
-    await waitFor(() => expect(bodyButton).toHaveFocus());
 
-    const accessoryButton = screen.getByRole("button", { name: /장신구/ });
-    fireEvent.click(accessoryButton);
-    expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).toBe(workspace);
-    expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "장비 분류로" }));
+    fireEvent.click(screen.getByRole("button", { name: /Head.*비어 있음/ }));
+    fireEvent.click(screen.getByRole("button", { name: /기록자의 모자/ }));
+    expect(document.querySelectorAll('[data-stage-key^="inventory-gear-"]')).toHaveLength(3);
+    fireEvent.click(screen.getByRole("button", { name: "장착" }));
+    await waitFor(() => expect(hook.current.equip).toHaveBeenCalledWith(21, 501));
+  });
+
+  it("preserves selected slot and disables actions when refreshed reads fail", () => {
+    const { rerender } = render(<GearShell />);
+    fireEvent.click(screen.getByRole("button", { name: /Head.*비어 있음/ }));
+    fireEvent.click(screen.getByRole("button", { name: /기록자의 모자/ }));
+    hook.current = makeState();
+    hook.current.equipment.error = "장비 조회 실패";
+    rerender(<GearShell />);
+    expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "장착" })).toBeDisabled();
+    expect(screen.getAllByRole("alert").some((node) => node.textContent?.includes("장비 조회 실패"))).toBe(true);
+  });
+
+  it("clears only a slot removed by the authoritative response", async () => {
+    const { rerender } = render(<GearShell />);
+    fireEvent.click(screen.getByRole("button", { name: /Head.*비어 있음/ }));
+    hook.current = makeState([body], [item]);
+    rerender(<GearShell />);
     await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-gear-workspace"]')).not.toBeInTheDocument());
-    await waitFor(() => expect(accessoryButton).toHaveFocus());
-  });
-
-  describe("current Consumer Equipment Item content가 gated이면", () => {
-    it("legacy HELMET/CHEST Inventory rows를 candidate나 Equip action으로 노출하지 않는다", () => {
-      hook.current = makeState(equipment.map((slot) => ({ ...slot, itemInstanceId: null })), MOCK_INVENTORY_ITEMS);
-      render(<GearShell />);
-      fireEvent.click(screen.getByRole("button", { name: /방어구/ }));
-
-      expect(screen.getByText("장비 콘텐츠 준비 중 · 슬롯 조회만 가능합니다.")).toBeInTheDocument();
-      expect(screen.queryByText("Frontliner's Helm")).not.toBeInTheDocument();
-      expect(screen.queryByText("Black Coat of Midnight")).not.toBeInTheDocument();
-      expect(document.querySelectorAll('[data-kind="candidate"]')).toHaveLength(0);
-
-      fireEvent.click(screen.getByRole("button", { name: /Head/ }));
-      expectData("선택 아이템", "장비 콘텐츠 준비 중");
-      expectData("호환성", "확인할 수 없음");
-      expect(screen.queryByRole("button", { name: "Equip" })).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Unequip" })).not.toBeInTheDocument();
-      expect(hook.current.equip).not.toHaveBeenCalled();
-      expect(hook.current.unequip).not.toHaveBeenCalled();
-    });
-
-    it("API-shaped historical occupied slot은 truthful read-only detail로 표시하고 Unequip을 노출하지 않는다", () => {
-      hook.current = makeState([equipment[2]], []);
-      render(<GearShell />);
-      fireEvent.click(screen.getByRole("button", { name: /방어구/ }));
-      const slot = screen.getByRole("button", { name: /Wrist.*아이템 정보 없음.*999/ });
-      expect(slot).not.toHaveTextContent("비어 있음");
-      fireEvent.click(slot);
-
-      expectData("장착 상태", "아이템 정보 없음 (#999)");
-      expect(screen.getByRole("status")).toHaveTextContent("장비 콘텐츠 준비 중 · 슬롯 조회만 가능합니다.");
-      expect(screen.queryByRole("button", { name: "Unequip" })).not.toBeInTheDocument();
-      expect(hook.current.unequip).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("Equipment 또는 Inventory query가 비정상이면", () => {
-    it("existing slots 재조회 실패 시 이전 값을 명시하고 Retry한다", () => {
-      const { rerender } = render(<GearShell />);
-      fireEvent.click(screen.getByRole("button", { name: /방어구/ }));
-      fireEvent.click(screen.getByRole("button", { name: "장비 다시 조회" }));
-      expect(hook.current.equipment.reload).toHaveBeenCalledTimes(1);
-
-      hook.current = makeState();
-      hook.current.equipment.error = "Equipment GET failed";
-      rerender(<GearShell />);
-      expect(screen.getByText(/이전에 조회한 슬롯입니다/)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /Wrist/ })).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
-      expect(hook.current.equipment.reload).toHaveBeenCalledTimes(1);
-    });
-
-    it("loading, error/retry, no-slot, no-candidate state를 각각 표시한다", () => {
-      hook.current = makeState([], []);
-      hook.current.equipment.loading = true;
-      hook.current.inventory.loading = true;
-      const { rerender } = render(<GearShell />);
-      fireEvent.click(screen.getByRole("button", { name: /방어구/ }));
-      expect(screen.getByText("장비를 불러오는 중…")).toBeInTheDocument();
-      expect(screen.queryByText("아이템을 불러오는 중…")).not.toBeInTheDocument();
-      expect(screen.getByText("장비 콘텐츠 준비 중 · 슬롯 조회만 가능합니다.")).toBeInTheDocument();
-
-      hook.current = makeState([], []);
-      hook.current.equipment.error = "Equipment unavailable";
-      hook.current.inventory.error = "Inventory unavailable";
-      rerender(<GearShell />);
-      expect(screen.getAllByRole("alert").map((node) => node.textContent)).toEqual(["Equipment unavailable"]);
-      fireEvent.click(screen.getByRole("button", { name: "다시 조회" }));
-      expect(hook.current.equipment.reload).toHaveBeenCalledTimes(1);
-      expect(hook.current.inventory.reload).not.toHaveBeenCalled();
-
-      hook.current = makeState([], []);
-      rerender(<GearShell />);
-      expect(screen.getByText("해당 장비 슬롯이 없습니다.")).toBeInTheDocument();
-      expect(screen.queryByText("장착 가능한 아이템이 없습니다.")).not.toBeInTheDocument();
-    });
-  });
-
-  describe("authoritative reload에서 selection identity가 사라지면", () => {
-    it("removed slot selection을 clear한다", async () => {
-      const { rerender } = render(<GearShell />);
-      fireEvent.click(screen.getByRole("button", { name: /방어구/ }));
-      fireEvent.click(screen.getByRole("button", { name: /Body/ }));
-
-      hook.current = makeState([equipment[0], equipment[2]], [currentHelmet, armor]);
-      rerender(<GearShell />);
-      await waitFor(() => expect(document.querySelector('[data-stage-key="inventory-gear-action"]')).not.toBeInTheDocument());
-    });
   });
 });

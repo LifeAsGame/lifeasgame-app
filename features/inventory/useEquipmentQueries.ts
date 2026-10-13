@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import type { EquipmentSlotInfo } from "@/shared/api/types";
 import { ApiError } from "@/shared/api/client";
 import { equipGearApi, getEquippedGearApi, unequipGearApi } from "@/lib/api/endpoints/equipment.api";
-import { composeEquipmentSlots, getEquipCompatibility } from "./model";
+import { composeEquipmentSlots, getEquipCompatibility, supportsEquipmentCommand } from "./model";
 import { useInventoryEntries, useLatestQuery } from "./useInventoryQueries";
 
 const loadEquipment = () => getEquippedGearApi();
@@ -37,12 +37,18 @@ export function useEquipmentQueries() {
       } catch (caught) {
         requestError = caught;
       }
-      const [nextEquipment, nextInventory] = await Promise.all([equipment.reload(), inventory.reload()]);
+      const requests = [equipment.reload(), inventory.reload()] as const;
+      const equipmentRequestId = equipment.getRequestId();
+      const inventoryRequestId = inventory.getRequestId();
+      const [nextEquipment, nextInventory] = await Promise.all(requests);
+      const recovered = equipmentRequestId === equipment.getRequestId()
+        && inventoryRequestId === inventory.getRequestId()
+        && Boolean(nextEquipment && nextInventory);
       if (requestError) {
         setMutationError(requestError instanceof ApiError
-          ? `Equipment request was rejected. Server state was reloaded. ${requestError.message}`
-          : `Request outcome was not confirmed. Server state was reloaded. ${message(requestError, "")}`.trim());
-      } else if (!nextEquipment || !nextInventory) {
+          ? `Equipment request was rejected. Server state ${recovered ? "was reloaded" : "could not be fully reloaded"}. ${requestError.message}`
+          : `Request outcome was not confirmed. Server state ${recovered ? "was reloaded" : "could not be fully reloaded"}. ${message(requestError, "")}`.trim());
+      } else if (!recovered) {
         setMutationError("Equipment changed, but authoritative recovery failed. Retry the failed query.");
       }
     } finally {
@@ -55,7 +61,7 @@ export function useEquipmentQueries() {
     if (mutationLocked.current) return;
     const slot = equipment.data.find((entry) => entry.slotId === slotId);
     const item = inventory.data.entries.find((entry) => entry.itemInstanceId === itemInstanceId);
-    if (!slot || !item) {
+    if (!slot || !item || equipment.error || inventory.error) {
       setMutationError("The selected Equipment slot or Inventory item is no longer available.");
       return;
     }
@@ -67,10 +73,14 @@ export function useEquipmentQueries() {
     await runMutation(`equip-${slotId}`, () => equipGearApi(slotId, itemInstanceId));
   };
 
-  const unequip = (slotId: number) => runMutation(
-    `unequip-${slotId}`,
-    () => unequipGearApi(slotId),
-  );
+  const unequip = (slotId: number) => {
+    const slot = equipment.data.find((entry) => entry.slotId === slotId);
+    if (!slot || !supportsEquipmentCommand(slot) || slot.itemInstanceId === null || equipment.error || inventory.error) {
+      setMutationError("장비 상태를 다시 조회한 뒤 장착 해제를 시도하세요.");
+      return Promise.resolve();
+    }
+    return runMutation(`unequip-${slotId}`, () => unequipGearApi(slotId));
+  };
 
   return { equipment, inventory, slots, pendingKey, mutationError, equip, unequip };
 }

@@ -124,7 +124,6 @@ const [selectedMain, setSelectedMain] = useState<MainNavId>("player");
 ```
 selectedMain                    현재 선택된 메인 도메인 (player/skills/...)
 selectedSubByMain               각 도메인의 선택된 서브메뉴
-selectedInventoryGearPartId     장비 부위 선택
 selectedMarketShopSectionId     마켓 상점 섹션 선택
 selectedDetailByKey             13종류의 상세 항목 선택
 selectedPlayerCategoryBySub     Player 도메인 카테고리 선택

@@ -12,6 +12,7 @@ import { consumerLabel } from "@/shared/lib/consumerLabels";
 import { BackButton, PanelFrame } from "@/widgets/right-panels/ui/PanelFrame";
 import { InfoCard } from "@/widgets/right-panels/ui/Rows";
 import { useInventoryQueries } from "./useInventoryQueries";
+import EquipmentArtwork from "./EquipmentArtwork";
 
 export type InventorySurface = "items" | "inbox";
 
@@ -44,6 +45,7 @@ function attributeValue(value: unknown): string {
 }
 
 const itemName = (entry: InventoryEntry | MailEntry) => entry.itemName.trim() || `아이템 #${entry.itemId}`;
+const isEquipment = (entry: InventoryEntry | MailEntry) => entry.category === "ARMOR" && (entry.type === "HELMET" || entry.type === "CHEST");
 
 function Attributes({ attrs }: { attrs: Record<string, unknown> }) {
   const entries = Object.entries(attrs);
@@ -59,11 +61,11 @@ function Attributes({ attrs }: { attrs: Record<string, unknown> }) {
 function InventoryTile({ entry, selected, kind, onSelect }: { entry: InventoryEntry | MailEntry; selected: boolean; kind: "item" | "mail"; onSelect: (button: HTMLButtonElement) => void }) {
   return (
     <button type="button" className="lag-inventory-tile" data-testid="inventory-entry" data-selected={selected} data-scroll-center-target={selected ? "true" : undefined} aria-pressed={selected} onClick={(event) => onSelect(event.currentTarget)}>
-      <span className="lag-inventory-tile-mark" aria-hidden>x{entry.quantity}</span>
+      {isEquipment(entry) ? <EquipmentArtwork itemId={entry.itemId} kind="icon" name={itemName(entry)} /> : <span className="lag-inventory-tile-mark" aria-hidden>x{entry.quantity}</span>}
       <span className="lag-inventory-tile-copy">
         <strong>{itemName(entry)}</strong>
         <span>{consumerLabel(entry.rarity)} · {consumerLabel(entry.category)}</span>
-        <small>{consumerLabel(entry.type)}{kind === "item" && entry.bound ? " · 귀속" : ""}</small>
+        <small>{consumerLabel(entry.type)}{isEquipment(entry) ? ` · x${entry.quantity}` : ""}{kind === "item" && entry.bound ? " · 귀속" : ""}</small>
       </span>
       <span aria-hidden>→</span>
     </button>
@@ -79,6 +81,7 @@ function ItemDetail({ item }: { item: InventoryEntry }) {
         <ItemDescription itemId={item.itemId} />
         <div><span>{consumerLabel(item.rarity)}</span><span>{consumerLabel(item.category)}</span><span>{consumerLabel(item.type)}</span></div>
       </header>
+      {isEquipment(item) ? <EquipmentArtwork itemId={item.itemId} kind="preview" name={itemName(item)} /> : null}
       <DetailSection title="아이템 정보">
         <DataRow label="보유 번호">{item.itemInstanceId}</DataRow>
         <DataRow label="아이템 번호">{item.itemId}</DataRow>
@@ -113,6 +116,7 @@ function MailDetail({ mail, pending, claimed, recoveryBlocked, recoveryError, on
         <ItemDescription itemId={mail.itemId} />
         <div><span>{consumerLabel(mail.rarity)}</span><span>{consumerLabel(mail.category)}</span><span>{consumerLabel(mail.type)}</span></div>
       </header>
+      {isEquipment(mail) ? <EquipmentArtwork itemId={mail.itemId} kind="preview" name={itemName(mail)} /> : null}
       <DetailSection title="수신 정보">
         <DataRow label="수신 번호">{mail.mailId}</DataRow>
         <DataRow label="칸 번호">{mail.slotIndex}</DataRow>

@@ -1,6 +1,4 @@
-import type { InventoryGearPartId } from "@/entities/nav";
 import type { EquipmentSlotInfo, InventoryEntry } from "@/shared/api/types";
-import { CURRENT_CONSUMER_GEAR_CAPABILITY } from "./policy";
 
 export type EquipmentSlotView = {
   slot: EquipmentSlotInfo;
@@ -16,18 +14,9 @@ export type EquipCompatibility =
 const INCOMPATIBLE_REASON = "This item is incompatible with the selected Equipment slot.";
 const UNVERIFIABLE_REASON = "Compatibility is not available for this slot in the current item contract.";
 
-const SLOT_CODES: Record<InventoryGearPartId, readonly string[]> = {
-  weapon: [],
-  armor: ["HEAD", "BODY", "WRIST"],
-  accessory: ["NECK", "RING_LEFT", "AURA", "PROFILE_FRAME", "BADGE"],
-  boots: ["FEET"],
-};
-
-const ITEM_CATEGORY: Record<InventoryGearPartId, string> = {
-  weapon: "WEAPON",
-  armor: "ARMOR",
-  accessory: "ACCESSORY",
-  boots: "ARMOR",
+const COMMAND_SLOTS: Record<string, { category: string; itemType: string }> = {
+  HEAD: { category: "HEAD", itemType: "HELMET" },
+  BODY: { category: "CHEST", itemType: "CHEST" },
 };
 
 export function composeEquipmentSlots(slots: EquipmentSlotInfo[], inventory: InventoryEntry[]): EquipmentSlotView[] {
@@ -38,38 +27,19 @@ export function composeEquipmentSlots(slots: EquipmentSlotInfo[], inventory: Inv
   });
 }
 
-export function slotsForGearPart(slots: EquipmentSlotView[], part: InventoryGearPartId): EquipmentSlotView[] {
-  if (!CURRENT_CONSUMER_GEAR_CAPABILITY.slotsReadable) return [];
-  return slots.filter(({ slot }) => SLOT_CODES[part].includes(slot.slotCode));
+export function supportsEquipmentCommand(slot: EquipmentSlotInfo): boolean {
+  const command = COMMAND_SLOTS[slot.slotCode];
+  return Boolean(command && slot.slotCategory === command.category && slot.slotRole === "SINGLE");
 }
 
-export function candidatesForGearPart(inventory: InventoryEntry[], part: InventoryGearPartId): InventoryEntry[] {
-  if (!CURRENT_CONSUMER_GEAR_CAPABILITY.equipmentItemsAvailable) return [];
-  return inventory.filter(({ category }) => category === ITEM_CATEGORY[part]);
+export function candidatesForSlot(inventory: InventoryEntry[], slot: EquipmentSlotInfo): InventoryEntry[] {
+  return inventory.filter((item) => getEquipCompatibility(slot, item).status === "VERIFIED" && item.itemInstanceId !== slot.itemInstanceId);
 }
 
 export function getEquipCompatibility(slot: EquipmentSlotInfo, item: InventoryEntry): EquipCompatibility {
-  const semanticCategory = slot.slotCode === "BODY" ? "CHEST"
-    : slot.slotCode === "RING_LEFT" ? "RING"
-      : slot.slotCode;
-
-  const expectedCategory = ["HEAD", "CHEST", "FEET"].includes(semanticCategory)
-    ? "ARMOR"
-    : ["NECK", "RING"].includes(semanticCategory) ? "ACCESSORY" : null;
-  if (!expectedCategory) return { status: "UNVERIFIABLE", reason: UNVERIFIABLE_REASON };
-  if (item.category !== expectedCategory) return { status: "INCOMPATIBLE", reason: INCOMPATIBLE_REASON };
-
-  const verifiedType = semanticCategory === "HEAD" ? "HELMET"
-    : semanticCategory === "CHEST" ? "CHEST"
-      : semanticCategory === "RING" ? "RING" : null;
-  if (!verifiedType) {
-    const knownOtherSlotType = ["HELMET", "CHEST", "RING"].includes(item.type);
-    return knownOtherSlotType
-      ? { status: "INCOMPATIBLE", reason: INCOMPATIBLE_REASON }
-      : { status: "UNVERIFIABLE", reason: UNVERIFIABLE_REASON };
-  }
-  if (item.type === verifiedType) return { status: "VERIFIED" };
-  return item.type === "ETC"
-    ? { status: "UNVERIFIABLE", reason: UNVERIFIABLE_REASON }
+  if (!supportsEquipmentCommand(slot)) return { status: "UNVERIFIABLE", reason: UNVERIFIABLE_REASON };
+  const command = COMMAND_SLOTS[slot.slotCode];
+  return item.category === "ARMOR" && item.type === command.itemType && !item.stackable && item.quantity === 1
+    ? { status: "VERIFIED" }
     : { status: "INCOMPATIBLE", reason: INCOMPATIBLE_REASON };
 }
