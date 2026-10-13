@@ -46,6 +46,12 @@ import type { RoleDetail } from "@/shared/api/types";
 import BackendQuestEvidence, { BACKEND_QUEST_CODES, backendQuestCode } from "./BackendQuestEvidence";
 
 const BACKEND_ROUTE_CODE = "ROUTE_BACKEND_DEVELOPER_START";
+const RECORD_ROUTE_CODE = "ROUTE_RECORD_START";
+const RECORD_QUEST_BY_STEP: Record<string, string> = {
+  RS_RECORD_01_LEAVE_TRACE: "Q_RECORD_FIRST_TRACE",
+  RS_RECORD_02_CONNECT_TRACES: "Q_RECORD_THREE_TRACES",
+  RS_RECORD_03_LOOK_BACK: "Q_RECORD_WEEKLY_LOOKBACK",
+};
 
 function BackendRoleSelect({ disabled, onSelect, onOpenRoles }: { disabled: boolean; onSelect: (roleId: number) => void; onOpenRoles?: (templateType?: "ROLE_BACKEND_DEVELOPER" | "ROLE_JOB_SEEKER") => void }) {
   const [roles, setRoles] = useState<RoleDetail[]>([]);
@@ -200,9 +206,9 @@ function RouteThread({ route, quests, catalog, onQuest }: { route: QuestRoute; q
                     <ul aria-label={`${step.title}의 퀘스트 조건`}>
                       {step.questLinks.map((link) => {
                         const quest = quests.find((item) => item.questId === link.questId);
-                        const code = route.code === BACKEND_ROUTE_CODE && current ? backendQuestCode(step.stepCode) : null;
+                        const code = route.code === BACKEND_ROUTE_CODE ? backendQuestCode(step.stepCode) : route.code === RECORD_ROUTE_CODE ? RECORD_QUEST_BY_STEP[step.stepCode] ?? null : null;
                         const title = quest?.title ?? catalog.find((item) => item.code === code)?.title ?? `퀘스트 #${link.questId}`;
-                        return <li key={link.questId}>필요 조건: {code ? <button type="button" className="lag-journey-button" onClick={() => onQuest(code)}>{title}</button> : title} · {humanize(link.requirementType)}</li>;
+                        return <li key={link.questId}>필요 조건: {current && code ? <button type="button" className="lag-journey-button" onClick={() => onQuest(code)}>{title}</button> : title} · {humanize(link.requirementType)}</li>;
                       })}
                     </ul>
                   ) : <p>연결된 퀘스트 조건이 없습니다.</p>}
