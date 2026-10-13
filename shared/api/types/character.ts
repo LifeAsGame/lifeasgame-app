@@ -62,7 +62,7 @@ export interface PlayerCertificationInfo {
   certificationId: number;
   personalCategoryId?: number | null;
   name: string;
-  issuer: string;
+  issuer: string | null;
   category: string;
   acquiredDate: string | null;
   expiresDate: string | null;
@@ -72,7 +72,7 @@ export interface PlayerCertificationInfo {
 export interface CertificationCatalogInfo {
   certificationId: number;
   name: string;
-  issuer: string;
+  issuer: string | null;
   category: string;
 }
 

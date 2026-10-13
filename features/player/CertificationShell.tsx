@@ -126,7 +126,7 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
           {certifications.owned.error ? <Feedback message={certifications.owned.error} retry={() => void certifications.owned.reload()} /> : null}
           {error && certifications.mutationErrorKey?.startsWith("delete-") ? <Feedback message={error} /> : null}
           {!certifications.owned.loading && !certifications.owned.error && !filteredOwned.length ? <InfoCard>해당 분류의 자격증이 없습니다.</InfoCard> : null}
-          {filteredOwned.map((item, index) => <PanelCard key={item.certificationId} label={item.name} slotLabel={item.name.slice(0, 1)} subtitle={`${item.issuer} · 취득일 ${item.acquiredDate ?? "미등록"}`} selected={selected?.certificationId === item.certificationId} centerTarget={selected?.certificationId === item.certificationId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.certificationId, true); else void deleteOwned(item.certificationId, item.name); }} onClick={() => select(item.certificationId)} />)}
+          {filteredOwned.map((item, index) => <PanelCard key={item.certificationId} label={item.name} slotLabel={item.name.slice(0, 1)} subtitle={`${item.issuer ? `${item.issuer} · ` : ""}취득일 ${item.acquiredDate ?? "미등록"}`} selected={selected?.certificationId === item.certificationId} centerTarget={selected?.certificationId === item.certificationId} index={index} actions={[{ type: "edit", label: "수정" }, { type: "delete", label: "삭제" }]} onAction={(type) => { if (type === "edit") select(item.certificationId, true); else void deleteOwned(item.certificationId, item.name); }} onClick={() => select(item.certificationId)} />)}
         </div>}>
           <div className="lag-player-content">
             {certifications.catalog.loading && !certifications.catalog.items.length ? <InfoCard>자격증 카탈로그를 불러오는 중…</InfoCard> : null}
@@ -137,7 +137,7 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
               const saved = await creation.save(() => registerOwned(Number(catalogId), dates(new FormData(element))));
               if (saved) { element.reset(); setCatalogId(""); }
             }}>
-              <Field label="자격증" required><select aria-label="자격증" value={catalogId} onChange={(event) => setCatalogId(event.target.value)} required disabled={pending} style={controlStyle}><option value="">선택…</option>{available.map((item) => <option key={item.certificationId} value={item.certificationId}>{item.name} · {item.issuer}</option>)}</select></Field>
+              <Field label="자격증" required><select aria-label="자격증" value={catalogId} onChange={(event) => setCatalogId(event.target.value)} required disabled={pending} style={controlStyle}><option value="">선택…</option>{available.map((item) => <option key={item.certificationId} value={item.certificationId}>{item.name}{item.issuer ? ` · ${item.issuer}` : ""}</option>)}</select></Field>
               <Field label="취득일"><input name="acquiredDate" type="date" min="1000-01-01" disabled={pending} style={controlStyle} /></Field>
               <Field label="만료일"><input name="expiresDate" type="date" min="1000-01-01" disabled={pending} style={controlStyle} /></Field>
               {error && certifications.mutationErrorKey === "register" ? <Feedback message={error} /> : null}
@@ -167,7 +167,7 @@ export default function CertificationShell({ onBack, createRequest = 0 }: { onBa
             {assignmentError ? <Feedback message={assignmentError} /> : null}
             <div className="lag-player-actions"><button type="submit" className="lag-player-button" disabled={pending}>{pending ? "저장 중…" : "날짜 저장"}</button><button type="button" className="lag-player-button" disabled={pending} onClick={() => { setEditingId(null); certifications.clearMutationError(); }}>취소</button></div>
           </form> : <>
-            <DetailLine label="발급기관">{selected.issuer}</DetailLine><DetailLine label="기본 분류">{categoryLabel(selected.category)}</DetailLine><DetailLine label="내 분류">{personalCategories.categories.find((item) => item.id !== null && item.id === selected.personalCategoryId)?.name ?? "연결 안 함"}</DetailLine><DetailLine label="취득일">{selected.acquiredDate}</DetailLine><DetailLine label="만료일">{selected.expiresDate}</DetailLine><DetailLine label="등록일">{selected.grantedAt}</DetailLine>
+            {selected.issuer ? <DetailLine label="발급기관">{selected.issuer}</DetailLine> : null}<DetailLine label="기본 분류">{categoryLabel(selected.category)}</DetailLine><DetailLine label="내 분류">{personalCategories.categories.find((item) => item.id !== null && item.id === selected.personalCategoryId)?.name ?? "연결 안 함"}</DetailLine><DetailLine label="취득일">{selected.acquiredDate}</DetailLine><DetailLine label="만료일">{selected.expiresDate}</DetailLine><DetailLine label="등록일">{selected.grantedAt}</DetailLine>
           </>}
         </div>
       </PanelFrame>
