@@ -432,6 +432,26 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
   });
 
   describe("QuestRoute를 명시적으로 선택하고 진행하면", () => {
+    it("기록 여정의 필수 퀘스트를 카탈로그 이름으로 보여주고 현재 단계로 이동한다", async () => {
+      api.listQuestRoutesApi.mockResolvedValue([unselectedRoute]);
+      render(<JourneyShell initialSurface="routes" />);
+      fireEvent.click(await screen.findByRole("button", { name: /기록으로 시작하기/ }));
+      const unselectedThread = await screen.findByRole("region", { name: "경로의 단계 순서" });
+      expect(within(unselectedThread).getByText(/필요 조건: 첫 흔적 남기기/)).toBeInTheDocument();
+      expect(within(unselectedThread).queryByText(/퀘스트 #/)).not.toBeInTheDocument();
+
+      api.listQuestRoutesApi.mockResolvedValue([selectedRoute]);
+      api.listMyQuestRoutesApi.mockResolvedValue([selectedRoute]);
+      api.getMyQuestRouteApi.mockResolvedValue(selectedRoute);
+      fireEvent.click(screen.getByRole("button", { name: "경로 선택" }));
+      await answerDialog();
+      const currentQuest = await within(screen.getByRole("region", { name: "경로의 단계 순서" })).findByRole("button", { name: "첫 흔적 남기기" });
+      fireEvent.click(currentQuest);
+      expect(await screen.findByText("진행 상황")).toBeInTheDocument();
+      expect(api.getPlayerQuestApi).toHaveBeenCalledWith("Q_RECORD_FIRST_TRACE");
+      expect(api.acceptQuestApi).not.toHaveBeenCalled();
+    });
+
     it("첫 목표 퀘스트는 범용 직접 확인 대신 근거 연결을 표시한다", async () => {
       const goal: QuestAcceptance = { ...current[0], id: 801, questId: 901, code: "Q_DEV_DEFINE_BACKEND_GOAL", title: "백엔드 개발 목표 정하기", status: "IN_PROGRESS", progressSource: "MANUAL_CHECK" };
       api.listPlayerQuestsApi.mockResolvedValue([goal]);
