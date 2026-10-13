@@ -76,6 +76,19 @@ function BackendRoleSelect({ disabled, onSelect, onOpenRoles }: { disabled: bool
   </div>;
 }
 
+function BackendRoleName({ roleId }: { roleId: number | null | undefined }) {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!roleId) { setName("역할 정보가 없습니다"); return; }
+    let active = true;
+    void listRolesApi().then((roles) => {
+      if (active) setName(roles.find((role) => role.id === roleId)?.name ?? "역할 정보를 확인할 수 없습니다");
+    }).catch(() => { if (active) setName("역할을 조회하지 못했습니다"); });
+    return () => { active = false; };
+  }, [roleId]);
+  return <>{name ?? "역할 확인 중"}</>;
+}
+
 const SURFACE_COPY: Record<QuestsSubId, string> = {
   current: "수락한 퀘스트의 진행을 확인하세요.",
   catalog: "다음 퀘스트를 찾아보세요.",
@@ -471,7 +484,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
     <div className="lag-journey-list">
       {queries.current.loading && queries.current.data.length === 0 ? <InfoCard>진행 퀘스트를 불러오는 중…</InfoCard> : null}
       {queries.current.error ? <ErrorState text={queries.current.error} retry={() => void queries.current.reload()} /> : null}
-      {!queries.current.loading && !queries.current.error && queries.current.data.length === 0 ? <InfoCard>수락한 퀘스트가 없습니다.</InfoCard> : null}
+      {!queries.current.loading && !queries.current.error && queries.current.data.length === 0 ? <InfoCard>수락한 퀘스트가 없습니다. 퀘스트 목록에서 첫 퀘스트를 선택해 수락하세요. <button type="button" className="lag-journey-button" onClick={() => selectSurface("catalog")}>퀘스트 목록 보기</button></InfoCard> : null}
       {queries.current.data.map((quest) => {
         const percent = questProgressPercent(quest);
         return (
@@ -667,7 +680,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
         </header>
         {progress ? (
           <DetailSection title="경로 진행">
-            <DetailRow name="현재 단계" value={`${currentStepPosition(route) ?? `단계 #${progress.currentStepId}`} · ID ${progress.currentStepId}`} />
+            <DetailRow name="현재 단계" value={`${currentStepPosition(route) ?? "단계 정보 없음"} · ${currentStep?.title ?? "단계 이름을 확인할 수 없습니다"}`} />
             {percent !== null ? <div className="lag-journey-detail-progress"><ProgressBar label="완료한 경로 단계" percent={percent} valueText={`${completedSteps} / ${steps.length} 완료 (${percent}%)`} /></div> : null}
           </DetailSection>
         ) : null}
@@ -675,7 +688,7 @@ export default function JourneyShell({ initialSurface = null, navigation, onNavi
           if (demoRun && code === demoRun.scenarios.journey.firstQuestCode && !latestAcceptance(queries.current.data, code)) void acceptFirstDemoQuest();
           else openRequiredQuest(code);
         }} />
-        {route.code === BACKEND_ROUTE_CODE && progress ? <p className="lag-journey-feedback">선택한 역할 #{progress.roleId ?? "확인 중"} · 여정 선택은 퀘스트를 자동 수락하지 않습니다. 현재 단계의 필수 퀘스트를 직접 수락하고 근거를 연결하세요.</p> : null}
+        {route.code === BACKEND_ROUTE_CODE && progress ? <p className="lag-journey-feedback">선택한 역할: <BackendRoleName key={progress.roleId} roleId={progress.roleId} /> · 여정 선택은 퀘스트를 자동 수락하지 않습니다. 현재 단계의 필수 퀘스트를 직접 수락하고 근거를 연결하세요.</p> : null}
         {detailState?.step ? <InfoCard>현재 단계 상세: {detailState.step.step.title} · {humanize(detailState.step.step.state)}</InfoCard> : null}
         <section className="lag-journey-actions" aria-label="경로 동작">
           {!progress && route.code === BACKEND_ROUTE_CODE ? <BackendRoleSelect disabled={Boolean(pending)} onSelect={(roleId) => void selectRoute(route, roleId)} onOpenRoles={onOpenRoles} /> : null}

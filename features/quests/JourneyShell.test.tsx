@@ -458,9 +458,12 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       api.getMyQuestRouteStepApi.mockResolvedValue(routeStep(backend));
       api.listQuestCatalogApi.mockResolvedValue([...catalog, ...blueprints]);
       api.getPlayerQuestApi.mockResolvedValue({ ...blueprints[0], acceptance: null });
+      roleApi.listRolesApi.mockResolvedValue([{ id: 73, name: "나의 개발 역할" }]);
       render(<JourneyShell initialSurface="routes" />);
       fireEvent.click(await screen.findByRole("button", { name: /백엔드 개발자의 길/ }));
       const thread = await screen.findByRole("region", { name: "경로의 단계 순서" });
+      expect(await screen.findByText(/선택한 역할: 나의 개발 역할/)).toBeInTheDocument();
+      expect(screen.getByText("7단계 중 1단계 · Backend Step 1")).toBeInTheDocument();
       expect(thread.querySelectorAll("ol > li")).toHaveLength(7);
       expect(within(thread).getByText("현재 단계", { exact: true })).toBeInTheDocument();
       expect(within(thread).queryByText("현재 단계 · 현재 단계")).not.toBeInTheDocument();
@@ -594,7 +597,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
 
       await waitFor(() => expect(api.advanceQuestRouteApi).toHaveBeenCalledWith(1, 11));
       expect(api.advanceQuestRouteApi).toHaveBeenCalledTimes(1);
-      expect(await screen.findByText(/ID 12/)).toBeInTheDocument();
+      expect(await screen.findByText("3단계 중 2단계 · 흔적 연결하기")).toBeInTheDocument();
       expect(screen.getByText("현재 단계 상세: 흔적 연결하기 · 현재 단계")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "다음 단계로" })).not.toBeInTheDocument();
     });
@@ -677,7 +680,7 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       await waitFor(() => expect(api.advanceQuestRouteApi).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(api.getMyQuestRouteApi).toHaveBeenCalledTimes(2));
       expect(await screen.findByText(/요청 결과가 확정되지 않았습니다/)).toBeInTheDocument();
-      expect(screen.getByText(/ID 11/)).toBeInTheDocument();
+      expect(screen.getByText("3단계 중 1단계 · 첫 흔적 남기기")).toBeInTheDocument();
     });
 
     it("completed Route에는 select/advance를 다시 노출하지 않는다", async () => {
@@ -704,9 +707,8 @@ describe("Journey에서 Quest와 QuestRoute를 볼 때", () => {
       api.listQuestRoutesApi.mockResolvedValue([]);
       renderCurrentJourney();
 
-      expect(await screen.findByText("수락한 퀘스트가 없습니다.")).toBeInTheDocument();
-      if (screen.queryByRole("button", { name: "여정으로" })) fireEvent.click(screen.getByRole("button", { name: "여정으로" }));
-      fireEvent.click(screen.getByRole("button", { name: /퀘스트 목록/ }));
+      expect(await screen.findByText(/수락한 퀘스트가 없습니다/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "퀘스트 목록 보기" }));
       expect(await screen.findByText("선택할 수 있는 퀘스트가 없습니다.")).toBeInTheDocument();
       if (screen.queryByRole("button", { name: "여정으로" })) fireEvent.click(screen.getByRole("button", { name: "여정으로" }));
       fireEvent.click(screen.getByRole("button", { name: /경로/ }));
