@@ -783,6 +783,10 @@ body {
   gap: var(--lag-space-1);
 }
 
+.lag-role-node > strong:first-child {
+  grid-column: 1 / -1;
+}
+
 .lag-role-node strong {
   overflow-wrap: anywhere;
   font-size: 0.86rem;
