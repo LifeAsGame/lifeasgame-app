@@ -47,11 +47,13 @@ it("보유한 기본 분류만 표시하고 빈 내 분류를 유지한다", asy
 
 it("보유 공식 분류는 기존 보유 응답의 OTHER 대신 카탈로그 상세 코드로 연결한다", async () => {
   catalogApi.getOwnedCategoriesApi.mockResolvedValue([{ id: null, code: "HRDK:M1:S1", name: "Craft / Material", source: "OFFICIAL", kind: "CERTIFICATION" }]);
-  api.getPlayerCertificationsApi.mockResolvedValue([{ ...owned, category: "OTHER" }]);
+  api.getPlayerCertificationsApi.mockResolvedValue([{ ...owned, issuer: null, category: "OTHER" }]);
   catalogApi.getCatalogItemApi.mockResolvedValue({ majorCode: "M1", minorCode: "S1" });
   render(<CertificationShell />);
   fireEvent.click(await screen.findByRole("button", { name: "Craft / Material" }), { detail: 0 });
-  expect(await screen.findByRole("button", { name: /AWS/ })).toBeInTheDocument();
+  const item = await screen.findByRole("button", { name: /AWS/ });
+  expect(item).toHaveTextContent("취득일 미등록");
+  expect(item).not.toHaveTextContent("null");
   expect(catalogApi.getCatalogItemApi).toHaveBeenCalledWith("CERTIFICATION", 1);
 });
 
