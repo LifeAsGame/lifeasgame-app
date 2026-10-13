@@ -40,7 +40,7 @@ it("보유한 기본 분류만 표시하고 빈 내 분류를 유지한다", asy
   expect(screen.getByText("기본 분류")).toBeInTheDocument();
   expect(screen.getAllByText("내 분류").length).toBeGreaterThan(0);
   expect(document.querySelectorAll('[data-stage-key="player-certification-categories"] .lag-role-node')).toHaveLength(2);
-  expect(screen.getByRole("button", { name: /전체 자격증 보기/ })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /자격증 카탈로그 보기/ })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Cloud notes/ }), { detail: 0 });
   expect(screen.getByText("해당 분류의 자격증이 없습니다.")).toBeInTheDocument();
 });

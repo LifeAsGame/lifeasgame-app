@@ -146,7 +146,7 @@ export default function CatalogExplorer({ kind, categories, onClose, onRegister,
               {detail.issuer ? <DetailLine label="발급기관">{detail.issuer}</DetailLine> : null}
               {detail.administeringAgency ? <DetailLine label="시행처">{detail.administeringAgency}</DetailLine> : null}
               {detail.detail ? <DetailLine label="소개 · 시험 정보">{detail.detail}</DetailLine> : null}
-              {detail.detailStatus ? <DetailLine label="정보 상태">{detail.detailStatus}</DetailLine> : null}
+              {detail.detailStatus ? <DetailLine label="정보 상태">{detail.detailStatus === "COMPLETE" ? "제공된 상세 정보 있음" : detail.detailStatus === "BASIC" ? "기본 정보만 제공" : detail.detailStatus}</DetailLine> : null}
               {detail.fetchedAt ? <DetailLine label="갱신일">{detail.fetchedAt}</DetailLine> : null}
               {detail.sourceUrl?.startsWith("https://") ? <a href={detail.sourceUrl} target="_blank" rel="noopener noreferrer">출처 확인</a> : null}
               {detail.owned ? <button type="button" className="lag-player-button" onClick={() => onOwned(detail)}>내 {name} 보기</button> : <button type="button" className="lag-player-button" onClick={() => setRegistering(true)}>내 {name} 등록</button>}

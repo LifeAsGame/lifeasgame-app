@@ -12,10 +12,10 @@ import { categoryKey, type PersonalCategory } from "./personalCategories";
 import { categoryLabel, Feedback } from "./PlayerDetail";
 import { usePersonalCategories } from "./usePersonalCategories";
 
-export default function PlayerCategories({ title, stageKey, model, createRequest, selectedKey, onSelect, onCreate, onDeleted, onBack, onBrowse, visibleCategories, onCreatePrivate, onUnassigned, unassignedCount = 0 }: {
+export default function PlayerCategories({ title, stageKey, model, createRequest, selectedKey, onSelect, onCreate, onDeleted, onBack, onBrowse, browseLabel, visibleCategories, onCreatePrivate, onUnassigned, unassignedCount = 0 }: {
   title: string; stageKey: string; model: ReturnType<typeof usePersonalCategories>; createRequest: number;
   selectedKey: string | null; onSelect: (category: PersonalCategory) => void; onCreate: (category: PersonalCategory) => void;
-  onDeleted: (id: number) => void; onBack?: () => void; onBrowse?: () => void; visibleCategories?: PersonalCategory[];
+  onDeleted: (id: number) => void; onBack?: () => void; onBrowse?: () => void; browseLabel?: string; visibleCategories?: PersonalCategory[];
   onCreatePrivate?: () => void; onUnassigned?: () => void; unassignedCount?: number;
 }) {
   const creation = useCreateMode(createRequest), { confirm, dialog } = useSaoConfirm(), compact = useMediaQuery("(max-width: 1199px)");
@@ -47,7 +47,7 @@ export default function PlayerCategories({ title, stageKey, model, createRequest
         {onUnassigned && unassignedCount > 0 ? <SwipeButton className="lag-role-node" aria-pressed={selectedKey === "unassigned"} onClick={onUnassigned}><strong>분류 없음 · {unassignedCount}</strong></SwipeButton> : null}
         <button type="button" className="lag-player-button" onClick={() => { setRenaming(null); setName(""); creation.open(); }}>내 분류 만들기</button>
         {onCreatePrivate ? <button type="button" className="lag-player-button" onClick={onCreatePrivate}>이름으로 내 취미 만들기</button> : null}
-        {onBrowse ? <SwipeButton className="lag-role-node" aria-pressed={selectedKey === "catalog"} onClick={onBrowse}><strong>전체 {title} 보기</strong></SwipeButton> : null}
+        {onBrowse ? <SwipeButton className="lag-role-node" aria-pressed={selectedKey === "catalog"} onClick={onBrowse}><strong>{browseLabel ?? `전체 ${title} 보기`}</strong></SwipeButton> : null}
       </div>}>
         <form className="lag-player-form lag-personal-category-form" onSubmit={submit}>
           <label className="lag-player-field"><span>분류 이름</span><input aria-label="분류 이름" autoFocus required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} /></label>
