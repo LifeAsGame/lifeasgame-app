@@ -83,7 +83,7 @@ export default function CatalogExplorer({ kind, categories, onClose, onRegister,
 
   return <>
     <PanelStage stageKey={`${prefix}-major`} parentStageKey={`player-${kind === "CERTIFICATION" ? "certification" : "hobby"}-categories`} panelRole="list" inactive={compact && (showMinor || showList)}>
-      <PanelFrame title={`전체 ${name} 보기`} centerSelected centerTargetKey={major ?? query} backButton={<BackButton label={`${name} 분류로`} onClick={onClose} />}>
+      <PanelFrame title={kind === "CERTIFICATION" ? "자격증 카탈로그" : `전체 ${name} 보기`} centerSelected centerTargetKey={major ?? query} backButton={<BackButton label={`${name} 분류로`} onClick={onClose} />}>
         <div className="lag-player-content">
           <form className="lag-player-form" onSubmit={(event) => { event.preventDefault(); const next = searchText.trim(); if (!next) return; setQuery(next); setMajor(null); setMinor(null); setPage(0); setResult(null); setSelectedId(null); requestStageFocus(`${prefix}-items`, "forward"); }}>
             <Field label={`${name} 검색`}><input aria-label={`${name} 검색`} value={searchText} onChange={(event) => setSearchText(event.target.value)} style={controlStyle} /></Field>
@@ -94,7 +94,7 @@ export default function CatalogExplorer({ kind, categories, onClose, onRegister,
           {majors.map(([code, label], index) => <PanelCard key={code} label={label || categoryLabel(code)} slotLabel={(label || code).slice(0, 1)} index={index} selected={major === code} centerTarget={major === code} onClick={() => chooseMajor(code)} />)}
           {!groupError && kind === "CERTIFICATION" && !groups.some((group) => group.source === "HRDK") ? <InfoCard>공식 자격증 데이터가 아직 준비되지 않았습니다. 기존 자격증은 별도로 조회할 수 있습니다.</InfoCard> : null}
           {!groupError && kind === "HOBBY" && !majors.length ? <InfoCard>카탈로그 분류가 없습니다.</InfoCard> : null}
-          {kind === "CERTIFICATION" ? <p className="text-xs">공식 범위는 한국산업인력공단 국가자격에 한정됩니다. 보유 등록은 본인 기록이며 취득 검증이 아닙니다.</p> : <p className="text-xs">추천 취미는 서비스가 정리한 목록입니다.</p>}
+          {kind === "CERTIFICATION" ? <p className="text-xs">공식 종목은 한국산업인력공단 API가 이번 조회에서 제공한 범위입니다. LEGACY는 공식 목록이 아닙니다. 보유 등록은 본인 기록이며 취득 검증이 아닙니다.</p> : <p className="text-xs">추천 취미는 서비스가 정리한 목록입니다.</p>}
         </div>
       </PanelFrame>
     </PanelStage>
@@ -109,7 +109,7 @@ export default function CatalogExplorer({ kind, categories, onClose, onRegister,
           {listError ? <Feedback message={listError} retry={() => setRevision((value) => value + 1)} /> : null}
           {!result && !listError ? <InfoCard>카탈로그를 불러오는 중…</InfoCard> : null}
           {result && !result.items.length ? <InfoCard>해당 결과가 없습니다.</InfoCard> : null}
-          {result?.items.map((item, index) => <PanelCard key={item.catalogItemId} label={item.name} slotLabel={item.name.slice(0, 1)} subtitle={`${item.issuer ?? item.administeringAgency ?? categoryLabel(item.category)}${item.owned ? " · 내 항목" : ""}`} index={index} selected={selectedId === item.catalogItemId} centerTarget={selectedId === item.catalogItemId} onClick={() => chooseItem(item)} onDoubleClick={() => chooseItem(item, true)} />)}
+          {result?.items.map((item, index) => <PanelCard key={item.catalogItemId} label={item.name} slotLabel={item.name.slice(0, 1)} subtitle={`${kind === "CERTIFICATION" && item.source === "LEGACY" ? "LEGACY 테스트 항목" : item.issuer ?? item.administeringAgency ?? categoryLabel(item.category)}${item.owned ? " · 내 항목" : ""}`} index={index} selected={selectedId === item.catalogItemId} centerTarget={selectedId === item.catalogItemId} onClick={() => chooseItem(item)} onDoubleClick={() => chooseItem(item, true)} />)}
           {result && result.totalPages > 1 ? <div className="lag-player-actions"><button type="button" disabled={page === 0} onClick={() => setPage((value) => value - 1)}>이전</button><span>{page + 1} / {result.totalPages}</span><button type="button" disabled={page + 1 >= result.totalPages} onClick={() => setPage((value) => value + 1)}>다음</button></div> : null}
         </div>
       </PanelFrame>
@@ -141,6 +141,7 @@ export default function CatalogExplorer({ kind, categories, onClose, onRegister,
               {registrationError ? <Feedback message={registrationError} /> : saveError ? <Feedback message={saveError} /> : null}
               <button type="submit" className="lag-player-button" disabled={saving}>{saving ? "저장 중…" : `${name} 저장`}</button>
             </form> : <>
+              {kind === "CERTIFICATION" ? <DetailLine label="출처">{detail.source === "HRDK" ? "한국산업인력공단 제공 종목" : "LEGACY 테스트 항목 (공식 목록 아님)"}</DetailLine> : null}
               <DetailLine label="분류">{[detail.majorName, detail.minorName].filter((value): value is string => Boolean(value)).map(categoryLabel).join(" › ") || categoryLabel(detail.category)}</DetailLine>
               {detail.issuer ? <DetailLine label="발급기관">{detail.issuer}</DetailLine> : null}
               {detail.administeringAgency ? <DetailLine label="시행처">{detail.administeringAgency}</DetailLine> : null}
