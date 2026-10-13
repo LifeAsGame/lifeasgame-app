@@ -42,6 +42,13 @@ it("separates deposits, delivery, ownership and server item description without 
   expect(screen.queryByText(/INTERNAL/)).not.toBeInTheDocument();
 });
 
+it("explains when a delivered item has no description", async () => {
+  api.getItemApi.mockResolvedValue({ id: 7, name: "첫걸음의 조각", description: null });
+  render(<RewardSettlementPanel acceptanceId={31} />);
+  expect(await screen.findByText(/설명이 등록되지 않았습니다/)).toBeInTheDocument();
+  expect(screen.queryByText(/No description provided/)).not.toBeInTheDocument();
+});
+
 it.each([
   ["PENDING", "PENDING", "정산 대기 중"],
   ["PARTIAL_FAILED", "FAILED", "일부 보상 처리가 실패"],
@@ -88,13 +95,13 @@ it("preserves confirmed lines when a later GET fails and item detail failure sta
   api.getItemApi.mockRejectedValue(new Error("item unavailable"));
   render(<RewardSettlementPanel acceptanceId={31} />);
   await screen.findByText(resultLine("GOLD × 100 · 성공"));
-  await screen.findByText(/Item description unavailable/);
+  await screen.findByText(/아이템 정보를 불러오지 못했습니다/);
   api.getQuestRewardSettlementApi.mockRejectedValueOnce(new Error("offline"));
   fireEvent.click(screen.getByRole("button", { name: "정산 새로고침" }));
   await screen.findByText(/마지막으로 확인한 정산/);
   expect(screen.getByText(resultLine("GOLD × 100 · 성공"))).toBeInTheDocument();
   api.getItemApi.mockResolvedValue({ id: 7, name: "기록 결정", description: "Server description" });
-  fireEvent.click(screen.getByRole("button", { name: "Retry item details" }));
+  fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
   expect(await screen.findByText(/Server description/)).toBeInTheDocument();
   expect(api.getQuestRewardSettlementApi).toHaveBeenCalledTimes(2);
 });
