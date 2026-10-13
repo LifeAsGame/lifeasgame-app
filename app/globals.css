@@ -1361,7 +1361,7 @@ body {
 .lag-gear-card {
   display: grid;
   min-height: 76px;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--lag-space-3);
   padding: var(--lag-space-3);
@@ -1388,8 +1388,8 @@ body {
 .lag-gear-part > span:first-child,
 .lag-gear-card > span:first-child {
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 48px;
+  height: 48px;
   place-items: center;
   border: 1px solid var(--lag-violet);
   border-radius: 50%;
@@ -1397,6 +1397,10 @@ body {
   color: var(--lag-text-2);
   font-size: 0.68rem;
   font-weight: 700;
+}
+
+.lag-gear-part > span:first-child {
+  grid-row: 1 / span 2;
 }
 
 .lag-equipment-icon img {

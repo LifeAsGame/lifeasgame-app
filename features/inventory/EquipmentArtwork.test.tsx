@@ -11,7 +11,18 @@ it("maps the server item code to the approved preview path and keeps a missing-i
   items.getItemApi.mockResolvedValue({ id: 42, code: "IT_RECORD_KEEPER_HAT" });
   const { container } = render(<EquipmentArtwork itemId={42} kind="preview" name="기록자의 모자" />);
   await waitFor(() => expect(container.querySelector("img")?.getAttribute("src")).toMatch(/\/content\/equipment\/IT_RECORD_KEEPER_HAT\/preview\.webp$/));
+  expect(container.querySelector("img")).toHaveAttribute("loading", "eager");
   fireEvent.error(container.querySelector("img") as HTMLImageElement);
   expect(screen.getByText("이미지 준비 중")).toBeInTheDocument();
   expect(container.querySelector("img")).toBeNull();
+});
+
+it.each([
+  ["IT_RECORD_KEEPER_HAT", "icon", "icon.webp"],
+  ["IT_DEVELOPER_HOODIE", "icon", "icon.webp"],
+  ["IT_DEVELOPER_HOODIE", "preview", "preview.webp"],
+] as const)("uses the supplied asset key for %s %s", async (code, kind, filename) => {
+  items.getItemApi.mockResolvedValue({ id: 42, code });
+  const { container } = render(<EquipmentArtwork itemId={42} kind={kind} name="장비" />);
+  await waitFor(() => expect(container.querySelector("img")?.getAttribute("src")).toContain(`/content/equipment/${code}/${filename}`));
 });
