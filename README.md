@@ -94,10 +94,20 @@ app → widgets → features → entities → shared
 
 ## Getting Started
 
+Use Node.js 22 (at least 22.22.2, required by the locked test dependencies).
+Local development and CI select this major through `.nvmrc`; `engines.node`
+selects the same major for Vercel. No global Node installation change is required.
+
 ```bash
-npm install
+nvm use
+npm ci
 npm run dev
 ```
+
+Production builds use `npm run build` (`next build --webpack`) in local checks,
+PR CI, and `vercel.json`. Vercel's Production branch, environment variables, and
+automatic domain assignment remain project settings; repository build settings
+do not gate publication. Release preparation does not authorize a merge or deploy.
 
 [http://localhost:3000](http://localhost:3000) 접속
 
