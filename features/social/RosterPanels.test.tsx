@@ -29,6 +29,7 @@ it("uses empty-list capabilities to register an offline entry without adding a s
   api.createRosterRow.mockResolvedValue(row);
   render(<RosterPanels groupType="GUILD" groupId={3} maxMembers={10} creating onBack={vi.fn()} />);
   await screen.findByText(/실제 가입 1\/10명/);
+  await waitFor(() => expect(screen.queryByText("명부를 불러오는 중…")).not.toBeInTheDocument());
   fireEvent.change(screen.getByRole("textbox", { name: "공유 이름" }), { target: { value: "오프라인 멤버" } });
   fireEvent.change(screen.getByRole("textbox", { name: "모임 내 역할·소개" }), { target: { value: "기록 담당" } });
   expect(screen.getByRole("textbox", { name: "공유 이름" })).toHaveValue("오프라인 멤버");
