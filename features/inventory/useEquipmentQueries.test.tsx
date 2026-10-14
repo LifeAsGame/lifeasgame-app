@@ -37,7 +37,7 @@ const item: InventoryEntry = {
 };
 const inventory: InventoryEntriesResponse = { entries: [item] };
 const slots: EquipmentSlotInfo[] = [
-  { slotId: 21, slotCode: "HEAD", slotName: "Head", slotCategory: null, slotRole: null, itemInstanceId: null },
+  { slotId: 21, slotCode: "HEAD", slotName: "Head", slotCategory: "HEAD", slotRole: "SINGLE", itemInstanceId: null },
 ];
 
 function deferred<T>() {
@@ -110,7 +110,7 @@ describe("Gear server query state를 관리할 때", () => {
       ["AURA", "ACCESSORY", "ETC", "not available"],
       ["TITLE", "ACCESSORY", "ETC", "not available"],
     ])("%s slot과 %s/%s item은 API 호출로 우회되지 않는다", async (slotCode, category, type, reason) => {
-      equipmentApi.getEquippedGearApi.mockResolvedValue([{ ...slots[0], slotCode }]);
+      equipmentApi.getEquippedGearApi.mockResolvedValue([{ ...slots[0], slotCode, slotCategory: slotCode === "BODY" ? "CHEST" : slotCode === "HEAD" ? "HEAD" : null }]);
       inventoryApi.getInventoryApi.mockResolvedValue({ entries: [{ ...item, category, type }] });
       const { result, unmount } = renderHook(() => useEquipmentQueries());
       await waitFor(() => expect(result.current.inventory.data.entries).toHaveLength(1));
@@ -126,8 +126,8 @@ describe("Gear server query state를 관리할 때", () => {
   });
 
   describe("Unequip을 요청하면", () => {
-    it("UNVERIFIABLE occupied slot도 해제하며 duplicate submit과 ambiguous failure를 복구한다", async () => {
-      const occupied = [{ ...slots[0], slotCode: "FEET", itemInstanceId: 501 }];
+    it("지원되는 occupied slot을 해제하며 duplicate submit과 ambiguous failure를 복구한다", async () => {
+      const occupied = [{ ...slots[0], itemInstanceId: 501 }];
       const request = deferred<{ slotId: number }>();
       equipmentApi.getEquippedGearApi.mockResolvedValue(occupied);
       inventoryApi.getInventoryApi.mockResolvedValue({ entries: [{ ...item, category: "ARMOR", type: "ETC" }] });

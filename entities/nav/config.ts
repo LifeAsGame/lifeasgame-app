@@ -72,10 +72,3 @@ export const DEFAULT_SUB_SELECTIONS: Record<MainNavId, string | null> = {
   player: null, inventory: null, quests: null, role: null, social: null,
   lifelog: null, market: null, system: null,
 };
-
-export const INVENTORY_GEAR_PARTS: PanelMenuItem[] = [
-  { id: "weapon",    label: "무기",   slotLabel: "무" },
-  { id: "armor",     label: "방어구", slotLabel: "방" },
-  { id: "accessory", label: "장신구", slotLabel: "장" },
-  { id: "boots",     label: "신발",   slotLabel: "신" },
-];

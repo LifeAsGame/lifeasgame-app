@@ -10,7 +10,6 @@ export type MainNavId =
 
 export type PlayerSubId = "growth" | "achievement" | "credentials" | "title" | "interests";
 export type InventorySubId = "items" | "gear" | "inbox";
-export type InventoryGearPartId = "weapon" | "armor" | "accessory" | "boots";
 export type QuestsSubId = "current" | "catalog" | "routes";
 export type RoleSubId = "overview" | "relations" | "events" | "parties";
 export type SocialSubId = "guilds" | "parties" | "role-parties" | "roster-invitations";
