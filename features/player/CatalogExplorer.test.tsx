@@ -53,3 +53,15 @@ it("검색은 이름 질의를 보내고 이미 보유한 항목은 다시 등�
   expect(onOwned).toHaveBeenCalledWith(ownedItem);
   expect(onRegister).not.toHaveBeenCalled();
 });
+
+it("기존 취미 항목을 서비스 추천 목록으로 표시하지 않는다", async () => {
+  const legacyHobby = { ...item, catalogItemId: 1, name: "FIXTURE-384385-HOBBY", category: "ARTS", source: "LEGACY", majorCode: "ARTS", majorName: "ARTS", minorCode: null, minorName: null };
+  catalog.getCatalogGroupsApi.mockResolvedValue([{ majorCode: "ARTS", majorName: "ARTS", minorCode: null, minorName: null, source: "LEGACY" }]);
+  catalog.getCatalogItemsApi.mockResolvedValue({ items: [legacyHobby], page: 0, size: 20, totalElements: 1, totalPages: 1 });
+  catalog.getCatalogItemApi.mockResolvedValue(legacyHobby);
+  render(<CatalogExplorer kind="HOBBY" categories={[]} onClose={vi.fn()} onRegister={vi.fn()} onOwned={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: "미술" }));
+  expect(await screen.findByText("기존 항목 · 추천 목록 아님")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /FIXTURE-384385-HOBBY/ }));
+  expect(await screen.findByText("기존 항목 (서비스 추천 목록 아님)")).toBeInTheDocument();
+});
